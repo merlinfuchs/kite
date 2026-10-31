@@ -22,7 +22,7 @@ export default function AppPluginsPage() {
         <p className="text-muted-foreground text-sm">
           Plugins are being replaced by{" "}
           <Link
-            href={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+            href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
             className="text-primary hover:underline"
           >
             templates

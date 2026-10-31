@@ -163,6 +163,19 @@ func TestFilterEvent(t *testing.T) {
 	assert.True(t, entry.FilterEvent(testEventData{event: human}, testBotID))
 }
 
+func TestFilterEventParameters(t *testing.T) {
+	data := eventFlowWithFilter("message_create", *filter(EventFilterTypeMessageContent, ComparsionModeStartsWith, "{{ params.prefix }}help"))
+	data.Parameters = []FlowParameter{{Key: "prefix", Type: FlowParameterTypeText, Value: "!"}}
+	entry, err := CompileEventListener(data)
+	require.NoError(t, err)
+
+	message := func(content string) testEventData {
+		return testEventData{event: &gateway.MessageCreateEvent{Message: discord.Message{Content: content}}}
+	}
+	assert.True(t, entry.FilterEvent(message("!help me"), testBotID))
+	assert.False(t, entry.FilterEvent(message("{{ params.prefix }}help"), testBotID))
+}
+
 func TestValidateEventFilters(t *testing.T) {
 	tests := []struct {
 		name      string

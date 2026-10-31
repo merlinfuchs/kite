@@ -1485,6 +1485,7 @@ type MessageEnv struct {
 	// reaction, but its fields are empty instead of failing, see fetchField.
 	Author    *UserEnv       `expr:"author" json:"author" desc:"Empty if only the ID of the message is known, like for reactions"`
 	Reactions []*ReactionEnv `expr:"reactions" json:"reactions" desc:"Empty for the message of an event, get the message with a block to count its reactions"`
+	Mentions  []*UserEnv     `expr:"mentions" json:"mentions" desc:"Users the message pings, including the author of the message it replies to if the reply pings them"`
 }
 
 func NewMessageEnv(msg discord.Message) *MessageEnv {
@@ -1495,12 +1496,16 @@ func NewMessageEnv(msg discord.Message) *MessageEnv {
 		ChannelID: msg.ChannelID.String(),
 		Content:   msg.Content,
 		Reactions: make([]*ReactionEnv, len(msg.Reactions)),
+		Mentions:  make([]*UserEnv, len(msg.Mentions)),
 	}
 	if msg.Author.ID.IsValid() {
 		env.Author = NewUserEnv(msg.Author)
 	}
 	for i, r := range msg.Reactions {
 		env.Reactions[i] = &ReactionEnv{Emoji: NewEmojiEnv(r.Emoji), Count: r.Count}
+	}
+	for i, u := range msg.Mentions {
+		env.Mentions[i] = NewUserEnv(u.User)
 	}
 	return env
 }
@@ -1909,6 +1914,7 @@ type RobloxUserEnv struct {
 	IsBanned               bool   `expr:"is_banned" json:"is_banned"`
 	HasVerifiedBadge       bool   `expr:"has_verified_badge" json:"has_verified_badge"`
 	ExternalAppDisplayName string `expr:"external_app_display_name" json:"external_app_display_name"`
+	AvatarURL              string `expr:"avatar_url" json:"avatar_url" desc:"URL of a 150x150 PNG of the avatar's head, empty if Roblox has none. Expires after about 30 days"`
 }
 
 func (r RobloxUserEnv) String() string {
@@ -1927,5 +1933,6 @@ func NewRobloxUserEnv(user thing.RobloxUserValue) *RobloxUserEnv {
 		IsBanned:               user.IsBanned,
 		HasVerifiedBadge:       user.HasVerifiedBadge,
 		ExternalAppDisplayName: user.ExternalAppDisplayName,
+		AvatarURL:              user.AvatarURL,
 	}
 }

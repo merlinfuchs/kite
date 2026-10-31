@@ -223,6 +223,15 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' has no output 'error', only 'default'. To handle errors, put the block after the default output of an error handler block.",
     ]);
+
+    const check = node("if", "control_if", {
+      condition_base_value: "{{true}}",
+    });
+    expect(
+      errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
+    ).toEqual([
+      "'If' has no output 'default', only 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
+    ]);
   });
 
   it("accepts outputs of message components", () => {
@@ -694,6 +703,24 @@ describe("validateFlow", () => {
     for (const duration of ["", "0", "1.5", "-5", "3601"]) {
       expect(flow(duration)).not.toEqual([]);
     }
+  });
+
+  it("lets the cooldown message show the seconds left", () => {
+    const cooldown = (message: string) =>
+      node("cooldown", "option_command_cooldown", {
+        cooldown_duration_seconds: "30",
+        cooldown_message: message,
+      });
+    const message = "Try again in {{var('cooldown_remaining')}} seconds.";
+    expect(
+      errors([entry, cooldown(message)], [edge("cooldown", "entry")])
+    ).toEqual([]);
+    expect(
+      errors(
+        [entry, cooldown("hi"), log("log", message)],
+        [edge("cooldown", "entry"), edge("entry", "log")]
+      )
+    ).not.toEqual([]);
   });
 
   it("reports block types it doesn't know", () => {

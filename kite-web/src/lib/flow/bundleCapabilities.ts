@@ -1,6 +1,7 @@
 import { blockIntegrations, getBlockDefinition } from "../blocks";
 import { getIntegration } from "../integrations";
 import { placeholderReferences } from "./templateSecrets";
+import { isNoteNode } from "./notes";
 
 // What a bundle's blocks can do that someone adding it should know about,
 // since its flows run with their bot and credits.
@@ -13,6 +14,10 @@ export const capabilityGroups = [
       "action_member_kick",
       "action_member_timeout",
     ],
+  },
+  {
+    label: "Server-mutes, deafens or moves members in voice",
+    types: ["action_member_voice_edit"],
   },
   {
     label: "Deletes messages, reactions, channels or roles",
@@ -49,8 +54,12 @@ export const capabilityGroups = [
     types: ["action_private_message_create"],
   },
   {
-    label: "Changes your bot's status",
-    types: ["action_status_set"],
+    label: "Sends messages with another name and avatar",
+    types: ["action_persona_message_create"],
+  },
+  {
+    label: "Changes your bot's status or server profile",
+    types: ["action_status_set", "action_server_profile_edit"],
   },
   {
     label: "Sends requests to other websites",
@@ -65,6 +74,7 @@ export const capabilityGroups = [
     types: [
       "action_ai_chat_completion",
       "action_ai_score",
+      "action_ai_translate",
       "action_ai_web_search",
       "control_ai_check",
       "control_condition_ai_choice",
@@ -76,6 +86,12 @@ export const capabilityGroups = [
 // pointed out. Every one of them is in a group or here, a test checks it.
 export const harmlessTypes = [
   "action_channel_get",
+  "action_cookie_api_captcha_create",
+  "action_cookie_api_captcha_get",
+  "action_cookie_api_card_create",
+  "action_cookie_api_minecraft_user_get",
+  "action_cookie_api_qr_code_create",
+  "action_cookie_api_transcript_create",
   "action_erlc_command_run",
   "action_erlc_server_get",
   "action_expression_evaluate",
@@ -109,6 +125,8 @@ export const harmlessTypes = [
   "action_variable_delete",
   "action_variable_get",
   "action_variable_set",
+  "action_voice_audio_play",
+  "action_voice_audio_stop",
   "action_voice_channel_join",
   "action_voice_channel_leave",
   "action_webhook_response_create",
@@ -124,6 +142,7 @@ export const harmlessTypes = [
   "control_condition_user",
   "control_error_handler",
   "control_flow_end",
+  "control_if",
   "control_loop",
   "control_loop_each",
   "control_loop_end",
@@ -134,11 +153,12 @@ export const harmlessTypes = [
 
 // bundleCapabilities are the things the blocks of the flows can do, in the
 // order of capabilityGroups, then the integrations other than Discord and the
-// secrets they use, and whether they have IDs of the server they were made in.
-export function bundleCapabilities(
-  flows: { nodes: { type?: string; data?: unknown }[] }[]
-): string[] {
-  const nodes = flows.flatMap((f) => f.nodes);
+// secrets they use, whether the bundle has IDs of the server it was made in,
+// and whether it seems to have a credential.
+export function bundleCapabilities(content: SharedContent): string[] {
+  const { flows } = content;
+  // Notes don't run, what's written in them isn't used.
+  const nodes = flows.flatMap((f) => f.nodes).filter((n) => !isNoteNode(n));
   const types = new Set(nodes.map((n) => n.type));
 
   const res = capabilityGroups.flatMap((g) =>
@@ -159,9 +179,10 @@ export function bundleCapabilities(
 
   // Secrets aren't part of the bundle, but its blocks use the secrets of the
   // same name in the app that adds it.
-  const data = nodes.map((n) => JSON.stringify(n.data ?? {}));
   const secrets = Array.from(
-    new Set(data.flatMap((d) => placeholderReferences(d, "secrets")))
+    new Set(
+      blockSettings(flows).flatMap((d) => placeholderReferences(d, "secrets"))
+    )
   );
   if (secrets.length) {
     res.push(
@@ -171,11 +192,82 @@ export function bundleCapabilities(
     );
   }
 
-  // An ID typed into a block only exists in the server it was made in.
-  if (data.some((d) => /\b\d{17,20}\b/.test(d))) {
+  if (hasServerIds(content)) {
     res.push(
       "Has IDs of channels, roles or users of the server it was made in"
     );
   }
+  if (hasCredential(content)) {
+    res.push(
+      "Seems to have an API key or token typed in, instead of using a secret"
+    );
+  }
   return res;
 }
+
+type Flow = { nodes: { type?: string; data?: unknown }[] };
+
+// SharedContent is what a bundle shares: its flows, the data of its message
+// templates and the defaults of its parameters.
+type SharedContent = {
+  flows: Flow[];
+  messages?: unknown[];
+  defaults?: string[];
+};
+
+// blockSettings are the JSON of the settings of the blocks. Notes don't run,
+// so they're left out unless withNotes, but they're part of the bundle.
+function blockSettings(flows: Flow[], withNotes = false): string[] {
+  return flows
+    .flatMap((f) => f.nodes)
+    .filter((n) => withNotes || !isNoteNode(n))
+    .map((n) => JSON.stringify(n.data ?? {}));
+}
+
+// hasServerIds is whether an ID is typed into a block or a message template,
+// which only exists in the server it was made in. The IDs in Discord's file
+// URLs work everywhere, and the one in a webhook URL is part of a credential.
+export function hasServerIds({ flows, messages = [] }: SharedContent): boolean {
+  return [
+    ...blockSettings(flows),
+    ...messages.map((m) => JSON.stringify(m)),
+  ].some((d) => /\b\d{17,20}\b/.test(d.replace(urlsWithIds, "")));
+}
+
+const urlsWithIds =
+  /(cdn|media)\.discordapp\.(com|net)\/[^\s"]*|webhooks\/\d+\/[\w-]*/g;
+
+// hasCredential is whether the bundle seems to have a key or token typed in,
+// which anyone can see in it.
+export function hasCredential({
+  flows,
+  messages = [],
+  defaults = [],
+}: SharedContent): boolean {
+  return [
+    ...blockSettings(flows, true),
+    ...messages.map((m) => JSON.stringify(m)),
+    ...defaults,
+  ].some((d) => credentialPatterns.some((p) => p.test(d)));
+}
+
+// secretName matches the names of headers, query params and JSON fields that
+// hold a credential, like X-API-Key or client_secret.
+const secretName = String.raw`[\w-]*?(api[-_]?key|token|secret|password|authorization)`;
+
+// credentialPatterns match keys and tokens in the JSON of the settings of
+// blocks and message templates, where a secret should be used. A value with a
+// placeholder in it isn't one.
+const credentialPatterns = [
+  // Discord webhook URLs
+  /discord(app)?\.com\/api\/(v\d+\/)?webhooks\/\d{17,20}\/[\w-]{60,}/,
+  // OpenAI, Anthropic, OpenRouter, Stripe, GitHub, Slack, Google, AWS
+  /\b(sk-[\w-]{20,}|[sr]k_live_\w{16,}|gh[pousr]_\w{30,}|github_pat_\w{30,}|xox[abprs]-[\w-]{10,}|AIza[\w-]{35}|AKIA[0-9A-Z]{16})/,
+  // Discord bot tokens
+  /\b[\w-]{24,28}\.[\w-]{6}\.[\w-]{27,}/,
+  /\b(Bearer|Basic) (?=[\w\-.~+/]*\d)[\w\-.~+/]{20,}/,
+  // Headers and query params of HTTP requests, fields of JSON bodies and URLs
+  new RegExp(`"key":"${secretName}","value":"[^"{]{16,}"`, "i"),
+  new RegExp(`"${secretName}":"[^"{]{16,}"`, "i"),
+  new RegExp(`[?&#;](key|${secretName})=[^&{"\\s]{16,}`, "i"),
+];

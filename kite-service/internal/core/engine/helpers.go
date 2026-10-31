@@ -27,6 +27,7 @@ type Env struct {
 	AppStore             store.AppStore
 	FeatureProvider      FeatureProvider
 	BlockRateLimiter     *BlockRateLimiter
+	WebhookCache         *WebhookCache
 	LogStore             store.LogStore
 	UsageStore           store.UsageStore
 	MessageStore         store.MessageStore
@@ -46,6 +47,9 @@ type Env struct {
 	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// Voice keeps the voice connections that play audio. Without it, flows
+	// can't play audio.
+	Voice *VoiceManager
 }
 
 type entityLinks struct {
@@ -84,7 +88,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,
@@ -151,7 +155,7 @@ func (s Env) flowContext(
 	evalCtx.SetResumeContext(earlier)
 
 	// Every node of a flow has its parameters, also when it's resumed.
-	params := map[string]string{}
+	params := map[string]any{}
 	if node != nil && node.Parameters != nil {
 		params = node.Parameters
 	}
@@ -257,12 +261,15 @@ func (s Env) executeFlowAfterSleep(
 // finishFlowRun records the error and usage of a flow execution.
 func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowContext, err error, errMessage string) {
 	if err != nil {
-		s.createLogEntry(
-			appID,
-			model.LogLevelError,
-			fmt.Sprintf("%s: %v", errMessage, err),
-			links,
-		)
+		entry := newLogEntry(appID, model.LogLevelError, fmt.Sprintf("%s: %v", errMessage, err), links)
+
+		info := flow.DescribeError(err)
+		entry.NodeID = null.NewString(info.NodeID, info.NodeID != "")
+		entry.NodeType = null.NewString(string(info.NodeType), info.NodeType != "")
+		entry.ErrorCode = null.StringFrom(string(info.Code))
+		entry.Details = info.Details
+
+		s.storeLogEntry(entry)
 	}
 
 	s.createUsageRecord(
@@ -273,11 +280,11 @@ func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowConte
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+	s.storeLogEntry(newLogEntry(appID, level, message, links))
+}
 
-	// Create log entry which will be displayed in the dashboard
-	err := s.LogStore.CreateLogEntry(ctx, model.LogEntry{
+func newLogEntry(appID string, level model.LogLevel, message string, links entityLinks) model.LogEntry {
+	return model.LogEntry{
 		AppID:           appID,
 		Level:           level,
 		Message:         message,
@@ -285,9 +292,17 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,
 		CreatedAt:       time.Now().UTC(),
-	})
+	}
+}
+
+func (s Env) storeLogEntry(entry model.LogEntry) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	// Create log entry which will be displayed in the dashboard
+	err := s.LogStore.CreateLogEntry(ctx, entry)
 	if err != nil {
-		slog.With("error", err).With("app_id", appID).Error("Failed to create log entry from engine")
+		slog.With("error", err).With("app_id", entry.AppID).Error("Failed to create log entry from engine")
 	}
 }
 

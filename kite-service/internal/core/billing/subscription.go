@@ -175,14 +175,9 @@ func SubscriptionFromLemonSqueezy(lemonSqueezyID string, sub lemonsqueezy.Subscr
 }
 
 // entitlementEndsAt derives the entitlement end date from the subscription's
-// dates. renews_at is the default, so an entitlement never outlives the period
-// that has been paid for. ends_at wins when it comes first, which is the case
-// for a cancelled subscription serving out its remaining period.
+// dates, so an entitlement never outlives the period that has been paid for.
 func entitlementEndsAt(renewsAt null.Time, endsAt null.Time) null.Time {
-	result := renewsAt
-	if endsAt.Valid && (!result.Valid || endsAt.Time.Before(result.Time)) {
-		result = endsAt
-	}
+	result := model.PaidUntil(renewsAt, endsAt)
 	if !result.Valid {
 		// Neither date is set, which means the subscription will not renew and
 		// has no remaining paid period - a paused one, for example. Ending the

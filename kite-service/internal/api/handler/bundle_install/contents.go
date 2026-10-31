@@ -187,14 +187,14 @@ func (ids bundleIDs) remap(flowSource *flow.FlowData) error {
 		if key := node.Data.MessageTemplateID; key != "" {
 			id, ok := ids.messages[key]
 			if !ok {
-				return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s of the bundle, which the app doesn't have", node.ID, key))
+				return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s of the template, which the app doesn't have", node.ID, key))
 			}
 			flowSource.Nodes[i].Data.MessageTemplateID = id
 		}
 		if key := node.Data.VariableID; key != "" {
 			id, ok := ids.variables[key]
 			if !ok {
-				return handler.ErrBadRequest("unknown_variable", fmt.Sprintf("block %s uses variable %s of the bundle, which the app doesn't have", node.ID, key))
+				return handler.ErrBadRequest("unknown_variable", fmt.Sprintf("block %s uses variable %s of the template, which the app doesn't have", node.ID, key))
 			}
 			flowSource.Nodes[i].Data.VariableID = id
 		}

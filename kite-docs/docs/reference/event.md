@@ -36,7 +36,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
-![Example Event Flow](./img/example-event-flow.png)
+![Example Event Flow](./img/example-event-flow.webp)
 
 ## Audit Log Entry
 
@@ -60,6 +60,63 @@ It runs for every kind of action, so add an [Event Filter](./blocks/options/opti
 - Discord logs timeouts as member updates. Kite calls them `member_timeout_add` and `member_timeout_remove`, so they can be picked on their own. A timeout that runs out by itself isn't logged.
 - Messages deleted by their author aren't in the audit log. Use Message Delete for those.
 - `{{user}}` only has the ID and mention of members Kite hasn't seen in the server since your app connected. Use a Get Member block if you need more.
+
+### Actions
+
+These are the actions the Event Filter can pick, and the value `{{audit_log.action}}` has for them. When the target is a member, role or channel, `{{audit_log.target}}` mentions it. For other actions it's the ID of what was changed, like the webhook or the emoji.
+
+| `{{audit_log.action}}`                        | In the Event Filter            | Target                |
+| --------------------------------------------- | ------------------------------ | --------------------- |
+| `member_ban_add`                              | Member Banned                  | Member                |
+| `member_ban_remove`                           | Member Unbanned                | Member                |
+| `member_kick`                                 | Member Kicked                  | Member                |
+| `member_timeout_add`                          | Member Timed Out               | Member                |
+| `member_timeout_remove`                       | Member Timeout Removed         | Member                |
+| `member_role_update`                          | Member Roles Changed           | Member                |
+| `member_update`                               | Member Updated                 | Member                |
+| `member_prune`                                | Members Pruned                 | None                  |
+| `member_move`                                 | Member Moved in Voice          | None                  |
+| `member_disconnect`                           | Member Disconnected from Voice | None                  |
+| `bot_add`                                     | Bot Added                      | The bot               |
+| `message_delete`                              | Message Deleted by Moderator   | Author of the message |
+| `message_bulk_delete`                         | Messages Bulk Deleted          | Channel               |
+| `message_pin`                                 | Message Pinned                 | Author of the message |
+| `message_unpin`                               | Message Unpinned               | Author of the message |
+| `channel_create`                              | Channel Created                | Channel               |
+| `channel_update`                              | Channel Updated                | Channel               |
+| `channel_delete`                              | Channel Deleted                | Channel               |
+| `channel_overwrite_create`                    | Channel Permission Added       | Channel               |
+| `channel_overwrite_update`                    | Channel Permission Updated     | Channel               |
+| `channel_overwrite_delete`                    | Channel Permission Removed     | Channel               |
+| `thread_create`                               | Thread Created                 | Channel               |
+| `thread_update`                               | Thread Updated                 | Channel               |
+| `thread_delete`                               | Thread Deleted                 | Channel               |
+| `role_create`                                 | Role Created                   | Role                  |
+| `role_update`                                 | Role Updated                   | Role                  |
+| `role_delete`                                 | Role Deleted                   | Role                  |
+| `guild_update`                                | Server Updated                 | ID                    |
+| `invite_create`                               | Invite Created                 | None                  |
+| `invite_delete`                               | Invite Deleted                 | None                  |
+| `webhook_create`                              | Webhook Created                | ID                    |
+| `webhook_update`                              | Webhook Updated                | ID                    |
+| `webhook_delete`                              | Webhook Deleted                | ID                    |
+| `emoji_create`                                | Emoji Created                  | ID                    |
+| `emoji_update`                                | Emoji Updated                  | ID                    |
+| `emoji_delete`                                | Emoji Deleted                  | ID                    |
+| `sticker_create`                              | Sticker Created                | ID                    |
+| `sticker_update`                              | Sticker Updated                | ID                    |
+| `sticker_delete`                              | Sticker Deleted                | ID                    |
+| `guild_scheduled_event_create`                | Server Event Created           | ID                    |
+| `guild_scheduled_event_update`                | Server Event Updated           | ID                    |
+| `guild_scheduled_event_delete`                | Server Event Deleted           | ID                    |
+| `auto_moderation_block_message`               | AutoMod Blocked a Message      | Member                |
+| `auto_moderation_flag_to_channel`             | AutoMod Flagged a Message      | Member                |
+| `auto_moderation_user_communication_disabled` | AutoMod Timed Out a Member     | Member                |
+| `auto_moderation_rule_create`                 | AutoMod Rule Created           | ID                    |
+| `auto_moderation_rule_update`                 | AutoMod Rule Updated           | ID                    |
+| `auto_moderation_rule_delete`                 | AutoMod Rule Deleted           | ID                    |
+
+Rarer actions, like onboarding or soundboard changes, also run the event. Their `{{audit_log.action}}` is Discord's name of the action in lowercase, like `soundboard_sound_create`. Actions Discord added after Kite are given as their number.
 
 ## Placeholders
 

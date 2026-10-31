@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -36,7 +36,7 @@ import (
 
 // FeatureProvider resolves the premium features an app has access to.
 type FeatureProvider interface {
-	AppFeatures(ctx context.Context, appID string) model.Features
+	AppFeatures(ctx context.Context, appID string) (model.Features, error)
 	AppFeaturesForApps(ctx context.Context, appIDs []string) (map[string]model.Features, error)
 }
 
@@ -45,7 +45,9 @@ type DiscordProvider struct {
 	appStore        store.AppStore
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
+	webhooks        *WebhookCache
 	session         *state.State
+	voice           *VoiceManager
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -56,14 +58,18 @@ func NewDiscordProvider(
 	appStore store.AppStore,
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
+	webhooks *WebhookCache,
 	session *state.State,
+	voice *VoiceManager,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:           appID,
 		appStore:        appStore,
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
+		webhooks:        webhooks,
 		session:         session,
+		voice:           voice,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -163,7 +169,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 		} `json:"resource"`
 	}
 	if err := sendpart.POST(p.session.Client.Client, response, &res, endpoint); err != nil {
-		return nil, fmt.Errorf("failed to respond to interaction: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to respond to interaction: %w", util.WithoutRequestURL(err))
 	}
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
@@ -177,7 +183,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.EditInteractionResponse(applicationID, token, response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to edit interaction response: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to edit interaction response: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, err
@@ -186,7 +192,7 @@ func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicati
 func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
 	err := p.session.DeleteInteractionResponse(applicationID, token)
 	if err != nil {
-		return fmt.Errorf("failed to delete interaction response: %w", withoutRequestURL(err))
+		return fmt.Errorf("failed to delete interaction response: %w", util.WithoutRequestURL(err))
 	}
 
 	return nil
@@ -195,7 +201,7 @@ func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applica
 func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.FollowUpInteraction(applicationID, token, data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create interaction followup: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to create interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, nil
@@ -204,7 +210,7 @@ func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applica
 func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.EditInteractionFollowup(applicationID, messageID, token, data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to edit interaction followup: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to edit interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, nil
@@ -213,7 +219,7 @@ func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicati
 func (p *DiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
 	err := p.session.DeleteInteractionFollowup(applicationID, messageID, token)
 	if err != nil {
-		return fmt.Errorf("failed to delete interaction followup: %w", withoutRequestURL(err))
+		return fmt.Errorf("failed to delete interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return nil
@@ -358,40 +364,23 @@ func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID disc
 	return thread, nil
 }
 
+func (p *DiscordProvider) BotToken() string {
+	return strings.TrimPrefix(p.session.Token, "Bot ")
+}
+
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
-	// Going through the session's client adds the token and shares its rate
-	// limiter with every other request of the app.
-	opts := []httputil.RequestOption{httputil.WithHeaders(req.Reason.Header())}
-	if req.Body != nil {
-		opts = append(opts, httputil.JSONRequest, httputil.WithBodyBytes(req.Body))
-	}
-
-	resp, err := p.session.Client.WithContext(ctx).Request(
-		req.Method,
-		api.Endpoint+strings.TrimPrefix(req.Path, "/"),
-		opts...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send Discord API request: %w", withoutRequestURL(err))
-	}
-
-	body := resp.GetBody()
-	defer body.Close()
-
-	data, err := io.ReadAll(io.LimitReader(body, thing.MaxBodySize+1))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read Discord API response: %w", err)
-	}
-	if len(data) > thing.MaxBodySize {
-		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
-	}
-
-	return data, nil
+	return util.DiscordAPIRequest(ctx, p.session.Client, req)
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
+	}
+
+	// Joining another channel or leaving stops the audio and closes the
+	// connection playing it.
+	if p.voice != nil {
+		p.voice.Leave(p.appID, guildID)
 	}
 
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
@@ -407,16 +396,45 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 	return nil
 }
 
-func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
-	// Part of the same premium feature as rotating statuses in the app settings
-	if !p.featureProvider.AppFeatures(ctx, p.appID).RotatingStatus {
-		return fmt.Errorf("setting the status from a flow requires premium")
+func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudioOpts) error {
+	if p.voice == nil {
+		return fmt.Errorf("playing audio isn't available here")
+	}
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.VoiceAudio {
+		return fmt.Errorf("playing audio requires premium")
 	}
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
 	}
 
-	err := p.session.SendGateway(ctx, &gateway.UpdatePresenceCommand{
+	return p.voice.Play(ctx, p.appID, p.session, opts)
+}
+
+func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	if p.voice != nil {
+		p.voice.Stop(p.appID, guildID)
+	}
+	return nil
+}
+
+func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	// Part of the same paid feature as rotating statuses in the app settings
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.RotatingStatus {
+		return fmt.Errorf("setting the status from a flow requires a paid plan")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	err = p.session.SendGateway(ctx, &gateway.UpdatePresenceCommand{
 		Status:     status,
 		Activities: []discord.Activity{activity},
 	})
@@ -436,25 +454,31 @@ func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data provider.ServerProfileData) error {
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.ServerProfiles {
+		return fmt.Errorf("editing the server profile requires premium")
+	}
+	for _, image := range []option.NullableString{data.Avatar, data.Banner} {
+		if image != nil && util.IsAnimatedImageDataURI(image.Val) && !features.AnimatedProfile {
+			return fmt.Errorf("animated avatars and banners require a paid plan")
+		}
+	}
+	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
+		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")
+	}
+
+	return util.EditServerProfile(ctx, p.session.Client, guildID, data)
+}
+
 func (p *DiscordProvider) allowGatewayCommand() error {
 	if !p.rateLimiter.Allow(p.appID, gatewayCommandRateLimit) {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
 	}
 	return nil
-}
-
-// withoutRequestURL removes the path from the error of a request that never
-// reached Discord, as it can contain an interaction token.
-func withoutRequestURL(err error) error {
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		if u, parseErr := url.Parse(urlErr.URL); parseErr == nil {
-			urlErr.URL = u.Scheme + "://" + u.Host
-		} else {
-			urlErr.URL = ""
-		}
-	}
-	return err
 }
 
 func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
@@ -592,7 +616,7 @@ func NewAIProvider(client *openai.Client) *AIProvider {
 	}
 }
 
-func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
+func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
 	tools := []responses.ToolUnionParam{}
 	for _, tool := range opts.Tools {
 		switch tool {
@@ -601,16 +625,7 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		}
 	}
 
-	inputs := responses.ResponseInputParam{
-		{
-			OfMessage: &responses.EasyInputMessageParam{
-				Role: responses.EasyInputMessageRoleUser,
-				Content: responses.EasyInputMessageContentUnionParam{
-					OfString: openai.String(opts.Prompt),
-				},
-			},
-		},
-	}
+	inputs := responses.ResponseInputParam{}
 	if opts.SystemPrompt != "" {
 		inputs = append(inputs, responses.ResponseInputItemUnionParam{
 			OfMessage: &responses.EasyInputMessageParam{
@@ -621,6 +636,14 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 			},
 		})
 	}
+	inputs = append(inputs, responses.ResponseInputItemUnionParam{
+		OfMessage: &responses.EasyInputMessageParam{
+			Role: responses.EasyInputMessageRoleUser,
+			Content: responses.EasyInputMessageContentUnionParam{
+				OfString: openai.String(opts.Prompt),
+			},
+		},
+	})
 
 	params := responses.ResponseNewParams{
 		Model: opts.Model,
@@ -628,6 +651,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 			OfInputItemList: inputs,
 		},
 		Tools: tools,
+		// Prompts contain Discord message content, which OpenAI shouldn't keep.
+		Store: openai.Bool(false),
 	}
 	if opts.MaxOutputTokens > 0 {
 		params.MaxOutputTokens = openai.Int(int64(opts.MaxOutputTokens))
@@ -638,19 +663,28 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	if opts.MaxToolCalls > 0 {
 		params.MaxToolCalls = openai.Int(int64(opts.MaxToolCalls))
 	}
+	if opts.JSONSchema != nil {
+		format := responses.ResponseFormatTextConfigParamOfJSONSchema(opts.JSONSchema.Name, opts.JSONSchema.Schema)
+		format.OfJSONSchema.Strict = openai.Bool(true)
+		params.Text = responses.ResponseTextConfigParam{Format: format}
+	}
 
 	resp, err := p.client.Responses.New(ctx, params)
 	if err != nil {
-		return "", fmt.Errorf("failed to create response: %w", err)
+		return provider.AIResponse{}, fmt.Errorf("failed to create response: %w", err)
+	}
+
+	res := provider.AIResponse{
+		Text:         resp.OutputText(),
+		OutputTokens: int(resp.Usage.OutputTokens),
 	}
 
 	// Reasoning can use up the whole token budget and leave no answer, which
 	// would otherwise pass as an empty but successful one.
-	text := resp.OutputText()
-	if text == "" && resp.Status == responses.ResponseStatusIncomplete {
-		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
+	if res.Text == "" && resp.Status == responses.ResponseStatusIncomplete {
+		return res, fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
 	}
-	return text, nil
+	return res, nil
 }
 
 const openRouterDecisionsURL = "https://openrouter.ai/api/alpha/decisions"
@@ -1082,6 +1116,9 @@ func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxU
 		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
 		return nil, provider.ErrNotFound
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, robloxError(resp, "failed to get roblox user")
+	}
 
 	var v thing.RobloxUserValue
 	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
@@ -1117,6 +1154,10 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, robloxError(resp, "failed to get roblox users")
+	}
+
 	var v struct {
 		Data []thing.RobloxUserValue `json:"data"`
 	}
@@ -1126,6 +1167,63 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	}
 
 	return v.Data, nil
+}
+
+func (p *RobloxProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%d&size=150x150&format=Png", id), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create roblox avatar request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to get roblox avatar: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", robloxError(resp, "failed to get roblox avatar")
+	}
+
+	var v struct {
+		Data []struct {
+			State    string `json:"state"`
+			ImageURL string `json:"imageUrl"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return "", fmt.Errorf("failed to decode roblox avatar: %w", err)
+	}
+
+	// Avatars that are blocked or still rendering have no usable image.
+	if len(v.Data) == 0 || v.Data[0].State != "Completed" {
+		return "", nil
+	}
+	return v.Data[0].ImageURL, nil
+}
+
+// robloxError reads the error of a failed Roblox request. Without it, the
+// error body decodes into an empty user.
+func robloxError(resp *http.Response, msg string) error {
+	if resp.StatusCode == http.StatusTooManyRequests {
+		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
+		return fmt.Errorf("%s: Roblox is rate limiting requests, try again later", msg)
+	}
+
+	var res struct {
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
+	}
+	json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&res)
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
+	if len(res.Errors) > 0 && res.Errors[0].Message != "" {
+		return fmt.Errorf("%s: status %d: %s", msg, resp.StatusCode, res.Errors[0].Message)
+	}
+	return fmt.Errorf("%s: status %d", msg, resp.StatusCode)
 }
 
 type SecretProvider struct {

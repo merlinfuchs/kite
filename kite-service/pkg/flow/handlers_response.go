@@ -43,20 +43,20 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	responseData := data.ToInteractionResponseData(opts)
 
 	hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	var msg *discord.Message
 	if hasCreatedResponse {
 		msg, err = ctx.Discord.CreateInteractionFollowup(ctx, interaction.AppID, interaction.Token, responseData)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	} else {
 		resp := api.InteractionResponse{
@@ -66,7 +66,7 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 		res, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		if res != nil {
@@ -81,7 +81,7 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		// We have to create the resume point after the message has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -116,20 +116,20 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	var msg *discord.Message
 	if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
 		hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		if hasCreatedResponse {
 			msg, err = ctx.Discord.EditInteractionResponse(ctx, interaction.AppID, interaction.Token, data.ToEditInteractionResponseData(opts))
 			if err != nil {
-				return traceError(n, err)
+				return err
 			}
 		} else {
 			responseData := data.ToInteractionResponseData(opts)
@@ -140,7 +140,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 
 			res, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 			if err != nil {
-				return traceError(n, err)
+				return err
 			}
 
 			if res != nil {
@@ -150,7 +150,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	} else {
 		messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "response to edit")
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		msg, err = ctx.Discord.EditInteractionFollowup(
@@ -161,7 +161,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 			data.ToEditInteractionResponseData(opts),
 		)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -172,7 +172,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		// We have to create the resume point after the message has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -204,12 +204,12 @@ func executeActionResponseDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 	if n.Data.MessageTarget == "" || n.Data.MessageTarget == "@original" {
 		err := ctx.Discord.DeleteInteractionResponse(ctx, interaction.AppID, interaction.Token)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	} else {
 		messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "response to delete")
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		err = ctx.Discord.DeleteInteractionFollowup(
@@ -219,7 +219,7 @@ func executeActionResponseDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 			discord.MessageID(messageID),
 		)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -246,7 +246,7 @@ func executeActionResponseDefer(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	_, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -256,13 +256,13 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 	if ctx.IsEntry() {
 		err := n.autoDeferInteraction(ctx)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		err = n.ExecuteChildren(ctx)
 		if err != nil {
 			createDefaultErrorResponse(ctx, err)
-			return traceError(n, err)
+			return err
 		}
 
 		return nil
@@ -285,19 +285,19 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	title, err := ctx.EvalTemplate(n.Data.ModalData.Title)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	components, err := buildModalComponents(ctx, n.Data.ModalData.Components)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	// Suspend only once the modal is ready, so a failed template doesn't
 	// leave a resume point behind.
 	resumePoint, err := ctx.suspend(ResumePointTypeModal, util.UniqueID(), n.ID)
 	if err != nil {
-		return traceError(n, fmt.Errorf("failed to suspend: %w", err))
+		return fmt.Errorf("failed to suspend: %w", err)
 	}
 
 	resp := api.InteractionResponse{
@@ -310,33 +310,29 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	_, err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return traceError(n, nil)
+	return err
 }
 
 func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	event, ok := ctx.Data.Event().(*webhook.Event)
 	if !ok {
-		return traceError(n, errors.New("only webhook event listeners can respond to a webhook request"))
+		return errors.New("only webhook event listeners can respond to a webhook request")
 	}
 
 	status, err := ctx.EvalTemplate(n.Data.WebhookResponseStatus)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	statusCode, err := strconv.Atoi(strings.TrimSpace(status.String()))
 	if err != nil {
-		return traceError(n, fmt.Errorf("status must be a number, got %q", status.String()))
+		return fmt.Errorf("status must be a number, got %q", status.String())
 	}
 
 	// As it is, so a placeholder like {{webhook.body}} keeps escapes like \n
 	// in JSON instead of turning them into newlines.
 	body, err := ctx.EvalTemplateRaw(n.Data.WebhookResponseBody)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	contentType := n.Data.WebhookResponseContentType
@@ -354,7 +350,7 @@ func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) e
 		// shouldn't decide whether the rest of the flow runs.
 		ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, err.Error())
 	} else if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)

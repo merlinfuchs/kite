@@ -5,7 +5,7 @@ package flowai
 var outputSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"message", "edits", "build_prompt", "fields"},
+	"required":             []string{"message", "edits", "build_prompt", "fields", "template_id"},
 	"properties": map[string]any{
 		"message": map[string]any{
 			"type":        "string",
@@ -14,6 +14,10 @@ var outputSchema = map[string]any{
 		"build_prompt": map[string]any{
 			"type":        []string{"string", "null"},
 			"description": "When answering without edits and suggesting a change: the request to make it, in the user's words.",
+		},
+		"template_id": map[string]any{
+			"type":        []string{"string", "null"},
+			"description": "When suggesting a template of the marketplace instead of building: its ID.",
 		},
 		"fields": map[string]any{
 			"type":        "array",
@@ -64,7 +68,7 @@ var outputSchema = map[string]any{
 					"source":     nullable("string", "connect and disconnect: the earlier block."),
 					"target":     nullable("string", "connect and disconnect: the later block."),
 					"data_json":  nullable("string", "add_node and update_node: settings as a JSON object."),
-					"items_json": nullable("string", "add_node of a condition: settings of each branch as a JSON array of objects."),
+					"items_json": nullable("string", "add_node of a condition: settings of each branch except else, as a JSON array of objects."),
 					"reconnect":  nullable("boolean", "remove_node: whether to connect the blocks after it to the block before it."),
 				},
 			},

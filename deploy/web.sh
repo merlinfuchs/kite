@@ -18,12 +18,24 @@ if [ "${1:-}" = "--rollback" ]; then
   exit
 fi
 
+# The pages before the deploy, to send the ones it changes to IndexNow at the
+# end. It runs during the build.
+tmp="$(mktemp -d)"
+node "$ROOT/deploy/indexnow.mjs" >"$tmp/pages.json" &
+snapshot_pid=$!
+trap 'kill "$snapshot_pid" 2>/dev/null || true; rm -rf "$tmp"' EXIT
+
 cd "$ROOT/kite-web"
 pnpm install --frozen-lockfile
 rm -rf .next
 pnpm run build
 # nginx serves public/ from the server's directory, so it changes with the build.
-cp -R public .next/standalone/public
+# The build already has public/logo.svg for the preview images, so the files
+# are copied into it instead of public/ being copied into it as a folder.
+cp -R public/. .next/standalone/public
+# Proves to IndexNow that the site is ours. It's only added here, so self-hosted
+# instances don't serve kite.onl's key.
+printf '%s' "$INDEXNOW_KEY" >".next/standalone/public/$INDEXNOW_KEY.txt"
 
 # The server is built here, so a native module would be for this machine and
 # not the server.
@@ -48,6 +60,8 @@ rsync -az --checksum --no-owner --no-group --delete .next/standalone/ "$DEPLOY_H
 # version can load their chunks. They're uploaded before the server restarts,
 # and never change, since their names contain hashes of their contents.
 rsync -az --ignore-existing --no-owner --no-group .next/static/ "$DEPLOY_HOST:$WEB_DIR/_next/static/"
+
+wait "$snapshot_pid" || true
 
 # The server is stopped before swapping, so it never loads files of the other
 # build. The previous build stays in WEB_SERVER_DIR.prev for --rollback.
@@ -75,3 +89,8 @@ ssh -t "$DEPLOY_HOST" "set -e
     fi
     exit 1
   fi"
+
+if [ -n "$installed" ]; then
+  node "$ROOT/deploy/indexnow.mjs" submit <"$tmp/pages.json" ||
+    echo "Sending the changed pages to IndexNow failed, the deploy itself worked"
+fi

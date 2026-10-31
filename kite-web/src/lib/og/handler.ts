@@ -1,13 +1,15 @@
 import { Template } from "@/lib/flow/templates";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { ogImagePath } from "./path";
+import { ogImagePath, templateImageVersion } from "./path";
 import { renderTemplateImage } from "./templateImage";
 
 type Kind = Parameters<typeof ogImagePath>[0];
-type Load = () => Template | undefined | Promise<Template | undefined>;
+// OgImage is what a link preview shows, with the version in its URL.
+export type OgImage = { version: string; render: () => Promise<Response> };
+type Load = () => Promise<OgImage | undefined>;
 type Entry = {
   image: Buffer;
-  version: number;
+  version: string;
   // When the template is loaded again, to drop it when it's gone.
   expires: number;
   // When a request asked for another version last, which may be a new one.
@@ -21,11 +23,30 @@ const cacheDuration = 15 * 60 * 1000;
 const checkInterval = 60 * 1000;
 const maxCached = 500;
 
-// Responds with the link preview of the template, or the image of the site if
-// there is none. Pages link the image with the template's version. Other
-// versions redirect to the current one instead of being rendered, so made up
-// URLs can't make the server render images.
-export async function handleTemplateImage(
+// handleTemplateImage responds with the link preview of a template.
+export function handleTemplateImage(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  kind: Kind,
+  id: string,
+  load: () => Template | undefined | Promise<Template | undefined>
+) {
+  return handleOgImage(req, res, kind, id, async () => {
+    const template = await load();
+    return (
+      template && {
+        version: templateImageVersion(template),
+        render: () => renderTemplateImage(template),
+      }
+    );
+  });
+}
+
+// Responds with the link preview, or the image of the site if there is none.
+// Pages link the image with its version. Other versions redirect to the
+// current one instead of being rendered, so made up URLs can't make the server
+// render images.
+export async function handleOgImage(
   req: NextApiRequest,
   res: NextApiResponse,
   kind: Kind,
@@ -38,7 +59,7 @@ export async function handleTemplateImage(
   try {
     let entry = await cache.get(key);
     const now = Date.now();
-    const otherVersion = entry && version !== String(entry.version);
+    const otherVersion = entry && version !== entry.version;
     if (
       !entry ||
       entry.expires <= now ||
@@ -54,9 +75,12 @@ export async function handleTemplateImage(
 
     if (!entry) {
       res.redirect(302, "/og.png");
-    } else if (version !== String(entry.version)) {
+    } else if (version !== entry.version) {
       res.redirect(302, ogImagePath(kind, id, entry.version) ?? "/og.png");
     } else {
+      // Not longer, since the version doesn't change with the name and avatar
+      // of users, or the name and description of official templates.
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.setHeader("Content-Type", "image/png");
       res.send(entry.image);
     }
@@ -65,21 +89,21 @@ export async function handleTemplateImage(
   }
 }
 
-// refresh loads the template and renders it, unless the image of the previous
-// entry is of the same version. Unknown templates aren't kept, so made up IDs
-// don't push out real images. When loading fails, the previous entry is kept.
+// refresh loads the image and renders it, unless the previous entry is of the
+// same version. Unknown IDs aren't kept, so made up ones don't push out real
+// images. When loading fails, the previous entry is kept.
 function refresh(key: string, load: Load, previous?: Entry) {
   const pending = (async (): Promise<Entry | null> => {
-    const template = await load();
-    if (!template) return null;
+    const og = await load();
+    if (!og) return null;
     const now = Date.now();
-    if (template.version === previous?.version) {
+    if (og.version === previous?.version) {
       return { ...previous, expires: now + cacheDuration, checked: now };
     }
-    const image = await renderTemplateImage(template);
+    const image = await og.render();
     return {
       image: Buffer.from(await image.arrayBuffer()),
-      version: template.version,
+      version: og.version,
       expires: now + cacheDuration,
       checked: now,
     };

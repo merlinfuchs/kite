@@ -1,8 +1,8 @@
 import { componentLabel } from "@/lib/flow/templates";
-import { FlowContextType } from "@/lib/flow/context";
+import { FlowContextType, FlowPreviewItemsContext } from "@/lib/flow/context";
 import { FlowData } from "@/lib/types/flow.gen";
 import { ChevronDownIcon, MailIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import {
@@ -11,18 +11,24 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { cn } from "@/lib/utils";
-import { messageSchema } from "@/lib/message/schema";
-import { useTheme } from "next-themes";
+import { parsePreviewMessage } from "@/lib/message/documentConvert";
 import dynamic from "next/dynamic";
+import { isNoteNode } from "@/lib/flow/notes";
 
 // The previews pull in the flow editor and the message renderer. They only
 // show when an item is opened, so they're loaded then.
 const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
   ssr: false,
 });
-const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
-  ssr: false,
-});
+// It needs the block definitions.
+const FlowCredits = dynamic(
+  () => import("./TemplateCreditUsage").then((m) => m.FlowCredits),
+  { ssr: false }
+);
+const MessagePreviewBox = dynamic(
+  () => import("../message/MessagePreviewBox"),
+  { ssr: false }
+);
 
 // ItemPreviewCards show the commands, event listeners and message templates
 // of a template or an import, and open to show their blocks.
@@ -89,7 +95,7 @@ function ItemCard({
             />
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-4 pb-4">
+        <CollapsibleContent className="border-t p-4">
           {children}
         </CollapsibleContent>
       </Card>
@@ -121,11 +127,17 @@ export function FlowItemCard({
       icon={icon}
       name={name}
       description={description}
-      meta={`${nodes.length} blocks`}
+      meta={`${nodes.filter((n) => !isNoteNode(n)).length} blocks`}
       checkbox={checkbox}
       defaultOpen={defaultOpen}
     >
-      <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
+      <TemplateFlowPreview
+        name={name}
+        nodes={nodes}
+        edges={edges}
+        context={context}
+        badge={<FlowCredits flow={flow} />}
+      />
     </ItemCard>
   );
 }
@@ -145,12 +157,7 @@ export function MessageItemCard({
   checkbox?: ItemCheckbox;
   defaultOpen?: boolean;
 }) {
-  // The theme that's shown, which theme isn't when it follows the system.
-  const { resolvedTheme } = useTheme();
-  const message = useMemo(() => {
-    const res = messageSchema.safeParse(data);
-    return res.success ? res.data : null;
-  }, [data]);
+  const message = useMemo(() => parsePreviewMessage(data), [data]);
   const flows = useMemo(() => Object.entries(flowSources), [flowSources]);
 
   return (
@@ -163,29 +170,58 @@ export function MessageItemCard({
       defaultOpen={defaultOpen}
     >
       <div className="space-y-4">
-        {message && (
-          // The preview has no padding of its own, and its margins would
-          // leave gaps above and below its background.
-          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
-            <MessagePreview
-              msg={message}
-              lightTheme={resolvedTheme === "light"}
-            />
-          </div>
-        )}
+        {message && <MessagePreviewBox msg={message} />}
         {flows.map(([id, flow]) => (
           <div key={id}>
             <div className="text-sm font-medium mb-2">
               When {componentLabel(message, id) ?? "a button"} is clicked
             </div>
             <TemplateFlowPreview
+              name={`${name}: ${
+                componentLabel(message, id) ?? "a button"
+              } is clicked`}
               nodes={flow.nodes}
               edges={flow.edges}
               context="component_button"
+              badge={<FlowCredits flow={flow} />}
             />
           </div>
         ))}
       </div>
     </ItemCard>
+  );
+}
+
+// PreviewItemsProvider gives the previews inside it the stored variables and
+// message templates their blocks use by key, like the ones of a template.
+export function PreviewItemsProvider({
+  variables,
+  messages,
+  children,
+}: {
+  variables?: { key: string; name: string; scoped: boolean }[];
+  messages?: { key: string; name: string; data: unknown }[];
+  children: ReactNode;
+}) {
+  const items = useMemo(
+    () => ({
+      variables: variables?.map(({ key, name, scoped }) => ({
+        id: key,
+        name,
+        scoped,
+      })),
+      messages: messages?.map(({ key, name, data }) => ({
+        id: key,
+        name,
+        data,
+      })),
+    }),
+    [variables, messages]
+  );
+
+  return (
+    <FlowPreviewItemsContext.Provider value={items}>
+      {children}
+    </FlowPreviewItemsContext.Provider>
   );
 }

@@ -18,7 +18,6 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
-	usageStore     store.UsageStore
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -27,14 +26,12 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
-	usageStore store.UsageStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
-		usageStore:     usageStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}
@@ -46,9 +43,12 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 		return nil, fmt.Errorf("failed to get apps: %w", err)
 	}
 
-	res := make([]*wire.App, len(apps))
-	for i, app := range apps {
-		res[i] = wire.AppToWire(app)
+	res := make([]*wire.App, 0, len(apps))
+	for _, app := range apps {
+		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+			continue
+		}
+		res = append(res, wire.AppToWire(app))
 	}
 
 	return &res, nil
@@ -120,16 +120,9 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
-	// The credit sweep also starts apps stopped for credits once they have
-	// them again, this only saves waiting for it. Apps the user stopped may
-	// start even when out of credits, the sweep then stops them for credits.
-	if req.Enabled && model.HasNoCredits(c.App) {
-		over, err := h.isOverCredits(c)
-		if err != nil {
+	if req.Enabled && !c.App.Enabled {
+		if err := h.checkOwnerNotBanned(c); err != nil {
 			return nil, err
-		}
-		if over {
-			return nil, handler.ErrBadRequest("no_credits", "Your app used all of its credits for this month. "+model.AppNoCreditsRestartNote)
 		}
 	}
 
@@ -224,7 +217,21 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 	return wire.AppToWire(app), nil
 }
 
+func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.AppCreditNoticesUpdateRequest) (*wire.AppCreditNoticesUpdateResponse, error) {
+	app, err := h.appStore.UpdateAppCreditNotices(c.Context(), c.App.ID, req.Enabled, time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app credit notices: %w", err)
+	}
+
+	return wire.AppToWire(app), nil
+}
+
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
+	// A new token starts the app.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
@@ -248,23 +255,15 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
 	}
 
-	// We reset the disabled reason when the app token is updated, unless the
-	// app is out of credits, which a new token doesn't change.
-	enabled := true
-	disabledReason := null.String{}
-	if model.HasNoCredits(c.App) {
-		enabled = false
-		disabledReason = c.App.DisabledReason
-	}
-
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:             c.App.ID,
-		Name:           c.App.Name,
-		Description:    c.App.Description,
-		DiscordToken:   encryptedToken,
-		DiscordStatus:  c.App.DiscordStatus,
-		Enabled:        enabled,
-		DisabledReason: disabledReason,
+		ID:            c.App.ID,
+		Name:          c.App.Name,
+		Description:   c.App.Description,
+		DiscordToken:  encryptedToken,
+		DiscordStatus: c.App.DiscordStatus,
+		// A new token starts the app and resets why it was stopped.
+		Enabled:        true,
+		DisabledReason: null.String{},
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
@@ -279,6 +278,19 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	h.retryFailedCommandsDeploy(c)
 
 	return wire.AppToWire(app), nil
+}
+
+// checkOwnerNotBanned refuses to start an app whose owner Kite banned, which
+// its collaborators could otherwise do.
+func (h *AppHandler) checkOwnerNotBanned(c *handler.Context) error {
+	_, err := h.userStore.UserBan(c.Context(), c.App.OwnerUserID, model.UserBanFeatureKite)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get user ban: %w", err)
+	}
+	return handler.ErrForbidden("app_owner_banned", "Kite banned the owner of this app, so it can't be started")
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {

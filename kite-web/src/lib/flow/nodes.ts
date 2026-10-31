@@ -20,6 +20,7 @@ import { BlockDefinition, BlockResult } from "../blocks/types";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
 import { NodeData } from "./dataSchema";
+import { noteNodeType } from "./notes";
 
 export {
   actionColor,
@@ -286,7 +287,10 @@ export function getNodeId(type?: string): string {
     suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
   }
 
-  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
+  const prefix =
+    type === noteNodeType
+      ? "note"
+      : getBlockDefinition(type)?.id_prefix ?? "node";
   return `${prefix}_${suffix}`;
 }
 

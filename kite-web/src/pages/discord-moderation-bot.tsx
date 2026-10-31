@@ -13,7 +13,7 @@ const content: LandingPageContent = {
     "Build a moderation bot with your own name and avatar for free. Start with the moderation template, then change the commands so they work the way your server needs. You don't need to write code.",
   secondaryAction: {
     label: "View the Template",
-    href: "/templates/moderation",
+    href: "/marketplace/moderation",
   },
   showcase: {
     flow: banFlow,

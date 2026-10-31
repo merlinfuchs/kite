@@ -14,4 +14,4 @@ The error message is available as the result of this block. You can use this to 
 
 This is useful if you don't want the default error handling to be used. If you still want errors to be logged, you can use the `Log Message` block.
 
-![Error Handler](./img/control_error_handler.png)
+![Error Handler](./img/control_error_handler.webp)

@@ -12,13 +12,21 @@ import (
 	"net/url"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type Context struct {
 	r *http.Request
 	w http.ResponseWriter
 
-	Session        *model.Session
+	Session *model.Session
+	// Set when the request was made with an API token instead of a login.
+	APIToken *model.APIToken
+	// Set for the routes of groups that allow API tokens.
+	apiTokenAllowed bool
+	// Set for routes that check the scope of API tokens themselves.
+	apiTokenScopeUnchecked bool
+
 	App            *model.App
 	UserAppRole    model.AppCollaboratorRole
 	Features       model.Features
@@ -27,6 +35,39 @@ type Context struct {
 	Message        *model.Message
 	EventListener  *model.EventListener
 	PluginInstance *model.PluginInstance
+}
+
+// ItemChange is who made the changes of the request, for the version history
+// of the items it changes. editorSession is the one of store.EditorChange.
+func (c *Context) ItemChange(editorSession string) store.ItemChange {
+	if c.APIToken != nil {
+		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)
+	}
+	return store.EditorChange(c.Session.UserID, editorSession)
+}
+
+// APITokenAllowed says whether the route can be used with an API token.
+func (c *Context) APITokenAllowed() bool {
+	return c.apiTokenAllowed
+}
+
+// APITokenScopeChecked says whether a token needs a kite scope for the route,
+// with the access of the request's method.
+func (c *Context) APITokenScopeChecked() bool {
+	return !c.apiTokenScopeUnchecked
+}
+
+// RequireAPITokenAccess returns an error unless the token's scopes give it
+// access to resource.
+func RequireAPITokenAccess(token *model.APIToken, resource string, access string) error {
+	if token.HasAccess(resource, access) {
+		return nil
+	}
+	return ErrForbidden("missing_api_token_scope", fmt.Sprintf("The API token needs the %s:%s scope for this endpoint", resource, access))
+}
+
+func (c *Context) Method() string {
+	return c.r.Method
 }
 
 func (c *Context) Context() context.Context {
@@ -121,6 +162,26 @@ func (c *Context) ParseBody(v interface{}) error {
 	}
 
 	return nil
+}
+
+// ParseForm parses a form-encoded request body, like the requests of OAuth
+// clients, which fails if it's larger than limit.
+func (c *Context) ParseForm(limit int64) (url.Values, error) {
+	mediaType, _, err := mime.ParseMediaType(c.r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/x-www-form-urlencoded" {
+		return nil, ErrUnsupportedMediaType("unsupported_media_type", "Content-Type must be application/x-www-form-urlencoded")
+	}
+
+	body, err := c.ReadBody(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, ErrBadRequest("invalid_form", fmt.Sprintf("invalid form body: %s", err))
+	}
+	return values, nil
 }
 
 // jsonBodyError describes why a request body didn't unmarshal, without the Go

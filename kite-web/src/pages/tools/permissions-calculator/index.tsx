@@ -43,7 +43,7 @@ export default function PermissionsCalculatorPage() {
             Only ask for the permissions your bot uses. A bot that only answers
             slash commands needs no permissions at all, because the replies go
             through the command. A moderation bot needs Kick Members, Ban
-            Members and Moderate Members. Server admins are more likely to add a
+            Members and Timeout Members. Server admins are more likely to add a
             bot that asks for little.
           </p>
           <h2>How Do I Use the Invite Link?</h2>

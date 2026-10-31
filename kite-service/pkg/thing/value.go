@@ -50,4 +50,5 @@ type RobloxUserValue struct {
 	IsBanned               bool   `json:"isBanned"`
 	HasVerifiedBadge       bool   `json:"hasVerifiedBadge"`
 	ExternalAppDisplayName string `json:"externalAppDisplayName"`
+	AvatarURL              string `json:"avatarUrl"`
 }

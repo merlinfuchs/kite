@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -7,23 +7,29 @@ import {
 } from "lucide-react";
 import ThemeSwitch from "../common/ThemeSwitch";
 import MessageSendDialog from "./MessageSendDialog";
+import { BundleInstallNavItem } from "../app/BundleInstallBadge";
 
 interface Props {
   hasUnsavedChanges: boolean;
   isSaving: boolean;
+  bundleInstallId?: string | null;
   onSave: (d: {}) => void;
   onExit: () => void;
+  // The save history button.
+  history?: ReactNode;
 }
 
 export default function MessageNav({
   hasUnsavedChanges,
   isSaving,
+  bundleInstallId,
   onSave,
   onExit,
+  history,
 }: Props) {
   const save = useCallback(() => {
-    onSave({});
-  }, [onSave]);
+    if (!isSaving) onSave({});
+  }, [onSave, isSaving]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -86,8 +92,12 @@ export default function MessageNav({
             </button>
           </MessageSendDialog>
         )}
+        <BundleInstallNavItem bundleInstallId={bundleInstallId} />
       </div>
-      <ThemeSwitch />
+      <div className="flex items-center space-x-4 sm:space-x-6">
+        {history}
+        <ThemeSwitch />
+      </div>
     </div>
   );
 }

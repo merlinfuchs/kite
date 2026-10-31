@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { serializeFlow } from "./serialize";
 import { testEdge as edge, testNode } from "./testUtils";
 
@@ -56,6 +57,14 @@ describe("applyFlowEdits", () => {
     expect(res.edges[1].type).toBe("delete_button");
   });
 
+  it("refers to the entry block as $entry", () => {
+    const res = apply([entry], [], [addLog("$a", "$entry")]);
+
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([`entry->${res.refs.$a}`]);
+    expect(res.refs).not.toHaveProperty("$entry");
+  });
+
   it("puts blocks into existing connections and moves the rest down", () => {
     const res = apply(
       [entry, log("a", "hi", 250), log("b", "hi", 500)],
@@ -103,6 +112,50 @@ describe("applyFlowEdits", () => {
     ).toEqual(["fixed", "fixed", "fixed"]);
   });
 
+  it("uses the else branch for empty items", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          data: { condition_base_value: "{{user.id}}" },
+          items: [
+            { condition_item_mode: "equal", condition_item_value: "1" },
+            { else: true },
+          ],
+          after: "entry",
+        },
+        addLog("$one", "$check.item0"),
+        addLog("$other", "$check.item1"),
+      ]
+    );
+
+    expect(res.issues).toEqual([]);
+    expect(res.refs["$check.item1"]).toBe(res.refs["$check.else"]);
+    expect(
+      res.nodes.filter((n) => n.type === "control_condition_item_compare")
+    ).toHaveLength(1);
+
+    const empty = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          items: [{}, {}],
+          after: "entry",
+        },
+      ]
+    );
+    expect(empty.refs["$check.item0"]).not.toBe(empty.refs["$check.else"]);
+    expect(empty.refs["$check.item1"]).toBe(empty.refs["$check.else"]);
+  });
+
   it("creates loops with their each and end blocks", () => {
     const res = apply(
       [entry],
@@ -127,7 +180,7 @@ describe("applyFlowEdits", () => {
     expect(res.issues).toEqual([]);
   });
 
-  it("connects options into the entry and places them above it", () => {
+  it("connects options into the entry wherever they're put and places them above it", () => {
     const res = apply(
       [node("entry", "entry_command", entry.data, { x: 0, y: 500 })],
       [],
@@ -141,6 +194,8 @@ describe("applyFlowEdits", () => {
             description: "User",
             command_argument_type: "user",
           },
+          after: "entry",
+          handle: "default",
         },
       ]
     );
@@ -448,15 +503,99 @@ describe("applyFlowEdits edge cases", () => {
       [{ op: "connect", target: "a" } as unknown as FlowEdit]
     );
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+  });
 
-    const update = apply(
-      [entry, log("a")],
+  it("replaces refs in result() with the IDs of the added blocks", () => {
+    const res = apply(
+      [
+        entry,
+        log("a"),
+        log("b", "{{result('$get')}}"),
+        log("c", "{{result('get')}}"),
+      ],
+      [edge("entry", "a")],
+      [
+        {
+          op: "add_node",
+          ref: "$get",
+          type: "action_user_get",
+          after: "a",
+          data: { user_target: "1" },
+        },
+        addLog("$log", "$get"),
+        {
+          op: "update_node",
+          id: "$log",
+          data: {
+            log_message: `{{result('$get').id}} {{result("get").name}} {{result('a')}}`,
+          },
+        },
+      ]
+    );
+
+    const get = res.refs.$get;
+    expect(res.byId(res.refs.$log)?.data.log_message).toBe(
+      `{{result('${get}').id}} {{result("${get}").name}} {{result('a')}}`
+    );
+    // Refs left by an earlier repair round are resolved too, names without $
+    // only in changed blocks.
+    expect(res.byId("b")?.data.log_message).toBe(`{{result('${get}')}}`);
+    expect(res.byId("c")?.data.log_message).toBe("{{result('get')}}");
+  });
+
+  it("explains that blocks with several outputs have no branches", () => {
+    const res = apply(
+      [entry],
       [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_if",
+          after: "entry",
+          data: { condition_base_value: "{{true}}" },
+        },
+        addLog("$log", "$check.item0"),
+      ]
+    );
+    expect(res.issues[0].message).toBe(
+      "Edit 2 (add_node): There is no block '$check.item0', as 'If' has no branches. Put blocks after it with the handle of one of its outputs: 'yes', 'no'."
+    );
+  });
+
+  it("uses outputs referred to like branches as handles", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$errors",
+          type: "control_error_handler",
+          after: "entry",
+        },
+        addLog("$a", "$errors.default"),
+        addLog("$b"),
+        { op: "connect", source: "$errors.error", target: "$b" },
+      ]
+    );
+    const { $errors: errors, $a: a, $b: b } = res.refs;
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${errors}`,
+      `${errors}[default]->${a}`,
+      `${errors}[error]->${b}`,
+    ]);
+  });
+
+  it("ignores updates without settings", () => {
+    const res = apply(
+      [entry, log("a")],
+      [edge("entry", "a")],
       [{ op: "update_node", id: "a" } as unknown as FlowEdit]
     );
-    expect(update.issues[0].message).toBe(
-      "Edit 1 (update_node): data is missing."
-    );
+    expect(res.issues).toEqual([]);
+    expect(res.byId("a")?.data).toEqual(logData);
   });
 
   it("rejects edits the editor doesn't allow", () => {
@@ -538,6 +677,59 @@ describe("applyFlowEdits edge cases", () => {
   });
 });
 
+describe("applyFlowEdits layout", () => {
+  const reply = (after: string): FlowEdit => ({
+    op: "add_node",
+    ref: "$reply",
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content: "hi",
+        components: [1, 2, 3, 4].map((id) => ({
+          type: 1,
+          components: [{ type: 2, id, label: "Hi", style: 1 }],
+        })),
+      },
+    },
+    after,
+  });
+
+  it("lays out new and formatted flows like the format button", () => {
+    const created = apply(
+      [entry],
+      [],
+      [reply("$entry"), addLog("$log", "$reply")]
+    );
+    expect(created.issues).toEqual([]);
+    expect(isFlowLaidOut(created.nodes, created.edges)).toBe(true);
+
+    const edges = [edge("entry", "a"), edge("a", "b")];
+    const formatted = getFlowLayout([entry, log("a"), log("b")], edges);
+    const res = apply(formatted, edges, [addLog("$new", "entry", "a")]);
+    expect(isFlowLaidOut(res.nodes, res.edges)).toBe(true);
+  });
+
+  it("keeps blocks of rearranged flows where they are", () => {
+    const res = apply(
+      [
+        entry,
+        log("a", "hi", 300),
+        { ...log("b", "hi", 600), position: { x: 900, y: 600 } },
+      ],
+      [edge("entry", "a"), edge("a", "b")],
+      [reply("a"), addLog("$log", "$reply")]
+    );
+    expect(res.byId("a")?.position).toEqual({ x: 0, y: 300 });
+    expect(res.byId("b")?.position).toEqual({ x: 900, y: 600 });
+
+    // Below the message with its rows of buttons, not on top of them.
+    const message = res.byId(res.refs.$reply)!;
+    expect(res.byId(res.refs.$log)!.position.y).toBe(
+      message.position.y + nodeSize(message).height + rowGap
+    );
+  });
+});
+
 describe("applyFlowEdits checks", () => {
   const condition = (): FlowEdit => ({
     op: "add_node",
@@ -562,12 +754,6 @@ describe("applyFlowEdits checks", () => {
           after: added.refs.$check,
           before: added.refs["$check.else"],
         },
-        {
-          op: "add_node",
-          ref: "$arg",
-          type: "option_command_argument",
-          after: "entry",
-        },
       ],
       "command"
     );
@@ -575,7 +761,6 @@ describe("applyFlowEdits checks", () => {
       "Edit 1 (add_node): The ref '$a.else' must be unique and look like '$name', with only letters, numbers and underscores.",
       "Edit 2 (add_node): items must be a list of branch settings, and only conditions have branches.",
       `Edit 3 (add_node): '${added.refs["$check.else"]}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`,
-      "Edit 4 (add_node): Options are always connected to the entry block, so leave out after, before and handle.",
     ]);
     expect(res.nodes).toHaveLength(added.nodes.length);
     expect(res.edges).toHaveLength(added.edges.length);

@@ -1,6 +1,6 @@
 import { useStatsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
-import { Stats } from "@/lib/stats";
+import { Stats } from "@/lib/apiData";
 
 // Rounds down, so the numbers never claim more than is true.
 function formatCount(value: number) {
@@ -39,7 +39,11 @@ export default function HomeStatsSection({ initial }: { initial: Stats }) {
           <div key={i} className="text-center">
             {item ? (
               <>
-                <div className="text-2xl sm:text-3xl md:text-4xl font-bold">
+                {/* deploy/indexnow.mjs doesn't count new numbers as a change */}
+                <div
+                  className="text-2xl sm:text-3xl md:text-4xl font-bold"
+                  data-indexnow-ignore
+                >
                   {formatCount(item.value)}
                 </div>
                 <div className="text-sm md:text-base text-muted-foreground mt-1">

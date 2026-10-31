@@ -3,7 +3,6 @@ package plan
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
@@ -12,14 +11,16 @@ import (
 )
 
 type PlanManagerConfig struct {
-	DiscordBotToken string
-	DiscordGuildID  string
+	DiscordBotToken      string
+	DiscordGuildID       string
+	DiscordCreatorRoleID string
 }
 
 type PlanManager struct {
 	entitlementStore  store.EntitlementStore
 	subscriptionStore store.SubscriptionStore
 	userStore         store.UserStore
+	bundleStore       store.BundleStore
 	plans             []model.Plan
 
 	config PlanManagerConfig
@@ -29,6 +30,7 @@ func NewPlanManager(
 	entitlementStore store.EntitlementStore,
 	subscriptionStore store.SubscriptionStore,
 	userStore store.UserStore,
+	bundleStore store.BundleStore,
 	plans []model.Plan,
 	config PlanManagerConfig,
 ) *PlanManager {
@@ -36,6 +38,7 @@ func NewPlanManager(
 		entitlementStore:  entitlementStore,
 		subscriptionStore: subscriptionStore,
 		userStore:         userStore,
+		bundleStore:       bundleStore,
 		plans:             plans,
 		config:            config,
 	}
@@ -86,20 +89,18 @@ func (m *PlanManager) planBy(field func(model.Plan) string, value string) *model
 	return nil
 }
 
-func (m *PlanManager) AppFeatures(ctx context.Context, appID string) model.Features {
+// AppFeatures fails if the entitlements can't be loaded, instead of falling
+// back to the default plan, which would treat paid apps as free ones.
+func (m *PlanManager) AppFeatures(ctx context.Context, appID string) (model.Features, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	entitlements, err := m.entitlementStore.ActiveEntitlements(ctx, appID, time.Now().UTC())
 	if err != nil {
-		slog.Error(
-			"Failed to get active entitlements",
-			slog.String("app_id", appID),
-			slog.String("error", err.Error()),
-		)
+		return model.Features{}, fmt.Errorf("failed to get active entitlements: %w", err)
 	}
 
-	return m.featuresFromEntitlements(entitlements)
+	return m.featuresFromEntitlements(entitlements), nil
 }
 
 // DefaultFeatures returns the features every app gets without any

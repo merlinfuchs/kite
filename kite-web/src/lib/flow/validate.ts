@@ -24,6 +24,7 @@ import {
 } from "./placeholders";
 import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
+import { isNoteNode } from "./notes";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -37,6 +38,13 @@ export interface FlowIssue {
   suggestion?: boolean;
 }
 
+// Blocks of the same type have the same title, so the ID tells an AI which
+// one is meant.
+export function describeIssue(issue: FlowIssue) {
+  const id = issue.nodeId ?? issue.edgeId;
+  return id ? `${id}: ${issue.message}` : issue.message;
+}
+
 // Checks what the editor and the service expect of a flow, beyond what each
 // block's settings schema covers: one entry, valid connections, complete
 // conditions and loops, and placeholders that point at something that exists.
@@ -45,8 +53,11 @@ export function validateFlow(
   edges: Edge[],
   context: FlowContextType
 ): FlowIssue[] {
-  // Generated flows can leave out the data of blocks without settings.
-  const nodes = flowNodes.map((n) => (n.data ? n : { ...n, data: {} }));
+  // Generated flows can leave out the data of blocks without settings. Notes
+  // aren't part of what runs.
+  const nodes = flowNodes
+    .filter((n) => !isNoteNode(n))
+    .map((n) => (n.data ? n : { ...n, data: {} }));
   const issues: FlowIssue[] = [];
   const report = (
     severity: FlowIssue["severity"],
@@ -534,6 +545,8 @@ export function getConnectionIssue(
       .join(", ")}.${
       handle === "error"
         ? " To handle errors, put the block after the default output of an error handler block."
+        : handle === "default"
+        ? " Set the handle to one of them, or connect the block to each to run it either way."
         : ""
     }`;
   }

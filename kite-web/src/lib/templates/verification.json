@@ -33,7 +33,7 @@
     "per_thousand_members": 60
   },
   "icon": "shield-check",
-  "category": "community",
+  "category": "welcome",
   "setup": [
     "In your server settings, put your bot's role above the verified role, so it can give the role.",
     "Hide your channels from @everyone and show them to the verified role instead."

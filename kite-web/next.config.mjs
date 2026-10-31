@@ -27,6 +27,47 @@ const nextConfig = {
   },
   // Don't write a kite-web/AGENTS.md on next dev, the repo has its own.
   agentRules: false,
+  // Templates moved to the marketplace. The export for self-hosting has no
+  // server to redirect, so its old links, like bookmarks of the app's
+  // Templates page, stop working.
+  ...(process.env.OUTPUT !== "export" && {
+    // The bundles users listed change, so this sitemap is generated.
+    rewrites: async () => [
+      {
+        source: "/sitemap-marketplace.xml",
+        destination: "/api/sitemap-marketplace",
+      },
+      // Tells OAuth clients of the MCP server where to get tokens. Some look
+      // for it with the MCP server's path at the end.
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        destination: "/api/oauth-protected-resource",
+      },
+    ],
+    // Other sites must not frame the consent page, so they can't trick users
+    // into approving their client.
+    headers: async () => [
+      {
+        source: "/oauth/authorize",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ],
+    redirects: async () => [
+      {
+        source: "/templates/:path*",
+        destination: "/marketplace/:path*",
+        permanent: true,
+      },
+      {
+        source: "/apps/:appId/templates/:path*",
+        destination: "/apps/:appId/marketplace/:path*",
+        permanent: true,
+      },
+    ],
+  }),
 };
 
 export default nextConfig;

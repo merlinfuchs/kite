@@ -4,11 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/sound"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -17,6 +21,9 @@ import (
 type AssetHandlerConfig struct {
 	APIPublicBaseURL string
 	MaxAssetSize     int64
+	// MaxAssetStoragePerApp is how many bytes the files of an app can take up
+	// together, 0 for no limit.
+	MaxAssetStoragePerApp int64
 }
 
 type AssetHandler struct {
@@ -43,6 +50,49 @@ const maxUploadOverhead = 1 * 1024 * 1024
 const unconfiguredMaxUploadSize = 64 * 1024 * 1024
 
 func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
+	file, header, err := h.readUpload(c)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+
+	return h.createAsset(c, header.Filename, header.Header.Get("Content-Type"), content)
+}
+
+// HandleSoundCreate converts an uploaded audio file to a sound that Play audio
+// blocks can play, and stores it as an asset.
+func (h *AssetHandler) HandleSoundCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
+	if !c.Features.VoiceAudio {
+		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include playing audio.")
+	}
+
+	file, header, err := h.readUpload(c)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	converted, err := sound.Convert(c.Context(), file)
+	if err != nil {
+		if errors.Is(err, sound.ErrInvalid) {
+			return nil, handler.ErrBadRequest("invalid_sound", sound.ErrInvalid.Error())
+		}
+		if errors.Is(err, sound.ErrTooLong) {
+			return nil, handler.ErrBadRequest("resource_limit", err.Error())
+		}
+		return nil, fmt.Errorf("failed to convert sound: %w", err)
+	}
+
+	name := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename)) + ".ogg"
+	return h.createAsset(c, name, sound.ContentType, converted)
+}
+
+func (h *AssetHandler) readUpload(c *handler.Context) (multipart.File, *multipart.FileHeader, error) {
 	maxSize := int64(unconfiguredMaxUploadSize)
 	if h.config.MaxAssetSize != 0 {
 		maxSize = h.config.MaxAssetSize
@@ -53,34 +103,43 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 	if err != nil {
 		var maxErr *http.MaxBytesError
 		if errors.As(err, &maxErr) {
-			return nil, handler.ErrBodyTooLarge(maxSize)
+			return nil, nil, handler.ErrBodyTooLarge(maxSize)
 		}
-		return nil, handler.ErrBadRequest("invalid_form", "failed to get file from form")
+		return nil, nil, handler.ErrBadRequest("invalid_form", "failed to get file from form")
 	}
 
 	if header.Size > maxSize {
-		return nil, handler.ErrBadRequest(
+		return nil, nil, handler.ErrBadRequest(
 			"resource_limit",
 			fmt.Sprintf("file size exceeds maximum allowed size (%d)", maxSize),
 		)
 	}
 
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("could not read file: %w", err)
-	}
+	return file, header, nil
+}
 
-	contentHash := util.HashBytes(content)
-	contentType := header.Header.Get("Content-Type")
+func (h *AssetHandler) createAsset(c *handler.Context, name string, contentType string, content []byte) (*wire.AssetCreateResponse, error) {
+	if h.config.MaxAssetStoragePerApp != 0 {
+		used, err := h.assetStore.AssetStorageByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get asset storage: %w", err)
+		}
+		if used+int64(len(content)) > h.config.MaxAssetStoragePerApp {
+			return nil, handler.ErrBadRequest(
+				"resource_limit",
+				fmt.Sprintf("the app's files would take up more than the maximum storage of %d MB", h.config.MaxAssetStoragePerApp/1_000_000),
+			)
+		}
+	}
 
 	asset, err := h.assetStore.CreateAsset(c.Context(), &model.Asset{
 		ID:            util.UniqueID(),
 		AppID:         c.App.ID,
 		CreatorUserID: c.Session.UserID,
-		Name:          header.Filename,
+		Name:          name,
 		ContentType:   contentType,
-		ContentSize:   int(len(content)),
-		ContentHash:   contentHash,
+		ContentSize:   len(content),
+		ContentHash:   util.HashBytes(content),
 		Content:       content,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),

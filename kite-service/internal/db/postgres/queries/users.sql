@@ -4,6 +4,11 @@ SELECT * FROM users WHERE id = $1;
 -- name: GetUserByDiscordID :one
 SELECT * FROM users WHERE discord_id = $1;
 
+-- name: GetUserByAppDiscordID :one
+SELECT users.* FROM apps
+JOIN users ON users.id = apps.owner_user_id
+WHERE apps.discord_id = $1;
+
 -- name: UpsertUser :one
 INSERT INTO users (
     id,

@@ -1,4 +1,5 @@
 import {
+  ComponentProps,
   createContext,
   ReactNode,
   useContext,
@@ -8,11 +9,72 @@ import {
 } from "react";
 import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { Message, Variable } from "../types/wire.gen";
+import { useMessages, useVariables } from "../hooks/api";
 
 // Read-only previews, like the flows of a template, don't show the validation
 // markers on blocks. Their parameters are only filled in when the template is
 // added.
 export const FlowReadOnlyContext = createContext(false);
+
+// PreviewInert holds controls that previews show but can't use, like a switch
+// or a color picker. Inputs and selects stay usable to read and scroll through
+// them, they don't change anything in previews.
+export function PreviewInert(props: ComponentProps<"div">) {
+  const readOnly = useContext(FlowReadOnlyContext);
+  return <div inert={readOnly} {...props} />;
+}
+
+// EditOnly holds controls that previews don't show, like buttons to add or
+// remove items.
+export function EditOnly({ children }: { children: ReactNode }) {
+  const readOnly = useContext(FlowReadOnlyContext);
+  return readOnly ? null : children;
+}
+
+// The stored variables and message templates the blocks of a preview use,
+// like the ones of a template, which the app doesn't have until it's added.
+// Blocks can still use the app's too.
+export type FlowPreviewItems = {
+  variables?: PreviewVariable[];
+  messages?: PreviewMessage[];
+};
+
+type PreviewVariable = Pick<Variable, "id" | "name" | "scoped">;
+// The data is only checked when the message is shown.
+type PreviewMessage = Pick<Message, "id" | "name"> & { data: unknown };
+
+export const FlowPreviewItemsContext = createContext<FlowPreviewItems>({});
+
+// useFlowVariables are the stored variables blocks can use: the ones of a
+// preview, then the app's.
+export function useFlowVariables() {
+  return withPreviewItems<PreviewVariable>(
+    useContext(FlowPreviewItemsContext).variables,
+    useVariables()
+  );
+}
+
+// useFlowMessages are the message templates blocks can use: the ones of a
+// preview, then the app's.
+export function useFlowMessages() {
+  return withPreviewItems<PreviewMessage>(
+    useContext(FlowPreviewItemsContext).messages,
+    useMessages()
+  );
+}
+
+function withPreviewItems<T extends { id: string }>(
+  preview: T[] | undefined,
+  app: (T | null | undefined)[] | undefined
+): T[] | undefined {
+  if (!preview) return app?.flatMap((item) => (item ? [item] : []));
+  const ids = new Set(preview.map((item) => item.id));
+  return [
+    ...preview,
+    ...(app ?? []).flatMap((item) => (item && !ids.has(item.id) ? [item] : [])),
+  ];
+}
 
 export const flowContextTypes = [
   "command",

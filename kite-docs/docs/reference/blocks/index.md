@@ -26,6 +26,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Message Blocks
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
+- [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
@@ -69,11 +70,14 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
 - [Edit voice state](./actions/action_member_voice_edit.md) - Server-mute, deafen or move members in voice
+- [Play audio](./actions/action_voice_audio_play.md) - Play an uploaded sound in a voice channel
+- [Stop audio](./actions/action_voice_audio_stop.md) - Stop the audio the app plays
 
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
 - [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
 
 ## Variable Blocks
 
@@ -88,6 +92,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
 - [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
 - [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
+- [AI Translate](./actions/action_ai_translate.md) - Let AI translate text to another language
 
 ## Utility Blocks
 
@@ -101,17 +106,31 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
-## Roblox Blocks
+## Integration Blocks
+
+Integration blocks use services outside of Discord. They have their own **Integrations** tab in the flow editor's sidebar, and most of them only work after the integration has been enabled on your app's [Integrations](../integrations.md) page.
+
+### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
-## ER:LC Blocks
+### Cookie API
+
+- [Create transcript](./actions/action_cookie_api_transcript_create.md) - Save the messages of a channel as a web page
+- [Generate card](./actions/action_cookie_api_card_create.md) - Create an image like a welcome card
+- [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
+- [Create captcha](./actions/action_cookie_api_captcha_create.md) - Create a captcha page for a user to solve
+- [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
+- [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
+
+### ER:LC
 
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
 ## Control Flow Blocks
 
+- [If](./controls/control_if.md) - Run actions if something is true
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions

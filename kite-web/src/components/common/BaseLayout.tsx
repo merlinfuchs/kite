@@ -35,7 +35,7 @@ export default function BaseLayout({
   const fullDescription =
     description ||
     "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.";
-  // A page exported from a dynamic route like /templates/[templateId] gets its
+  // A page exported from a dynamic route like /marketplace/[templateId] gets its
   // own URL. One exported as a single shell for every ID, like
   // /bundles/[bundleId], doesn't know its ID until it runs in the browser,
   // which crawlers don't do, so it gets no URL and they use the one they

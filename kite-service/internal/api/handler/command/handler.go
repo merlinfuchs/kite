@@ -105,7 +105,8 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 }
 
 // PrepareImport checks that the commands can be added to the app and returns
-// them with their IDs set, without saving them.
+// them with their IDs set, without saving them. Commands whose names are
+// taken get a number, like /giveaway-2.
 func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) ([]*model.Command, error) {
 	if len(reqs) == 0 {
 		return nil, nil
@@ -146,8 +147,15 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	if err := h.checkCommandNames(c, "", names...); err != nil {
-		return nil, err
+	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	if err != nil {
+		return nil, commandNamesError(err)
+	}
+	for i, name := range resolved {
+		if name != commands[i].Name {
+			commands[i].Name = name
+			commands[i].FlowSource = commands[i].FlowSource.WithCommandName(name)
+		}
 	}
 
 	return commands, nil
@@ -172,10 +180,15 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	command, err := h.commandStore.UpdateCommand(c.Context(), updated)
+	change := c.ItemChange(req.EditorSession)
+	change.BaseVersion = req.BaseVersion
+	command, err := h.commandStore.UpdateCommand(c.Context(), updated, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
@@ -207,14 +220,7 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Comman
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
-	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
-		ID:          c.Command.ID,
-		Name:        c.Command.Name,
-		Description: c.Command.Description,
-		FlowSource:  c.Command.FlowSource,
-		Enabled:     req.Enabled,
-		UpdatedAt:   time.Now().UTC(),
-	})
+	command, err := h.commandStore.UpdateCommandEnabled(c.Context(), c.Command.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
@@ -226,7 +232,7 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 }
 
 func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandDeleteResponse, error) {
-	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID)
+	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
@@ -263,13 +269,18 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
 func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
-	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
-	if err != nil {
-		var deployErr *command.DeployError
-		if errors.As(err, &deployErr) {
-			return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
-		}
-		return fmt.Errorf("failed to check command names: %w", err)
+	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...))
+}
+
+// commandNamesError turns a conflict of command names into an error for the
+// user.
+func commandNamesError(err error) error {
+	if err == nil {
+		return nil
 	}
-	return nil
+	var deployErr *command.DeployError
+	if errors.As(err, &deployErr) {
+		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
+	}
+	return fmt.Errorf("failed to check command names: %w", err)
 }

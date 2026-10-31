@@ -16,10 +16,13 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -39,6 +42,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
+	metrics.PublishDBPool(func() any { return pg.PoolStats() })
 
 	if err := bundle.SyncOfficial(c, pg); err != nil {
 		return fmt.Errorf("failed to sync official bundles: %w", err)
@@ -69,7 +73,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	configureHTTPTransport(cfg)
 	warnUnverifiedBillingWebhook(cfg)
-	startDebugServer(ctx, cfg.Debug)
+	// Clusters run on the same host, so each gets its own port, like the API.
+	debugCfg := cfg.Debug
+	debugCfg.Port += cfg.ClusterIndex
+	startDebugServer(ctx, debugCfg)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {
@@ -103,10 +110,13 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		starboard.NewStarboardPlugin(),
 	)
 
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
-		DiscordBotToken: cfg.Discord.BotToken,
-		DiscordGuildID:  cfg.Discord.GuildID,
+	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
+		DiscordBotToken:      cfg.Discord.BotToken,
+		DiscordGuildID:       cfg.Discord.GuildID,
+		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
 	})
+
+	httpClient := engineHTTPClient(cfg)
 
 	engine := engine.NewEngine(
 		engine.Env{
@@ -136,11 +146,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			AppSecretStore:       pg,
 			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
-			HttpClient:           engineHTTPClient(cfg),
+			HttpClient:           httpClient,
 			OpenaiClient:         &openaiClient,
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
+			Voice:                engine.NewVoiceManager(assetStore),
 		},
 	)
 	engine.Run(ctx)
@@ -156,16 +167,24 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		RemoveDanglingInterval: cfg.Gateway.RemoveDanglingInterval,
 		PopulateOverlap:        cfg.Gateway.PopulateOverlap,
 		StartInterval:          cfg.Gateway.StartInterval,
+		AppBaseURL:             cfg.App.PublicBaseURL,
 	})
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, planManager)
+	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
+
+	creditNotifier := notify.NewAppOwnerNotifier(pg, tokenCrypt, notifier, cfg.App.PublicBaseURL)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, pg, planManager, creditNotifier)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
 		commandManager.Run(ctx)
+
+		if cfg.OpenAI.APIKey != "" && cfg.Prescreen.Model != "" {
+			go prescreen.New(&openaiClient, cfg.Prescreen.Model, pg, notifier).Run(ctx)
+		}
 
 		if cfg.Billing.LemonSqueezyAPIKey != "" {
 			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
@@ -184,11 +203,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
-		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:    cfg.UserLimits.MaxAppsPerUser,
-			MaxBundlesPerUser: cfg.UserLimits.MaxBundlesPerUser,
-		},
+		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		AdminUserIDs:        cfg.App.AdminUserIDs,
+		HTTPClient:          httpClient,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -199,7 +217,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg, pg, pg, pg,
+		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
+		notifier,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

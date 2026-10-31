@@ -45,10 +45,7 @@ export default function HomeUseCasesSection() {
   return (
     <section id="use-cases" className="container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold">
-        What Will You{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Build?
-        </span>
+        Bots People Build With Kite
       </h2>
       <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
         Start from a template for the most common bots, or build something

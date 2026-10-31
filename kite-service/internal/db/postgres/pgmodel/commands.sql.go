@@ -81,22 +81,61 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 	return i, err
 }
 
-const deleteCommand = `-- name: DeleteCommand :exec
-DELETE FROM commands WHERE id = $1
+const deleteCommand = `-- name: DeleteCommand :one
+DELETE FROM commands WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
-func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteCommand, id)
-	return err
+func (q *Queries) DeleteCommand(ctx context.Context, id string) (Command, error) {
+	row := q.db.QueryRow(ctx, deleteCommand, id)
+	var i Command
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const deleteCommandsByBundleInstall = `-- name: DeleteCommandsByBundleInstall :exec
-DELETE FROM commands WHERE bundle_install_id = $1
+const deleteCommandsByBundleInstall = `-- name: DeleteCommandsByBundleInstall :many
+DELETE FROM commands WHERE bundle_install_id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
-func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
-	_, err := q.db.Exec(ctx, deleteCommandsByBundleInstall, bundleInstallID)
-	return err
+func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]Command, error) {
+	rows, err := q.db.Query(ctx, deleteCommandsByBundleInstall, bundleInstallID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Command
+	for rows.Next() {
+		var i Command
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCommand = `-- name: GetCommand :one
@@ -105,6 +144,28 @@ SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_i
 
 func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 	row := q.db.QueryRow(ctx, getCommand, id)
+	var i Command
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCommandForUpdate = `-- name: GetCommandForUpdate :one
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetCommandForUpdate(ctx context.Context, id string) (Command, error) {
+	row := q.db.QueryRow(ctx, getCommandForUpdate, id)
 	var i Command
 	err := row.Scan(
 		&i.ID,
@@ -219,9 +280,8 @@ const updateCommand = `-- name: UpdateCommand :one
 UPDATE commands SET
     name = $2,
     description = $3,
-    enabled = $4,
-    flow_source = $5,
-    updated_at = $6
+    flow_source = $4,
+    updated_at = $5
 WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
@@ -229,7 +289,6 @@ type UpdateCommandParams struct {
 	ID          string
 	Name        string
 	Description string
-	Enabled     bool
 	FlowSource  []byte
 	UpdatedAt   pgtype.Timestamp
 }
@@ -239,10 +298,40 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.Enabled,
 		arg.FlowSource,
 		arg.UpdatedAt,
 	)
+	var i Command
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateCommandEnabled = `-- name: UpdateCommandEnabled :one
+UPDATE commands SET
+    enabled = $2,
+    updated_at = $3
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+`
+
+type UpdateCommandEnabledParams struct {
+	ID        string
+	Enabled   bool
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpdateCommandEnabled(ctx context.Context, arg UpdateCommandEnabledParams) (Command, error) {
+	row := q.db.QueryRow(ctx, updateCommandEnabled, arg.ID, arg.Enabled, arg.UpdatedAt)
 	var i Command
 	err := row.Scan(
 		&i.ID,

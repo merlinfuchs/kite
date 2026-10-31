@@ -5,6 +5,7 @@ import { openPanel, setAppGroup, updateAppGroup, track } from "@/lib/analytics";
 
 // Accounts this new count as signing up on this visit.
 const signUpWindowMs = 10 * 60 * 1000;
+const signedUpUserIds = new Set<string>();
 
 export default function AnalyticsProvider() {
   const user = useUser();
@@ -17,15 +18,18 @@ export default function AnalyticsProvider() {
           profileId: user.id,
           firstName: user.discord_username,
           lastName: user.display_name,
-          email: user.email ?? undefined,
         })
       );
 
-      const key = `kite-signed-up-${user.id}`;
+      // Earlier versions kept this flag in local storage.
+      localStorage.removeItem(`kite-signed-up-${user.id}`);
+
+      // Remembered in memory rather than in the browser, which would need
+      // consent. Reloading within the window can count a sign up twice.
       const isNew =
         Date.now() - new Date(user.created_at).getTime() < signUpWindowMs;
-      if (isNew && !localStorage.getItem(key)) {
-        localStorage.setItem(key, "true");
+      if (isNew && !signedUpUserIds.has(user.id)) {
+        signedUpUserIds.add(user.id);
         track("sign_up");
       }
     }

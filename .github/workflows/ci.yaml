@@ -97,24 +97,48 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run lint
       - run: pnpm test
-      - name: Check catalog.json is up to date
+      - name: Check generated files are up to date
         run: |
           if ! git diff --exit-code; then
-            echo "::error::kite-service/pkg/flow/catalog.json is out of date. Run pnpm test -u in kite-web and commit the result."
+            echo "::error::Files generated from kite-web, like catalog.json, are out of date. Run pnpm test -u in kite-web and commit the result."
             exit 1
           fi
-      # Also typechecks. The export is embedded in the service for
-      # self-hosting, kite.onl runs the server.
-      - name: Build export
-        run: pnpm run build
-        env:
-          OUTPUT: export
-          NEXT_PUBLIC_API_PUBLIC_BASE_URL: ""
-      - name: Build server
-        run: pnpm run build
+
+  # The export is embedded in the service for self-hosting, kite.onl runs the
+  # server. Both builds also typecheck.
+  web-build:
+    name: Web build (${{ matrix.output }})
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        output: [export, server]
+    defaults:
+      run:
+        working-directory: kite-web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: kite-web/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: kite-web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build
+        run: |
+          if [ "${{ matrix.output }}" = export ]; then
+            OUTPUT=export NEXT_PUBLIC_API_PUBLIC_BASE_URL= pnpm run build
+          else
+            pnpm run build
+          fi
       # deploy/web.sh refuses them, since it builds on another platform than
       # the server's.
       - name: Check server build has no native modules
+        if: matrix.output == 'server'
         run: test -z "$(find .next/standalone -name '*.node')"
 
   docs:

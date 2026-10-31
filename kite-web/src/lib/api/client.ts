@@ -42,8 +42,12 @@ export function loginUrlTo(path: string) {
 
 export const loginUrl = loginUrlTo("/apps");
 
-export function apiRequest<T>(path: string, options?: RequestInit) {
-  return fetch(getApiUrl(path), {
+export function apiRequest<T>(
+  path: string,
+  options?: RequestInit,
+  baseUrl = getApiUrl()
+) {
+  return fetch(baseUrl + path, {
     ...options,
     credentials: "include",
   }).then(async (res) => {
@@ -59,7 +63,7 @@ export function apiRequest<T>(path: string, options?: RequestInit) {
 }
 
 // fetchBundle gets a bundle as anyone without a session sees it, for what the
-// server renders. It's null for bundles that don't exist or aren't published,
+// server renders. It's null for bundles that don't exist or were taken down,
 // other errors are thrown.
 export async function fetchBundle(id: string) {
   const res = await apiRequest<BundleGetResponse>(
@@ -67,6 +71,10 @@ export async function fetchBundle(id: string) {
     { signal: AbortSignal.timeout(5000) }
   );
   if (res.success) return res.data;
-  if (res.error.code === "unknown_bundle") return null;
+  if (
+    res.error.code === "unknown_bundle" ||
+    res.error.code === "bundle_removed"
+  )
+    return null;
   throw new Error(res.error.message);
 }

@@ -8,20 +8,36 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 type BundleInstall struct {
-	ID            string              `json:"id"`
-	Name          string              `json:"name"`
-	Description   string              `json:"description"`
-	Enabled       bool                `json:"enabled"`
-	AppID         string              `json:"app_id"`
-	BundleID      string              `json:"bundle_id"`
-	BundleVersion int                 `json:"bundle_version"`
-	Parameters    map[string]string   `json:"parameters"`
-	Items         []BundleInstallItem `json:"items"`
-	CreatedAt     time.Time           `json:"created_at"`
-	UpdatedAt     time.Time           `json:"updated_at"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	Enabled       bool              `json:"enabled"`
+	AppID         string            `json:"app_id"`
+	BundleID      string            `json:"bundle_id"`
+	BundleVersion int               `json:"bundle_version"`
+	Parameters    map[string]string `json:"parameters"`
+	// Official is whether the bundle is a template made by Kite.
+	Official bool `json:"official"`
+	// Owner is who made a user's bundle, null for official ones and ones that
+	// were deleted.
+	Owner *BundleOwner `json:"owner"`
+	// Yours is whether the current user made the bundle.
+	Yours bool `json:"yours"`
+	// Icon is the icon of the bundle's listing, empty if it isn't listed.
+	Icon string `json:"icon"`
+	// AvailableVersion is the version the app can update to, null if the
+	// user can't see the bundle anymore.
+	AvailableVersion null.Int `json:"available_version"`
+	// Removed is whether Kite took the bundle down for breaking the rules.
+	Removed   bool                `json:"removed"`
+	Items     []BundleInstallItem `json:"items"`
+	CreatedAt time.Time           `json:"created_at"`
+	UpdatedAt time.Time           `json:"updated_at"`
 }
 
 // BundleInstallItem is a command, event listener or message the install
@@ -50,6 +66,9 @@ type BundleInstallCreateRequest struct {
 	Parameters    map[string]string `json:"parameters"`
 	// Items are the keys of the commands, event listeners and messages to add.
 	Items []string `json:"items"`
+	// Messages are the data of the messages the user changed while adding
+	// them, by their keys.
+	Messages map[string]message.MessageData `json:"messages,omitempty"`
 }
 
 func (req BundleInstallCreateRequest) Validate() error {
@@ -57,6 +76,7 @@ func (req BundleInstallCreateRequest) Validate() error {
 		validation.Field(&req.BundleID, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
 		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
+		validation.Field(&req.Messages, validation.Length(0, 100)),
 		validation.Field(&req.Items,
 			validation.Required,
 			validation.Length(1, 100),

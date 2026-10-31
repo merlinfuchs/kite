@@ -5,12 +5,14 @@ import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
+import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
+import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -29,58 +31,62 @@ export default function AppEventListenerPage() {
   });
   const name = eventSourceName(listener?.source);
 
-  const updateMutation = useEventListenerUpdateMutation(
-    useAppId(),
-    useEventId()
-  );
+  const appId = useAppId();
+  const eventId = useEventId();
+  const updateMutation = useEventListenerUpdateMutation(appId, eventId);
+  const { mutateAsync: updateEventListener } = updateMutation;
 
+  const base = useSaveBase(listener?.version);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
+  // Counts edits, so edits made while a save is running stay unsaved.
+  const changeCount = useRef(0);
 
   const onChange = useCallback(() => {
+    changeCount.current++;
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData, options?: { onSuccess?: () => void }) => {
-      setIsSaving(true);
+    async (data: FlowData, editorSession?: string) => {
+      const savedChangeCount = changeCount.current;
 
-      updateMutation.mutate(
-        {
+      try {
+        const res = await updateEventListener({
           flow_source: data,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              track("event_listener_saved", {
-                type: res.data.type,
-                blocks: data.nodes.length,
-              });
-              toast.success(
-                `${capitalize(
-                  name.singular
-                )} saved! It may take up to a minute for all changes to take effect.`
-              );
-              options?.onSuccess?.();
-            } else {
-              track("flow_save_failed", {
-                kind: "event_listener",
-                code: res.error.code,
-              });
-              toast.error(
-                `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
-              );
-            }
-          },
-          onSettled() {
-            setIsSaving(false);
-            setHasUnsavedChanges(false);
-          },
+          editor_session: editorSession,
+          base_version: base.current ?? undefined,
+        });
+        if (!res.success) {
+          track("flow_save_failed", {
+            kind: "event_listener",
+            code: res.error.code,
+          });
+          if (res.error.code === "item_outdated") base.current = null;
+          toast.error(saveErrorMessage(name.singular, res.error));
+          return false;
         }
-      );
+
+        track("event_listener_saved", {
+          type: res.data.type,
+          blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
+        });
+        toast.success(
+          `${capitalize(
+            name.singular
+          )} saved! It may take up to a minute for all changes to take effect.`
+        );
+        base.current = res.data.version;
+        if (changeCount.current === savedChangeCount) {
+          setHasUnsavedChanges(false);
+        }
+        return true;
+      } catch (err) {
+        toast.error(`Failed to update ${name.singular}: ${err}`);
+        return false;
+      }
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation, name]
+    [setHasUnsavedChanges, base, updateEventListener, name]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
@@ -93,7 +99,11 @@ export default function AppEventListenerPage() {
     });
   }, [leave, router, name]);
 
-  const logs = useFlowLogEntries({ eventId: useEventId() });
+  const logs = useFlowLogEntries({ eventId });
+  const versionTarget = useMemo(
+    () => ({ appId, type: "event_listener" as const, id: eventId }),
+    [appId, eventId]
+  );
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
@@ -111,12 +121,14 @@ export default function AppEventListenerPage() {
               : "event_discord"
           }
           viewportKey={`event:${listener.id}`}
+          bundleInstallId={listener.bundle_install_id}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
-          isSaving={isSaving}
+          isSaving={updateMutation.isPending}
           onSave={save}
           onExit={exit}
           logs={logs}
+          versionTarget={versionTarget}
         />
       )}
       <LogEntryListDrawer

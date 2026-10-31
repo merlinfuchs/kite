@@ -7,14 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -26,10 +27,10 @@ import (
 type Gateway struct {
 	logStore       store.LogStore
 	appStore       store.AppStore
-	planManager    *plan.PlanManager
 	eventHandler   EventHandler
 	tokenCrypt     *util.SymmetricCrypt
 	pluginRegistry *plugin.Registry
+	appBaseURL     string
 
 	// appID never changes, unlike the rest of app.
 	appID string
@@ -59,16 +60,25 @@ type Gateway struct {
 	// countsDueAt is when the app's install counts are refreshed next, or
 	// zero if they never were. Only accessed by the manager's counts loop.
 	countsDueAt time.Time
+
+	// readyGuilds is how many servers the bot was in when it last connected,
+	// until the manager's enforceGuildLimits checked it against the plan.
+	readyGuilds atomic.Int64
+
+	// notInGuild is until when guilds Discord said the bot isn't in aren't
+	// asked about again, see knownNotInGuild.
+	notInGuildMu sync.Mutex
+	notInGuild   map[discord.GuildID]time.Time
 }
 
 func NewGateway(
 	app *model.App,
 	logStore store.LogStore,
 	appStore store.AppStore,
-	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
 	pluginRegistry *plugin.Registry,
+	appBaseURL string,
 ) (*Gateway, error) {
 	session, err := createSession(tokenCrypt, app)
 	if err != nil {
@@ -78,10 +88,10 @@ func NewGateway(
 	g := &Gateway{
 		logStore:       logStore,
 		appStore:       appStore,
-		planManager:    planManager,
 		eventHandler:   eventHandler,
 		tokenCrypt:     tokenCrypt,
 		pluginRegistry: pluginRegistry,
+		appBaseURL:     appBaseURL,
 		appID:          app.ID,
 		app:            app,
 		session:        session,
@@ -162,10 +172,19 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		if g.paused() {
+			if e, ok := e.(*gateway.InteractionCreateEvent); ok {
+				go g.respondPaused(session, e)
+			}
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
 	trackDerivedEvents(session, func(e gateway.Event) {
+		if g.paused() {
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
@@ -177,21 +196,17 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 			slog.String("username", e.User.Username),
 			slog.Int("guilds", len(e.Guilds)),
 		)
-		g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
-			"Connected to Discord as %s#%s (%s)",
-			e.User.Username, e.User.Discriminator, e.User.ID,
-		))
+		// No log entry for the app here. When Discord drops every gateway at
+		// once, all of them READY in the same minute, and one insert each
+		// exhausts the database pools.
 
-		features := g.planManager.AppFeatures(ctx, g.appID)
-		if len(e.Guilds) > features.MaxGuilds && ctx.Err() == nil {
-			reason := fmt.Sprintf(
-				"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
-				len(e.Guilds), features.MaxGuilds,
-			)
-			g.createLogEntry(model.LogLevelError, reason)
-			g.disableApp(reason)
-			return
+		// Under the lock, so the READY of a replaced session can't overwrite
+		// the reset in replaceSession.
+		g.mu.Lock()
+		if g.session == session && ctx.Err() == nil {
+			g.readyGuilds.Store(int64(len(e.Guilds)))
 		}
+		g.mu.Unlock()
 	})
 
 	if err := session.Connect(ctx); err != nil && ctx.Err() == nil {
@@ -229,6 +244,11 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 	if err != nil {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
 	}
+	if g.paused() {
+		// Interactions come without any intent. Guilds keeps the cache of
+		// servers, channels and roles the dashboard reads.
+		return gateway.IntentGuilds, nil
+	}
 
 	reqs, err := g.appRequirements(ctx)
 	if err != nil {
@@ -258,6 +278,7 @@ func (g *Gateway) appRequirements(ctx context.Context) (model.AppGatewayRequirem
 		EventListenerTypes:  row.EventListenerTypes,
 		PluginEventTypes:    g.pluginRegistry.EventTypesForResources(row.PluginResources),
 		HasMessageInstances: row.HasMessageInstances,
+		UsesVoice:           row.UsesVoice,
 	}, nil
 }
 
@@ -318,6 +339,8 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
+	} else if model.HasNoCredits(app) != model.HasNoCredits(old) {
+		g.RefreshIntents(ctx)
 	}
 }
 
@@ -436,6 +459,7 @@ func (g *Gateway) replaceSession(expected *state.State) (*state.State, context.C
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 	g.session = session
 	g.intents = 0
+	g.readyGuilds.Store(0)
 	ctx := g.ctx
 	g.mu.Unlock()
 
@@ -471,11 +495,13 @@ func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
 	}
 }
 
-func (g *Gateway) disableApp(reason string) {
+// disableApp reports whether the app was disabled, which it isn't when it
+// already was.
+func (g *Gateway) disableApp(reason string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	disabled, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),
@@ -487,4 +513,5 @@ func (g *Gateway) disableApp(reason string) {
 			slog.String("app_id", g.appID),
 		)
 	}
+	return disabled, err
 }

@@ -15,6 +15,7 @@ func TestReferencedParameters(t *testing.T) {
 		{ID: "b", Data: FlowNodeData{AuditLogReason: "Be {{ params.tone }} in <#{{params.log_channel}}>, not params.ignored"}},
 		{ID: "c", Data: FlowNodeData{ChannelTarget: "{{webhook.data.params.other}}"}},
 		{ID: "d", Data: FlowNodeData{ChannelTarget: "{{1<params.max && params.min>0}}"}},
+		{ID: "e", Type: FlowNodeTypeNote, Data: FlowNodeData{Fields: map[string]any{"note_text": "Set {{params.noted}}"}}},
 	}}
 	assert.Equal(t, []string{"log_channel", "tone", "max", "min"}, data.ReferencedParameters())
 }
@@ -31,6 +32,26 @@ func TestParametersInTemplates(t *testing.T) {
 	res, err := eval.EvalTemplateToString(context.Background(), "{{params.greeting}} and {{params.missing}}!", evalCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "Hello and !", res)
+}
+
+func TestBooleanParameters(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{{ID: "entry", Type: FlowNodeTypeEntryCommand}},
+		Parameters: []FlowParameter{
+			{Key: "dm", Type: FlowParameterTypeBoolean, Value: "true"},
+			{Key: "ping", Type: FlowParameterTypeBoolean},
+		},
+	}
+	node, err := CompileCommand(data)
+	require.NoError(t, err)
+
+	evalCtx := eval.NewContext(eval.Env{"params": node.Parameters})
+	res, err := eval.EvalTemplate(context.Background(), "{{params.dm && !params.ping}}", evalCtx)
+	require.NoError(t, err)
+	assert.Equal(t, true, res.Value)
+	text, err := eval.EvalTemplateToString(context.Background(), "DM: {{params.dm}}", evalCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "DM: true", text)
 }
 
 func TestUsedParameters(t *testing.T) {
@@ -66,6 +87,10 @@ func TestParameterCheckValue(t *testing.T) {
 	assert.NoError(t, channel.CheckValue("123456789012345678"))
 	assert.EqualError(t, channel.CheckValue("general"), "log must be the ID of a channel")
 	assert.NoError(t, FlowParameter{Key: "x", Type: FlowParameterTypeText}.CheckValue("anything"))
+	dm := FlowParameter{Key: "dm", Type: FlowParameterTypeBoolean}
+	assert.NoError(t, dm.CheckValue("true"))
+	assert.NoError(t, dm.CheckValue("false"))
+	assert.EqualError(t, dm.CheckValue("yes"), "dm must be true or false")
 	// Saving a flow checks the values too.
 	assert.Error(t, FlowData{Parameters: []FlowParameter{{Key: "log", Type: FlowParameterTypeChannel, Value: "general"}}}.Validate())
 }

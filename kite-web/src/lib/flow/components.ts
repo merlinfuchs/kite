@@ -20,6 +20,8 @@ import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeBranches from "@/components/flow/FlowNodeBranches";
+import FlowNodeNote from "@/components/flow/FlowNodeNote";
+import { noteNodeType } from "./notes";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -40,12 +42,16 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   suspend: FlowNodeSuspendBase,
 };
 
-export const nodeTypes = Object.fromEntries(
-  blockDefinitions.map((block) => [
-    block.type,
-    blockComponents[block.component ?? "action"],
-  ])
-);
+export const nodeTypes = {
+  ...Object.fromEntries(
+    blockDefinitions.map((block) => [
+      block.type,
+      blockComponents[block.component ?? "action"],
+    ])
+  ),
+  // Notes aren't blocks, see notes.ts.
+  [noteNodeType]: FlowNodeNote,
+};
 
 export const edgeTypes = {
   delete_button: FlowEdgeDeleteButton,

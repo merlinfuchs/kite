@@ -3,7 +3,7 @@ import z from "zod";
 import "../zodConfig";
 import { ApiParam } from "../integrations/api";
 import { FlowNodeData, FlowParameter } from "../types/flow.gen";
-import { aiModelTierValues, resolveAiModel } from "./aiModels";
+import { aiAnswerLimits, aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
   getDiscordApiOperation,
   similarDiscordApiOperations,
@@ -148,7 +148,7 @@ export const messageDataSchema = z
       .max(10)
       .optional()
       .describe(
-        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders."
       ),
     allowed_mentions: z
       .object({
@@ -257,6 +257,28 @@ export const channelDataSchema = z
       .describe("Whether non-moderators can add members to a private thread."),
   })
   .describe("Settings of the channel, thread or forum post.");
+
+// The edit only sends what's set, so it can e.g. only archive a thread.
+export const channelEditDataSchema = channelDataSchema
+  .extend({
+    name: templated(
+      z.string().max(100),
+      "New name of the channel. Left as it is if not set."
+    ).optional(),
+    archived: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether a thread is archived. Left as it is if not set. A new message unarchives it unless it's locked."
+      ),
+    locked: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set."
+      ),
+  })
+  .describe("Settings of the channel or thread.");
 
 export const variableIdSchema = userPicked(
   z.string(),
@@ -398,7 +420,7 @@ export const aiModelSchema = z
   );
 
 export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
-  "Maximum number of tokens in the answer."
+  `Maximum number of tokens in the answer. ${aiAnswerLimits}`
 ).optional();
 
 // The settings of AI Choice, Check and Score. The question, input and options

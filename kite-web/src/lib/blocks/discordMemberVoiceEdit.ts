@@ -1,6 +1,6 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import { guildTargetField, userTargetField } from "./fields";
-import { BlockDefinition } from "./types";
+import { BlockDefinition, SettingsSchema } from "./types";
 
 // Empty leaves the setting unchanged.
 const voiceStateChangeSchema = (description: string) =>
@@ -9,7 +9,7 @@ const voiceStateChangeSchema = (description: string) =>
 const isChange = (value: unknown) => value === "true" || value === "false";
 
 // A request without changes does nothing, so the editor says so.
-function requireChange(schema: AnyZodObject) {
+function requireChange(schema: SettingsSchema) {
   return schema
     .refine(
       (data) =>
@@ -25,11 +25,17 @@ function requireChange(schema: AnyZodObject) {
 
 export const discordMemberVoiceEdit: BlockDefinition = {
   type: "action_member_voice_edit",
+  id_prefix: "member",
   title: "Edit voice state",
   description: "Server-mute, deafen or move a member to another voice channel",
   icon: "audio-lines",
   category: "Voice",
   credits: 1,
+  permissions: (data) => [
+    ...(isChange(data.member_voice_mute) ? (["MUTE_MEMBERS"] as const) : []),
+    ...(isChange(data.member_voice_deaf) ? (["DEAFEN_MEMBERS"] as const) : []),
+    ...(data.channel_target ? (["MOVE_MEMBERS"] as const) : []),
+  ],
   audit_log_reason: true,
   strict_settings: true,
   run: {

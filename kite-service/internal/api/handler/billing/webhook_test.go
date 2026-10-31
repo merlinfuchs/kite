@@ -100,7 +100,7 @@ func newTestSubscriptionWebhookServer(t *testing.T, secret string) *testWebhookS
 	t.Cleanup(api.Close)
 
 	plans := []model.Plan{{ID: "pro", LemonSqueezyProductID: "1"}}
-	planManager := plan.NewPlanManager(s.entStore, s.subStore, nil, plans, plan.PlanManagerConfig{})
+	planManager := plan.NewPlanManager(s.entStore, s.subStore, nil, nil, plans, plan.PlanManagerConfig{})
 
 	lsClient := lemonsqueezy.New(
 		lemonsqueezy.WithBaseURL(api.URL),

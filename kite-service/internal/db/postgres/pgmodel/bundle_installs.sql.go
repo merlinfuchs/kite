@@ -87,6 +87,19 @@ func (q *Queries) DeleteBundleInstall(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteEmptyBundleInstall = `-- name: DeleteEmptyBundleInstall :exec
+DELETE FROM bundle_installs b WHERE b.id = $1
+    AND NOT EXISTS (SELECT 1 FROM commands WHERE bundle_install_id = b.id)
+    AND NOT EXISTS (SELECT 1 FROM event_listeners WHERE bundle_install_id = b.id)
+    AND NOT EXISTS (SELECT 1 FROM messages WHERE bundle_install_id = b.id)
+    AND NOT EXISTS (SELECT 1 FROM variables WHERE bundle_install_id = b.id)
+`
+
+func (q *Queries) DeleteEmptyBundleInstall(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteEmptyBundleInstall, id)
+	return err
+}
+
 const getBundleInstall = `-- name: GetBundleInstall :one
 SELECT id, name, description, enabled, app_id, creator_user_id, resources, created_at, updated_at, bundle_id, bundle_version, settings FROM bundle_installs WHERE id = $1 AND app_id = $2
 `
@@ -292,6 +305,15 @@ func (q *Queries) GetInstalledVariablesByApp(ctx context.Context, appID string) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockBundleInstall = `-- name: LockBundleInstall :exec
+SELECT id FROM bundle_installs WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockBundleInstall(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, lockBundleInstall, id)
+	return err
 }
 
 const updateBundleInstall = `-- name: UpdateBundleInstall :one

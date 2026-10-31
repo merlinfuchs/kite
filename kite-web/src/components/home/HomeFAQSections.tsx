@@ -27,12 +27,17 @@ export const FAQList: FAQProps[] = [
   {
     question: "Do I need to know how to code?",
     answer:
-      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or import a template for moderation, welcome messages or an AI chatbot.',
+      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or add a template from the Marketplace for moderation, welcome messages or an AI chatbot.',
   },
   {
     question: "Can I customize the name and avatar of my Discord bot?",
     answer:
-      "Yes. Your bot is your own Discord application, so you choose its name and avatar. You can also set its status for free.",
+      'Yes. Your bot is your own Discord application, so you choose its name and avatar. You can also set its status for free on every plan. Until you do, it shows "Powered by Kite.onl".',
+  },
+  {
+    question: "Does my bot need to be used to stay online?",
+    answer:
+      "No. Kite keeps your bot online whether it's used or not, on every plan. You don't need to run a command or watch an ad to keep it running.",
   },
   {
     question: "What can my bot do?",
@@ -42,7 +47,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "What are credits?",
     answer:
-      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Conditions, loops and reading data like members or messages are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, Kite stops it and starts it again by itself when the next month begins or you upgrade.",
+      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Credits are only used when your bot does something, so being online costs nothing. Conditions, loops and reading data like members or messages are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, it stays online, but its commands and events pause and anyone who uses it is told why, until the next month begins or you upgrade.",
   },
   {
     question: "How many servers can I add my bot to?",
@@ -68,10 +73,7 @@ export default function HomeFAQSection({
       className={cn("scroll-mt-16 container py-16 sm:py-24", className)}
     >
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
-        Frequently Asked{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Questions
-        </span>
+        Frequently Asked Questions
       </h2>
 
       <Accordion type="single" collapsible className="w-full AccordionRoot">

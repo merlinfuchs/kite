@@ -15,6 +15,10 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// errBundleRemoved is for bundles Kite took down, which can't be listed again
+// or deleted.
+var errBundleRemoved = handler.ErrBadRequest("bundle_removed", "Kite took this template down for breaking the rules")
+
 const (
 	// maxBundleItems is the most commands, event listeners, messages and
 	// variables a bundle can have together.
@@ -29,22 +33,24 @@ const (
 func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.BundleCreateRequest) (*wire.BundleCreateResponse, error) {
 	now := time.Now().UTC()
 	b := &model.Bundle{
-		ID:          util.UniqueID(),
-		Name:        req.Name,
-		Description: req.Description,
-		OwnerUserID: null.StringFrom(c.Session.UserID),
-		SourceAppID: null.StringFrom(c.App.ID),
-		Version:     1,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:            util.UniqueID(),
+		Name:          req.Name,
+		Description:   req.Description,
+		OwnerUserID:   null.StringFrom(c.Session.UserID),
+		SourceAppID:   null.StringFrom(c.App.ID),
+		Version:       1,
+		LatestVersion: 1,
+		Page:          model.BundleListing{Name: req.Name, Description: req.Description, About: []string{}, Setup: []string{}},
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
-	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
+	if err := h.setBundleContent(c, b, req.BundleContentRequest); err != nil {
 		return nil, err
 	}
 
 	if err := h.bundleStore.CreateBundle(c.Context(), b, h.maxBundlesPerUser); err != nil {
 		if errors.Is(err, store.ErrLimitReached) {
-			return nil, handler.ErrBadRequest("too_many_bundles", fmt.Sprintf("you can have at most %d bundles", h.maxBundlesPerUser))
+			return nil, handler.ErrBadRequest("too_many_bundles", fmt.Sprintf("you can have at most %d templates", h.maxBundlesPerUser))
 		}
 		return nil, fmt.Errorf("failed to create bundle: %w", err)
 	}
@@ -59,43 +65,49 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		return nil, err
 	}
 	if b.SourceAppID.String != c.App.ID {
-		return nil, handler.ErrBadRequest("wrong_app", "publish new versions from the app the bundle was made from")
+		return nil, handler.ErrBadRequest("wrong_app", "publish new versions from the app the template was made from")
 	}
 
-	fromVersion := b.Version
-	b.Name = req.Name
-	b.Description = req.Description
+	// An approved bundle loads as its approved version, but new versions
+	// follow the newest one.
+	fromVersion := b.LatestVersion
 	b.Notes = strings.TrimSpace(req.Notes)
-	b.Version++
+	b.Version = b.LatestVersion + 1
+	b.LatestVersion = b.Version
 	b.UpdatedAt = time.Now().UTC()
-	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
+	if err := h.setBundleContent(c, b, req.BundleContentRequest); err != nil {
 		return nil, err
 	}
 
-	if err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion); err != nil {
+	submitted, err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion)
+	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrBadRequest("bundle_changed", "the bundle changed, reload the page and try again")
+			return nil, handler.ErrBadRequest("bundle_changed", "the template changed, reload the page and try again")
 		}
 		return nil, fmt.Errorf("failed to publish bundle version: %w", err)
+	}
+	if submitted {
+		h.notifier.BundleVersionInReview(b)
 	}
 	return wire.UserBundleToWire(b), nil
 }
 
 // setBundleContent exports the items of the app as the content of the
-// version of the bundle. The items keep their keys between versions, they're
-// their IDs in the app.
-func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, items wire.BundleExportRequest) error {
-	content, err := h.export(c, items, b.Name)
+// version of the bundle, with the defaults of the parameters. The items keep
+// their keys between versions, they're their IDs in the app. The content has
+// no name and description, they're part of the page, which changes without a
+// new version.
+func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleContentRequest) error {
+	content, err := h.export(c, req.BundleExportRequest, "", req.SharedParameterKeys)
 	if err != nil {
 		return err
 	}
 	content.ID = b.ID
 	content.Version = b.Version
-	content.Description = b.Description
 
 	count := len(content.Commands) + len(content.EventListeners) + len(content.Messages) + len(content.Variables)
 	if count > maxBundleItems {
-		return handler.ErrBadRequest("too_many_items", fmt.Sprintf("a bundle can have at most %d items, with the message templates and variables they use it would have %d", maxBundleItems, count))
+		return handler.ErrBadRequest("too_many_items", fmt.Sprintf("a template can have at most %d items, with the message templates and variables they use it would have %d", maxBundleItems, count))
 	}
 
 	raw, err := json.Marshal(content)
@@ -103,7 +115,7 @@ func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bun
 		return fmt.Errorf("failed to encode bundle: %w", err)
 	}
 	if len(raw) > maxBundleSize {
-		return handler.ErrBadRequest("bundle_too_large", fmt.Sprintf("the bundle is %d KB, it can be at most %d KB", len(raw)/1024, maxBundleSize/1024))
+		return handler.ErrBadRequest("bundle_too_large", fmt.Sprintf("the template is %d KB, it can be at most %d KB", len(raw)/1024, maxBundleSize/1024))
 	}
 	b.Content = raw
 	b.ItemCount = count
@@ -126,44 +138,98 @@ func (h *BundleInstallHandler) HandleUserBundleList(c *handler.Context) (*wire.U
 }
 
 // HandleBundleDelete deletes a bundle of the user. Apps that installed it
-// keep what it added, but don't get updates anymore.
+// keep what it added, but don't get updates anymore. A bundle Kite took down
+// stays, so apps that added it keep the warning and the reports stay.
 func (h *BundleInstallHandler) HandleBundleDelete(c *handler.Context) (*wire.BundleDeleteResponse, error) {
 	b, err := h.ownBundle(c)
 	if err != nil {
 		return nil, err
 	}
+	if b.RemovedAt.Valid {
+		return nil, errBundleRemoved
+	}
 
 	if err := h.bundleStore.DeleteBundle(c.Context(), b.ID); err != nil {
+		// Taken down or deleted since it was loaded.
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+		}
 		return nil, fmt.Errorf("failed to delete bundle: %w", err)
 	}
 	return &wire.BundleDeleteResponse{}, nil
 }
 
-// HandleBundlePublish publishes a bundle of the user, so anyone with its link
-// can see and add it. It isn't listed anywhere.
-func (h *BundleInstallHandler) HandleBundlePublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
-	return h.setPublished(c, null.TimeFrom(time.Now().UTC()))
-}
-
-// HandleBundleUnpublish takes the bundle's link down. Apps that added it keep
-// what it added, but don't get updates anymore.
-func (h *BundleInstallHandler) HandleBundleUnpublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
-	return h.setPublished(c, null.Time{})
-}
-
-func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null.Time) (*wire.BundlePublishResponse, error) {
+// HandleBundleListingDelete takes a bundle of the user out of the
+// marketplace. Apps that added it stay on its approved version.
+func (h *BundleInstallHandler) HandleBundleListingDelete(c *handler.Context) (*wire.BundleListingDeleteResponse, error) {
 	b, err := h.ownBundle(c)
 	if err != nil {
 		return nil, err
 	}
-	if b.PublishedAt.Valid == publishedAt.Valid {
-		return &wire.BundlePublishResponse{}, nil
+	if err := h.bundleStore.UnlistBundle(c.Context(), b.ID); err != nil {
+		return nil, fmt.Errorf("failed to unlist bundle: %w", err)
+	}
+	return &wire.BundleListingDeleteResponse{}, nil
+}
+
+// HandleBundleListingSubmit submits the newest version of a bundle to
+// the marketplace, replacing a submission that's still in review. Once it's
+// approved, the bundle's link leads to the marketplace.
+func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req wire.BundleListingSubmitRequest) (*wire.BundleListingSubmitResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if b.RemovedAt.Valid {
+		return nil, errBundleRemoved
+	}
+	ban, err := h.userStore.UserBan(c.Context(), c.Session.UserID, model.UserBanFeatureMarketplace)
+	if err == nil {
+		return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from submitting templates to the marketplace: "+ban.Reason)
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get user ban: %w", err)
 	}
 
-	if err := h.bundleStore.SetBundlePublishedAt(c.Context(), b.ID, publishedAt); err != nil {
-		return nil, fmt.Errorf("failed to publish bundle: %w", err)
+	review := &model.BundleReview{
+		ID:        util.UniqueID(),
+		BundleID:  b.ID,
+		Listing:   wire.BundleListingFromWire(req.BundleListing),
+		Status:    model.BundleReviewStatusPending,
+		CreatedAt: time.Now().UTC(),
 	}
-	return &wire.BundlePublishResponse{}, nil
+	if err := h.bundleStore.SubmitBundleReview(c.Context(), review); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errBundleRemoved
+		}
+		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
+	}
+	h.notifier.BundleSubmitted(b)
+	return wire.BundleReviewToWire(review), nil
+}
+
+// HandleBundleUpdate changes the page of the user's bundle, which its link
+// shows right away. Kite reviews changes to one in the marketplace, so they're
+// submitted instead.
+func (h *BundleInstallHandler) HandleBundleUpdate(c *handler.Context, req wire.BundleUpdateRequest) (*wire.BundleUpdateResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if b.RemovedAt.Valid {
+		return nil, errBundleRemoved
+	}
+	if b.Listed || b.InReview {
+		return nil, handler.ErrBadRequest("bundle_in_marketplace", "Kite reviews changes to templates in the marketplace, submit them for review")
+	}
+
+	if err := h.bundleStore.UpdateBundlePage(c.Context(), b.ID, wire.BundleListingFromWire(req.BundleListing)); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errBundleRemoved
+		}
+		return nil, fmt.Errorf("failed to update bundle page: %w", err)
+	}
+	return &wire.BundleUpdateResponse{}, nil
 }
 
 // ownBundle returns the bundle of the route if the user made it. Others don't
@@ -174,7 +240,7 @@ func (h *BundleInstallHandler) ownBundle(c *handler.Context) (*model.Bundle, err
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.OwnedBy(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 	return b, nil
 }

@@ -53,17 +53,17 @@ func (n *CompiledFlowNode) run(ctx *FlowContext) error {
 	}
 
 	if handler, ok := nodeHandlers[n.Type]; ok {
-		return handler(n, ctx)
+		return traceError(n, handler(n, ctx))
 	}
 
 	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
-		return n.executeBlockDefinition(ctx, block)
+		return traceError(n, n.executeBlockDefinition(ctx, block))
 	}
 
-	return &FlowError{
+	return traceError(n, &FlowError{
 		Code:    FlowNodeErrorUnknownNodeType,
 		Message: fmt.Sprintf("unknown node type: %s", n.Type),
-	}
+	})
 }
 
 // nodeHandlers runs the blocks written in Go. Blocks defined as data run from
@@ -114,7 +114,7 @@ func (n *CompiledFlowNode) ExecuteChildrenByHandle(ctx *FlowContext, handle stri
 		// We could spawn a goroutine here to execute children in parallel
 		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -126,7 +126,7 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 		// We could spawn a goroutine here to execute children in parallel
 		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 	return nil
@@ -260,13 +260,13 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 	handle := fmt.Sprintf("component_%d", compID)
 	err := autoDeferInteraction(ctx, FirstMatching(n.Children.Handles[handle], isResponseNode))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	err = n.ExecuteChildrenByHandle(ctx, handle)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 
 	acknowledgeUnansweredComponent(ctx)

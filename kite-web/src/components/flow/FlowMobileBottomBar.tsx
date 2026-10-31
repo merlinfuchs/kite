@@ -1,14 +1,24 @@
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow } from "@xyflow/react";
 import { cn } from "@/lib/utils";
+import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 import {
   ListTreeIcon,
   Maximize2Icon,
   MessageSquareWarningIcon,
+  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   Redo2Icon,
+  SlidersHorizontalIcon,
+  StickyNoteIcon,
   Undo2Icon,
   XIcon,
 } from "lucide-react";
@@ -20,10 +30,12 @@ interface Props {
   onEditNode: () => void;
   onDeselectNode: () => void;
   onOpenLogs: () => void;
+  onOpenParameters: () => void;
   onFitView: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onFormat?: () => void;
+  onAddNote?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   logCount?: number;
@@ -36,10 +48,12 @@ export default function FlowMobileBottomBar({
   onEditNode,
   onDeselectNode,
   onOpenLogs,
+  onOpenParameters,
   onFitView,
   onUndo,
   onRedo,
   onFormat,
+  onAddNote,
   canUndo = false,
   canRedo = false,
   logCount = 0,
@@ -50,6 +64,7 @@ export default function FlowMobileBottomBar({
     ? getNodeValues(selectedNode.type)
     : null;
   const nodeTitle = nodeValues?.defaultTitle ?? "Block";
+  const missingParameters = useMissingParameterCount();
 
   return (
     <div
@@ -129,11 +144,19 @@ export default function FlowMobileBottomBar({
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 rounded-full"
-          onClick={onFormat}
-          title="Auto arrange layout"
+          className="size-8 rounded-full relative"
+          onClick={onOpenParameters}
+          title={
+            missingParameters
+              ? `Parameters (${missingParameters} without a value)`
+              : "Parameters"
+          }
         >
-          <ListTreeIcon className="size-4" />
+          <SlidersHorizontalIcon className="size-4" />
+          <CountBadge
+            count={missingParameters}
+            className="bg-amber-500 text-white"
+          />
         </Button>
 
         <Button
@@ -144,13 +167,56 @@ export default function FlowMobileBottomBar({
           title="Logs"
         >
           <MessageSquareWarningIcon className="size-4" />
-          {logCount > 0 && (
-            <span className="absolute -top-1 -right-1 size-3.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
-              {logCount > 9 ? "9+" : logCount}
-            </span>
-          )}
+          <CountBadge
+            count={logCount}
+            className="bg-primary text-primary-foreground"
+          />
         </Button>
+
+        {/* In a menu so the bar fits on 375px wide phones. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full"
+              title="More"
+            >
+              <MoreHorizontalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="end">
+            <DropdownMenuItem onClick={onFormat}>
+              <ListTreeIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+              Auto arrange layout
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onAddNote}>
+              <StickyNoteIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+              Add note
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function CountBadge({
+  count,
+  className,
+}: {
+  count: number;
+  className: string;
+}) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "absolute -top-1 -right-1 size-3.5 text-[9px] font-bold rounded-full flex items-center justify-center",
+        className
+      )}
+    >
+      {count > 9 ? "9+" : count}
+    </span>
   );
 }

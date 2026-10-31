@@ -26,10 +26,7 @@ export default function HomeHowItWorksSection() {
       className="container py-16 sm:py-24 scroll-mt-16"
     >
       <h2 className="text-3xl md:text-4xl font-bold text-center">
-        How It{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Works
-        </span>
+        Online in Three Steps
       </h2>
       <ol className="relative grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
         {/* Connects the numbers of the steps. */}

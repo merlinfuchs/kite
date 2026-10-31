@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import AppCreditsPopup from "./AppCreditsPopup";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
+import LegalUpdateDialog from "../common/LegalUpdateDialog";
 
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
@@ -39,6 +40,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <AppDisabledPopup />
         <AppCreditsPopup />
         <UpsellPopup />
+        <LegalUpdateDialog />
       </SidebarInset>
     </SidebarProvider>
   );

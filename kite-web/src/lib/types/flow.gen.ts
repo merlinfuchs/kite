@@ -20,6 +20,10 @@ export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
 export const FlowParameterTypeChannel: FlowParameterType = "channel";
 export const FlowParameterTypeRole: FlowParameterType = "role";
 /**
+ * Yes or no, picked from a menu. The value is true or false.
+ */
+export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
+/**
  * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
  */
 export interface FlowParameter {
@@ -37,6 +41,11 @@ export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+/**
+ * Notes are text the editor puts on the canvas. They aren't blocks:
+ * nothing connects to them, so they never run.
+ */
+export const FlowNodeTypeNote: FlowNodeType = "note";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -83,6 +92,7 @@ export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
+export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
@@ -92,8 +102,12 @@ export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_d
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
+export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
+export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
+export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -103,6 +117,7 @@ export const FlowNodeTypeControlConditionItemChannel: FlowNodeType = "control_co
 export const FlowNodeTypeControlConditionRole: FlowNodeType = "control_condition_role";
 export const FlowNodeTypeControlConditionItemRole: FlowNodeType = "control_condition_item_role";
 export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlIf: FlowNodeType = "control_if";
 export const FlowNodeTypeControlErrorHandler: FlowNodeType = "control_error_handler";
 export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
@@ -130,6 +145,11 @@ export interface FlowNode {
   type?: FlowNodeType;
   data: FlowNodeData & StringIndexable;
   position: FlowNodePosition;
+  /**
+   * Only notes have a size, other nodes are as large as their content.
+   */
+  width?: number /* float64 */;
+  height?: number /* float64 */;
 }
 export interface FlowNodeData {
   /**
@@ -187,6 +207,11 @@ export interface FlowNodeData {
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
+   * Persona Message Create
+   */
+  persona_name?: string;
+  persona_avatar_url?: string;
+  /**
    * Message Reaction Create, Delete
    */
   emoji_data?: EmojiData;
@@ -220,9 +245,18 @@ export interface FlowNodeData {
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
   /**
+   * Voice Audio Play
+   */
+  audio_asset_id?: string;
+  audio_leave_after?: boolean;
+  /**
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Server Profile Edit
+   */
+  server_profile_data?: ServerProfileData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -277,15 +311,23 @@ export interface FlowNodeData {
   ai_choice_name?: string;
   ai_choice_description?: string;
   /**
+   * AI Translate
+   */
+  ai_translate_data?: AITranslateData;
+  /**
    * Random Generate
    */
   random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
   /**
-   * Items of the item mode, one per line, or a list placeholder.
+   * Items of the item and items modes, one per line, or a list placeholder.
    */
   random_items?: string;
+  /**
+   * How many different items the items mode picks.
+   */
+  random_count?: string;
   /**
    * Event Entry
    */
@@ -399,6 +441,10 @@ export type RandomMode = string;
  */
 export const RandomModeNumber: RandomMode = "number";
 export const RandomModeItem: RandomMode = "item";
+/**
+ * Several different items, see randomItems.
+ */
+export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
@@ -421,6 +467,21 @@ export interface StatusData {
   activity_state?: string;
   activity_url?: string;
 }
+/**
+ * ServerProfileData is the bot's profile in one server. A field that isn't set
+ * stays as it is, and one that's empty resets to the bot's own profile.
+ */
+export interface ServerProfileData {
+  nick?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  bio?: string;
+  /**
+   * Reset resets the whole profile to the bot's own, the other fields are
+   * ignored then.
+   */
+  reset?: boolean;
+}
 export interface ChannelData {
   name?: string;
   type?: number /* int */;
@@ -433,9 +494,14 @@ export interface ChannelData {
   rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
-   * Thread specific
+   * Thread specific, nil for Discord's default, which is invitable
    */
   invitable?: boolean;
+  /**
+   * Thread specific, for editing a thread, nil leaves them as they are
+   */
+  archived?: boolean;
+  locked?: boolean;
   /**
    * Forum post specific, names or IDs of the forum's tags separated by
    * commas
@@ -588,6 +654,13 @@ export interface AIDecisionData {
    * Score: the levels, lowest first.
    */
   levels?: string[];
+}
+export interface AITranslateData {
+  text?: string;
+  /**
+   * A code of aiTranslateLanguages, or a placeholder that becomes one.
+   */
+  language?: string;
 }
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";

@@ -43,8 +43,8 @@ UPDATE variables SET
     updated_at = $4
 WHERE id = $1 RETURNING *;
 
--- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1;
+-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id;
 
 -- variable_values has no app_id, so these reach the app through variables.
 

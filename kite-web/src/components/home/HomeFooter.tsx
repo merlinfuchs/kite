@@ -7,7 +7,10 @@ const botLinks = [
   { label: "Moderation Bot", href: "/discord-moderation-bot" },
   { label: "Welcome Bot", href: "/discord-welcome-bot" },
   { label: "AI Bot", href: "/ai-discord-bot" },
+  { label: "AI Bot Maker", href: "/ai-discord-bot-maker" },
   { label: "ER:LC Bot", href: "/erlc-discord-bot" },
+  { label: "MCP Server", href: "/discord-mcp-server" },
+  { label: "Cookie API Bot", href: "/cookie-api" },
 ];
 
 const compareLinks = [
@@ -107,11 +110,8 @@ export default function HomeFooter() {
             </a>
           </div>
           <div>
-            <Link
-              href="/guides/how-to-make-a-discord-bot"
-              className="opacity-60 hover:opacity-100"
-            >
-              Bot Building Guide
+            <Link href="/guides" className="opacity-60 hover:opacity-100">
+              Guides
             </Link>
           </div>
           <div>
@@ -120,7 +120,7 @@ export default function HomeFooter() {
             </Link>
           </div>
           <div>
-            <Link href="/templates" className="opacity-60 hover:opacity-100">
+            <Link href="/marketplace" className="opacity-60 hover:opacity-100">
               Bot Templates
             </Link>
           </div>
@@ -143,6 +143,12 @@ export default function HomeFooter() {
           <div>
             <Link href="/refund" className="opacity-60 hover:opacity-100">
               Refund Policy
+            </Link>
+          </div>
+
+          <div>
+            <Link href="/imprint" className="opacity-60 hover:opacity-100">
+              Legal Notice
             </Link>
           </div>
         </div>

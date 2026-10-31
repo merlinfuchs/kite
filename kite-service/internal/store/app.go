@@ -42,6 +42,7 @@ type AppGatewayRequirementsRow struct {
 	EventListenerTypes  []model.EventListenerType
 	PluginResources     []string
 	HasMessageInstances bool
+	UsesVoice           bool
 }
 
 type AppStore interface {
@@ -55,10 +56,11 @@ type AppStore interface {
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
 	// DisableApp reports whether the app was enabled before.
 	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
-	// EnableAppDisabledWithReason starts the app again if it is stopped for
-	// the reason, and reports whether it was.
-	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
-	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
+	// PauseAppForCredits and UnpauseAppForCredits report whether the app
+	// wasn't paused or was paused before.
+	PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
@@ -66,6 +68,7 @@ type AppStore interface {
 	// enabled app ID: disabling an app bumps updated_at, so the gateway
 	// manager can shut those connections down without a full table scan.
 	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
 	// AppGatewayRequirements reports what the app actually consumes from the
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)
@@ -101,4 +104,7 @@ type AppStore interface {
 	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
+	// HasAppFlows reports whether the app has an enabled command or event
+	// listener, or a posted message with flows.
+	HasAppFlows(ctx context.Context, appID string) (bool, error)
 }

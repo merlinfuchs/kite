@@ -99,6 +99,115 @@ func TestFlowExecuteCommand(t *testing.T) {
 	assert.Equal(t, "Pong!", discordProvider.response.Data.Content.Val)
 }
 
+func TestFlowErrorNamesFailingBlock(t *testing.T) {
+	random := &CompiledFlowNode{
+		ID:   "2",
+		Type: FlowNodeTypeActionRandomGenerate,
+		Data: FlowNodeData{
+			CustomLabel: "Roll",
+			RandomMin:   "5",
+			RandomMax:   "1",
+		},
+	}
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryCommand,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{{
+			ID:       "1",
+			Type:     FlowNodeTypeActionLog,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{random}},
+		}}},
+	}
+
+	discordProvider := &TestDiscordProvider{}
+	err := node.Execute(newErrorTestContext(t, discordProvider))
+	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
+	assert.EqualError(t, err, msg)
+
+	var trace *FlowErrorTrace
+	require.ErrorAs(t, err, &trace)
+	assert.Equal(t, "2", trace.NodeID)
+
+	var flowErr *FlowError
+	assert.ErrorAs(t, err, &flowErr)
+
+	require.NotNil(t, discordProvider.response.Data)
+	assert.Contains(t, discordProvider.response.Data.Content.Val, msg)
+}
+
+// Errors name the block they happened in, also when it doesn't run below
+// its parent like other blocks.
+func TestFlowErrorTracesBlock(t *testing.T) {
+	failing := func() *CompiledFlowNode {
+		return &CompiledFlowNode{
+			ID:   "failing",
+			Type: FlowNodeTypeActionRandomGenerate,
+			Data: FlowNodeData{RandomMin: "5", RandomMax: "1"},
+		}
+	}
+
+	condition := &CompiledFlowNode{
+		ID:   "condition",
+		Type: FlowNodeTypeControlConditionCompare,
+		Data: FlowNodeData{ConditionBaseValue: "a"},
+	}
+	item := &CompiledFlowNode{
+		ID:       "item",
+		Type:     FlowNodeTypeControlConditionItemCompare,
+		Data:     FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"},
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+	}
+	condition.Children.Default = []*CompiledFlowNode{item}
+
+	cooldown := &CompiledFlowNode{
+		ID:   "failing",
+		Type: FlowNodeTypeOptionCommandCooldown,
+		Data: FlowNodeData{CooldownDurationSeconds: "soon"},
+	}
+
+	tests := map[string]*CompiledFlowNode{
+		"condition item": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		},
+		"cooldown": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{cooldown}},
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+		},
+	}
+
+	for name, node := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := node.Execute(newErrorTestContext(t, &TestDiscordProvider{}))
+			assert.Equal(t, "failing", DescribeError(err).NodeID, err)
+		})
+	}
+}
+
+func newErrorTestContext(t *testing.T, discordProvider provider.DiscordProvider) *FlowContext {
+	c := NewContext(
+		context.Background(),
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Discord: discordProvider,
+			Log:     &provider.MockLogProvider{},
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxCredits:    1000,
+		},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+	return c
+}
+
 type TestDiscordProvider struct {
 	provider.MockDiscordProvider
 
@@ -557,6 +666,12 @@ func TestFlowExecuteConditionCompare(t *testing.T) {
 		{name: "equal mismatch", base: "a", mode: ComparsionModeEqual, itemValue: "b", expected: false},
 		{name: "not equal match", base: "a", mode: ComparsionModeNotEqual, itemValue: "a", expected: false},
 		{name: "not equal mismatch", base: "a", mode: ComparsionModeNotEqual, itemValue: "b", expected: true},
+		{name: "equal yes or no with text", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: true},
+		{name: "equal no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: false},
+		{name: "not equal yes or no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeNotEqual, itemValue: "false", expected: false},
+		{name: "equal number with text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5", expected: true},
+		{name: "equal yes or no with yes", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "yes", expected: true},
+		{name: "equal number with decimal text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5.0", expected: true},
 
 		{name: "one of match", base: "gtg", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: true},
 		{name: "one of mismatch", base: "afk", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: false},

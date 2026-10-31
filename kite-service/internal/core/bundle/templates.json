@@ -20,10 +20,6 @@
         "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
       },
       {
-        "question": "What permissions does the bot need?",
-        "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
-      },
-      {
         "question": "Can I change the replies or log actions to a channel?",
         "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
       }
@@ -504,7 +500,7 @@
   },
   {
     "id": "ai-automod",
-    "version": 1,
+    "version": 2,
     "name": "AI Automod",
     "description": "AI deletes spam, scams, ads and insults and logs them for your moderators.",
     "icon": "shield-alert",
@@ -525,15 +521,11 @@
       },
       {
         "question": "Can the AI make mistakes?",
-        "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 50% and 90%, and ignores it below 50%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
+        "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 80% and 90%, and ignores it below 80%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
       },
       {
         "question": "Can it time out members?",
         "answer": "Not out of the box. Add a Timeout member block after the block that deletes the message, so members whose message the AI deletes are timed out too."
-      },
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "Manage Messages in the channels it checks, and Send Messages and Embed Links in the log channel."
       },
       {
         "question": "Do I need the Message Content Intent?",
@@ -627,10 +619,10 @@
               },
               "data": {
                 "ai_decision_data": {
-                  "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                  "question": "Is this Discord message clearly spam, a scam, unwanted advertising for another server or product, or a personal insult, slur or threat against someone? Normal conversation, questions, links shared as part of a conversation, swearing, and banter or trash talk about games are fine. {{params.rules}}",
                   "input": "{{event.message.content}}",
                   "yes_threshold": "0.9",
-                  "no_threshold": "0.5"
+                  "no_threshold": "0.8"
                 }
               }
             },
@@ -830,10 +822,10 @@
               },
               "data": {
                 "ai_decision_data": {
-                  "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                  "question": "Is this Discord message clearly spam, a scam, unwanted advertising for another server or product, or a personal insult, slur or threat against someone? Normal conversation, questions, links shared as part of a conversation, swearing, and banter or trash talk about games are fine. {{params.rules}}",
                   "input": "{{event.message.content}}",
                   "yes_threshold": "0.9",
-                  "no_threshold": "0.5"
+                  "no_threshold": "0.8"
                 }
               }
             },
@@ -977,7 +969,12 @@
     ],
     "messages": [],
     "variables": [],
-    "changelog": []
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "Flags fewer normal messages for review, like links to other sites and requests. Only messages the AI is at least 80% sure about are sent to your moderators now, instead of 50%."
+      }
+    ]
   },
   {
     "id": "ask-ai",
@@ -1204,12 +1201,632 @@
     ]
   },
   {
+    "id": "flag-translator",
+    "version": 2,
+    "name": "Flag Translator",
+    "description": "Translates a message when someone reacts to it with a country flag.",
+    "icon": "languages",
+    "category": "ai",
+    "about": [
+      "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji and links as they are.",
+      "Each flag translates a message once, even if people remove it and add it again, and a message that's already in the language gets no reply. Messages over 2,000 characters aren't translated, so the translation fits in the reply. The flags and their languages are in a Lookup Value block, so you can add flags or change their language."
+    ],
+    "faq": [
+      {
+        "question": "How many credits does a translation cost?",
+        "answer": "4 credits for a message of up to 1,000 characters: 1 to remember the message was translated, 1 to look up the language of the flag, 1 to translate and 1 to reply. A message of up to 2,000 characters costs 5. Reactions that aren't flags cost nothing, and a flag without a language costs 2 credits once per message."
+      },
+      {
+        "question": "Which flags work?",
+        "answer": "The flags of the main countries of 35 languages, like 🇺🇸 and 🇬🇧 for English or 🇧🇷 for Brazilian Portuguese. Other flags are ignored. To add one, open the event listener and add a row to the Lookup Value block with the flag and the code of a language AI Translate supports, like 🇨🇱 and es."
+      },
+      {
+        "question": "Does it translate a message more than once?",
+        "answer": "Only for different flags. Each flag translates a message once, even if people remove it and add it again. 🇺🇸 and 🇬🇧 each get a reply though, even though both are English."
+      },
+      {
+        "question": "What permissions does the bot need?",
+        "answer": "View Channel, Read Message History, Send Messages and Embed Links in the channels people translate messages in."
+      },
+      {
+        "question": "Do I need the Message Content Intent?",
+        "answer": "Yes, or the bot can't read the messages to translate them. Turn it on under Bot in the Discord Developer Portal."
+      },
+      {
+        "question": "Where are messages sent to be translated?",
+        "answer": "To OpenAI. Only the text of the message is sent, not who wrote it."
+      }
+    ],
+    "setup": [
+      "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages it translates."
+    ],
+    "parameters": [],
+    "commands": [],
+    "event_listeners": [
+      {
+        "id": "flag-reaction",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_t1r",
+              "type": "entry_event",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "event_type": "message_reaction_add",
+                "description": "Translate a message when someone reacts to it with a flag."
+              }
+            },
+            {
+              "id": "condition_f1g",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 820,
+                "y": 210
+              },
+              "data": {
+                "custom_label": "Flag reaction",
+                "condition_base_value": "{{event.emoji.name matches '^[🇦-🇿]{2}$'}}"
+              }
+            },
+            {
+              "id": "condition_f2t",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 615,
+                "y": 420
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_f3e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 1025,
+                "y": 420
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_v1g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 615,
+                "y": 630
+              },
+              "data": {
+                "variable_id": "translated",
+                "variable_scope": "{{event.message.id}}-{{event.emoji.name}}"
+              }
+            },
+            {
+              "id": "condition_v2n",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 615,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Not translated with this flag yet",
+                "condition_base_value": "{{nodes.variable_v1g.result}}"
+              }
+            },
+            {
+              "id": "condition_v3t",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 410,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": ""
+              }
+            },
+            {
+              "id": "condition_v4e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 820,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "message_m1g",
+              "type": "action_message_get",
+              "position": {
+                "x": 410,
+                "y": 1260
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}",
+                "message_target": "{{event.message.id}}"
+              }
+            },
+            {
+              "id": "condition_r1f",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 410,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Has text, up to 2,000 characters",
+                "condition_base_value": "{{nodes.message_m1g.result.content != '' && len(nodes.message_m1g.result.content) <= 2000}}"
+              }
+            },
+            {
+              "id": "condition_r2t",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 205,
+                "y": 1680
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_r3e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 615,
+                "y": 1680
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_v5s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 205,
+                "y": 1890
+              },
+              "data": {
+                "variable_id": "translated",
+                "variable_scope": "{{event.message.id}}-{{event.emoji.name}}",
+                "variable_operation": "overwrite",
+                "variable_value": "true"
+              }
+            },
+            {
+              "id": "lookup_l1k",
+              "type": "action_value_lookup",
+              "position": {
+                "x": 205,
+                "y": 2100
+              },
+              "data": {
+                "custom_label": "Language of the flag",
+                "lookup_value": "{{event.emoji.name}}",
+                "lookup_rows": [
+                  {
+                    "key": "🇺🇸",
+                    "value": "en"
+                  },
+                  {
+                    "key": "🇬🇧",
+                    "value": "en"
+                  },
+                  {
+                    "key": "🇦🇺",
+                    "value": "en"
+                  },
+                  {
+                    "key": "🇨🇦",
+                    "value": "en"
+                  },
+                  {
+                    "key": "🇪🇸",
+                    "value": "es"
+                  },
+                  {
+                    "key": "🇲🇽",
+                    "value": "es"
+                  },
+                  {
+                    "key": "🇦🇷",
+                    "value": "es"
+                  },
+                  {
+                    "key": "🇨🇴",
+                    "value": "es"
+                  },
+                  {
+                    "key": "🇫🇷",
+                    "value": "fr"
+                  },
+                  {
+                    "key": "🇩🇪",
+                    "value": "de"
+                  },
+                  {
+                    "key": "🇦🇹",
+                    "value": "de"
+                  },
+                  {
+                    "key": "🇮🇹",
+                    "value": "it"
+                  },
+                  {
+                    "key": "🇧🇷",
+                    "value": "pt-BR"
+                  },
+                  {
+                    "key": "🇵🇹",
+                    "value": "pt-PT"
+                  },
+                  {
+                    "key": "🇳🇱",
+                    "value": "nl"
+                  },
+                  {
+                    "key": "🇵🇱",
+                    "value": "pl"
+                  },
+                  {
+                    "key": "🇷🇺",
+                    "value": "ru"
+                  },
+                  {
+                    "key": "🇺🇦",
+                    "value": "uk"
+                  },
+                  {
+                    "key": "🇹🇷",
+                    "value": "tr"
+                  },
+                  {
+                    "key": "🇸🇦",
+                    "value": "ar"
+                  },
+                  {
+                    "key": "🇪🇬",
+                    "value": "ar"
+                  },
+                  {
+                    "key": "🇦🇪",
+                    "value": "ar"
+                  },
+                  {
+                    "key": "🇮🇳",
+                    "value": "hi"
+                  },
+                  {
+                    "key": "🇮🇩",
+                    "value": "id"
+                  },
+                  {
+                    "key": "🇻🇳",
+                    "value": "vi"
+                  },
+                  {
+                    "key": "🇹🇭",
+                    "value": "th"
+                  },
+                  {
+                    "key": "🇯🇵",
+                    "value": "ja"
+                  },
+                  {
+                    "key": "🇰🇷",
+                    "value": "ko"
+                  },
+                  {
+                    "key": "🇨🇳",
+                    "value": "zh-CN"
+                  },
+                  {
+                    "key": "🇹🇼",
+                    "value": "zh-TW"
+                  },
+                  {
+                    "key": "🇭🇰",
+                    "value": "zh-TW"
+                  },
+                  {
+                    "key": "🇸🇪",
+                    "value": "sv"
+                  },
+                  {
+                    "key": "🇩🇰",
+                    "value": "da"
+                  },
+                  {
+                    "key": "🇳🇴",
+                    "value": "no"
+                  },
+                  {
+                    "key": "🇫🇮",
+                    "value": "fi"
+                  },
+                  {
+                    "key": "🇨🇿",
+                    "value": "cs"
+                  },
+                  {
+                    "key": "🇬🇷",
+                    "value": "el"
+                  },
+                  {
+                    "key": "🇷🇴",
+                    "value": "ro"
+                  },
+                  {
+                    "key": "🇭🇺",
+                    "value": "hu"
+                  },
+                  {
+                    "key": "🇧🇬",
+                    "value": "bg"
+                  },
+                  {
+                    "key": "🇭🇷",
+                    "value": "hr"
+                  },
+                  {
+                    "key": "🇱🇹",
+                    "value": "lt"
+                  },
+                  {
+                    "key": "🇮🇱",
+                    "value": "he"
+                  },
+                  {
+                    "key": "🇵🇭",
+                    "value": "fil"
+                  },
+                  {
+                    "key": "🇲🇾",
+                    "value": "ms"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "condition_k1l",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 205,
+                "y": 2310
+              },
+              "data": {
+                "custom_label": "Flag has a language",
+                "condition_base_value": "{{nodes.lookup_l1k.result}}"
+              }
+            },
+            {
+              "id": "condition_k2n",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 2520
+              },
+              "data": {
+                "condition_item_mode": "not_equal",
+                "condition_item_value": ""
+              }
+            },
+            {
+              "id": "condition_k3e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 410,
+                "y": 2520
+              },
+              "data": {}
+            },
+            {
+              "id": "translate_t2x",
+              "type": "action_ai_translate",
+              "position": {
+                "x": 0,
+                "y": 2730
+              },
+              "data": {
+                "ai_translate_data": {
+                  "text": "{{nodes.message_m1g.result.content}}",
+                  "language": "{{nodes.lookup_l1k.result}}"
+                }
+              }
+            },
+            {
+              "id": "condition_s1d",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 2940
+              },
+              "data": {
+                "custom_label": "Not in that language already",
+                "condition_base_value": "{{nodes.translate_t2x.result.source_language}}"
+              }
+            },
+            {
+              "id": "condition_s2n",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": -205,
+                "y": 3150
+              },
+              "data": {
+                "condition_item_mode": "not_equal",
+                "condition_item_value": "{{nodes.lookup_l1k.result}}"
+              }
+            },
+            {
+              "id": "condition_s3e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 205,
+                "y": 3150
+              },
+              "data": {}
+            },
+            {
+              "id": "message_r4p",
+              "type": "action_message_create",
+              "position": {
+                "x": -205,
+                "y": 3360
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}",
+                "reply_target": "{{event.message.id}}",
+                "message_data": {
+                  "embeds": [
+                    {
+                      "description": "{{nodes.translate_t2x.result.text}}",
+                      "color": 5793266,
+                      "footer": {
+                        "text": "{{event.emoji.name}} Translated for {{event.user.display_name}}"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "100000000",
+              "source": "event_t1r",
+              "target": "condition_f1g"
+            },
+            {
+              "id": "100007919",
+              "source": "condition_f1g",
+              "target": "condition_f2t"
+            },
+            {
+              "id": "100015838",
+              "source": "condition_f1g",
+              "target": "condition_f3e"
+            },
+            {
+              "id": "100023757",
+              "source": "condition_f2t",
+              "target": "variable_v1g"
+            },
+            {
+              "id": "100031676",
+              "source": "variable_v1g",
+              "target": "condition_v2n"
+            },
+            {
+              "id": "100039595",
+              "source": "condition_v2n",
+              "target": "condition_v3t"
+            },
+            {
+              "id": "100047514",
+              "source": "condition_v2n",
+              "target": "condition_v4e"
+            },
+            {
+              "id": "100055433",
+              "source": "condition_v3t",
+              "target": "message_m1g"
+            },
+            {
+              "id": "100063352",
+              "source": "message_m1g",
+              "target": "condition_r1f"
+            },
+            {
+              "id": "100071271",
+              "source": "condition_r1f",
+              "target": "condition_r2t"
+            },
+            {
+              "id": "100079190",
+              "source": "condition_r1f",
+              "target": "condition_r3e"
+            },
+            {
+              "id": "100087109",
+              "source": "condition_r2t",
+              "target": "variable_v5s"
+            },
+            {
+              "id": "100095028",
+              "source": "variable_v5s",
+              "target": "lookup_l1k"
+            },
+            {
+              "id": "100102947",
+              "source": "lookup_l1k",
+              "target": "condition_k1l"
+            },
+            {
+              "id": "100110866",
+              "source": "condition_k1l",
+              "target": "condition_k2n"
+            },
+            {
+              "id": "100118785",
+              "source": "condition_k1l",
+              "target": "condition_k3e"
+            },
+            {
+              "id": "100126704",
+              "source": "condition_k2n",
+              "target": "translate_t2x"
+            },
+            {
+              "id": "100134623",
+              "source": "translate_t2x",
+              "target": "condition_s1d"
+            },
+            {
+              "id": "100142542",
+              "source": "condition_s1d",
+              "target": "condition_s2n"
+            },
+            {
+              "id": "100150461",
+              "source": "condition_s1d",
+              "target": "condition_s3e"
+            },
+            {
+              "id": "100158380",
+              "source": "condition_s2n",
+              "target": "message_r4p"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [],
+    "variables": [
+      {
+        "id": "translated",
+        "name": "translated_messages",
+        "scoped": true
+      }
+    ],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "Fixes flag reactions not translating anything, because a condition compared a yes or no with text."
+      }
+    ]
+  },
+  {
     "id": "welcomer",
     "version": 2,
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
     "icon": "user-round-plus",
-    "category": "community",
+    "category": "welcome",
     "about": [
       "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
       "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
@@ -1338,7 +1955,7 @@
     "name": "Verification",
     "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
     "icon": "shield-check",
-    "category": "community",
+    "category": "welcome",
     "about": [
       "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
       "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
@@ -1522,10 +2139,6 @@
       "Each member can suggest something once a minute, so the channel doesn't get spammed. You can change that in the Command Cooldown block of the command."
     ],
     "faq": [
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel, Send Messages, Embed Links and Add Reactions in the suggestions channel."
-      },
       {
         "question": "Can members suggest anonymously?",
         "answer": "Yes. Open the command in the editor and remove the author from the embed of the Send message block."
@@ -1722,10 +2335,6 @@
       "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself. The emoji is set in the event filter of the listener, so you can use a different one, including a custom emoji of your server."
     ],
     "faq": [
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel and Read Message History in the channels members star messages in, and Send Messages and Embed Links in the starboard channel."
-      },
       {
         "question": "Can I use a different emoji than ⭐?",
         "answer": "Yes. Open the event listener and change the emoji of the Event Filter block. It takes a standard emoji or the name of a custom emoji."
@@ -2165,7 +2774,7 @@
     "name": "Server Info",
     "description": "The commands /avatar, /userinfo and /serverinfo.",
     "icon": "info",
-    "category": "community",
+    "category": "utility",
     "about": [
       "/avatar shows a user's avatar in full size. /userinfo shows their ID, when they created their account and joined the server, their highest role and how many roles they have. Both show the member who uses them, unless they pick another user.",
       "/serverinfo shows the server's owner, member count, creation date, number of channels and roles, and boosts. /userinfo and /serverinfo only work in servers, so Discord hides them in DMs."
@@ -2752,10 +3361,6 @@
       "The count and who counted last are kept in a stored variable for each channel, so it survives restarts. To count in more channels, add them to the channel check at the top of the event listener."
     ],
     "faq": [
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel, Read Message History, Send Messages and Add Reactions in the counting channel."
-      },
       {
         "question": "Does the bot need the Message Content Intent?",
         "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the numbers members post."
@@ -3395,6 +4000,2589 @@
     ],
     "event_listeners": [],
     "messages": [],
+    "variables": [],
+    "changelog": []
+  },
+  {
+    "id": "afk",
+    "version": 2,
+    "name": "AFK",
+    "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
+    "icon": "moon",
+    "category": "utility",
+    "about": [
+      "Members use /afk with an optional reason, like /afk lunch, and the bot confirms it and adds [AFK] in front of their nickname.",
+      "When someone pings a member who is AFK, the bot replies with their reason and how long ago they went AFK. As soon as the AFK member sends a message, the bot welcomes them back, removes their AFK and takes [AFK] off their nickname. AFK is per server, so being AFK in one server doesn't show in another."
+    ],
+    "faq": [
+      {
+        "question": "Does the bot ping anyone when it replies?",
+        "answer": "No. Its replies mention the members by name, but pings are turned off, so the AFK member doesn't get pinged a second time."
+      },
+      {
+        "question": "Why didn't my nickname change?",
+        "answer": "The bot needs the Manage Nicknames permission, and its role has to be above yours. It can never change the nickname of the server owner. If [AFK] and your nickname together are longer than 32 characters, Discord's limit, the bot leaves your nickname as it is. AFK still works without the nickname."
+      },
+      {
+        "question": "What if a message pings several members?",
+        "answer": "The bot answers for one of them, skipping the author. Role pings don't count. Replying to a message of an AFK member counts too, unless the reply has its ping turned off."
+      },
+      {
+        "question": "How many credits does it use?",
+        "answer": "Messages cost nothing unless they come from or ping an AFK member. Using /afk costs up to 3 credits, for saving the AFK, replying and changing the nickname. Coming back costs 3 as well, and each reply about an AFK member costs 1."
+      }
+    ],
+    "setup": [],
+    "parameters": [],
+    "commands": [
+      {
+        "id": "afk",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_eq6",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "reason",
+                "description": "The AFK status to show when you're mentioned.",
+                "command_argument_type": "string",
+                "command_argument_required": false,
+                "command_argument_max_length": 200
+              }
+            },
+            {
+              "id": "command_ctq",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "afk",
+                "description": "Set an AFK status to display when you are mentioned."
+              }
+            },
+            {
+              "id": "variable_dr8",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Save AFK",
+                "variable_id": "afk-status",
+                "variable_scope": "{{interaction.guild.id}}_{{interaction.user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{ {\"since\": now().Unix(), \"user\": interaction.user.id, \"reason\": arg('reason') ?? \"\"} }}"
+              }
+            },
+            {
+              "id": "response_ws6",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{(arg('reason') ?? \"\") != \"\" ? \"You're AFK: \" + arg('reason') : \"You're AFK now.\"}}",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "condition_n4k",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Nickname fits and changes?",
+                "condition_base_value": "{{let n = \"[AFK] \" + trimPrefix(interaction.member.nick != \"\" ? interaction.member.nick : interaction.user.display_name, \"[AFK] \"); len(n) <= 32 && n != interaction.member.nick}}"
+              }
+            },
+            {
+              "id": "condition_p8v",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_r2j",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 410,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "error_e82",
+              "type": "control_error_handler",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Skip if nickname can't change"
+              }
+            },
+            {
+              "id": "member_o3z",
+              "type": "action_member_edit",
+              "position": {
+                "x": 205,
+                "y": 1500
+              },
+              "data": {
+                "custom_label": "Add [AFK] to nickname",
+                "user_target": "{{interaction.user.id}}",
+                "member_data": {
+                  "nick": "{{\"[AFK] \" + trimPrefix(interaction.member.nick != \"\" ? interaction.member.nick : interaction.user.display_name, \"[AFK] \")}}"
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "932053381",
+              "source": "arg_eq6",
+              "target": "command_ctq"
+            },
+            {
+              "id": "860255010",
+              "source": "command_ctq",
+              "target": "variable_dr8"
+            },
+            {
+              "id": "239354244",
+              "source": "variable_dr8",
+              "target": "response_ws6"
+            },
+            {
+              "id": "527811584",
+              "source": "error_e82",
+              "target": "member_o3z",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "265573592",
+              "source": "response_ws6",
+              "target": "condition_n4k"
+            },
+            {
+              "id": "265573593",
+              "source": "condition_n4k",
+              "target": "condition_p8v"
+            },
+            {
+              "id": "265573594",
+              "source": "condition_n4k",
+              "target": "condition_r2j"
+            },
+            {
+              "id": "265573595",
+              "source": "condition_p8v",
+              "target": "error_e82"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [
+      {
+        "id": "afk-messages",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_ito",
+              "type": "entry_event",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Remove AFK when the user talks, and tell people when they ping an AFK user."
+              }
+            },
+            {
+              "id": "variable_kzy",
+              "type": "action_variable_get",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "custom_label": "Author's AFK",
+                "variable_id": "afk-status",
+                "variable_scope": "{{event.guild.id}}_{{event.user.id}}"
+              }
+            },
+            {
+              "id": "condition_77r",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Author is AFK?",
+                "condition_base_value": "{{result('variable_kzy')?.since}}"
+              }
+            },
+            {
+              "id": "condition_lt5",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "condition_item_mode": "not_equal",
+                "condition_item_value": ""
+              }
+            },
+            {
+              "id": "variable_hz6",
+              "type": "action_variable_delete",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Remove AFK",
+                "variable_id": "afk-status",
+                "variable_scope": "{{event.guild.id}}_{{event.user.id}}"
+              }
+            },
+            {
+              "id": "message_ana",
+              "type": "action_message_create",
+              "position": {
+                "x": 615,
+                "y": 1050
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}",
+                "reply_target": "{{event.message.id}}",
+                "message_data": {
+                  "content": "Welcome back {{event.user.mention}}, you went AFK <t:{{int(result('variable_kzy').since)}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "condition_56r",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Has [AFK] nickname?",
+                "condition_base_value": "{{event.member.nick}}"
+              }
+            },
+            {
+              "id": "condition_c19",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "condition_item_mode": "starts_with",
+                "condition_item_value": "[AFK] "
+              }
+            },
+            {
+              "id": "error_whp",
+              "type": "control_error_handler",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Skip if nickname can't change"
+              }
+            },
+            {
+              "id": "member_x7s",
+              "type": "action_member_edit",
+              "position": {
+                "x": 205,
+                "y": 1710
+              },
+              "data": {
+                "custom_label": "Remove [AFK] from nickname",
+                "user_target": "{{event.user.id}}",
+                "member_data": {
+                  "nick": "{{let rest = trimPrefix(event.member.nick, \"[AFK] \"); rest == event.user.display_name ? \"\" : rest}}"
+                }
+              }
+            },
+            {
+              "id": "condition_sxa",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 820,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Has a mention?",
+                "condition_base_value": "{{any(event.message.mentions, .id != event.user.id && !.is_bot)}}"
+              }
+            },
+            {
+              "id": "condition_6s1",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 820,
+                "y": 630
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "variable_7fi",
+              "type": "action_variable_get",
+              "position": {
+                "x": 820,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Pinged user's AFK",
+                "variable_id": "afk-status",
+                "variable_scope": "{{event.guild.id}}_{{find(event.message.mentions, .id != event.user.id && !.is_bot).id}}"
+              }
+            },
+            {
+              "id": "condition_wuy",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 820,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Pinged user is AFK?",
+                "condition_base_value": "{{result('variable_7fi')?.since}}"
+              }
+            },
+            {
+              "id": "condition_o7t",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 820,
+                "y": 1260
+              },
+              "data": {
+                "condition_item_mode": "not_equal",
+                "condition_item_value": ""
+              }
+            },
+            {
+              "id": "message_iqg",
+              "type": "action_message_create",
+              "position": {
+                "x": 820,
+                "y": 1470
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}",
+                "reply_target": "{{event.message.id}}",
+                "message_data": {
+                  "content": "<@{{result('variable_7fi').user}}> went AFK <t:{{int(result('variable_7fi').since)}}:R>{{result('variable_7fi').reason != \"\" ? \": \" + result('variable_7fi').reason : \".\"}}",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "condition_o03",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 410,
+                "y": 630
+              },
+              "data": {}
+            },
+            {
+              "id": "condition_iti",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 410,
+                "y": 1260
+              },
+              "data": {}
+            },
+            {
+              "id": "condition_w0c",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 1230,
+                "y": 630
+              },
+              "data": {}
+            },
+            {
+              "id": "condition_9xt",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 1230,
+                "y": 1260
+              },
+              "data": {}
+            }
+          ],
+          "edges": [
+            {
+              "id": "442790029",
+              "source": "event_ito",
+              "target": "variable_kzy"
+            },
+            {
+              "id": "459486478",
+              "source": "variable_kzy",
+              "target": "condition_77r"
+            },
+            {
+              "id": "549295896",
+              "source": "variable_kzy",
+              "target": "condition_sxa"
+            },
+            {
+              "id": "818936929",
+              "source": "condition_77r",
+              "target": "condition_lt5"
+            },
+            {
+              "id": "455663501",
+              "source": "condition_lt5",
+              "target": "variable_hz6"
+            },
+            {
+              "id": "677360711",
+              "source": "variable_hz6",
+              "target": "condition_56r"
+            },
+            {
+              "id": "197098608",
+              "source": "variable_hz6",
+              "target": "message_ana"
+            },
+            {
+              "id": "788295619",
+              "source": "condition_56r",
+              "target": "condition_c19"
+            },
+            {
+              "id": "714229290",
+              "source": "condition_c19",
+              "target": "error_whp"
+            },
+            {
+              "id": "182130364",
+              "source": "error_whp",
+              "target": "member_x7s",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "515688825",
+              "source": "condition_sxa",
+              "target": "condition_6s1"
+            },
+            {
+              "id": "175786767",
+              "source": "variable_7fi",
+              "target": "condition_wuy"
+            },
+            {
+              "id": "246062534",
+              "source": "condition_wuy",
+              "target": "condition_o7t"
+            },
+            {
+              "id": "10451677",
+              "source": "condition_o7t",
+              "target": "message_iqg"
+            },
+            {
+              "id": "800064558",
+              "source": "condition_77r",
+              "target": "condition_o03"
+            },
+            {
+              "id": "753764493",
+              "source": "condition_56r",
+              "target": "condition_iti"
+            },
+            {
+              "id": "957664087",
+              "source": "condition_sxa",
+              "target": "condition_w0c"
+            },
+            {
+              "id": "506188893",
+              "source": "condition_wuy",
+              "target": "condition_9xt"
+            },
+            {
+              "id": "708553289",
+              "source": "condition_6s1",
+              "target": "variable_7fi"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [],
+    "variables": [
+      {
+        "id": "afk-status",
+        "name": "afk",
+        "scoped": true
+      }
+    ],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "Fixes the AFK status and the reply to mentions, which never ran because a condition compared a yes or no with text."
+      }
+    ]
+  },
+  {
+    "id": "giveaway",
+    "version": 2,
+    "name": "Giveaways",
+    "description": "A /giveaway command with an Enter button that picks random winners when it ends, plus a Reroll button.",
+    "icon": "gift",
+    "category": "community",
+    "about": [
+      "Members with the Manage Server permission start a giveaway with /giveaway, giving the prize, how long it runs, like 30m, 2 hours or 1d 12h, and optionally how many winners to pick and a role members need to enter. The bot posts the giveaway in the channel with an Enter button, and members see how many entered so far when they enter.",
+      "When the time is up, the bot picks the winners at random, shows them in the giveaway message and pings them in a reply. Each member can enter once. If a winner doesn't claim the prize, members with the Manage Server permission can click Reroll to pick someone else, who the bot announces in the channel."
+    ],
+    "faq": [
+      {
+        "question": "How long can a giveaway run?",
+        "answer": "Between 1 minute and 30 days. Write the duration like 30m, 2 hours or 1d 12h."
+      },
+      {
+        "question": "How are the winners picked?",
+        "answer": "At random from everyone who entered, and nobody can win twice in the same giveaway. Rerolling never picks someone who already won it, also not the winners of earlier rerolls."
+      },
+      {
+        "question": "Who can start giveaways?",
+        "answer": "Members with the Manage Server permission. You can change who sees /giveaway per role or channel under Integrations in your server settings."
+      },
+      {
+        "question": "Can I limit a giveaway to a role?",
+        "answer": "Yes. Pick the role in required_role when starting the giveaway, and only members with it can enter."
+      },
+      {
+        "question": "How do I cancel a giveaway?",
+        "answer": "Delete the giveaway message before it ends. The bot then doesn't pick any winners."
+      },
+      {
+        "question": "How many credits does it use?",
+        "answer": "Each entry costs 2 credits. Starting a giveaway and picking its winners costs 8 credits in total, and each reroll 3."
+      }
+    ],
+    "setup": [],
+    "parameters": [],
+    "commands": [
+      {
+        "id": "giveaway",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_let",
+              "type": "entry_command",
+              "position": {
+                "x": 615,
+                "y": 210
+              },
+              "data": {
+                "name": "giveaway",
+                "description": "Start a giveaway in this channel."
+              }
+            },
+            {
+              "id": "arg_bm7",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "prize",
+                "description": "What the winners get.",
+                "command_argument_type": "string",
+                "command_argument_required": true,
+                "command_argument_max_length": 200
+              }
+            },
+            {
+              "id": "arg_d9f",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "duration",
+                "description": "How long it runs, like 30m, 2 hours or 1d 12h. Up to 30 days.",
+                "command_argument_type": "string",
+                "command_argument_required": true,
+                "command_argument_max_length": 20
+              }
+            },
+            {
+              "id": "arg_v66",
+              "type": "option_command_argument",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "name": "winners",
+                "description": "How many winners to pick. Defaults to 1.",
+                "command_argument_type": "integer",
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 20
+              }
+            },
+            {
+              "id": "arg_wz6",
+              "type": "option_command_argument",
+              "position": {
+                "x": 1230,
+                "y": 0
+              },
+              "data": {
+                "name": "required_role",
+                "description": "Only members with this role can enter.",
+                "command_argument_type": "role"
+              }
+            },
+            {
+              "id": "permissions_kl4",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 1640,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "32"
+              }
+            },
+            {
+              "id": "contexts_15r",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 2050,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "calc_qxv",
+              "type": "action_expression_evaluate",
+              "position": {
+                "x": 615,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Read settings",
+                "expression": "let d = duration(arg('duration'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\n{\"ok\": ok, \"seconds\": ok ? seconds : 0, \"ends\": now().Unix() + seconds, \"prize\": arg('prize'), \"winners\": int(arg('winners') ?? 1), \"role\": arg('required_role')?.id ?? \"\", \"host\": interaction.user.id}"
+              }
+            },
+            {
+              "id": "condition_sec",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 615,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Valid duration?",
+                "condition_base_value": "{{result('calc_qxv').ok ? \"yes\" : \"no\"}}"
+              }
+            },
+            {
+              "id": "condition_0dj",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 615,
+                "y": 840
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "yes"
+              }
+            },
+            {
+              "id": "condition_t6k",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 1640,
+                "y": 840
+              },
+              "data": {}
+            },
+            {
+              "id": "response_irf",
+              "type": "action_response_create",
+              "position": {
+                "x": 1640,
+                "y": 1050
+              },
+              "data": {
+                "message_data": {
+                  "content": "Use a duration like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "message_xpc",
+              "type": "action_message_create",
+              "position": {
+                "x": 615,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Giveaway message",
+                "channel_target": "{{interaction.channel.id}}",
+                "message_data": {
+                  "flags": 32768,
+                  "allowed_mentions": {
+                    "parse": []
+                  },
+                  "components": [
+                    {
+                      "id": 10,
+                      "type": 17,
+                      "components": [
+                        {
+                          "id": 11,
+                          "type": 10,
+                          "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ends:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}"
+                        },
+                        {
+                          "id": 12,
+                          "type": 14,
+                          "divider": true,
+                          "spacing": 1
+                        },
+                        {
+                          "id": 13,
+                          "type": 1,
+                          "components": [
+                            {
+                              "id": 2,
+                              "type": 2,
+                              "style": 1,
+                              "label": "Enter",
+                              "emoji": {
+                                "name": "🎉",
+                                "animated": false
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "variable_i4n",
+              "type": "action_variable_set",
+              "position": {
+                "x": 1230,
+                "y": 1290
+              },
+              "data": {
+                "custom_label": "Start entries",
+                "variable_id": "giveaway-entries",
+                "variable_scope": "{{result('message_xpc').id}}",
+                "variable_operation": "overwrite",
+                "variable_value": ","
+              }
+            },
+            {
+              "id": "response_9tu",
+              "type": "action_response_create",
+              "position": {
+                "x": 1230,
+                "y": 1500
+              },
+              "data": {
+                "message_data": {
+                  "content": "Started the giveaway for **{{result('calc_qxv').prize}}**. It ends <t:{{int(result('calc_qxv').ends)}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "sleep_3dc",
+              "type": "control_sleep",
+              "position": {
+                "x": 1230,
+                "y": 1710
+              },
+              "data": {
+                "custom_label": "Wait until it ends",
+                "sleep_duration_seconds": "{{result('calc_qxv').seconds}}"
+              }
+            },
+            {
+              "id": "variable_zmf",
+              "type": "action_variable_get",
+              "position": {
+                "x": 1230,
+                "y": 1920
+              },
+              "data": {
+                "custom_label": "Get entries",
+                "variable_id": "giveaway-entries",
+                "variable_scope": "{{result('message_xpc').id}}"
+              }
+            },
+            {
+              "id": "random_559",
+              "type": "action_random_generate",
+              "position": {
+                "x": 1230,
+                "y": 2130
+              },
+              "data": {
+                "custom_label": "Pick winners",
+                "random_mode": "items",
+                "random_items": "{{uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"))}}",
+                "random_count": "{{int(result('calc_qxv').winners)}}"
+              }
+            },
+            {
+              "id": "message_5lw",
+              "type": "action_message_edit",
+              "position": {
+                "x": 1230,
+                "y": 2340
+              },
+              "data": {
+                "custom_label": "End giveaway message",
+                "channel_target": "{{result('message_xpc').channel_id}}",
+                "message_target": "{{result('message_xpc').id}}",
+                "message_data": {
+                  "flags": 32768,
+                  "allowed_mentions": {
+                    "parse": []
+                  },
+                  "components": [
+                    {
+                      "id": 10,
+                      "type": 17,
+                      "components": [
+                        {
+                          "id": 11,
+                          "type": 10,
+                          "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ended:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}\n**Entries:** {{len(uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\")))}}\n\n**Won by:** {{len(result('random_559')) == 0 ? \"No one entered\" : join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "condition_vsg",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 1230,
+                "y": 2550
+              },
+              "data": {
+                "custom_label": "Anyone won?",
+                "condition_base_value": "{{len(result('random_559')) == 0 ? \"no\" : \"yes\"}}"
+              }
+            },
+            {
+              "id": "condition_mp6",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 1640,
+                "y": 2760
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "yes"
+              }
+            },
+            {
+              "id": "variable_w8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 1640,
+                "y": 2970
+              },
+              "data": {
+                "custom_label": "Remember winners",
+                "variable_id": "giveaway-winners",
+                "variable_scope": "{{result('message_xpc').id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{join(result('random_559'), \" \")}}"
+              }
+            },
+            {
+              "id": "condition_9be",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 820,
+                "y": 2760
+              },
+              "data": {}
+            },
+            {
+              "id": "message_m5z",
+              "type": "action_message_create",
+              "position": {
+                "x": 820,
+                "y": 2970
+              },
+              "data": {
+                "custom_label": "No entries",
+                "channel_target": "{{result('message_xpc').channel_id}}",
+                "reply_target": "{{result('message_xpc').id}}",
+                "message_data": {
+                  "content": "No one entered the giveaway for **{{result('calc_qxv').prize}}**.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "message_pad",
+              "type": "action_message_create",
+              "position": {
+                "x": 1640,
+                "y": 3180
+              },
+              "data": {
+                "custom_label": "Announce winners",
+                "channel_target": "{{result('message_xpc').channel_id}}",
+                "reply_target": "{{result('message_xpc').id}}",
+                "message_data": {
+                  "content": "🎉 Congratulations {{join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}! You won **{{result('calc_qxv').prize}}**!",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  },
+                  "components": [
+                    {
+                      "id": 20,
+                      "type": 1,
+                      "components": [
+                        {
+                          "id": 1,
+                          "type": 2,
+                          "style": 2,
+                          "label": "Reroll",
+                          "emoji": {
+                            "name": "🔁",
+                            "animated": false
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": "variable_7a0",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 1290
+              },
+              "data": {
+                "custom_label": "Get entries",
+                "variable_id": "giveaway-entries",
+                "variable_scope": "{{result('message_xpc').id}}"
+              }
+            },
+            {
+              "id": "condition_es7",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 1500
+              },
+              "data": {
+                "custom_label": "Can enter?",
+                "condition_base_value": "{{(\",\" + string(result('variable_7a0') ?? \"\")) contains (\",\" + interaction.user.id + \",\") ? \"entered\" : (result('calc_qxv').role != \"\" && !(result('calc_qxv').role in interaction.member.role_ids) ? \"missing_role\" : \"ok\")}}"
+              }
+            },
+            {
+              "id": "condition_lkd",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": -410,
+                "y": 1710
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "entered"
+              }
+            },
+            {
+              "id": "condition_37l",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1710
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "missing_role"
+              }
+            },
+            {
+              "id": "condition_q09",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 410,
+                "y": 1710
+              },
+              "data": {}
+            },
+            {
+              "id": "response_got",
+              "type": "action_response_create",
+              "position": {
+                "x": -410,
+                "y": 1920
+              },
+              "data": {
+                "message_data": {
+                  "content": "You already entered this giveaway.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "response_lpd",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1920
+              },
+              "data": {
+                "message_data": {
+                  "content": "You need the <@&{{result('calc_qxv').role}}> role to enter this giveaway.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_98j",
+              "type": "action_variable_set",
+              "position": {
+                "x": 410,
+                "y": 1920
+              },
+              "data": {
+                "custom_label": "Add entry",
+                "variable_id": "giveaway-entries",
+                "variable_scope": "{{result('message_xpc').id}}",
+                "variable_operation": "append",
+                "variable_value": "{{interaction.user.id}},"
+              }
+            },
+            {
+              "id": "response_qsi",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 2130
+              },
+              "data": {
+                "message_data": {
+                  "content": "You're in the giveaway for **{{result('calc_qxv').prize}}**! {{let n = len(uniq(filter(split(string(result('variable_98j') ?? \"\"), \",\"), # != \"\"))); string(n) + (n == 1 ? \" member has\" : \" members have\")}} entered so far. Good luck!",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "condition_ni7",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 1640,
+                "y": 3390
+              },
+              "data": {
+                "custom_label": "Can reroll?",
+                "condition_base_value": "{{\"manage_guild\" in interaction.member.permissions ? \"yes\" : \"no\"}}"
+              }
+            },
+            {
+              "id": "condition_89y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 1640,
+                "y": 3600
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "yes"
+              }
+            },
+            {
+              "id": "condition_el6",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 2050,
+                "y": 3600
+              },
+              "data": {}
+            },
+            {
+              "id": "response_4pz",
+              "type": "action_response_create",
+              "position": {
+                "x": 2050,
+                "y": 3810
+              },
+              "data": {
+                "message_data": {
+                  "content": "Only members with the Manage Server permission can reroll.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_u72",
+              "type": "action_variable_get",
+              "position": {
+                "x": 1640,
+                "y": 3810
+              },
+              "data": {
+                "custom_label": "Get entries",
+                "variable_id": "giveaway-entries",
+                "variable_scope": "{{result('message_xpc').id}}"
+              }
+            },
+            {
+              "id": "variable_g2w",
+              "type": "action_variable_get",
+              "position": {
+                "x": 1640,
+                "y": 4020
+              },
+              "data": {
+                "custom_label": "Get winners",
+                "variable_id": "giveaway-winners",
+                "variable_scope": "{{result('message_xpc').id}}"
+              }
+            },
+            {
+              "id": "random_yix",
+              "type": "action_random_generate",
+              "position": {
+                "x": 1640,
+                "y": 4230
+              },
+              "data": {
+                "custom_label": "Pick new winner",
+                "random_mode": "items",
+                "random_items": "{{let won = split(string(result('variable_g2w') ?? \"\"), \" \"); filter(uniq(filter(split(string(result('variable_u72') ?? \"\"), \",\"), # != \"\")), !(# in won))}}",
+                "random_count": "1"
+              }
+            },
+            {
+              "id": "condition_rr1",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 1640,
+                "y": 4440
+              },
+              "data": {
+                "custom_label": "Anyone left?",
+                "condition_base_value": "{{len(result('random_yix')) == 0 ? \"no\" : \"yes\"}}"
+              }
+            },
+            {
+              "id": "condition_rr2",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 1640,
+                "y": 4650
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "yes"
+              }
+            },
+            {
+              "id": "condition_rr3",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 2050,
+                "y": 4650
+              },
+              "data": {}
+            },
+            {
+              "id": "response_nl1",
+              "type": "action_response_create",
+              "position": {
+                "x": 2050,
+                "y": 4860
+              },
+              "data": {
+                "message_data": {
+                  "content": "There's no one left to pick for **{{result('calc_qxv').prize}}**.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_r5a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 1640,
+                "y": 4860
+              },
+              "data": {
+                "custom_label": "Add new winner",
+                "variable_id": "giveaway-winners",
+                "variable_scope": "{{result('message_xpc').id}}",
+                "variable_operation": "append",
+                "variable_value": "{{\" \" + first(result('random_yix'))}}"
+              }
+            },
+            {
+              "id": "response_xr8",
+              "type": "action_response_create",
+              "position": {
+                "x": 1640,
+                "y": 5070
+              },
+              "data": {
+                "message_data": {
+                  "content": "🎉 <@{{first(result('random_yix'))}}> is the new winner of **{{result('calc_qxv').prize}}**!",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "856073453",
+              "source": "arg_bm7",
+              "target": "command_let"
+            },
+            {
+              "id": "3834450",
+              "source": "arg_d9f",
+              "target": "command_let"
+            },
+            {
+              "id": "747865427",
+              "source": "arg_v66",
+              "target": "command_let"
+            },
+            {
+              "id": "2790332",
+              "source": "arg_wz6",
+              "target": "command_let"
+            },
+            {
+              "id": "859795758",
+              "source": "permissions_kl4",
+              "target": "command_let"
+            },
+            {
+              "id": "548128228",
+              "source": "contexts_15r",
+              "target": "command_let"
+            },
+            {
+              "id": "480029246",
+              "source": "command_let",
+              "target": "calc_qxv"
+            },
+            {
+              "id": "98644985",
+              "source": "calc_qxv",
+              "target": "condition_sec"
+            },
+            {
+              "id": "255232055",
+              "source": "condition_sec",
+              "target": "condition_0dj"
+            },
+            {
+              "id": "476450187",
+              "source": "condition_sec",
+              "target": "condition_t6k"
+            },
+            {
+              "id": "826166",
+              "source": "condition_t6k",
+              "target": "response_irf"
+            },
+            {
+              "id": "330478681",
+              "source": "condition_0dj",
+              "target": "message_xpc"
+            },
+            {
+              "id": "441103282",
+              "source": "message_xpc",
+              "target": "variable_i4n"
+            },
+            {
+              "id": "114363051",
+              "source": "response_9tu",
+              "target": "sleep_3dc"
+            },
+            {
+              "id": "378800435",
+              "source": "sleep_3dc",
+              "target": "variable_zmf"
+            },
+            {
+              "id": "925561090",
+              "source": "variable_zmf",
+              "target": "random_559"
+            },
+            {
+              "id": "20799819",
+              "source": "random_559",
+              "target": "message_5lw"
+            },
+            {
+              "id": "765272220",
+              "source": "message_5lw",
+              "target": "condition_vsg"
+            },
+            {
+              "id": "107163458",
+              "source": "condition_vsg",
+              "target": "condition_mp6"
+            },
+            {
+              "id": "756006353",
+              "source": "condition_vsg",
+              "target": "condition_9be"
+            },
+            {
+              "id": "241265422",
+              "source": "condition_mp6",
+              "target": "variable_w8s"
+            },
+            {
+              "id": "790941750",
+              "source": "condition_9be",
+              "target": "message_m5z"
+            },
+            {
+              "id": "471500984",
+              "source": "message_xpc",
+              "target": "variable_7a0",
+              "sourceHandle": "component_2"
+            },
+            {
+              "id": "107521472",
+              "source": "variable_7a0",
+              "target": "condition_es7"
+            },
+            {
+              "id": "154717496",
+              "source": "condition_es7",
+              "target": "condition_q09"
+            },
+            {
+              "id": "35679375",
+              "source": "condition_es7",
+              "target": "condition_lkd"
+            },
+            {
+              "id": "587386792",
+              "source": "condition_es7",
+              "target": "condition_37l"
+            },
+            {
+              "id": "57347125",
+              "source": "condition_lkd",
+              "target": "response_got"
+            },
+            {
+              "id": "44389457",
+              "source": "condition_37l",
+              "target": "response_lpd"
+            },
+            {
+              "id": "452560537",
+              "source": "condition_q09",
+              "target": "variable_98j"
+            },
+            {
+              "id": "771180839",
+              "source": "message_pad",
+              "target": "condition_ni7",
+              "sourceHandle": "component_1"
+            },
+            {
+              "id": "476851038",
+              "source": "condition_ni7",
+              "target": "condition_89y"
+            },
+            {
+              "id": "588956905",
+              "source": "condition_ni7",
+              "target": "condition_el6"
+            },
+            {
+              "id": "390526236",
+              "source": "condition_el6",
+              "target": "response_4pz"
+            },
+            {
+              "id": "882452944",
+              "source": "condition_89y",
+              "target": "variable_u72"
+            },
+            {
+              "id": "561300356",
+              "source": "variable_u72",
+              "target": "variable_g2w"
+            },
+            {
+              "id": "371574902",
+              "source": "random_yix",
+              "target": "condition_rr1"
+            },
+            {
+              "id": "371574903",
+              "source": "condition_rr1",
+              "target": "condition_rr2"
+            },
+            {
+              "id": "371574904",
+              "source": "condition_rr1",
+              "target": "condition_rr3"
+            },
+            {
+              "id": "371574905",
+              "source": "condition_rr2",
+              "target": "variable_r5a"
+            },
+            {
+              "id": "371574906",
+              "source": "condition_rr3",
+              "target": "response_nl1"
+            },
+            {
+              "id": "91846201",
+              "source": "variable_i4n",
+              "target": "response_9tu"
+            },
+            {
+              "id": "91846202",
+              "source": "variable_w8s",
+              "target": "message_pad"
+            },
+            {
+              "id": "91846203",
+              "source": "variable_g2w",
+              "target": "random_yix"
+            },
+            {
+              "id": "91846204",
+              "source": "variable_r5a",
+              "target": "response_xr8"
+            },
+            {
+              "id": "91846205",
+              "source": "variable_98j",
+              "target": "response_qsi"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [],
+    "messages": [],
+    "variables": [
+      {
+        "id": "giveaway-entries",
+        "name": "giveaway_entries",
+        "scoped": true
+      },
+      {
+        "id": "giveaway-winners",
+        "name": "giveaway_winners",
+        "scoped": true
+      }
+    ],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The duration of /giveaway can also be written out, like 2 hours or 1 day and 12 hours."
+      }
+    ]
+  },
+  {
+    "id": "sticky-message",
+    "version": 1,
+    "name": "Sticky Message",
+    "description": "Keeps a message at the bottom of a channel by posting it again when the channel goes quiet.",
+    "icon": "pin",
+    "category": "utility",
+    "about": [
+      "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
+      "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
+    ],
+    "faq": [
+      {
+        "question": "How do I change the sticky message?",
+        "answer": "Edit the Sticky message under Messages in your app. The next time the bot posts it, it uses the new version."
+      },
+      {
+        "question": "How many credits does it use?",
+        "answer": "Messages in the sticky channel are free. Each time the bot posts the sticky message again, it costs 3 credits for posting it, remembering it and deleting the old one. A busy conversation only costs that once, after it calms down, and messages in other channels don't run the flow at all."
+      },
+      {
+        "question": "Does it move below messages from other bots?",
+        "answer": "No, only messages from members make the bot post it again. Messages from bots, like feeds, stay below the sticky message until a member writes."
+      }
+    ],
+    "setup": [],
+    "parameters": [
+      {
+        "key": "sticky_channel",
+        "label": "Sticky Channel",
+        "description": "The channel the message stays at the bottom of.",
+        "type": "channel",
+        "required": true
+      }
+    ],
+    "commands": [],
+    "event_listeners": [
+      {
+        "id": "sticky-repost",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "filter_c4n",
+              "type": "option_event_filter",
+              "position": {
+                "x": 205,
+                "y": 0
+              },
+              "data": {
+                "event_filter_target": "channel_id",
+                "event_filter_mode": "equal",
+                "event_filter_value": "{{params.sticky_channel}}"
+              }
+            },
+            {
+              "id": "event_cwk",
+              "type": "entry_event",
+              "position": {
+                "x": 205,
+                "y": 210
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Keep the sticky message at the bottom of its channel."
+              }
+            },
+            {
+              "id": "sleep_w2d",
+              "type": "control_sleep",
+              "position": {
+                "x": 205,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Wait for the channel to go quiet",
+                "sleep_duration_seconds": "3"
+              }
+            },
+            {
+              "id": "message_lst",
+              "type": "action_message_list",
+              "position": {
+                "x": 205,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Newest message",
+                "channel_target": "{{params.sticky_channel}}",
+                "limit": "1"
+              }
+            },
+            {
+              "id": "condition_udg",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 205,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Still the newest?",
+                "condition_base_value": "{{first(result('message_lst'))?.id ?? \"\"}}"
+              }
+            },
+            {
+              "id": "condition_xv1",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 205,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{event.message.id}}"
+              }
+            },
+            {
+              "id": "condition_yv3",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 615,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_ifb",
+              "type": "action_variable_get",
+              "position": {
+                "x": 205,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Last sticky message",
+                "variable_id": "sticky-message-id",
+                "variable_scope": "{{params.sticky_channel}}"
+              }
+            },
+            {
+              "id": "message_qag",
+              "type": "action_message_create",
+              "position": {
+                "x": 205,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Post sticky message",
+                "channel_target": "{{params.sticky_channel}}",
+                "message_template_id": "sticky"
+              }
+            },
+            {
+              "id": "variable_xsb",
+              "type": "action_variable_set",
+              "position": {
+                "x": 205,
+                "y": 1680
+              },
+              "data": {
+                "custom_label": "Remember it",
+                "variable_id": "sticky-message-id",
+                "variable_scope": "{{params.sticky_channel}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{result('message_qag').id}}"
+              }
+            },
+            {
+              "id": "error_bhe",
+              "type": "control_error_handler",
+              "position": {
+                "x": 205,
+                "y": 1890
+              },
+              "data": {
+                "custom_label": "Skip if it's already gone"
+              }
+            },
+            {
+              "id": "message_682",
+              "type": "action_message_delete",
+              "position": {
+                "x": 410,
+                "y": 2130
+              },
+              "data": {
+                "custom_label": "Delete the old one",
+                "channel_target": "{{params.sticky_channel}}",
+                "message_target": "{{result('variable_ifb')}}"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "762282503",
+              "source": "filter_c4n",
+              "target": "event_cwk"
+            },
+            {
+              "id": "762282504",
+              "source": "event_cwk",
+              "target": "sleep_w2d"
+            },
+            {
+              "id": "762282506",
+              "source": "sleep_w2d",
+              "target": "message_lst"
+            },
+            {
+              "id": "762282507",
+              "source": "message_lst",
+              "target": "condition_udg"
+            },
+            {
+              "id": "347048008",
+              "source": "condition_udg",
+              "target": "condition_xv1"
+            },
+            {
+              "id": "938194088",
+              "source": "condition_udg",
+              "target": "condition_yv3"
+            },
+            {
+              "id": "51877915",
+              "source": "condition_xv1",
+              "target": "variable_ifb"
+            },
+            {
+              "id": "23294602",
+              "source": "variable_ifb",
+              "target": "message_qag"
+            },
+            {
+              "id": "49639039",
+              "source": "message_qag",
+              "target": "variable_xsb"
+            },
+            {
+              "id": "401110220",
+              "source": "variable_xsb",
+              "target": "error_bhe"
+            },
+            {
+              "id": "346906638",
+              "source": "error_bhe",
+              "target": "message_682",
+              "sourceHandle": "default"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "sticky",
+        "name": "Sticky",
+        "description": "The message that stays at the bottom of the sticky channel.",
+        "data": {
+          "embeds": [
+            {
+              "title": "📌 Before you post",
+              "description": "Keep this channel on topic and be kind to each other.",
+              "color": 5793266
+            }
+          ],
+          "allowed_mentions": {
+            "parse": []
+          }
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
+    "variables": [
+      {
+        "id": "sticky-message-id",
+        "name": "sticky_message",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
+    "id": "reminders",
+    "version": 1,
+    "name": "Reminders",
+    "description": "A /remind command that sends members a reminder in their DMs after the time they pick.",
+    "icon": "alarm-clock",
+    "category": "utility",
+    "about": [
+      "Members use /remind with when to remind them, like 30m, 2 hours or 1d 12h, and what to remind them of. The bot confirms the reminder in a reply only they can see, with the exact time it goes off.",
+      "When the time is up, the bot sends the reminder in their DMs. If their DMs are closed, it pings them with the reminder in the channel they used /remind in instead. Reminders can be up to 30 days away."
+    ],
+    "faq": [
+      {
+        "question": "How far ahead can I set a reminder?",
+        "answer": "Between 1 minute and 30 days. Write the time like 30m, 2 hours or 1d 12h."
+      },
+      {
+        "question": "What if my DMs are closed?",
+        "answer": "The bot pings you with the reminder in the channel you used /remind in."
+      },
+      {
+        "question": "Can other members see my reminders?",
+        "answer": "No. The confirmation only shows to you and the reminder goes to your DMs, unless your DMs are closed."
+      },
+      {
+        "question": "How many reminders can I set?",
+        "answer": "Up to 10 can be waiting at a time, and you can set one every 30 seconds. Once a reminder goes off, you can set a new one."
+      },
+      {
+        "question": "How many credits does it use?",
+        "answer": "4 credits for each reminder: reading the time, remembering it, confirming it and sending the reminder. Waiting costs nothing."
+      }
+    ],
+    "setup": [],
+    "parameters": [],
+    "commands": [
+      {
+        "id": "remind",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_6ou",
+              "type": "entry_command",
+              "position": {
+                "x": 205,
+                "y": 210
+              },
+              "data": {
+                "name": "remind",
+                "description": "Get a reminder in your DMs after a while.",
+                "command_argument_order": [
+                  "arg_7rc",
+                  "arg_vmi"
+                ]
+              }
+            },
+            {
+              "id": "arg_7rc",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "in",
+                "description": "When to remind you, like 30m, 2 hours or 1d 12h. Up to 30 days.",
+                "command_argument_type": "string",
+                "command_argument_required": true,
+                "command_argument_max_length": 20
+              }
+            },
+            {
+              "id": "arg_vmi",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "about",
+                "description": "What to remind you of.",
+                "command_argument_type": "string",
+                "command_argument_required": true,
+                "command_argument_max_length": 1000
+              }
+            },
+            {
+              "id": "cooldown_r5k",
+              "type": "option_command_cooldown",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "cooldown_scope": "user",
+                "cooldown_duration_seconds": "30",
+                "cooldown_message": "You just set a reminder. Try again in {{let s = var('cooldown_remaining'); string(s) + (s == 1 ? \" second\" : \" seconds\")}}."
+              }
+            },
+            {
+              "id": "variable_p3n",
+              "type": "action_variable_get",
+              "position": {
+                "x": 205,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Waiting reminders",
+                "variable_id": "reminders-pending",
+                "variable_scope": "{{interaction.user.id}}"
+              }
+            },
+            {
+              "id": "calc_9yw",
+              "type": "action_expression_evaluate",
+              "position": {
+                "x": 205,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Read reminder",
+                "expression": "let d = duration(arg('in'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\nlet waiting = filter(split(string(result('variable_p3n') ?? \"\"), \",\"), # != \"\" && int(#) > now().Unix());\n{\"ok\": ok, \"full\": len(waiting) >= 10, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"pending\": join(concat(waiting, [string(now().Unix() + seconds)]), \",\"), \"text\": arg('about')}"
+              }
+            },
+            {
+              "id": "condition_z83",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 205,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Can set it?",
+                "condition_base_value": "{{!result('calc_9yw').ok ? \"invalid\" : result('calc_9yw').full ? \"full\" : \"ok\"}}"
+              }
+            },
+            {
+              "id": "condition_mj4",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 205,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "ok"
+              }
+            },
+            {
+              "id": "condition_f4l",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 820,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "full"
+              }
+            },
+            {
+              "id": "condition_t1a",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 1435,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "response_lmb",
+              "type": "action_response_create",
+              "position": {
+                "x": 1435,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "Use a time like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "response_f9q",
+              "type": "action_response_create",
+              "position": {
+                "x": 820,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "You already have 10 reminders waiting. Set a new one once one of them goes off.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_w2c",
+              "type": "action_variable_set",
+              "position": {
+                "x": 205,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Remember when it goes off",
+                "variable_id": "reminders-pending",
+                "variable_scope": "{{interaction.user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{result('calc_9yw').pending}}"
+              }
+            },
+            {
+              "id": "response_298",
+              "type": "action_response_create",
+              "position": {
+                "x": 205,
+                "y": 1470
+              },
+              "data": {
+                "message_data": {
+                  "content": "⏰ I'll remind you <t:{{result('calc_9yw').at}}:R> (<t:{{result('calc_9yw').at}}:f>):\n>>> {{result('calc_9yw').text}}",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "sleep_0g1",
+              "type": "control_sleep",
+              "position": {
+                "x": 205,
+                "y": 1680
+              },
+              "data": {
+                "custom_label": "Wait",
+                "sleep_duration_seconds": "{{result('calc_9yw').seconds}}"
+              }
+            },
+            {
+              "id": "error_jyk",
+              "type": "control_error_handler",
+              "position": {
+                "x": 205,
+                "y": 1890
+              },
+              "data": {
+                "custom_label": "If DMs are closed"
+              }
+            },
+            {
+              "id": "dm_752",
+              "type": "action_private_message_create",
+              "position": {
+                "x": 410,
+                "y": 2130
+              },
+              "data": {
+                "custom_label": "Remind in DMs",
+                "user_target": "{{interaction.user.id}}",
+                "message_data": {
+                  "content": "⏰ **Reminder** from <t:{{int(result('calc_9yw').set)}}:R>\n>>> {{result('calc_9yw').text}}",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "message_pya",
+              "type": "action_message_create",
+              "position": {
+                "x": 0,
+                "y": 2130
+              },
+              "data": {
+                "custom_label": "Remind in the channel",
+                "channel_target": "{{interaction.channel.id}}",
+                "message_data": {
+                  "content": "⏰ <@{{interaction.user.id}}>, here's your reminder from <t:{{int(result('calc_9yw').set)}}:R>. I couldn't DM you, so it's here.",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  },
+                  "embeds": [
+                    {
+                      "description": "{{result('calc_9yw').text}}"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "559075615",
+              "source": "arg_7rc",
+              "target": "command_6ou"
+            },
+            {
+              "id": "788832759",
+              "source": "arg_vmi",
+              "target": "command_6ou"
+            },
+            {
+              "id": "788832760",
+              "source": "cooldown_r5k",
+              "target": "command_6ou"
+            },
+            {
+              "id": "944764101",
+              "source": "command_6ou",
+              "target": "variable_p3n"
+            },
+            {
+              "id": "944764102",
+              "source": "variable_p3n",
+              "target": "calc_9yw"
+            },
+            {
+              "id": "218265534",
+              "source": "calc_9yw",
+              "target": "condition_z83"
+            },
+            {
+              "id": "872049630",
+              "source": "condition_z83",
+              "target": "condition_mj4"
+            },
+            {
+              "id": "872049631",
+              "source": "condition_z83",
+              "target": "condition_f4l"
+            },
+            {
+              "id": "872049632",
+              "source": "condition_f4l",
+              "target": "response_f9q"
+            },
+            {
+              "id": "754082032",
+              "source": "condition_z83",
+              "target": "condition_t1a"
+            },
+            {
+              "id": "676473248",
+              "source": "condition_t1a",
+              "target": "response_lmb"
+            },
+            {
+              "id": "730597972",
+              "source": "condition_mj4",
+              "target": "variable_w2c"
+            },
+            {
+              "id": "730597973",
+              "source": "variable_w2c",
+              "target": "response_298"
+            },
+            {
+              "id": "147056557",
+              "source": "response_298",
+              "target": "sleep_0g1"
+            },
+            {
+              "id": "987257984",
+              "source": "sleep_0g1",
+              "target": "error_jyk"
+            },
+            {
+              "id": "607299361",
+              "source": "error_jyk",
+              "target": "dm_752",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "653179917",
+              "source": "error_jyk",
+              "target": "message_pya",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [],
+    "messages": [],
+    "variables": [
+      {
+        "id": "reminders-pending",
+        "name": "pending_reminders",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
+    "id": "honeypot",
+    "version": 1,
+    "name": "Honeypot",
+    "description": "A channel that catches spam bots: anyone but staff who sends a message in it gets softbanned and logged.",
+    "icon": "bot-off",
+    "category": "moderation",
+    "about": [
+      "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
+      "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Messages."
+    ],
+    "faq": [
+      {
+        "question": "What is a softban?",
+        "answer": "A ban followed right away by an unban. It kicks the member and deletes their recent messages, but they aren't banned and can join again with an invite."
+      },
+      {
+        "question": "What happens if a moderator posts in the honeypot channel?",
+        "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is forwarded to the log channel with a note that the bot couldn't softban them."
+      }
+    ],
+    "setup": [
+      "Put your bot's role above the roles of the members it should catch, so it can ban them."
+    ],
+    "parameters": [
+      {
+        "key": "honeypot_channel",
+        "label": "Honeypot Channel",
+        "description": "The channel that catches spam bots. Anyone without the Manage Messages permission who sends a message in it gets softbanned.",
+        "type": "channel",
+        "required": true
+      },
+      {
+        "key": "log_channel",
+        "label": "Log Channel",
+        "description": "The channel caught messages are forwarded to and each kick is logged in.",
+        "type": "channel",
+        "required": true
+      }
+    ],
+    "commands": [],
+    "event_listeners": [
+      {
+        "id": "honeypot-catch",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "filter_h2q",
+              "type": "option_event_filter",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "event_filter_target": "channel_id",
+                "event_filter_mode": "equal",
+                "event_filter_value": "{{params.honeypot_channel}}"
+              }
+            },
+            {
+              "id": "event_xoj",
+              "type": "entry_event",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Softban anyone who sends a message in the honeypot channel."
+              }
+            },
+            {
+              "id": "condition_dig",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 410,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Staff?",
+                "condition_base_value": "{{\"manage_messages\" in event.member.permissions ? \"yes\" : \"no\"}}"
+              }
+            },
+            {
+              "id": "condition_h7k",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 410,
+                "y": 630
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "no"
+              }
+            },
+            {
+              "id": "error_4vo",
+              "type": "control_error_handler",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "1. Forward to logs, skip if it fails"
+              }
+            },
+            {
+              "id": "forward_up3",
+              "type": "action_message_forward",
+              "position": {
+                "x": 205,
+                "y": 1080
+              },
+              "data": {
+                "custom_label": "Forward to logs",
+                "channel_target": "{{event.channel.id}}",
+                "message_target": "{{event.message.id}}",
+                "forward_channel_target": "{{params.log_channel}}"
+              }
+            },
+            {
+              "id": "error_z5p",
+              "type": "control_error_handler",
+              "position": {
+                "x": 820,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "2. Softban, if they can be banned"
+              }
+            },
+            {
+              "id": "message_k8w",
+              "type": "action_message_create",
+              "position": {
+                "x": 615,
+                "y": 1080
+              },
+              "data": {
+                "custom_label": "Log failed softban",
+                "channel_target": "{{params.log_channel}}",
+                "message_data": {
+                  "content": "Couldn't softban {{event.user.mention}} for triggering the honeypot in {{event.channel.mention}}. The bot needs the Ban Members permission and a role above theirs.\n-# User ID: `{{event.user.id}}`",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "member_97m",
+              "type": "action_member_ban",
+              "position": {
+                "x": 1025,
+                "y": 1080
+              },
+              "data": {
+                "custom_label": "Softban",
+                "user_target": "{{event.user.id}}",
+                "member_ban_delete_message_duration_seconds": "86400",
+                "audit_log_reason": "Honeypot: sent a message in the honeypot channel"
+              }
+            },
+            {
+              "id": "member_071",
+              "type": "action_member_unban",
+              "position": {
+                "x": 1025,
+                "y": 1290
+              },
+              "data": {
+                "custom_label": "Unban",
+                "user_target": "{{event.user.id}}",
+                "audit_log_reason": "Honeypot softban"
+              }
+            },
+            {
+              "id": "message_ap7",
+              "type": "action_message_create",
+              "position": {
+                "x": 1025,
+                "y": 1500
+              },
+              "data": {
+                "custom_label": "Log kick",
+                "channel_target": "{{params.log_channel}}",
+                "message_data": {
+                  "content": "{{event.user.mention}} was kicked for triggering the honeypot in {{event.channel.mention}}\n-# User ID: `{{event.user.id}}` • Created: <t:{{event.user.created_at}}:R> • Joined: <t:{{event.member.joined_at}}:R>",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "condition_p8a",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 820,
+                "y": 630
+              },
+              "data": {}
+            }
+          ],
+          "edges": [
+            {
+              "id": "24815201",
+              "source": "filter_h2q",
+              "target": "event_xoj"
+            },
+            {
+              "id": "24815202",
+              "source": "event_xoj",
+              "target": "condition_dig"
+            },
+            {
+              "id": "918733380",
+              "source": "condition_dig",
+              "target": "condition_h7k"
+            },
+            {
+              "id": "390018463",
+              "source": "condition_h7k",
+              "target": "error_4vo"
+            },
+            {
+              "id": "879742644",
+              "source": "condition_h7k",
+              "target": "error_z5p"
+            },
+            {
+              "id": "544297202",
+              "source": "error_4vo",
+              "target": "forward_up3",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "454833501",
+              "source": "error_z5p",
+              "target": "member_97m",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "454833502",
+              "source": "error_z5p",
+              "target": "message_k8w",
+              "sourceHandle": "error"
+            },
+            {
+              "id": "279186917",
+              "source": "member_97m",
+              "target": "member_071"
+            },
+            {
+              "id": "112887766",
+              "source": "member_071",
+              "target": "message_ap7"
+            },
+            {
+              "id": "496571351",
+              "source": "condition_dig",
+              "target": "condition_p8a"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [
+      {
+        "id": "honeypot-message",
+        "name": "Honeypot",
+        "description": "The warning posted in the honeypot channel.",
+        "send_to": "honeypot_channel",
+        "data": {
+          "flags": 32768,
+          "components": [
+            {
+              "id": 1,
+              "type": 17,
+              "accent_color": 15548997,
+              "components": [
+                {
+                  "id": 2,
+                  "type": 10,
+                  "content": "## 🚫 Don't post in this channel\nThis channel catches spam bots. Anyone who posts here is kicked from the server right away, and their messages from the last day are deleted."
+                },
+                {
+                  "id": 3,
+                  "type": 14,
+                  "divider": true,
+                  "spacing": 1
+                },
+                {
+                  "id": 4,
+                  "type": 10,
+                  "content": "-# Posted here by accident? You can rejoin with an invite."
+                }
+              ]
+            }
+          ]
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
     "variables": [],
     "changelog": []
   }

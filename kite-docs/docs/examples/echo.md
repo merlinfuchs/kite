@@ -37,7 +37,7 @@ If you want to add a space in an argument's name, use the underscore ( \_ ).
         - For the Author section, put `{{user.username}}` in the name field and `{{user.avatar_url}}` in the Icon URL field.
 - Exit the message editor.
 
-![Echo Embed Example](./img/echo-embed.png)
+![Echo Embed Example](./img/echo-embed.webp)
 
 ## ✏️ Acknowledging your command 
 :::info
@@ -49,7 +49,7 @@ Discord requires interactions (slash commands, modals & buttons) to compulsorily
 - In the response field, type anything acknowledging that the user's command is successful. (for eg. "doneso")
 - Scroll down on the block settings, and turn off the "Public Response" to make it visible only to the user who ran the command.
 
-![Echo Command Flow](./img/echo-flow.png)
+![Echo Command Flow](./img/echo-flow.webp)
 
 ## 💌 Save your command
 - Click **Save Changes** at the top of your page. Kite adds the command to Discord a few seconds later.

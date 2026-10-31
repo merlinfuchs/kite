@@ -10,7 +10,7 @@ const alternatives = [
     href: "/alternatives/botghost",
     summary:
       "A no-code bot maker with many ready-made modules. Its free plan is limited to 5 servers and shows its branding in your bot's status.",
-    kite: ["100 servers on the free plan", "Your own status, no branding"],
+    kite: ["100 servers on the free plan", "Your own status for free"],
   },
   {
     name: "inventor.bot",
@@ -40,8 +40,11 @@ const alternatives = [
     name: "SCNX",
     href: "/alternatives/scnx",
     summary:
-      "A bot maker built around ready-made modules. A free SCNX bot only works on one server and needs an ad check-in every 7 days.",
-    kite: ["One bot on up to 100 servers", "No ad check-ins, no branding"],
+      "A bot maker built around ready-made modules. An SCNX bot only works on one server, and a free one needs an ad check-in every 7 to 14 days.",
+    kite: [
+      "One bot on up to 100 servers",
+      "No ad check-ins, free custom status",
+    ],
   },
   {
     name: "FromFlow",
@@ -54,7 +57,7 @@ const alternatives = [
     name: "VibeBot",
     href: "/alternatives/vibebot",
     summary:
-      "An AI bot maker that writes code for your bot. Your own bot costs from $5 a month after a 3-day trial.",
+      "An AI bot maker that writes code for your bot. Your own bot costs $5 a month, or $10 with the AI builder.",
     kite: ["Your own bot for free", "See and change every step"],
   },
 ];

@@ -1,36 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://kite.onl/</loc></url>
-  <url><loc>https://kite.onl/guides/how-to-make-a-discord-bot</loc></url>
-  <url><loc>https://kite.onl/discord-bot-hosting</loc></url>
-  <url><loc>https://kite.onl/discord-moderation-bot</loc></url>
-  <url><loc>https://kite.onl/discord-welcome-bot</loc></url>
-  <url><loc>https://kite.onl/ai-discord-bot</loc></url>
-  <url><loc>https://kite.onl/erlc-discord-bot</loc></url>
-  <url><loc>https://kite.onl/pricing</loc></url>
-  <url><loc>https://kite.onl/alternatives</loc></url>
-  <url><loc>https://kite.onl/alternatives/botghost</loc></url>
-  <url><loc>https://kite.onl/alternatives/inventor</loc></url>
-  <url><loc>https://kite.onl/alternatives/botwiz</loc></url>
-  <url><loc>https://kite.onl/alternatives/bdfd</loc></url>
-  <url><loc>https://kite.onl/alternatives/scnx</loc></url>
-  <url><loc>https://kite.onl/alternatives/fromflow</loc></url>
-  <url><loc>https://kite.onl/alternatives/vibebot</loc></url>
-  <url><loc>https://kite.onl/tools</loc></url>
-  <url><loc>https://kite.onl/tools/permissions-calculator</loc></url>
-  <url><loc>https://kite.onl/tools/timestamp-generator</loc></url>
-  <url><loc>https://kite.onl/tools/snowflake-decoder</loc></url>
-  <url><loc>https://kite.onl/tools/webhook-info</loc></url>
-  <url><loc>https://kite.onl/templates</loc></url>
-  <url><loc>https://kite.onl/templates/moderation</loc></url>
-  <url><loc>https://kite.onl/templates/ai-automod</loc></url>
-  <url><loc>https://kite.onl/templates/ask-ai</loc></url>
-  <url><loc>https://kite.onl/templates/welcomer</loc></url>
-  <url><loc>https://kite.onl/templates/verification</loc></url>
-  <url><loc>https://kite.onl/templates/suggestions</loc></url>
-  <url><loc>https://kite.onl/templates/starboard</loc></url>
-  <url><loc>https://kite.onl/templates/server-info</loc></url>
-  <url><loc>https://kite.onl/templates/modmail</loc></url>
-  <url><loc>https://kite.onl/templates/counting</loc></url>
-  <url><loc>https://kite.onl/templates/erlc</loc></url>
-</urlset>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>https://kite.onl/sitemap-pages.xml</loc></sitemap>
+  <sitemap><loc>https://kite.onl/sitemap-marketplace.xml</loc></sitemap>
+</sitemapindex>

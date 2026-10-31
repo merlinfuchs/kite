@@ -9,16 +9,25 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
+import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
-import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
+import {
+  aiAnswerLimits,
+  aiModelTiers,
+  aiOutputStepTokens,
+  aiPromptLimits,
+  getAiModelTier,
+} from "@/lib/flow/aiModels";
+import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
+import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
+import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import {
   lookupMaxRows,
@@ -26,7 +35,11 @@ import {
   parseLookupLines,
 } from "@/lib/blocks/valueLookup";
 import ColorPicker from "@/tools/common/components/ColorPicker";
-import { integrations, needsCredential } from "@/lib/integrations";
+import {
+  getIntegration,
+  integrations,
+  needsCredential,
+} from "@/lib/integrations";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -34,6 +47,9 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
@@ -43,6 +59,7 @@ import {
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -71,10 +88,28 @@ import {
   SmileIcon,
   TrashIcon,
   XIcon,
+  PlugIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, memo, useCallback, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  ReactNode,
+  memo,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  EditOnly,
+  FlowReadOnlyContext,
+  PreviewInert,
+  useFlowMessages,
+  useFlowVariables,
+} from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
+import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
@@ -137,6 +172,7 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -190,16 +226,23 @@ export const settingInputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  channel_edit_data: ChannelEditDataInput,
   thread_data: ThreadDataInput,
   forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   forward_source_channel_target: ForwardSourceChannelTargetInput,
   forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   member_voice_mute: MemberVoiceMuteInput,
   member_voice_deaf: MemberVoiceDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_asset_id: AudioAssetInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -217,6 +260,7 @@ export const settingInputs: Record<string, any> = {
   ai_choice_data: AiChoiceDataInput,
   ai_check_data: AiCheckDataInput,
   ai_score_data: AiScoreDataInput,
+  ai_translate_data: AiTranslateDataInput,
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
@@ -290,12 +334,17 @@ export default function FlowNodeEditor({
   }
 
   const nodes = useNodes<Node<NodeData>>();
+  // Flows that are only shown, like the ones of a template, show the settings
+  // of their blocks without letting them change.
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const node = nodes.find((n) => n.id === nodeId);
   const data = node?.data;
 
   const updateData = useCallback(
     (newData: Partial<NodeData>) => {
+      // Nothing in a preview changes, even where an input misses it.
+      if (readOnly) return;
       setNodes((nodes) =>
         nodes.map((n) => {
           if (n.id === nodeId) {
@@ -311,7 +360,7 @@ export default function FlowNodeEditor({
         })
       );
     },
-    [setNodes, nodeId]
+    [setNodes, nodeId, readOnly]
   );
 
   function deleteNode() {
@@ -341,6 +390,7 @@ export default function FlowNodeEditor({
   const hasPremiumFeature = useAppFeature((f) =>
     premiumFeature ? !!f[premiumFeature] : true
   );
+  const premiumPlan = useFeaturePlan(premiumFeature);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -358,6 +408,11 @@ export default function FlowNodeEditor({
   if (!node || !data) return null;
 
   const creditsCost = getNodeCreditsCost(values, data);
+  // The services other than Discord the block talks to, like Cookie API.
+  const block = getBlockDefinition(node.type);
+  const blockServices = (block ? blockIntegrations(block) : [])
+    .filter((id) => id !== "discord")
+    .map((id) => getIntegration(id)?.name ?? id);
 
   const docsPage = nodeTypeDocsPage(node.type!);
 
@@ -406,6 +461,15 @@ export default function FlowNodeEditor({
                     <div>credit{creditsCost === 1 ? "" : "s"}</div>
                   </div>
                 )}
+                {blockServices.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-muted rounded px-2 py-1 text-xs flex items-center gap-1"
+                  >
+                    <PlugIcon className="h-3 w-3" />
+                    {name}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -418,7 +482,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  Premium
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>
@@ -445,7 +509,7 @@ export default function FlowNodeEditor({
             })}
           </div>
           <div className="flex-none space-y-3 mt-5">
-            {!values.fixed && (
+            {!values.fixed && !readOnly && (
               <>
                 <Button
                   variant="destructive"
@@ -562,30 +626,32 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
             <div className="text-xs text-muted-foreground flex-none">
               {arg.data.command_argument_required ? "Required" : "Optional"}
             </div>
-            <div className="flex flex-none">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, -1)}
-                onClick={() => move(i, -1)}
-                aria-label="Move up"
-              >
-                <ChevronUpIcon className="h-5 w-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, 1)}
-                onClick={() => move(i, 1)}
-                aria-label="Move down"
-              >
-                <ChevronDownIcon className="h-5 w-5" />
-              </Button>
-            </div>
+            <EditOnly>
+              <div className="flex flex-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, -1)}
+                  onClick={() => move(i, -1)}
+                  aria-label="Move up"
+                >
+                  <ChevronUpIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, 1)}
+                  onClick={() => move(i, 1)}
+                  aria-label="Move down"
+                >
+                  <ChevronDownIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </EditOnly>
           </div>
         ))}
       </div>
@@ -711,6 +777,7 @@ function CommandArgumentMaxLengthInput({
 }
 
 function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const addChoice = useCallback(() => {
     updateData({
       command_argument_choices: [
@@ -770,33 +837,39 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               placeholder="Name"
               value={choice.name || ""}
               onChange={(e) => updateChoice(i, { name: e.target.value })}
+              readOnly={readOnly}
             />
             <Input
               type="text"
               placeholder="Value"
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
+              readOnly={readOnly}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              className="flex-none"
-              aria-label="Remove choice"
-              onClick={() => removeChoice(i)}
-            >
-              <MinusIcon className="h-5 w-5" />
-            </Button>
+            <EditOnly>
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove choice"
+                onClick={() => removeChoice(i)}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </EditOnly>
           </div>
         ))}
       </div>
-      <div className="flex space-x-2">
-        <Button variant="outline" size="icon" onClick={addChoice}>
-          <PlusIcon className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={clearChoices}>
-          <TrashIcon className="h-5 w-5" />
-        </Button>
-      </div>
+      <EditOnly>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="icon" onClick={addChoice}>
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={clearChoices}>
+            <TrashIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </EditOnly>
     </div>
   );
 }
@@ -953,10 +1026,15 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   // Scheduled and webhook listeners can't become Discord listeners or the
   // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
-  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
+  // The URL belongs to the listener being edited, not to a previewed flow.
+  if (data.event_type === EventTypeWebhook) {
+    return readOnly ? null : <WebhookUrlInput />;
+  }
 
   return (
     <BaseInput
@@ -1198,6 +1276,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      placeholders="parameters"
     />
   );
 }
@@ -1417,6 +1496,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1547,6 +1627,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholder="Key"
                       value={h.key || ""}
                       onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                      readOnly={readOnly}
                     />
                     <BaseInput
                       type="text"
@@ -1558,40 +1639,47 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholders
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeHeader(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeHeader(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
               ))}
 
-              <div className="flex">
-                <Button variant="outline" size="icon" onClick={addHeader}>
-                  <PlusIcon className="h-5 w-5" />
-                </Button>
-              </div>
+              <EditOnly>
+                <div className="flex">
+                  <Button variant="outline" size="icon" onClick={addHeader}>
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </EditOnly>
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="font-medium text-foreground">JSON Body</div>
-              <Switch
-                checked={!!data.http_request_data?.body_json}
-                onCheckedChange={(checked) =>
-                  updateField({
-                    body_json: checked ? {} : undefined,
-                  })
-                }
-              />
+              <PreviewInert>
+                <Switch
+                  checked={!!data.http_request_data?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateField({
+                      body_json: checked ? {} : undefined,
+                    })
+                  }
+                />
+              </PreviewInert>
             </div>
             {!!data.http_request_data?.body_json && (
               <JsonEditor
                 src={data.http_request_data?.body_json || {}}
                 onChange={(v) => updateField({ body_json: v })}
+                readOnly={readOnly}
               />
             )}
           </div>
@@ -1606,6 +1694,25 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   name: discordApiOperationLabel(o.id),
   description: `${o.method} ${o.path}`,
 }));
+
+// Links in a field's description, like to a card builder, can be opened.
+function linkify(text: string) {
+  return text.split(/(https?:\/\/\S*[^\s.,)])/).map((part, i) =>
+    i % 2 ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="text-primary hover:underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
 
 function BlockFieldInput({
   id,
@@ -1641,6 +1748,21 @@ function BlockFieldInput({
       />
     );
   }
+  if (field.options) {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={linkify(description)}
+        options={field.options}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
+      />
+    );
+  }
   if (field.type === "color") {
     return (
       <BaseColorInput
@@ -1662,19 +1784,12 @@ function BlockFieldInput({
     definition.run.method === "PATCH"
   ) {
     return (
-      <BaseInput
-        type="select"
+      <BaseKeepSelect
         field={key}
         title={title}
         description={description}
-        // Select items can't have an empty value, so "keep" stands for it.
-        options={[
-          { value: "keep", label: "Keep current" },
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={value || "keep"}
-        updateValue={(v) => setValue(v === "keep" ? "" : v)}
+        value={value}
+        updateValue={setValue}
         errors={errors}
       />
     );
@@ -1695,10 +1810,10 @@ function BlockFieldInput({
   }
   return (
     <BaseInput
-      type="text"
+      type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
-      description={description}
+      description={linkify(description)}
       value={value}
       updateValue={setValue}
       errors={errors}
@@ -1875,51 +1990,57 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 errors={errors}
                 placeholders
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                onClick={() =>
-                  updateRequest({
-                    query: request.query?.filter((v) => v.key !== q.key),
-                  })
-                }
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    updateRequest({
+                      query: request.query?.filter((v) => v.key !== q.key),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
           {unusedQueryParams.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(key) =>
-                updateRequest({
-                  query: [...(request?.query ?? []), { key, value: "" }],
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Add query parameter" />
-              </SelectTrigger>
-              <SelectContent>
-                {unusedQueryParams.map((p) => (
-                  <SelectItem key={p.name} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EditOnly>
+              <Select
+                value=""
+                onValueChange={(key) =>
+                  updateRequest({
+                    query: [...(request?.query ?? []), { key, value: "" }],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add query parameter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unusedQueryParams.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditOnly>
           )}
           {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-foreground">JSON Body</div>
-                <Switch
-                  checked={!!request?.body_json}
-                  onCheckedChange={(checked) =>
-                    updateRequest({ body_json: checked ? {} : undefined })
-                  }
-                />
+                <PreviewInert>
+                  <Switch
+                    checked={!!request?.body_json}
+                    onCheckedChange={(checked) =>
+                      updateRequest({ body_json: checked ? {} : undefined })
+                    }
+                  />
+                </PreviewInert>
               </div>
               {!!request?.body_json && (
                 <FlowJsonInput
@@ -2003,7 +2124,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Prompt"
-        description="The message to send to the AI which it will respond to."
+        description={`The message to send to the AI which it will respond to. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -2016,7 +2137,38 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
+      />
     </>
+  );
+}
+
+function AiMaxCompletionTokensInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      field="ai_chat_completion_data.max_completion_tokens"
+      title="Max Answer Length"
+      description={`The most tokens the answer can have. A token is about 4 characters of English. ${aiAnswerLimits}`}
+      placeholder={aiOutputStepTokens.toString()}
+      value={data.ai_chat_completion_data?.max_completion_tokens || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            max_completion_tokens: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 
@@ -2030,7 +2182,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Query"
-        description="The search query to send to the AI."
+        description={`The search query to send to the AI. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -2042,6 +2194,11 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+      />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
       />
     </>
   );
@@ -2176,27 +2333,31 @@ function AiScoreDataInput(props: InputProps) {
                 }
                 errors={errors}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                aria-label="Remove level"
-                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  aria-label="Remove level"
+                  onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Add level"
-          disabled={levels.length >= aiScoreMaxLevels}
-          onClick={() => updateLevels([...levels, ""])}
-        >
-          <PlusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Add level"
+            disabled={levels.length >= aiScoreMaxLevels}
+            onClick={() => updateLevels([...levels, ""])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
         {errors["ai_decision_data.levels"] && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
             <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -2204,6 +2365,72 @@ function AiScoreDataInput(props: InputProps) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
+  const language = data.ai_translate_data?.language || "";
+  const isLanguage = translateLanguages.some((l) => l.value === language);
+  // A placeholder is picked before it's typed in, so it can't be told apart
+  // from an unset language by the value alone.
+  const [placeholderPicked, setPlaceholderPicked] = useState(false);
+  const fromPlaceholder = placeholderPicked || (language !== "" && !isLanguage);
+
+  function updateLanguage(language: string) {
+    updateData({
+      ai_translate_data: {
+        ...data.ai_translate_data,
+        language: language || undefined,
+      },
+    });
+  }
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="ai_translate_data.text"
+        title="Text"
+        description={`What to translate, like {{message.content}}. ${aiTranslateLimits}`}
+        value={data.ai_translate_data?.text || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_translate_data: {
+              ...data.ai_translate_data,
+              text: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="select"
+        field="ai_translate_data.language"
+        title="Language"
+        description="The language to translate to."
+        options={[
+          ...translateLanguages,
+          { value: "placeholder", label: "From a placeholder" },
+        ]}
+        value={fromPlaceholder ? "placeholder" : isLanguage ? language : ""}
+        updateValue={(v) => {
+          setPlaceholderPicked(v === "placeholder");
+          updateLanguage(v === "placeholder" ? "" : v);
+        }}
+        errors={fromPlaceholder ? {} : errors}
+      />
+      {fromPlaceholder && (
+        <BaseInput
+          field="ai_translate_data.language"
+          description="A single placeholder that becomes the code of a language, like es or pt-BR."
+          value={language}
+          updateValue={updateLanguage}
+          errors={errors}
+          placeholders
+        />
+      )}
     </>
   );
 }
@@ -2269,15 +2496,27 @@ function RandomInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateData({ random_mode: v || undefined })}
         errors={errors}
       />
-      {mode === "item" ? (
-        <ListInput
-          field="random_items"
-          title="Items"
-          noun="item"
-          value={data.random_items || ""}
-          updateValue={(v) => updateData({ random_items: v || undefined })}
-          errors={errors}
-        />
+      {mode === "item" || mode === "items" ? (
+        <>
+          <ListInput
+            field="random_items"
+            title="Items"
+            noun="item"
+            value={data.random_items || ""}
+            updateValue={(v) => updateData({ random_items: v || undefined })}
+            errors={errors}
+          />
+          {mode === "items" && (
+            <BaseInput
+              field="random_count"
+              title="Count"
+              description="How many different items to pick, from 1 to 100."
+              value={data.random_count || ""}
+              updateValue={(v) => updateData({ random_count: v || undefined })}
+              errors={errors}
+            />
+          )}
+        </>
       ) : (
         <>
           <BaseInput
@@ -2418,7 +2657,9 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     <div>Value</div>
                   </div>
                   {/* Room for the remove buttons. */}
-                  <div className="w-10 flex-none" />
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
                 </div>
               )}
               <div className="flex flex-col gap-2">
@@ -2432,56 +2673,62 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     onRemove={removeRow}
                   />
                 ))}
-                <div className="flex">
+                <EditOnly>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add row"
+                      onClick={() => setRows([...rows, { key: "", value: "" }])}
+                      disabled={rows.length >= lookupMaxRows}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </EditOnly>
+              </div>
+            </div>
+            <EditOnly>
+              <div>
+                <div className="font-medium text-foreground mb-1">
+                  Paste Rows
+                </div>
+                <div className="text-muted-foreground text-sm mb-2">
+                  One row per line, as key = value, or copy two columns from a
+                  spreadsheet.
+                </div>
+                <Textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder={"hello = Hi there!\nbye = See you later!"}
+                  className="min-h-24"
+                />
+                <div className="flex gap-2 mt-2">
                   <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Add row"
-                    onClick={() => setRows([...rows, { key: "", value: "" }])}
-                    disabled={rows.length >= lookupMaxRows}
+                    variant="secondary"
+                    onClick={() => addPasted(false)}
+                    disabled={!pasted.trim()}
                   >
-                    <PlusIcon className="h-5 w-5" />
+                    Add Rows
                   </Button>
+                  <ConfirmDialog
+                    title="Replace all rows?"
+                    description="This removes the rows of the table and adds the pasted ones instead."
+                    onConfirm={() => addPasted(true)}
+                  >
+                    <Button variant="outline" disabled={!pasted.trim()}>
+                      Replace All Rows
+                    </Button>
+                  </ConfirmDialog>
                 </div>
+                {pasteError && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{pasteError}</div>
+                  </div>
+                )}
               </div>
-            </div>
-            <div>
-              <div className="font-medium text-foreground mb-1">Paste Rows</div>
-              <div className="text-muted-foreground text-sm mb-2">
-                One row per line, as key = value, or copy two columns from a
-                spreadsheet.
-              </div>
-              <Textarea
-                value={pasted}
-                onChange={(e) => setPasted(e.target.value)}
-                placeholder={"hello = Hi there!\nbye = See you later!"}
-                className="min-h-24"
-              />
-              <div className="flex gap-2 mt-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => addPasted(false)}
-                  disabled={!pasted.trim()}
-                >
-                  Add Rows
-                </Button>
-                <ConfirmDialog
-                  title="Replace all rows?"
-                  description="This removes the rows of the table and adds the pasted ones instead."
-                  onConfirm={() => addPasted(true)}
-                >
-                  <Button variant="outline" disabled={!pasted.trim()}>
-                    Replace All Rows
-                  </Button>
-                </ConfirmDialog>
-              </div>
-              {pasteError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{pasteError}</div>
-                </div>
-              )}
-            </div>
+            </EditOnly>
           </div>
         </DialogContent>
       </Dialog>
@@ -2508,6 +2755,8 @@ const LookupRowInput = memo(function LookupRowInput({
   onChange: (index: number, newData: Partial<LookupRow>) => void;
   onRemove: (index: number) => void;
 }) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   return (
     <div>
       <div className="flex gap-2">
@@ -2517,23 +2766,27 @@ const LookupRowInput = memo(function LookupRowInput({
             placeholder="Key"
             value={row.key}
             onChange={(e) => onChange(index, { key: e.target.value })}
+            readOnly={readOnly}
           />
           <Input
             type="text"
             placeholder="Value"
             value={row.value}
             onChange={(e) => onChange(index, { value: e.target.value })}
+            readOnly={readOnly}
           />
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className="flex-none"
-          aria-label="Remove row"
-          onClick={() => onRemove(index)}
-        >
-          <MinusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-none"
+            aria-label="Remove row"
+            onClick={() => onRemove(index)}
+          >
+            <MinusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
       </div>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -2655,6 +2908,7 @@ function RobloxUserTargetInput({ data, updateData, errors }: InputProps) {
       type="text"
       field="roblox_user_target"
       title="Roblox User Target"
+      description="The Roblox ID or username of the user. Discord users and IDs don't work here."
       value={data.roblox_user_target || ""}
       updateValue={(v) => updateData({ roblox_user_target: v || undefined })}
       errors={errors}
@@ -2681,57 +2935,74 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
-  const messages = useMessages();
+  const messages = useFlowMessages();
+  const readOnly = useContext(FlowReadOnlyContext);
+  const template = data.message_template_id
+    ? messages?.find((m) => m.id === data.message_template_id)
+    : undefined;
 
   const appId = useAppId();
 
   return (
-    <div className="flex space-x-2 items-end">
-      <BaseInput
-        type="select"
-        field="message_template_id"
-        title="Message Template"
-        description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
-        value={data.message_template_id || ""}
-        updateValue={(v) => updateData({ message_template_id: v || undefined })}
-        errors={errors}
-        clearable
-      />
-      {data.message_template_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/messages/[messageId]",
-                  query: { appId: appId, messageId: data.message_template_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit message template</TooltipContent>
-        </Tooltip>
-      ) : (
-        <MessageCreateDialog
-          onMessageCreated={(v) => updateData({ message_template_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </MessageCreateDialog>
+    <>
+      <div className="flex space-x-2 items-end">
+        <BaseInput
+          type="select"
+          field="message_template_id"
+          title="Message Template"
+          description="Select a message template to use for the response."
+          options={messages?.map((m) => ({
+            value: m!.id,
+            label: m!.name,
+          }))}
+          value={data.message_template_id || ""}
+          updateValue={(v) =>
+            updateData({ message_template_id: v || undefined })
+          }
+          errors={errors}
+          clearable
+        />
+        {!readOnly &&
+          (data.message_template_id ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" asChild>
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/messages/[messageId]",
+                      query: {
+                        appId: appId,
+                        messageId: data.message_template_id,
+                      },
+                    }}
+                    target="_blank"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit message template</TooltipContent>
+            </Tooltip>
+          ) : (
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </MessageCreateDialog>
+          ))}
+      </div>
+      {readOnly && template && (
+        <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
-    </div>
+    </>
   );
 }
 
 function MessageDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   if (data.message_template_id) {
     return null;
   }
@@ -2761,12 +3032,16 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         />
       )}
 
-      <MessageEditorDialog
-        onClose={(v) => updateData({ message_data: v })}
-        message={data.message_data || {}}
-      >
-        <Button className="w-full">Edit Message</Button>
-      </MessageEditorDialog>
+      {readOnly ? (
+        <FlowMessageViewDialog message={data.message_data} />
+      ) : (
+        <MessageEditorDialog
+          onClose={(v) => updateData({ message_data: v })}
+          message={data.message_data || {}}
+        >
+          <Button className="w-full">Edit Message</Button>
+        </MessageEditorDialog>
+      )}
 
       <AllowedMentionsDialog
         data={data}
@@ -2981,6 +3256,7 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
 const pollMaxAnswers = 10;
 
 function PollDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const updateField = useCallback(
     (newData: Partial<PollData>) => {
       updateData({ poll_data: { ...data.poll_data, ...newData } });
@@ -3043,54 +3319,65 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             return (
               <div key={i}>
                 <div className="flex gap-2">
-                  <EmojiPicker
-                    onEmojiSelect={(emoji) =>
-                      updateAnswer(i, {
-                        emoji: emoji.native
-                          ? { name: emoji.name }
-                          : { id: emoji.id, name: emoji.name },
-                      })
-                    }
-                  >
-                    <Button size="icon" variant="outline" className="flex-none">
-                      {answer.emoji?.id ? (
-                        <img
-                          src={discordEmojiUrl(answer.emoji.id)}
-                          alt=""
-                          className="h-6 w-6"
-                        />
-                      ) : answer.emoji ? (
-                        <Twemoji options={{ className: "h-6 w-6" }}>
-                          {answer.emoji.name}
-                        </Twemoji>
-                      ) : (
-                        <SmileIcon className="h-6 w-6 text-foreground/80" />
-                      )}
-                    </Button>
-                  </EmojiPicker>
-                  {answer.emoji && (
-                    <div
-                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
-                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                  <PreviewInert className="flex-none">
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) =>
+                        updateAnswer(i, {
+                          emoji: emoji.native
+                            ? { name: emoji.name }
+                            : { id: emoji.id, name: emoji.name },
+                        })
+                      }
                     >
-                      <XIcon className="h-5 w-5" />
-                    </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="flex-none"
+                      >
+                        {answer.emoji?.id ? (
+                          <img
+                            src={discordEmojiUrl(answer.emoji.id)}
+                            alt=""
+                            className="h-6 w-6"
+                          />
+                        ) : answer.emoji ? (
+                          <Twemoji options={{ className: "h-6 w-6" }}>
+                            {answer.emoji.name}
+                          </Twemoji>
+                        ) : (
+                          <SmileIcon className="h-6 w-6 text-foreground/80" />
+                        )}
+                      </Button>
+                    </EmojiPicker>
+                  </PreviewInert>
+                  {answer.emoji && (
+                    <EditOnly>
+                      <div
+                        className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => updateAnswer(i, { emoji: undefined })}
+                      >
+                        <XIcon className="h-5 w-5" />
+                      </div>
+                    </EditOnly>
                   )}
                   <div className="flex-auto">
                     <PlaceholderInput
                       value={answer.text || ""}
                       onChange={(v) => updateAnswer(i, { text: v })}
                       placeholder={`Answer ${i + 1}`}
+                      readOnly={readOnly}
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeAnswer(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeAnswer(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
                 {error && (
                   <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3102,16 +3389,18 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             );
           })}
 
-          <div className="flex">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={addAnswer}
-              disabled={answers.length >= pollMaxAnswers}
-            >
-              <PlusIcon className="h-5 w-5" />
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={addAnswer}
+                disabled={answers.length >= pollMaxAnswers}
+              >
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </EditOnly>
         </div>
         {answersError && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3176,7 +3465,12 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-function ChannelDataInput({ data, updateData, errors }: InputProps) {
+function ChannelDataInput({
+  data,
+  updateData,
+  errors,
+  children,
+}: InputProps & { children?: ReactNode }) {
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3512,25 +3806,31 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   }
                   errors={errors}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex gap-2"
-                  onClick={() => removeOverwrite(i)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  <div>Remove Overwrite</div>
-                </Button>
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex gap-2"
+                    onClick={() => removeOverwrite(i)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    <div>Remove Overwrite</div>
+                  </Button>
+                </EditOnly>
               </Card>
             ))}
           </div>
 
-          <div className="flex space-x-3">
-            <Button onClick={addOverwrite}>Add Overwrite</Button>
-            <Button variant="outline" onClick={clearOverwrites}>
-              Clear Overwrites
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex space-x-3">
+              <Button onClick={addOverwrite}>Add Overwrite</Button>
+              <Button variant="outline" onClick={clearOverwrites}>
+                Clear Overwrites
+              </Button>
+            </div>
+          </EditOnly>
+
+          {children}
         </div>
       </DialogContent>
     </Dialog>
@@ -3571,6 +3871,50 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
         placeholders
       />
     </>
+  );
+}
+
+const threadEditSettings = [
+  {
+    field: "archived",
+    title: "Archive Thread",
+    description:
+      "Only for threads. A new message unarchives it unless it's locked.",
+  },
+  {
+    field: "locked",
+    title: "Lock Thread",
+    description:
+      "Only for threads. Only moderators can unarchive a locked thread.",
+  },
+] as const;
+
+// Edit channel can also archive and lock threads.
+function ChannelEditDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  return (
+    <ChannelDataInput {...props}>
+      <div className="flex space-x-3">
+        {threadEditSettings.map(({ field, title, description }) => (
+          <BaseKeepSelect
+            key={field}
+            field={`channel_data.${field}`}
+            title={title}
+            description={description}
+            value={data.channel_data?.[field]?.toString() ?? ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  [field]: v ? v === "true" : undefined,
+                },
+              })
+            }
+            errors={errors}
+          />
+        ))}
+      </div>
+    </ChannelDataInput>
   );
 }
 
@@ -3669,12 +4013,12 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             placeholders
           />
 
-          {(!data.channel_data?.type || data.channel_data.type === 0) && (
+          {data.channel_data?.type === 12 && (
             <BaseCheckbox
               field="channel_data.invitable"
               title="Invitable"
               description="Whether non-moderators can add new members to the thread."
-              value={data.channel_data?.invitable || false}
+              value={data.channel_data?.invitable ?? true}
               updateValue={(v) =>
                 updateData({
                   channel_data: {
@@ -3702,6 +4046,37 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
     />
   );
 }
@@ -3810,6 +4185,109 @@ function MemberVoiceDeafInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice Channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
+
+  const createMutation = useAssetCreateMutation(appId, "sounds");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace Sound" : "Upload Sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave When Done"
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function StatusDataInput({ data, updateData, errors }: InputProps) {
   const updateField = (newData: Partial<StatusData>) =>
     updateData({ status_data: { ...data.status_data, ...newData } });
@@ -3878,6 +4356,73 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  const reset = !!data.server_profile_data?.reset;
+
+  return (
+    <>
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset Profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
+        errors={errors}
+      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 function RoleDataInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -3909,7 +4454,8 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function VariableIdInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const appId = useAppId();
 
@@ -3928,38 +4474,40 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.variable_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/variables/[variableId]",
-                  query: { appId: appId, variableId: data.variable_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
+      {!readOnly &&
+        (data.variable_id ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/variables/[variableId]",
+                    query: { appId: appId, variableId: data.variable_id },
+                  }}
+                  target="_blank"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Manage variable</TooltipContent>
+          </Tooltip>
+        ) : (
+          <VariableCreateDialog
+            onVariableCreated={(v) => updateData({ variable_id: v })}
+          >
+            <Button variant="outline" size="icon">
+              <PlusIcon className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Manage variable</TooltipContent>
-        </Tooltip>
-      ) : (
-        <VariableCreateDialog
-          onVariableCreated={(v) => updateData({ variable_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </VariableCreateDialog>
-      )}
+          </VariableCreateDialog>
+        ))}
     </div>
   );
 }
 
 function VariableScopeInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const scoped = useMemo(() => {
     const variable = variables?.find((v) => v?.id === data.variable_id);
@@ -3971,10 +4519,11 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
   // cleared.
   if (!scoped && !hasScope) return null;
 
+  // Previews don't show validation.
   let error: string | undefined;
-  if (scoped === false) {
+  if (!readOnly && scoped === false) {
     error = "The variable isn't scoped, so the scope is ignored.";
-  } else if (scoped && !hasScope) {
+  } else if (!readOnly && scoped && !hasScope) {
     error = "Scoped variables need a scope.";
   }
 
@@ -4026,6 +4575,7 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
 }
 
 function ConditionCompareBaseValueInput({
+  type,
   data,
   updateData,
   errors,
@@ -4033,7 +4583,12 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Value"
+      title={type === "control_if" ? "Condition" : "Base Value"}
+      description={
+        type === "control_if"
+          ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, yes or 1, No otherwise."
+          : undefined
+      }
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4444,6 +4999,35 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// A yes or no setting of a block that edits something, where "" keeps what it
+// is. Select items can't have an empty value, so "keep" stands for it.
+function BaseKeepSelect({
+  value,
+  updateValue,
+  ...props
+}: {
+  field: string;
+  title: string;
+  description?: ReactNode;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      {...props}
+      type="select"
+      options={[
+        { value: "keep", label: "Keep current" },
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ]}
+      value={value || "keep"}
+      updateValue={(v) => updateValue(v === "keep" ? "" : v)}
+    />
+  );
+}
+
 function BaseInput({
   type,
   field,
@@ -4457,6 +5041,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4468,11 +5053,18 @@ function BaseInput({
   value: string;
   placeholder?: string;
   updateValue: (value: string) => void;
-  placeholders?: boolean;
+  // "parameters" offers only the flow's parameters.
+  placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
+  // Previews can still open selects and scroll through text to read them.
+  const readOnly = useContext(FlowReadOnlyContext);
+  const update = readOnly ? () => {} : updateValue;
+  const showPlaceholders = !!placeholders && !readOnly;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -4501,74 +5093,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear Selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            // Room for the placeholder explorer in the corner.
-            className={cn(placeholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => updateValue(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => updateValue(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        )}
-        {placeholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4602,7 +5210,9 @@ function BaseCheckbox({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <Switch checked={value} onCheckedChange={updateValue} />
+      <PreviewInert>
+        <Switch checked={value} onCheckedChange={updateValue} />
+      </PreviewInert>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4754,17 +5364,19 @@ function BaseColorInput({
           placeholder="#ff0000 or {{ placeholder }}"
           placeholders
         />
-        <Button
-          variant="link"
-          size="sm"
-          className="px-0 h-auto mt-1"
-          onClick={() => {
-            setTextMode(false);
-            if (color === undefined) updateValue("");
-          }}
-        >
-          Use the color picker
-        </Button>
+        <EditOnly>
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 h-auto mt-1"
+            onClick={() => {
+              setTextMode(false);
+              if (color === undefined) updateValue("");
+            }}
+          >
+            Use the color picker
+          </Button>
+        </EditOnly>
       </div>
     );
   }
@@ -4777,20 +5389,22 @@ function BaseColorInput({
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="mt-2">
+      <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
-      </div>
-      <Button
-        variant="link"
-        size="sm"
-        className="px-0 h-auto mt-1"
-        onClick={() => setTextMode(true)}
-      >
-        Use a placeholder instead
-      </Button>
+      </PreviewInert>
+      <EditOnly>
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => setTextMode(true)}
+        >
+          Use a placeholder instead
+        </Button>
+      </EditOnly>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4879,30 +5493,38 @@ function BaseEmojiPicker({
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
       <div className="flex">
-        <EmojiPicker onEmojiSelect={onChange}>
-          <Button size="icon" variant="outline">
-            {emoji?.id ? (
-              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
-            ) : emoji ? (
-              <Twemoji
-                options={{
-                  className: "h-6 w-6",
-                }}
-              >
-                {emoji.name}
-              </Twemoji>
-            ) : (
-              <SmileIcon className="h-6 w-6 text-foreground/80" />
-            )}
-          </Button>
-        </EmojiPicker>
+        <PreviewInert>
+          <EmojiPicker onEmojiSelect={onChange}>
+            <Button size="icon" variant="outline">
+              {emoji?.id ? (
+                <img
+                  src={discordEmojiUrl(emoji.id)}
+                  alt=""
+                  className="h-6 w-6"
+                />
+              ) : emoji ? (
+                <Twemoji
+                  options={{
+                    className: "h-6 w-6",
+                  }}
+                >
+                  {emoji.name}
+                </Twemoji>
+              ) : (
+                <SmileIcon className="h-6 w-6 text-foreground/80" />
+              )}
+            </Button>
+          </EmojiPicker>
+        </PreviewInert>
         {emoji && (
-          <div
-            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(undefined)}
-          >
-            <XIcon className="h-5 w-5" />
-          </div>
+          <EditOnly>
+            <div
+              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(undefined)}
+            >
+              <XIcon className="h-5 w-5" />
+            </div>
+          </EditOnly>
         )}
       </div>
       {error && (

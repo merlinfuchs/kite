@@ -10,21 +10,23 @@ export type ExportedBundle = {
   // Commands and event listeners can be left out of an import.
   items: {
     key: string;
-    label: string;
+    name: string;
     description: string;
     icon: LucideIcon;
     context: FlowContextType;
+    // The source of an event listener, like "schedule". Commands have none.
+    source?: string;
     flow: FlowData;
   }[];
   // Message templates and variables are always imported, the blocks use them.
   messages: {
     key: string;
-    label: string;
+    name: string;
     description: string | null;
     data: Record<string, unknown>;
     flowSources: Record<string, FlowData>;
   }[];
-  variables: { key: string; label: string }[];
+  variables: { key: string; name: string; scoped: boolean }[];
   flows: FlowData[];
 };
 
@@ -42,7 +44,7 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
     items: [
       ...bundle.commands.map((c) => ({
         key: c.id,
-        label: `/${String(entryData(c.flow_source).name ?? "")}`,
+        name: `/${String(entryData(c.flow_source).name ?? "")}`,
         description: String(entryData(c.flow_source).description ?? ""),
         icon: SlashSquareIcon,
         context: "command" as const,
@@ -50,24 +52,29 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
       })),
       ...bundle.event_listeners.map((l) => ({
         key: l.id,
-        label: eventListenerLabel(
+        name: eventListenerLabel(
           l.source,
           String(entryData(l.flow_source).event_type ?? "")
         ),
         description: String(entryData(l.flow_source).description ?? ""),
         icon: eventSourceName(l.source).icon,
         context: eventFlowContext(l.source),
+        source: l.source,
         flow: l.flow_source as FlowData,
       })),
     ],
     messages: bundle.messages.map((m) => ({
       key: m.id,
-      label: m.name,
+      name: m.name,
       description: m.description,
       data: m.data,
       flowSources: m.flow_sources as Record<string, FlowData>,
     })),
-    variables: bundle.variables.map((v) => ({ key: v.id, label: v.name })),
+    variables: bundle.variables.map((v) => ({
+      key: v.id,
+      name: v.name,
+      scoped: v.scoped,
+    })),
     flows: [
       ...bundle.commands.map((c) => c.flow_source),
       ...bundle.event_listeners.map((l) => l.flow_source),

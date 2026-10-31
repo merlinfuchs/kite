@@ -9,6 +9,7 @@ export const discordRoleDelete: BlockDefinition = {
   icon: "shield-x",
   category: "Roles",
   credits: 1,
+  permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   strict_settings: true,
   run: {

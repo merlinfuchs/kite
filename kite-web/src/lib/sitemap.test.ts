@@ -1,19 +1,22 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { templatePaths } from "./flow/templateFiles";
+import { categoryPath, templateCategories } from "./flow/templates";
 
 const pagesDir = join(__dirname, "../pages");
-const sitemap = readFileSync(
-  join(__dirname, "../../public/sitemap.xml"),
-  "utf8"
-);
-const sitemapPaths = [
-  ...sitemap.matchAll(/<loc>https:\/\/kite\.onl([^<]*)<\/loc>/g),
-].map((m) => m[1] || "/");
+const publicFile = (name: string) =>
+  readFileSync(join(__dirname, "../../public", name), "utf8");
+const locs = (xml: string) =>
+  [...xml.matchAll(/<loc>https:\/\/kite\.onl([^<]*)<\/loc>/g)].map(
+    (m) => m[1] || "/"
+  );
 
-// The dashboard, embeds and API routes are never indexed.
-const ignoredDirs = ["apps", "embed", "api"];
+// sitemap.xml is an index of the static sitemap of the pages, and the one of
+// the marketplace, which is generated with the templates in it.
+const sitemapPaths = locs(publicFile("sitemap-pages.xml"));
+
+// The dashboard, admin pages, embeds and API routes are never indexed.
+const ignoredDirs = ["apps", "admin", "embed", "api"];
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -34,7 +37,12 @@ function routeOf(file: string) {
 // The pages the export writes for each dynamic route, from the same function
 // as its getStaticPaths.
 const dynamicRoutes: Record<string, () => string[]> = {
-  "/templates/[templateId]": templatePaths,
+  // Only templates in the marketplace and users with templates in it have one,
+  // the export has none.
+  "/marketplace/[templateId]": () => [],
+  "/marketplace/creators/[creatorId]": () => [],
+  "/marketplace/categories/[category]": () =>
+    templateCategories.map((c) => categoryPath(c.value)),
 };
 
 const indexableRoutes = pageFiles(pagesDir)
@@ -56,6 +64,13 @@ describe("sitemap.xml", () => {
     for (const path of indexablePaths) {
       expect(sitemapPaths, path).toContain(path);
     }
+  });
+
+  it("is an index of the sitemaps", () => {
+    expect(locs(publicFile("sitemap.xml"))).toEqual([
+      "/sitemap-pages.xml",
+      "/sitemap-marketplace.xml",
+    ]);
   });
 
   it("knows the pages of every dynamic route", () => {

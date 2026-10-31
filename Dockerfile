@@ -22,6 +22,8 @@ COPY --from=builder /root/kite-service/kite-service .
 
 RUN apt-get update
 RUN apt-get install -y ca-certificates gnupg build-essential
+# Uploaded sounds for the Play audio block are converted with ffmpeg
+RUN apt-get install -y --no-install-recommends ffmpeg
 
 EXPOSE 8080
 CMD ./kite-service database migrate postgres up; ./kite-service server start

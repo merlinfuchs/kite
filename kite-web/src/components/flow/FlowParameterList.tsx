@@ -9,6 +9,7 @@ import {
   useReferencedParameters,
   useSyncedParameters,
 } from "@/lib/flow/parametersStore";
+import { parameterTypeLabels } from "@/lib/flow/templates";
 import { useAppStateGuilds } from "@/lib/hooks/api";
 import { FlowParameter } from "@/lib/types/flow.gen";
 import { CopyIcon, PlusIcon, Trash2Icon } from "lucide-react";
@@ -31,12 +32,9 @@ import {
   ParameterInput,
 } from "../app/TemplateParameterFields";
 
-const parameterTypes = [
-  { value: "text", label: "Text" },
-  { value: "textarea", label: "Long text" },
-  { value: "channel", label: "Channel" },
-  { value: "role", label: "Role" },
-];
+const parameterTypes = Object.entries(parameterTypeLabels).map(
+  ([value, label]) => ({ value, label })
+);
 
 // Channels and roles are stored by ID, so a message needs these to mention
 // them.
@@ -45,10 +43,14 @@ const mentionFormats: Record<string, ((key: string) => string) | undefined> = {
   role: (key) => `<@&{{params.${key}}}>`,
 };
 
-// FlowParameterList is the sidebar tab with the parameters of the flow. Every
-// {{params.<key>}} in a block shows up here, so its value is set once instead
-// of in each block.
-export default function FlowParameterList() {
+// FlowParameterList is the sidebar tab and mobile drawer with the parameters
+// of the flow. Every {{params.<key>}} in a block shows up here, so its value is
+// set once instead of in each block.
+export default function FlowParameterList({
+  hideTitle,
+}: {
+  hideTitle?: boolean;
+}) {
   const store = useFlowParametersStore();
 
   // The server each channel and role is picked from, if the bot is in more
@@ -107,7 +109,11 @@ export default function FlowParameterList() {
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
       <div className="px-5 pt-5 pb-4 flex-none">
-        <div className="text-xl font-bold text-foreground mb-2">Parameters</div>
+        {!hideTitle && (
+          <div className="text-xl font-bold text-foreground mb-2">
+            Parameters
+          </div>
+        )}
         <div className="text-muted-foreground text-sm">
           Values your blocks use as{" "}
           <code className="text-foreground">{"{{params.name}}"}</code>. Change
@@ -115,8 +121,10 @@ export default function FlowParameterList() {
           adds it fills in their own.
         </div>
       </div>
-      {/* pt-1 leaves room for the focus ring, the scroll area would clip it. */}
-      <ScrollArea className="flex-1 min-h-0">
+      {/* pt-1 leaves room for the focus ring, the scroll area would clip it.
+          Radix wraps the content in a display: table div, which grows to fit
+          the two column grids instead of shrinking them to the sidebar. */}
+      <ScrollArea className="flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
         <div className="flex flex-col gap-3 px-4 pt-1 pb-4">
           {guilds?.length === 0 && parameters.some(isPickedParameter) && (
             <div className="text-sm text-muted-foreground">
@@ -203,8 +211,11 @@ export default function FlowParameterList() {
                       value={parameter.type}
                       onValueChange={(type) =>
                         // A channel isn't a role, so the value doesn't carry
-                        // over between types.
-                        update(parameter.key, { type, value: "" })
+                        // over between types. A yes/no starts as No.
+                        update(parameter.key, {
+                          type,
+                          value: type === "boolean" ? "false" : "",
+                        })
                       }
                     >
                       <SelectTrigger>

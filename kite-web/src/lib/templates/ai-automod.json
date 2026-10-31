@@ -1,6 +1,12 @@
 {
   "id": "ai-automod",
-  "version": 1,
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "Flags fewer normal messages for review, like links to other sites and requests. Only messages the AI is at least 80% sure about are sent to your moderators now, instead of 50%."
+    }
+  ],
   "name": "AI Automod",
   "description": "AI deletes spam, scams, ads and insults and logs them for your moderators.",
   "about": [
@@ -19,15 +25,11 @@
     },
     {
       "question": "Can the AI make mistakes?",
-      "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 50% and 90%, and ignores it below 50%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
+      "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 80% and 90%, and ignores it below 80%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
     },
     {
       "question": "Can it time out members?",
       "answer": "Not out of the box. Add a Timeout member block after the block that deletes the message, so members whose message the AI deletes are timed out too."
-    },
-    {
-      "question": "What permissions does the bot need?",
-      "answer": "Manage Messages in the channels it checks, and Send Messages and Embed Links in the log channel."
     },
     {
       "question": "Do I need the Message Content Intent?",
@@ -128,10 +130,10 @@
             },
             "data": {
               "ai_decision_data": {
-                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                "question": "Is this Discord message clearly spam, a scam, unwanted advertising for another server or product, or a personal insult, slur or threat against someone? Normal conversation, questions, links shared as part of a conversation, swearing, and banter or trash talk about games are fine. {{params.rules}}",
                 "input": "{{event.message.content}}",
                 "yes_threshold": "0.9",
-                "no_threshold": "0.5"
+                "no_threshold": "0.8"
               }
             }
           },
@@ -331,10 +333,10 @@
             },
             "data": {
               "ai_decision_data": {
-                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                "question": "Is this Discord message clearly spam, a scam, unwanted advertising for another server or product, or a personal insult, slur or threat against someone? Normal conversation, questions, links shared as part of a conversation, swearing, and banter or trash talk about games are fine. {{params.rules}}",
                 "input": "{{event.message.content}}",
                 "yes_threshold": "0.9",
-                "no_threshold": "0.5"
+                "no_threshold": "0.8"
               }
             }
           },

@@ -41,7 +41,7 @@ func TestExport(t *testing.T) {
 		Commands:  []*model.Command{cmd},
 		Messages:  []*model.Message{msg},
 		Variables: []*model.Variable{variable},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	// Flows with the same key share the parameter, the first one is kept.
@@ -69,4 +69,39 @@ func TestExport(t *testing.T) {
 	assert.Equal(t, map[string]string{"log_channel": "200000000000000001"}, sel.Messages[0].FlowSources["button"].ParameterValues())
 	assert.Equal(t, "{{params.log_channel}}", sel.Commands[0].FlowSource.Nodes[1].Data.ChannelTarget)
 	assert.Equal(t, []Variable{{ID: "var1", Name: "count", Scoped: true}}, sel.Variables)
+}
+
+func TestExportSharedParameters(t *testing.T) {
+	cmd := &model.Command{ID: "cmd1", FlowSource: flow.FlowData{
+		Nodes: []flow.FlowNode{
+			{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: "ask"}},
+			{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{
+				ChannelTarget:  "{{params.log_channel}}",
+				AuditLogReason: "{{params.prompt}} {{params.private}} {{params.blank}}",
+			}},
+		},
+		Parameters: []flow.FlowParameter{
+			{Key: "prompt", Type: flow.FlowParameterTypeTextarea, Value: "Be nice."},
+			{Key: "private", Type: flow.FlowParameterTypeText, Value: "secret"},
+			{Key: "blank", Type: flow.FlowParameterTypeText, Value: "  "},
+			{Key: "log_channel", Type: flow.FlowParameterTypeChannel, Value: "100000000000000001"},
+		},
+	}}
+
+	b, err := Export("My App", ExportItems{Commands: []*model.Command{cmd}}, []string{"prompt", "log_channel", "blank"})
+	require.NoError(t, err)
+	defaults := map[string]string{}
+	for _, p := range b.Parameters {
+		defaults[p.Key] = p.Default
+	}
+	// Only shared text parameters get one, a channel is from the owner's
+	// server.
+	assert.Equal(t, map[string]string{"prompt": "Be nice.", "private": "", "blank": "", "log_channel": ""}, defaults)
+
+	// The flows still have no values.
+	var data flow.FlowData
+	require.NoError(t, json.Unmarshal(b.Commands[0].FlowSource, &data))
+	for _, p := range data.Parameters {
+		assert.Empty(t, p.Value, p.Key)
+	}
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { colorRegex, parseColorValue } from "@/tools/common/utils/color";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -17,9 +18,16 @@ import {
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { aiScore } from "./aiScore";
+import { aiTranslate } from "./aiTranslate";
 import { controlAiCheck } from "./controlAiCheck";
 import { controlConditionAiChoice } from "./controlConditionAiChoice";
 import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
+import { cookieApiCaptchaCreate } from "./cookieApiCaptchaCreate";
+import { cookieApiCaptchaGet } from "./cookieApiCaptchaGet";
+import { cookieApiCardCreate } from "./cookieApiCardCreate";
+import { cookieApiMinecraftUserGet } from "./cookieApiMinecraftUserGet";
+import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
+import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -29,6 +37,7 @@ import { controlConditionItemRole } from "./controlConditionItemRole";
 import { controlConditionItemUser } from "./controlConditionItemUser";
 import { controlConditionRole } from "./controlConditionRole";
 import { controlConditionUser } from "./controlConditionUser";
+import { controlIf } from "./controlIf";
 import { controlErrorHandler } from "./controlErrorHandler";
 import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
@@ -59,6 +68,7 @@ import { discordMemberUnban } from "./discordMemberUnban";
 import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
+import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageForward } from "./discordMessageForward";
@@ -85,6 +95,7 @@ import { discordRoleDelete } from "./discordRoleDelete";
 import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
 import { discordServerLeave } from "./discordServerLeave";
+import { discordServerProfileEdit } from "./discordServerProfileEdit";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
@@ -94,6 +105,8 @@ import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
+import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -124,6 +137,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordSuspendResponseModal,
   webhookResponseCreate,
   discordMessageCreate,
+  discordPersonaMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
@@ -164,12 +178,21 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordMemberVoiceEdit,
+  discordVoiceAudioPlay,
+  discordVoiceAudioStop,
   discordStatusSet,
+  discordServerProfileEdit,
   discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,
   robloxUserGet,
+  cookieApiTranscriptCreate,
+  cookieApiCardCreate,
+  cookieApiQrCodeCreate,
+  cookieApiCaptchaCreate,
+  cookieApiCaptchaGet,
+  cookieApiMinecraftUserGet,
   erlcServerGet,
   erlcCommandRun,
   aiChatCompletion,
@@ -177,12 +200,14 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionAiChoice,
   controlAiCheck,
   aiScore,
+  aiTranslate,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
   randomGenerate,
   valueLookup,
   log,
+  controlIf,
   controlConditionCompare,
   controlConditionUser,
   controlConditionChannel,
@@ -234,11 +259,6 @@ export function isRequestBlock(
   return block.run.kind === "request";
 }
 
-// A number, or a hex color like #ff0000, #f00 or 0xff0000, which the service
-// reads with message.ParseColor.
-const colorRegex =
-  /^\s*(?:([0-9]+)|(?:#|0[xX])([0-9a-fA-F]{6}|[0-9a-fA-F]{3}))\s*$/;
-
 const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   snowflake: discordApiParamFormats.snowflake,
   snowflake_list: [
@@ -252,6 +272,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  json_object: null,
 };
 
 const numberTypes: BlockFieldType[] = [
@@ -260,15 +281,6 @@ const numberTypes: BlockFieldType[] = [
   "seconds",
   "seconds_until",
 ];
-
-// A color setting as a number, if it's one or a hex code.
-export function parseColorValue(value: string) {
-  const match = colorRegex.exec(value);
-  if (!match) return;
-  if (match[1]) return Number(match[1]);
-  const hex = match[2].length === 3 ? match[2].replace(/./g, "$&$&") : match[2];
-  return parseInt(hex, 16);
-}
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
@@ -288,6 +300,15 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
+    // Placeholders in JSON go in its strings, so it's checked either way.
+    if (type === "json_object" && !isJSONObject(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a JSON object",
+      });
+      return;
+    }
+
     const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
@@ -302,6 +323,12 @@ function fieldSchema(field: BlockField) {
     if (format && !format.test(value)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
       return;
+    }
+    if (field.options && !field.options.some((o) => o.value === value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Must be one of ${optionValues(field)}`,
+      });
     }
 
     if (numberTypes.includes(type)) {
@@ -357,18 +384,34 @@ function fieldSchema(field: BlockField) {
       : withChecks;
 
   // Values are stored as text, so the flow AI needs to know the format.
-  const described = templated(
-    listOrText,
-    field.type === "boolean"
-      ? `${field.description} Either "true" or "false".`
-      : field.description!
-  );
+  let description = field.description!;
+  if (field.type === "boolean") {
+    description += ' Either "true" or "false".';
+  } else if (field.options) {
+    description += ` One of ${optionValues(field)}.`;
+  }
+  const described = templated(listOrText, description);
   // Numbers and booleans work too, as long as they have the right format.
   const schema = z.preprocess(
     (v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v),
     described
   );
   return field.required ? schema : schema.optional();
+}
+
+function isJSONObject(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return (
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function optionValues(field: BlockField) {
+  return field.options!.map((o) => `"${o.value}"`).join(", ");
 }
 
 // The schema of a block, generated from its fields.

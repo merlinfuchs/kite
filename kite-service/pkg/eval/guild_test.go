@@ -568,6 +568,29 @@ func TestMessageReactions(t *testing.T) {
 	}
 }
 
+func TestMessageMentions(t *testing.T) {
+	c := NewContext(Env{"message": NewMessageEnv(discord.Message{
+		ID:     20,
+		Author: discord.User{ID: 10, Username: "author"},
+		Mentions: []discord.GuildUser{
+			{User: discord.User{ID: 10, Username: "author"}},
+			{User: discord.User{ID: 11, Username: "pinged"}},
+		},
+	})})
+
+	tests := map[string]string{
+		"{{len(message.mentions)}}|{{message.mentions[1].username}}":      "2|pinged",
+		"{{find(message.mentions, .id != message.author.id)?.id}}":        "11",
+		"{{any(message.mentions, .id != message.author.id)}}":             "true",
+		"{{find(message.mentions, .username == 'nobody')?.id ?? 'none'}}": "none",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
 func TestReactionMessage(t *testing.T) {
 	env := NewEventEnv(&gateway.MessageReactionAddEvent{
 		UserID:    testUserID,

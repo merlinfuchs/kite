@@ -11,7 +11,7 @@ import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
 import { normalizeHandle } from "./nodes";
 import { serializeFlow } from "./serialize";
-import { FlowIssue, validateFlow } from "./validate";
+import { describeIssue, FlowIssue, validateFlow } from "./validate";
 
 // The limits of the API.
 const maxMessages = 20;
@@ -34,6 +34,8 @@ interface FlowAIResult {
   message: string;
   // A request the user can send to make the change the message suggests.
   buildPrompt: string;
+  // A template of the marketplace the AI suggests adding instead of building.
+  templateId: string;
   // What the AI asks the user to fill in.
   fields: FlowAIField[];
   // How many rounds of problems the AI fixed in its own changes.
@@ -116,12 +118,14 @@ export async function runFlowAIPrompt({
     prompt_id: promptId,
     message,
     build_prompt: buildPrompt,
+    template_id: templateId,
     fields,
   } = res;
   const changed = new Set<string>();
   let result: FlowAIResult = {
     message,
     buildPrompt,
+    templateId,
     fields,
     repairs: 0,
     issues: [],
@@ -246,11 +250,4 @@ function toRequestMessages(messages: FlowAIChatMessage[]) {
   return messages
     .slice(-maxMessages)
     .map((m) => ({ ...m, content: m.content.slice(0, maxMessageLength) }));
-}
-
-// Blocks of the same type have the same title, so the ID tells the AI which
-// one is meant.
-function describeIssue(issue: FlowIssue) {
-  const id = issue.nodeId ?? issue.edgeId;
-  return id ? `${id}: ${issue.message}` : issue.message;
 }

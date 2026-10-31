@@ -1,24 +1,19 @@
-import PlanFeatureList from "../common/PlanFeatureList";
+import PlanCards from "../common/PlanCards";
+import Link from "next/link";
+import { HeartIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
 import {
+  useDonationCheckout,
   useLemonSqueezyCheckout,
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
+import env from "@/lib/env/client";
 import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
-import PlanPrice from "../common/PlanPrice";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
@@ -80,6 +75,7 @@ export default function AppPricingList() {
     !switchableSubscription && !!activeSubscriptions?.length;
 
   const checkout = useLemonSqueezyCheckout();
+  const donate = useDonationCheckout();
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
@@ -93,59 +89,46 @@ export default function AppPricingList() {
           />
         </div>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
-        {pricings.map((pricing) => (
-          <Card
-            key={pricing.title}
-            className={
-              pricing.popular
-                ? "drop-shadow-xl shadow-black/10 dark:shadow-white/10"
-                : "xl:my-8 "
-            }
-          >
-            <CardHeader>
-              <CardTitle className="flex item-center justify-between">
-                {pricing.title}
-                <div className="flex gap-2">
-                  {pricing.current ? (
-                    <Badge className="text-sm">Current</Badge>
-                  ) : null}
-                  {pricing.popular ? (
-                    <Badge variant="secondary" className="text-sm text-primary">
-                      Best Value
-                    </Badge>
-                  ) : null}
-                </div>
-              </CardTitle>
-              <PlanPrice
-                plan={pricing}
-                interval={interval}
-                className="text-3xl font-bold"
-                suffix="/month"
-              />
-
-              <CardDescription>{pricing.description}</CardDescription>
-            </CardHeader>
-
-            <CardContent>
-              <PricingButton
-                pricing={pricing}
-                interval={yearlyAvailable ? interval : undefined}
-                blockedByOtherOwner={blockedByOtherOwner}
-                canSwitch={!!switchableSubscription && !pricing.current}
-                onCheckout={() => checkout(pricing, interval)}
-                onSwitch={() => switchPlan(pricing, interval)}
-              />
-            </CardContent>
-
-            <hr className="w-4/5 m-auto mb-4" />
-
-            <CardFooter className="flex">
-              <PlanFeatureList plan={pricing} />
-            </CardFooter>
-          </Card>
-        ))}
+      <PlanCards
+        plans={pricings}
+        interval={interval}
+        badge={(pricing) =>
+          pricing.current && <Badge className="text-sm">Current</Badge>
+        }
+        button={(pricing) => (
+          <PricingButton
+            pricing={pricing}
+            interval={yearlyAvailable ? interval : undefined}
+            blockedByOtherOwner={blockedByOtherOwner}
+            canSwitch={!!switchableSubscription && !pricing.current}
+            onCheckout={() => checkout(pricing, interval)}
+            onSwitch={() => switchPlan(pricing, interval)}
+          />
+        )}
+      />
+      <div className="text-center mt-6">
+        <Link
+          href="/pricing#compare"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Compare all limits
+        </Link>
       </div>
+      {env.NEXT_PUBLIC_DONATION_VARIANT_ID && (
+        <div className="mt-10 rounded-xl border bg-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <div className="font-medium">Want to support Kite?</div>
+            <div className="text-sm text-muted-foreground">
+              Don&apos;t need a bigger plan? You can still support Kite with a
+              one-time donation of any amount.
+            </div>
+          </div>
+          <Button variant="outline" onClick={donate}>
+            <HeartIcon className="mr-2 h-4 w-4 text-primary" />
+            Donate
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

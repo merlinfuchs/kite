@@ -38,9 +38,17 @@ export function copyFlowNodes(
 
   return {
     type: clipboardType,
+    // Only notes have a width and height, see notes.ts.
     nodes: nodes
       .filter((n) => copiedIds.has(n.id))
-      .map(({ id, type, position, data }) => ({ id, type, position, data })),
+      .map(({ id, type, position, width, height, data }) => ({
+        id,
+        type,
+        position,
+        width,
+        height,
+        data,
+      })),
     edges: edges
       .filter((e) => copiedIds.has(e.source) && copiedIds.has(e.target))
       .map(({ id, type, source, target, sourceHandle, targetHandle }) => ({
@@ -100,6 +108,8 @@ export function pasteFlowNodes(
       x: n.position.x - minX + target.x,
       y: n.position.y - minY + target.y,
     },
+    width: n.width,
+    height: n.height,
     data: structuredClone(n.data),
     selected: true,
   }));

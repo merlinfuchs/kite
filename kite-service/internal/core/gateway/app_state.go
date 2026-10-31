@@ -5,11 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/state"
 	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 func (g *Gateway) AppStatus(ctx context.Context) (store.AppStateStatus, error) {
@@ -34,7 +38,7 @@ func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
 }
 
 // AppGuildChannels returns no channels for a guild the bot isn't in. Channels
-// that aren't cached yet, like right after connecting, are fetched from
+// that aren't cached yet, like while the bot reconnects, are fetched from
 // Discord.
 func (g *Gateway) AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error) {
 	gid, err := discord.ParseSnowflake(guildID)
@@ -42,8 +46,14 @@ func (g *Gateway) AppGuildChannels(ctx context.Context, guildID string) ([]disco
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
 	}
 
-	channels, err := g.Session().WithContext(ctx).Channels(discord.GuildID(gid))
+	session := g.Session()
+	if g.knownNotInGuild(session, discord.GuildID(gid)) {
+		return nil, nil
+	}
+
+	channels, err := session.WithContext(ctx).Channels(discord.GuildID(gid))
 	if isNotInGuild(err) {
+		g.rememberNotInGuild(discord.GuildID(gid))
 		return nil, nil
 	}
 	return channels, err
@@ -57,11 +67,120 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
 	}
 
-	roles, err := g.Session().WithContext(ctx).Roles(discord.GuildID(gid))
+	session := g.Session()
+	if g.knownNotInGuild(session, discord.GuildID(gid)) {
+		return nil, nil
+	}
+
+	roles, err := session.WithContext(ctx).Roles(discord.GuildID(gid))
 	if isNotInGuild(err) {
+		g.rememberNotInGuild(discord.GuildID(gid))
 		return nil, nil
 	}
 	return roles, err
+}
+
+// AppGuildBotPermissions returns the bot's server-wide permissions in the
+// guild. It only reads the state cache, because the guild list calls it for
+// every guild and a request per guild could get Kite's IP blocked.
+func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	cabinet := g.Session().Cabinet
+	me, err := cabinet.Me()
+	if err != nil {
+		return 0, err
+	}
+
+	guild, err := cabinet.Guild(discord.GuildID(gid))
+	if err != nil {
+		return 0, err
+	}
+	if guild.OwnerID == me.ID {
+		return ^discord.Permissions(0), nil
+	}
+
+	member, err := cabinet.Member(discord.GuildID(gid), me.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	roles, err := cabinet.Roles(discord.GuildID(gid))
+	if err != nil {
+		return 0, err
+	}
+
+	// The @everyone role has the ID of the guild.
+	var perms discord.Permissions
+	for _, role := range roles {
+		if discord.Snowflake(role.ID) == gid || slices.Contains(member.RoleIDs, role.ID) {
+			perms |= role.Permissions
+		}
+	}
+
+	if perms.Has(discord.PermissionAdministrator) {
+		return ^discord.Permissions(0), nil
+	}
+	return perms, nil
+}
+
+// AppGuildBotMember fetches the member from Discord instead of the state
+// cache, so a profile change shows right after it's saved.
+func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*discord.Member, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	me, err := g.Session().Cabinet.Me()
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Session().Client.WithContext(ctx).Member(discord.GuildID(gid), me.ID)
+}
+
+const (
+	// notInGuildTTL is how long a guild Discord said the bot isn't in isn't
+	// asked about again. Discord blocks Kite's IP for all bots after too many
+	// failed requests, which repeated lookups of such a guild would add to.
+	notInGuildTTL = 10 * time.Minute
+	// maxNotInGuild bounds how many such guilds are remembered.
+	maxNotInGuild = 1000
+)
+
+// knownNotInGuild says whether Discord recently said the bot isn't in the
+// guild. A guild in the cache was joined since, so it doesn't count.
+func (g *Gateway) knownNotInGuild(session *state.State, guildID discord.GuildID) bool {
+	if _, err := session.GuildStore.Guild(guildID); err == nil {
+		return false
+	}
+
+	g.notInGuildMu.Lock()
+	defer g.notInGuildMu.Unlock()
+	until, ok := g.notInGuild[guildID]
+	return ok && time.Now().Before(until)
+}
+
+func (g *Gateway) rememberNotInGuild(guildID discord.GuildID) {
+	g.notInGuildMu.Lock()
+	defer g.notInGuildMu.Unlock()
+
+	now := time.Now()
+	if len(g.notInGuild) >= maxNotInGuild {
+		for id, until := range g.notInGuild {
+			if now.After(until) {
+				delete(g.notInGuild, id)
+			}
+		}
+	}
+	if g.notInGuild == nil || len(g.notInGuild) >= maxNotInGuild {
+		g.notInGuild = make(map[discord.GuildID]time.Time)
+	}
+	g.notInGuild[guildID] = now.Add(notInGuildTTL)
 }
 
 // isNotInGuild reports whether Discord rejected a request because the bot isn't
@@ -88,4 +207,8 @@ func (g *Gateway) AppGuildEmojis(ctx context.Context, guildID string) ([]discord
 	}
 
 	return emojis, nil
+}
+
+func (g *Gateway) AppDiscordAPIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	return util.DiscordAPIRequest(ctx, g.Session().Client, req)
 }

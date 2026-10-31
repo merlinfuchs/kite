@@ -61,7 +61,7 @@ func (s *memoryInstallStore) InstalledContentsByApp(ctx context.Context, appID s
 	return res, nil
 }
 
-func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
+func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes store.BundleInstallChanges, userID string) (*model.BundleInstall, error) {
 	s.changes = &changes
 	return install, nil
 }
@@ -184,11 +184,13 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 		nil,
 		nil,
 		variableStore,
+		nil,
 		commandhandler.NewCommandHandler(commands, nil),
 		nil,
 		nil,
 		variablehandler.NewVariableHandler(variableStore, nil),
 		100,
+		nil,
 	)
 	return h, installs
 }
@@ -419,4 +421,34 @@ func TestBundleInstallCreateExisting(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "already_installed", res["error"].(map[string]any)["code"])
 	assert.Nil(t, installs.changes)
+}
+
+func TestBundleInstallUpdateKeepsCommandName(t *testing.T) {
+	version := officialBundle("moderation").Version
+
+	// The ban command was added as /ban-2, because /ban was taken.
+	h, installs := moderationInstall(t)
+	for _, cmd := range installs.commands.commands {
+		if cmd.ID == "command_ban" {
+			cmd.Name = "ban-2"
+			cmd.FlowSource = cmd.FlowSource.WithCommandName("ban-2")
+		}
+	}
+	for i, item := range installs.installs[0].Items {
+		if item.Key == "ban" {
+			sel, err := officialBundle("moderation").Select([]string{"ban"}, map[string]string{})
+			require.NoError(t, err)
+			installs.installs[0].Items[i].Hash = hash(t, withNode(sel.Commands[0].FlowSource, "old").WithCommandName("ban-2"))
+		}
+	}
+
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: version})
+	require.Equal(t, http.StatusOK, code, res)
+
+	require.Equal(t, []string{"command_ban"}, updatedCommands(installs))
+	updated := installs.changes.Updated.Commands[0]
+	assert.Equal(t, "ban-2", updated.Name)
+	compiled, err := flow.CompileCommand(updated.FlowSource)
+	require.NoError(t, err)
+	assert.Equal(t, "ban-2", compiled.CommandName())
 }

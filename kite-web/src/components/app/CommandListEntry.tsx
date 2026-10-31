@@ -46,6 +46,7 @@ import {
   isCommandDeployErrorCause,
 } from "./CommandDeployStatus";
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
+import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
 
 export default function CommandListEntry({ command }: { command: Command }) {
@@ -94,9 +95,12 @@ export default function CommandListEntry({ command }: { command: Command }) {
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
-        <CardTitle className="text-base flex items-center space-x-2">
-          <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{command.name}</div>
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <SlashSquareIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{command.name}</div>
+          </div>
+          <BundleInstallBadge bundleInstallId={command.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           {command.description}

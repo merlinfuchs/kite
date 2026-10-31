@@ -1,4 +1,5 @@
 import { CheckIcon, SparklesIcon } from "lucide-react";
+import Link from "next/link";
 
 const points = [
   "Click on Ask AI in the editor and describe what the command should do.",
@@ -12,10 +13,7 @@ export default function HomeAISection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Describe It,{" "}
-            <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-              Kite Builds It
-            </span>
+            Describe It, Kite Builds It
           </h2>
           <p className="text-xl text-muted-foreground mt-4">
             Not sure which blocks you need? Tell Kite&apos;s AI what you want in
@@ -29,6 +27,16 @@ export default function HomeAISection() {
               </li>
             ))}
           </ul>
+          <p className="mt-6 text-muted-foreground">
+            Using Claude, ChatGPT or Claude Code?{" "}
+            <Link
+              href="/discord-mcp-server"
+              className="text-primary hover:underline"
+            >
+              Connect them to Kite
+            </Link>{" "}
+            and build your bot from there.
+          </p>
         </div>
 
         {/* A simplified version of the Ask AI panel in the editor. */}

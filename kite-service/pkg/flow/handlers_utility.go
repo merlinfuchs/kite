@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
@@ -28,8 +30,10 @@ func executeActionRandomGenerate(n *CompiledFlowNode, ctx *FlowContext) error {
 		res, err = randomNumber(n, ctx)
 	case RandomModeItem:
 		res, err = randomItem(n, ctx)
+	case RandomModeItems:
+		res, err = randomItems(n, ctx)
 	default:
-		err = traceError(n, fmt.Errorf("unknown random mode %q", n.Data.RandomMode))
+		err = fmt.Errorf("unknown random mode %q", n.Data.RandomMode)
 	}
 	if err != nil {
 		return err
@@ -42,12 +46,12 @@ func executeActionRandomGenerate(n *CompiledFlowNode, ctx *FlowContext) error {
 func randomNumber(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 	min, err := ctx.EvalTemplate(n.Data.RandomMin)
 	if err != nil {
-		return thing.Null, traceError(n, err)
+		return thing.Null, err
 	}
 
 	max, err := ctx.EvalTemplate(n.Data.RandomMax)
 	if err != nil {
-		return thing.Null, traceError(n, err)
+		return thing.Null, err
 	}
 
 	minInt := int(min.Int())
@@ -67,15 +71,42 @@ func randomNumber(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 func randomItem(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 	value, err := ctx.EvalTemplate(n.Data.RandomItems)
 	if err != nil {
-		return thing.Null, traceError(n, err)
+		return thing.Null, err
 	}
 
 	items := listOrLines(value)
 	if len(items) == 0 {
-		return thing.Null, traceError(n, errors.New("no items to pick from"))
+		return thing.Null, errors.New("no items to pick from")
 	}
 
 	return items[rand.IntN(len(items))], nil
+}
+
+// randomItems picks up to random_count items in random order, never the same
+// entry of the list twice. With fewer items, it returns all of them shuffled,
+// and an empty list without any, so a giveaway without entries isn't an error.
+func randomItems(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
+	countValue, err := ctx.EvalTemplate(n.Data.RandomCount)
+	if err != nil {
+		return thing.Null, err
+	}
+
+	count, err := strconv.Atoi(strings.TrimSpace(countValue.String()))
+	if err != nil || count < 1 || count > maxRandomCount {
+		return thing.Null, fmt.Errorf("the number of items to pick must be a whole number from 1 to %d", maxRandomCount)
+	}
+
+	value, err := ctx.EvalTemplate(n.Data.RandomItems)
+	if err != nil {
+		return thing.Null, err
+	}
+
+	// A copy, as the items can be the stored result of another block.
+	items := slices.Clone(listOrLines(value))
+	rand.Shuffle(len(items), func(i, j int) {
+		items[i], items[j] = items[j], items[i]
+	})
+	return thing.NewArray(items[:min(count, len(items))]), nil
 }
 
 // listOrLines returns the items of a list placeholder, keeping their types,
@@ -120,12 +151,12 @@ func listItems(value thing.Thing) ([]thing.Thing, bool) {
 func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) error {
 	expression, err := ctx.EvalTemplate(n.Data.Expression)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	res, err := eval.Eval(ctx, expression.String(), ctx.EvalCtx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, res)
@@ -135,7 +166,7 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {
 	lookupValue, err := ctx.EvalTemplate(n.Data.LookupValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	value := lookupValue.String()
@@ -150,7 +181,7 @@ func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {
 	for _, row := range n.Data.LookupRows {
 		rowKey, err := ctx.EvalTemplate(row.Key)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		key := rowKey.String()
@@ -180,7 +211,7 @@ func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	res, err := ctx.EvalTemplate(result)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	ctx.StoreNodeResult(n, thing.NewString(res.String()))
 	return n.ExecuteChildren(ctx)
@@ -189,7 +220,7 @@ func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionLog(n *CompiledFlowNode, ctx *FlowContext) error {
 	logMessage, err := ctx.EvalTemplate(n.Data.LogMessage)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())

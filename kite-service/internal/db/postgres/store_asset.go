@@ -91,6 +91,10 @@ func (s *AssetStore) Asset(ctx context.Context, id string) (*model.Asset, error)
 	return rowToAsset(row)
 }
 
+func (s *AssetStore) AssetStorageByApp(ctx context.Context, appID string) (int64, error) {
+	return s.pg.Q.GetAssetStorageByApp(ctx, appID)
+}
+
 func (s *AssetStore) AssetWithContent(ctx context.Context, id string) (*model.Asset, error) {
 	asset, err := s.Asset(ctx, id)
 	if err != nil {
@@ -121,12 +125,17 @@ func (s *AssetStore) DeleteAsset(ctx context.Context, id string) error {
 	}
 
 	if remainingCount == 0 {
-		err = s.objectStore.DeleteObject(ctx, assetBucketName, asset.ContentHash)
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
-			return fmt.Errorf("failed to delete asset object: %w", err)
-		}
+		return s.deleteObject(ctx, asset.ContentHash)
 	}
 
+	return nil
+}
+
+func (s *AssetStore) deleteObject(ctx context.Context, contentHash string) error {
+	err := s.objectStore.DeleteObject(ctx, assetBucketName, contentHash)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return fmt.Errorf("failed to delete asset object: %w", err)
+	}
 	return nil
 }
 
@@ -151,6 +160,68 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 	}
 
 	return nil
+}
+
+const maxUnusedObjectDeleteFailuresInARow = 5
+
+// Objects are uploaded before their asset is inserted, so minAge keeps the
+// objects of uploads that are still in progress.
+func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Duration) error {
+	objects, err := s.objectStore.ListObjects(ctx, assetBucketName)
+	if err != nil {
+		if errors.Is(err, store.ErrObjectStoreDisabled) {
+			return nil
+		}
+		return err
+	}
+
+	contentHashes, err := s.pg.Q.GetAssetContentHashes(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get asset content hashes: %w", err)
+	}
+
+	failed, failedInARow := 0, 0
+	for _, name := range unusedObjectNames(objects, contentHashes, minAge, time.Now()) {
+		// An asset may have started using the file since the hashes were
+		// loaded.
+		count, err := s.pg.Q.CountAssetsByContentHash(ctx, name)
+		if err == nil && count == 0 {
+			err = s.deleteObject(ctx, name)
+		}
+		if err == nil {
+			failedInARow = 0
+			continue
+		}
+
+		slog.Error("Failed to delete unused asset object", slog.String("name", name), slog.String("error", err.Error()))
+		failed++
+		failedInARow++
+		// The object store is probably throttling or down, so leave the rest
+		// to the next run instead of retrying every object against it.
+		if failedInARow >= maxUnusedObjectDeleteFailuresInARow {
+			return fmt.Errorf("stopped after failing to delete %d unused asset objects in a row: %w", failedInARow, err)
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("failed to delete %d unused asset objects", failed)
+	}
+
+	return nil
+}
+
+func unusedObjectNames(objects []model.ObjectInfo, usedContentHashes []string, minAge time.Duration, now time.Time) []string {
+	used := make(map[string]bool, len(usedContentHashes))
+	for _, contentHash := range usedContentHashes {
+		used[contentHash] = true
+	}
+
+	var names []string
+	for _, object := range objects {
+		if !used[object.Name] && now.Sub(object.LastModified) >= minAge {
+			names = append(names, object.Name)
+		}
+	}
+	return names
 }
 
 func rowToAsset(row pgmodel.Asset) (*model.Asset, error) {

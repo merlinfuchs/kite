@@ -14,6 +14,7 @@ import (
 	variablehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -28,11 +29,13 @@ type BundleInstallHandler struct {
 	eventListenerStore   store.EventListenerStore
 	messageStore         store.MessageStore
 	variableStore        store.VariableStore
+	userStore            store.UserStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
 	variableHandler      *variablehandler.VariableHandler
 	maxBundlesPerUser    int
+	notifier             *notify.Notifier
 }
 
 func NewBundleInstallHandler(
@@ -42,11 +45,13 @@ func NewBundleInstallHandler(
 	eventListenerStore store.EventListenerStore,
 	messageStore store.MessageStore,
 	variableStore store.VariableStore,
+	userStore store.UserStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
 	variableHandler *variablehandler.VariableHandler,
 	maxBundlesPerUser int,
+	notifier *notify.Notifier,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -55,11 +60,13 @@ func NewBundleInstallHandler(
 		eventListenerStore:   eventListenerStore,
 		messageStore:         messageStore,
 		variableStore:        variableStore,
+		userStore:            userStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
 		variableHandler:      variableHandler,
 		maxBundlesPerUser:    maxBundlesPerUser,
+		notifier:             notifier,
 	}
 }
 
@@ -74,12 +81,46 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 		return nil, err
 	}
 
+	ids := make([]string, len(installs))
+	for i, install := range installs {
+		ids[i] = install.BundleID
+	}
+	bundles, err := h.bundleStore.BundleSummaries(c.Context(), ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bundles: %w", err)
+	}
+	bundleByID := make(map[string]*model.Bundle, len(bundles))
+	for _, b := range bundles {
+		bundleByID[b.ID] = b
+	}
+
 	res := make([]*wire.BundleInstall, len(installs))
 	for i, install := range installs {
 		res[i] = contents.toWire(install)
+		setInstallSource(res[i], bundleByID[install.BundleID], c.Session.UserID)
 	}
 
 	return &res, nil
+}
+
+// setInstallSource says who made the bundle of the install and which version
+// the app can update to. A deleted bundle is nil and leaves it all empty.
+func setInstallSource(res *wire.BundleInstall, b *model.Bundle, userID string) {
+	if b == nil {
+		return
+	}
+	res.Official = !b.OwnerUserID.Valid
+	res.Yours = b.OwnedBy(userID)
+	res.Removed = b.RemovedAt.Valid
+	if b.Owner != nil {
+		res.Owner = wire.BundleOwnerToWire(b.Owner)
+	}
+	if b.Listing != nil {
+		res.Icon = b.Listing.Icon
+	}
+	if b.VisibleTo(userID) {
+		res.AvailableVersion = null.IntFrom(int64(b.InstallVersion()))
+	}
 }
 
 // HandleBundleInstallCreate installs items of a bundle with the parameters
@@ -92,7 +133,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, err
 	}
 	if req.BundleVersion != b.Version {
-		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
 	}
 
 	install, err := h.installOf(c, b.ID)
@@ -125,6 +166,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	if err != nil {
 		return nil, err
 	}
+	if err := sel.Customize(req.Messages); err != nil {
+		return nil, handler.ErrBadRequest("invalid_bundle_install", err.Error())
+	}
 
 	// Blocks can also use the messages and variables the install has.
 	contents, err := h.installedContents(c)
@@ -141,7 +185,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 			continue
 		}
 		if _, ok := contents.hash(install.ID, item); ok {
-			return nil, handler.ErrBadRequest("already_installed", fmt.Sprintf("the app already has %s of the bundle", item.Key))
+			return nil, handler.ErrBadRequest("already_installed", fmt.Sprintf("the app already has %s of the template", item.Key))
 		}
 	}
 
@@ -193,7 +237,7 @@ func (h *BundleInstallHandler) installOf(c *handler.Context, bundleID string) (*
 func (h *BundleInstallHandler) updateInstall(c *handler.Context, install *model.BundleInstall, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
 	from := install.UpdatedAt
 	install.UpdatedAt = time.Now().UTC()
-	install, err := h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, from, changes)
+	install, err := h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, from, changes, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
 			return nil, handler.ErrBadRequest("bundle_install_changed", "the install changed, reload the page and try again")
@@ -306,7 +350,13 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 		if err := ids.remapAll(msg.FlowSources); err != nil {
 			return store.BundleInstallContents{}, nil, err
 		}
-		hash, err := msg.ContentHash()
+		// A message the user changed while adding it counts as changed, so
+		// updates of the bundle keep it.
+		hashed := *msg
+		if def := sel.Messages[i].Default; def != nil {
+			hashed.Data = *def
+		}
+		hash, err := hashed.ContentHash()
 		if err != nil {
 			return store.BundleInstallContents{}, nil, fmt.Errorf("failed to hash message: %w", err)
 		}
@@ -350,7 +400,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		return nil, err
 	}
 	if req.BundleVersion != b.Version {
-		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
 	}
 	if install.BundleVersion >= b.Version {
 		return nil, handler.ErrBadRequest("bundle_install_up_to_date", "the install already has the latest version")
@@ -420,7 +470,9 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, cmd := range sel.Commands {
 		item := &items[itemIndex[cmd.ID]]
 		current := contents.commands[item.ID]
-		next, ok, err := contents.nextFlow(item, cmd.FlowSource, current.FlowSource, req.Parameters, ids, func(f flow.FlowData) error {
+		// The command keeps its name, which can differ from the template's
+		// when it was taken while adding it, or the user renamed it.
+		next, ok, err := contents.nextFlow(item, cmd.FlowSource.WithCommandName(current.Name), current.FlowSource, req.Parameters, ids, func(f flow.FlowData) error {
 			return wire.CommandUpdateRequest{FlowSource: f}.Validate()
 		})
 		if err != nil {
@@ -551,7 +603,7 @@ func (h *BundleInstallHandler) HandleBundleInstallDelete(c *handler.Context) (*w
 		}
 	}
 
-	if err := h.bundleInstallStore.DeleteBundleInstall(c.Context(), install.ID, keep); err != nil {
+	if err := h.bundleInstallStore.DeleteBundleInstall(c.Context(), install.ID, keep, c.Session.UserID); err != nil {
 		return nil, fmt.Errorf("failed to delete install: %w", err)
 	}
 
@@ -657,7 +709,9 @@ func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code
 }
 
 // currentBundle returns the version of the bundle apps install, if the user
-// can see the bundle. The app a bundle is made from has the originals of its
+// can see the bundle, with the name and description it's shown with. Versions
+// of users' bundles have none, and older ones have the ones they were
+// published with. The app a bundle is made from has the originals of its
 // items, so it can't install it.
 func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), id)
@@ -665,12 +719,18 @@ func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bu
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 	if b.SourceAppID.Valid && b.SourceAppID.String == c.App.ID {
-		return nil, handler.ErrBadRequest("bundle_source_app", "the bundle is made from this app, which has its items already")
+		return nil, handler.ErrBadRequest("bundle_source_app", "the template is made from this app, which has its items already")
 	}
-	return bundle.Parse(b.Content)
+	content, err := bundle.Parse(b.Content)
+	if err != nil {
+		return nil, err
+	}
+	content.Name = b.Name
+	content.Description = b.Description
+	return content, nil
 }
 
 func (h *BundleInstallHandler) bundleInstall(c *handler.Context) (*model.BundleInstall, error) {

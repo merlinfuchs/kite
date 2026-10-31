@@ -28,51 +28,51 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 
 	op, ok := discordAPIOperations[data.Operation]
 	if !ok {
-		return traceError(n, fmt.Errorf("unknown Discord API endpoint: %s", data.Operation))
+		return fmt.Errorf("unknown Discord API endpoint: %s", data.Operation)
 	}
 
 	var interaction *discord.InteractionEvent
 	if op.Interaction {
 		interaction = ctx.Data.Interaction()
 		if interaction == nil {
-			return traceError(n, fmt.Errorf("the %s endpoint only works in flows started by an interaction, like a command or button click", op.ID))
+			return fmt.Errorf("the %s endpoint only works in flows started by an interaction, like a command or button click", op.ID)
 		}
 	}
 
 	pathParams, err := ctx.evalKeyValues(data.PathParams)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	query, err := ctx.evalKeyValues(data.Query)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	path, err := discordAPIPath(op, pathParams, query, interactionPathParams(interaction))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	var body []byte
 	if len(data.BodyJSON) > 0 && string(data.BodyJSON) != "null" {
 		if !op.HasBody {
-			return traceError(n, fmt.Errorf("the %s endpoint doesn't take a body", op.ID))
+			return fmt.Errorf("the %s endpoint doesn't take a body", op.ID)
 		}
 
 		body, err = ctx.EvalJSONTemplate(data.BodyJSON)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
 	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	if interaction != nil {
 		if err := deferForInteractionRequest(ctx, interaction, body); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -83,12 +83,12 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		Reason: api.AuditLogReason(auditLogReason.String()),
 	})
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	result, err := discordAPIResult(resBody)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, result)

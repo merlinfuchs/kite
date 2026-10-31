@@ -10,6 +10,7 @@ export const controlConditionCompare: BlockDefinition = {
   category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
+  continues_from: "control_condition_item_compare",
   component: "condition",
   fields: conditionFields(
     "compare",

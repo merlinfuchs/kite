@@ -44,7 +44,11 @@ import {
 import { eventFlowContext } from "@/lib/flow/bundleExport";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon, SlashSquareIcon } from "lucide-react";
-import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
+import {
+  FlowItemCard,
+  MessageItemCard,
+  PreviewItemsProvider,
+} from "./ItemPreviewCards";
 
 const kinds = {
   command: {
@@ -392,23 +396,33 @@ function ImportForm({
     const shared = sharedMessages(preview.data);
     const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
 
+    // The blocks use the shared message templates, which the app may not
+    // have yet. Variables from another app aren't imported.
     return (
-      <ImportPreview
-        kind={kind}
-        label={label}
-        data={preview.data}
-        // Templates that already exist in this app are reused.
-        extraMessages={shared
-          .slice(kind === "message" ? 1 : 0)
-          .filter((m) => !existingIds.has(m.id))}
-        missingSecrets={missingSecretNames(
-          usedFlows(preview.data, shared),
-          secrets?.map((s) => s?.name) ?? []
-        )}
-        loading={loading}
-        onBack={() => setPreview(null)}
-        onImport={() => importShareData(preview.data, preview.via)}
-      />
+      <PreviewItemsProvider
+        messages={shared.map((m) => ({
+          key: m.id,
+          name: m.name,
+          data: m.data,
+        }))}
+      >
+        <ImportPreview
+          kind={kind}
+          label={label}
+          data={preview.data}
+          // Templates that already exist in this app are reused.
+          extraMessages={shared
+            .slice(kind === "message" ? 1 : 0)
+            .filter((m) => !existingIds.has(m.id))}
+          missingSecrets={missingSecretNames(
+            usedFlows(preview.data, shared),
+            secrets?.map((s) => s?.name) ?? []
+          )}
+          loading={loading}
+          onBack={() => setPreview(null)}
+          onImport={() => importShareData(preview.data, preview.via)}
+        />
+      </PreviewItemsProvider>
     );
   }
 

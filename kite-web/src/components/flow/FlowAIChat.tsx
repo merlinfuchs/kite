@@ -5,9 +5,14 @@ import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { FlowSnapshot } from "@/lib/flow/history";
 import { getNodeTitle } from "@/lib/flow/nodes";
-import { useBillingPlans, useFlowAIUsage } from "@/lib/hooks/api";
+import {
+  useBillingPlans,
+  useBundleInstalls,
+  useFlowAIUsage,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
+  BillingPlan,
   FlowAIChatMessage,
   FlowAIField,
   FlowAIUsage,
@@ -15,6 +20,7 @@ import {
 import { cn, formatMonthlyResetDate } from "@/lib/utils";
 import { useReactFlow, useStoreApi } from "@xyflow/react";
 import {
+  ArrowRightIcon,
   CheckIcon,
   CrownIcon,
   LoaderCircleIcon,
@@ -40,11 +46,17 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
+import { PlansLink, UpgradeButton } from "../app/PlanLimit";
+import { useTemplate } from "@/lib/hooks/templates";
+import TemplateDialog from "../app/TemplateDialog";
+import { TemplateListEntry } from "../app/TemplateListEntry";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
   // A request the user can send to make the change the answer suggests.
   buildPrompt?: string;
+  // A template the answer suggests adding instead of building.
+  templateId?: string;
   // What the AI asks the user to fill in.
   fields?: FlowAIField[];
   // Problems left with the AI's changes.
@@ -82,7 +94,7 @@ export default memo(function FlowAIChat({
 }) {
   const context = useFlowContext((c) => c.type);
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
-  const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
+  const { getNodes, getEdges } = useReactFlow<NodeType>();
   const store = useStoreApi<NodeType>();
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
@@ -104,10 +116,14 @@ export default memo(function FlowAIChat({
   // "Build this" puts the suggested request into the input, so the user can
   // fill in what only they know before it uses a prompt.
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fillInput = useCallback((prompt: string) => {
+  // templateId is the suggested template the user builds it instead of.
+  const fillInput = useCallback((prompt: string, templateId?: string) => {
     setInput(prompt);
     inputRef.current?.focus();
-    track("flow_ai_build_clicked");
+    track(
+      "flow_ai_build_clicked",
+      templateId ? { template: templateId } : undefined
+    );
   }, []);
 
   // The changes of the last answer stay pending, and their blocks
@@ -152,14 +168,24 @@ export default memo(function FlowAIChat({
   );
 
   const keep = useCallback(() => resolve("kept", "button"), [resolve]);
-  // Blocks keep where the user moved them since.
+  // Blocks keep where the user moved them since, the others go back to where
+  // they were before the changes, as the changes can lay out the whole flow.
   const undo = useCallback(() => {
     const p = resolve("undone", "button");
     if (!p) return;
     const current = new Map(getNodes().map((n) => [n.id, n]));
+    const after = new Map(p.after.nodes.map((n) => [n.id, n.position]));
     const nodes = p.before.nodes.map((n) => {
       const c = current.get(n.id);
-      return c ? { ...n, position: c.position, selected: c.selected } : n;
+      if (!c) return n;
+      const placed = after.get(n.id);
+      const moved =
+        !placed || placed.x !== c.position.x || placed.y !== c.position.y;
+      return {
+        ...n,
+        position: moved ? c.position : n.position,
+        selected: c.selected,
+      };
     });
     editorRef.current?.replaceFlow(nodes, p.before.edges);
   }, [resolve, getNodes, editorRef]);
@@ -199,13 +225,8 @@ export default memo(function FlowAIChat({
   }, [saveCount, resolve]);
 
   const showBlocks = useCallback(
-    (ids: string[]) =>
-      fitView({
-        nodes: ids.map((id) => ({ id })),
-        duration: 300,
-        maxZoom: 1,
-      }),
-    [fitView]
+    (ids: string[]) => editorRef.current?.showNodes(ids),
+    [editorRef]
   );
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -270,8 +291,15 @@ export default memo(function FlowAIChat({
           repairs: res.repairs,
           issues: res.issues.length,
           asked_fields: res.fields?.length ?? 0,
-          suggested_build: !!res.buildPrompt,
+          suggested_build: !!res.buildPrompt && !res.templateId,
+          suggested_template: !!res.templateId,
         });
+        if (res.templateId) {
+          track("flow_ai_template_suggested", {
+            context,
+            template: res.templateId,
+          });
+        }
         const change = before && applied && diffFlow(before, applied);
         for (const node of change ? change.added : []) {
           track("block_added", { type: node.type!, source: "ai" });
@@ -286,6 +314,7 @@ export default memo(function FlowAIChat({
             role: "assistant",
             content: res.message,
             buildPrompt: res.buildPrompt,
+            templateId: res.templateId,
             fields: res.fields,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
@@ -349,6 +378,17 @@ export default memo(function FlowAIChat({
   const exhausted =
     !!limit && (left === 0 || usage!.answers_used >= usage!.answers_limit);
   const unavailable = limit === 0 || exhausted;
+
+  // The cheapest plan with more prompts, pointed to when they run low.
+  const plans = useBillingPlans();
+  const morePlan = limit
+    ? plans
+        ?.filter(
+          (p): p is BillingPlan =>
+            !!p && !p.hidden && p.feature_max_ai_prompts_per_month > limit
+        )
+        .sort((a, b) => a.price - b.price)[0]
+    : undefined;
 
   return (
     <div className="flex-none w-full md:w-96 h-full flex flex-col bg-background md:bg-muted/30 md:border-l">
@@ -433,7 +473,7 @@ export default memo(function FlowAIChat({
 
       <div className="flex-none p-4 space-y-2">
         {exhausted ? (
-          <LimitNotice usage={usage!} />
+          <LimitNotice usage={usage!} morePlan={morePlan} />
         ) : (
           <div className="relative">
             <Textarea
@@ -476,6 +516,20 @@ export default memo(function FlowAIChat({
             )}
           >
             {left} of {limit} prompts left this month
+            {left! <= 3 && left! > 0 && morePlan && (
+              <>
+                {" · "}
+                <PlansLink
+                  from="flow_ai_counter"
+                  newTab
+                  className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                >
+                  {morePlan.feature_max_ai_prompts_per_month} with Kite{" "}
+                  {morePlan.title}
+                  <ArrowRightIcon className="size-3" />
+                </PlansLink>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -494,7 +548,7 @@ const ChatBubble = memo(function ChatBubble({
 }: {
   entry: ChatEntry;
   canBuild: boolean;
-  onBuild: (prompt: string) => void;
+  onBuild: (prompt: string, templateId?: string) => void;
   onKeep: () => void;
   onUndo: () => void;
   onShowBlocks: (ids: string[]) => void;
@@ -514,6 +568,7 @@ const ChatBubble = memo(function ChatBubble({
       ) : (
         entry.content && <FlowAIMarkdown text={entry.content} />
       )}
+      {entry.templateId && <TemplateSuggestion templateId={entry.templateId} />}
       {entry.buildPrompt && (
         <Button
           size="sm"
@@ -521,10 +576,10 @@ const ChatBubble = memo(function ChatBubble({
           className="gap-2"
           title={entry.buildPrompt}
           disabled={!canBuild}
-          onClick={() => onBuild(entry.buildPrompt!)}
+          onClick={() => onBuild(entry.buildPrompt!, entry.templateId)}
         >
           <SparklesIcon className="size-4" />
-          Build this
+          {entry.templateId ? "Build it here instead" : "Build this"}
         </Button>
       )}
       {entry.change && (
@@ -672,17 +727,16 @@ function ChangeCard({
 }
 
 // Shown instead of the input when the month's prompts or answers are used up.
-function LimitNotice({ usage }: { usage: FlowAIUsage }) {
-  const appId = useAppId();
-  const plans = useBillingPlans();
-
+function LimitNotice({
+  usage,
+  morePlan,
+}: {
+  usage: FlowAIUsage;
+  morePlan?: BillingPlan;
+}) {
   useEffect(() => {
     track("flow_ai_limit_reached", { prompts_limit: usage.prompts_limit });
   }, [usage.prompts_limit]);
-
-  const canUpgrade = plans?.some(
-    (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
-  );
 
   const reset = formatMonthlyResetDate();
 
@@ -694,17 +748,48 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
           : "You've asked the AI too many questions for this month."}{" "}
         They reset on {reset}.
       </p>
-      {canUpgrade && (
-        <Button size="sm" className="gap-2" asChild>
-          <Link
-            href={{ pathname: "/apps/[appId]/premium", query: { appId } }}
-            onClick={() => track("upsell_clicked", { from: "flow_ai_limit" })}
-          >
-            <CrownIcon className="size-4" />
-            Get more prompts
-          </Link>
-        </Button>
+      {morePlan && (
+        <UpgradeButton plan={morePlan} from="flow_ai_limit" size="sm" newTab>
+          <CrownIcon className="mr-2 size-4" />
+          Get {morePlan.feature_max_ai_prompts_per_month} prompts with Kite{" "}
+          {morePlan.title}
+        </UpgradeButton>
       )}
     </div>
+  );
+}
+
+// TemplateSuggestion is a template the AI suggests, which opens its page in a
+// dialog to add it from there.
+function TemplateSuggestion({ templateId }: { templateId: string }) {
+  const template = useTemplate(templateId);
+  const added = useBundleInstalls()?.some((i) => i?.bundle_id === templateId);
+  const [open, setOpen] = useState(false);
+  if (template === null) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        The template isn&apos;t available anymore.
+      </p>
+    );
+  }
+  if (!template) return null;
+
+  return (
+    <>
+      <TemplateListEntry
+        template={template}
+        added={added}
+        onClick={() => {
+          setOpen(true);
+          track("flow_ai_template_opened", { template: templateId });
+        }}
+      />
+      <TemplateDialog
+        template={template}
+        from="flow_ai"
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
   );
 }

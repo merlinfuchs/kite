@@ -1,8 +1,15 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
 import { getTemplates, templateFiles } from "./templateFiles";
 import { parameterKeys, referencedParameters } from "./parameters";
-import { templateFileSchema, TemplateFile } from "./templates";
+import {
+  featuredTemplates,
+  Template,
+  templateFileSchema,
+  TemplateFile,
+} from "./templates";
 
 function templateFlows(file: TemplateFile) {
   return [
@@ -203,5 +210,63 @@ describe("templates", () => {
         );
       }
     }
+  });
+});
+
+describe("marketplace", () => {
+  // Templates are at /marketplace/<id>, next to pages like a future
+  // /marketplace/browse, which would win. Users' bundles have random IDs of
+  // 16 characters, so only official templates can clash.
+  it("has no template with the name of one of its pages", () => {
+    for (const dir of ["marketplace", "apps/[appId]/marketplace"]) {
+      const pages = readdirSync(join(__dirname, "../../pages", dir)).map(
+        (name) => name.replace(/\.tsx$/, "")
+      );
+      for (const template of getTemplates()) {
+        expect(pages, `${dir}/${template.id}`).not.toContain(template.id);
+      }
+    }
+  });
+
+  it("features two of Kite's templates and one of a user", () => {
+    const official = getTemplates();
+    const user = (id: string, installs: number): Template => ({
+      ...official[0]!,
+      id,
+      installs,
+      listed: true,
+      author: {
+        kind: "user",
+        discordId: id,
+        name: id,
+        username: id,
+        avatarUrl: "",
+      },
+    });
+    const templates = [...official, user("tried", 5), user("new", 1)];
+
+    const featured = featuredTemplates(templates, 20000);
+    expect(featured.map((t) => t.author.kind)).toEqual([
+      "kite",
+      "user",
+      "kite",
+    ]);
+    expect(featured[1]!.id).toBe("tried");
+    expect(featuredTemplates(templates, 20000)).toEqual(featured);
+    const days = new Set(
+      [20000, 20001, 20002].map((day) =>
+        featuredTemplates(templates, day)
+          .map((t) => t.id)
+          .join()
+      )
+    );
+    expect(days.size).toBeGreaterThan(1);
+
+    // Only Kite's while no user's has enough installs.
+    expect(
+      featuredTemplates([...official, user("new", 1)], 20000).map(
+        (t) => t.author.kind
+      )
+    ).toEqual(["kite", "kite", "kite"]);
   });
 });

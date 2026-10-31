@@ -26,3 +26,13 @@ SELECT * FROM assets WHERE expires_at < $1;
 
 -- name: CountAssetsByContentHash :one
 SELECT COUNT(*) FROM assets WHERE content_hash = $1;
+
+-- name: GetAssetContentHashes :many
+SELECT DISTINCT content_hash FROM assets;
+
+-- name: GetAssetStorageByApp :one
+-- Files are stored once per content, so uploading the same one again doesn't
+-- count twice.
+SELECT COALESCE(SUM(content_size), 0)::BIGINT FROM (
+    SELECT DISTINCT ON (content_hash) content_size FROM assets WHERE app_id = $1
+) files;

@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 func (c *Client) CreateSession(ctx context.Context, session *model.Session) (*model.Session, error) {
@@ -39,7 +40,9 @@ func (c *Client) Session(ctx context.Context, keyHash string) (*model.Session, e
 		return nil, err
 	}
 
-	return rowToSession(row), nil
+	session := rowToSession(row.Session)
+	session.KiteBanReason = null.NewString(row.KiteBanReason.String, row.KiteBanReason.Valid)
+	return session, nil
 }
 
 func (c *Client) UpdateSessionExpiry(ctx context.Context, keyHash string, expiresAt time.Time) error {

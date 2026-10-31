@@ -5,13 +5,14 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import AppSetupChecklist from "@/components/app/AppSetupChecklist";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
-import { useApp, useAppEntities } from "@/lib/hooks/api";
+import { useApp, useAppEntities, useAppFeatures } from "@/lib/hooks/api";
 import { useMemo } from "react";
 
 export default function AppPage() {
   const app = useApp();
 
   const entities = useAppEntities();
+  const features = useAppFeatures();
 
   const entityCounts = useMemo(() => {
     return entities?.reduce((acc, entity) => {
@@ -29,6 +30,7 @@ export default function AppPage() {
             <AppResourceCard
               title="Commands"
               count={entityCounts?.command || 0}
+              limit={features?.max_commands}
               actionTitle="Manage commands"
               actionHref={{
                 pathname: "/apps/[appId]/commands",
@@ -47,6 +49,7 @@ export default function AppPage() {
             <AppResourceCard
               title="Messages"
               count={entityCounts?.message || 0}
+              limit={features?.max_messages}
               actionTitle="Manage messages"
               actionHref={{
                 pathname: "/apps/[appId]/messages",
