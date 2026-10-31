@@ -70,6 +70,12 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeAuditLogAction, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID,
 	},
+	// The user is whoever wrote what AutoMod acted on, and the content what
+	// they wrote. A blocked message is never posted, so it has no message ID.
+	"auto_moderation_action_execution": {
+		EventFilterTypeAutoModAction, EventFilterTypeMessageContent, EventFilterTypeUserID,
+		EventFilterTypeGuildID, EventFilterTypeChannelID,
+	},
 }
 
 // EventFilterTargets returns what event filters can check for an event type.
@@ -90,12 +96,12 @@ func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 
 // eventFilterModes returns the modes a target can use, nil if it can use all.
 // Yes or no filters, roles and emojis are either equal or not, and audit log
-// actions are picked from a list.
+// and AutoMod actions are picked from a list.
 func eventFilterModes(target EventFilterTarget) []ComparsionMode {
 	switch {
 	case isBooleanEventFilterTarget(target), target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
 		return []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual}
-	case target == EventFilterTypeAuditLogAction:
+	case target == EventFilterTypeAuditLogAction, target == EventFilterTypeAutoModAction:
 		return []ComparsionMode{ComparsionModeOneOf, ComparsionModeNotOneOf}
 	}
 	return nil
@@ -163,6 +169,8 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 	case EventFilterTypeMessageContent:
 		if msg := eventMessage(event); msg != nil {
 			subject = msg.Content
+		} else if e, ok := event.(*guildevent.AutoModAction); ok {
+			subject = e.Content
 		}
 	case EventFilterTypeUserID:
 		subject = data.UserID().String()
@@ -175,6 +183,10 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 	case EventFilterTypeAuditLogAction:
 		if e, ok := event.(*gateway.GuildAuditLogEntryCreateEvent); ok {
 			subject = auditlog.Action(e.AuditLogEntry)
+		}
+	case EventFilterTypeAutoModAction:
+		if e, ok := event.(*guildevent.AutoModAction); ok {
+			subject = e.ActionName()
 		}
 	}
 

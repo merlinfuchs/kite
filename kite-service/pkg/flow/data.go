@@ -852,6 +852,8 @@ const (
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
 	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+	// The action AutoMod took, see guildevent.AutoModAction.ActionName.
+	EventFilterTypeAutoModAction EventFilterTarget = "automod_action"
 )
 
 type RandomMode string

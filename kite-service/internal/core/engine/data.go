@@ -80,6 +80,9 @@ func (d *EventData) UserID() discord.UserID {
 	case *gateway.GuildAuditLogEntryCreateEvent:
 		// Whoever did it.
 		return data.UserID
+	case *guildevent.AutoModAction:
+		// Whoever wrote what AutoMod acted on.
+		return data.UserID
 	case *guildevent.MessageDelete:
 		// The author, if the bot saw the message.
 		if data.Message != nil {
@@ -115,6 +118,8 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *gateway.GuildAuditLogEntryCreateEvent:
 		return data.GuildID
+	case *guildevent.AutoModAction:
+		return data.GuildID
 	}
 	return 0
 }
@@ -135,6 +140,8 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.GuildAuditLogEntryCreateEvent:
 		return auditlog.ChannelID(data.AuditLogEntry)
+	case *guildevent.AutoModAction:
+		return data.ChannelID
 	}
 	return 0
 }
@@ -152,6 +159,9 @@ func (d *EventData) MessageID() discord.MessageID {
 	case *gateway.MessageReactionAddEvent:
 		return data.MessageID
 	case *gateway.MessageReactionRemoveEvent:
+		return data.MessageID
+	case *guildevent.AutoModAction:
+		// Zero when AutoMod blocked the message.
 		return data.MessageID
 	}
 	return 0

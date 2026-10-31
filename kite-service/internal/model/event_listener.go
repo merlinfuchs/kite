@@ -36,6 +36,9 @@ const (
 	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
+	// AUTO_MODERATION_ACTION_EXECUTION, which only arrives in servers where
+	// the bot has the Manage Server permission.
+	EventListenerTypeDiscordAutoModerationActionExecution EventListenerType = "auto_moderation_action_execution"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

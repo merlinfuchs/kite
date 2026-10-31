@@ -1,6 +1,7 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import { discordEventTypes } from "@/lib/flow/eventTypes";
 import { auditLogActions } from "@/lib/flow/auditLogActions";
+import { autoModActions } from "@/lib/flow/autoModActions";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -1133,7 +1134,8 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
         const isPicked = (t: string) =>
           booleanEventFilterTargets.includes(t) ||
           t === "emoji" ||
-          t === "audit_log_action";
+          t === "audit_log_action" ||
+          t === "automod_action";
 
         const modes = getEventFilterModes(v);
         const mode =
@@ -1181,7 +1183,7 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
         { value: "equal", label: "Is" },
         { value: "not_equal", label: "Is Not" },
       ]
-    : target === "audit_log_action"
+    : target === "audit_log_action" || target === "automod_action"
     ? oneOfModes
     : [
         { value: "equal", label: "Equal" },
@@ -1218,7 +1220,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
   // Yes or no filters pick yes or no as their mode instead.
   if (booleanEventFilterTargets.includes(target)) return null;
 
-  if (target === "audit_log_action") {
+  if (target === "audit_log_action" || target === "automod_action") {
     return (
       <BaseMultiSelect
         field="event_filter_value"
@@ -1229,7 +1231,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
             .map((v) => v.trim())
             .filter(Boolean) ?? []
         }
-        options={auditLogActions}
+        options={target === "automod_action" ? autoModActions : auditLogActions}
         updateValues={(v) =>
           updateData({ event_filter_value: v.join(",") || undefined })
         }

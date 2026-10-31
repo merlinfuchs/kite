@@ -15,11 +15,13 @@ import (
 // package. They read the cache from before Discord's event updated it, so
 // they're worked out in the PreHandler. They're dispatched once the cache is
 // updated, so their flows see the same cache as the flows of the Discord
-// event.
+// event. AutoMod actions don't need the cache, but the name of their rule is
+// fetched from Discord, so they're worked out when they're dispatched.
 func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 	var mu sync.Mutex
 	pending := make(map[gateway.Event][]guildevent.Event)
 	edits := newEditTimes()
+	rules := newRuleNames(session.GetAutoModerationRule)
 
 	pre := handler.New()
 	pre.AddSyncHandler(func(e gateway.Event) {
@@ -34,6 +36,17 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 	session.PreHandler = pre
 
 	session.AddSyncHandler(func(e gateway.Event) {
+		if e, ok := e.(*gateway.AutoModerationActionExecutionEvent); ok {
+			action := *e
+			go func() {
+				dispatch(&guildevent.AutoModAction{
+					AutoModerationActionExecutionEvent: action,
+					RuleName:                           rules.name(action.GuildID, action.RuleID),
+				})
+			}()
+			return
+		}
+
 		mu.Lock()
 		derived, ok := pending[e]
 		delete(pending, e)
@@ -129,4 +142,58 @@ func (t *editTimes) changed(id discord.MessageID, edited time.Time) bool {
 	}
 	t.times[id] = edited
 	return true
+}
+
+// ruleNameTTL is how long the name of an AutoMod rule is kept. Rules can be
+// renamed, and there's no event for it without another intent.
+const ruleNameTTL = 10 * time.Minute
+
+// maxRuleNames bounds ruleNames. Servers have at most a few dozen rules.
+const maxRuleNames = 100
+
+// ruleNames keeps the names of AutoMod rules, so a raid that makes AutoMod act
+// on every message doesn't fetch the rule for each of them.
+type ruleNames struct {
+	mu    sync.Mutex
+	names map[discord.AutoModerationRuleID]ruleName
+	fetch func(discord.GuildID, discord.AutoModerationRuleID) (discord.AutoModerationRule, error)
+	now   func() time.Time
+}
+
+type ruleName struct {
+	name      string
+	fetchedAt time.Time
+}
+
+func newRuleNames(fetch func(discord.GuildID, discord.AutoModerationRuleID) (discord.AutoModerationRule, error)) *ruleNames {
+	return &ruleNames{
+		names: make(map[discord.AutoModerationRuleID]ruleName),
+		fetch: fetch,
+		now:   time.Now,
+	}
+}
+
+// name returns the name of a rule, empty if it can't be fetched. A failed
+// fetch is kept like a name, so a missing permission doesn't make every action
+// fetch again. The lock is held while fetching, so actions that come at once
+// fetch the rule once.
+func (r *ruleNames) name(guildID discord.GuildID, ruleID discord.AutoModerationRuleID) string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if n, ok := r.names[ruleID]; ok && r.now().Sub(n.fetchedAt) < ruleNameTTL {
+		return n.name
+	}
+
+	var name string
+	if rule, err := r.fetch(guildID, ruleID); err == nil {
+		name = rule.Name
+	}
+
+	if len(r.names) >= maxRuleNames {
+		// A new map frees the memory, clear() would keep it.
+		r.names = make(map[discord.AutoModerationRuleID]ruleName)
+	}
+	r.names[ruleID] = ruleName{name: name, fetchedAt: r.now()}
+	return name
 }

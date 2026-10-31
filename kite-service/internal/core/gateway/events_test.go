@@ -53,6 +53,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.ReadyEvent{},
 		&guildevent.MessageDelete{},
 		&gateway.GuildAuditLogEntryCreateEvent{},
+		&guildevent.AutoModAction{},
 	}
 
 	for _, e := range dispatched {
@@ -78,6 +79,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordDirectMessageCreate,
 		model.EventListenerTypeDiscordGuildBoost,
 		model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
+		model.EventListenerTypeDiscordAutoModerationActionExecution,
 	}
 
 	for _, tp := range types {
@@ -89,6 +91,9 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 
 // Derived events go to the listeners of the type they're named after.
 func TestDerivedEventsMatchListenerTypes(t *testing.T) {
+	if got := model.EventTypeFromDiscordEventType((&guildevent.AutoModAction{}).EventType()); got != model.EventListenerTypeDiscordAutoModerationActionExecution {
+		t.Errorf("AutoModAction maps to %q, want %q", got, model.EventListenerTypeDiscordAutoModerationActionExecution)
+	}
 	if got := model.EventTypeFromDiscordEventType((&guildevent.MessageDelete{}).EventType()); got != model.EventListenerTypeDiscordMessageDelete {
 		t.Errorf("MessageDelete maps to %q, want %q", got, model.EventListenerTypeDiscordMessageDelete)
 	}

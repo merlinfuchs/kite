@@ -1,5 +1,12 @@
 {
   "events": {
+    "auto_moderation_action_execution": [
+      "automod_action",
+      "message_content",
+      "user_id",
+      "guild_id",
+      "channel_id"
+    ],
     "direct_message_create": [
       "message_content",
       "user_id",
@@ -84,6 +91,10 @@
   },
   "modes": {
     "audit_log_action": [
+      "one_of",
+      "not_one_of"
+    ],
+    "automod_action": [
       "one_of",
       "not_one_of"
     ],
