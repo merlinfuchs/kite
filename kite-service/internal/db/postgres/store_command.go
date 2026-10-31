@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -56,20 +57,29 @@ func (c *Client) Command(ctx context.Context, id string) (*model.Command, error)
 }
 
 func (c *Client) CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+	return c.createCommandWithTx(ctx, nil, command)
+}
+
+func (c *Client) createCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command) (*model.Command, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.CreateCommand(ctx, pgmodel.CreateCommandParams{
+	row, err := q.CreateCommand(ctx, pgmodel.CreateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,
 		Enabled:     command.Enabled,
 		AppID:       command.AppID,
-		ModuleID: pgtype.Text{
-			String: command.ModuleID.String,
-			Valid:  command.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: command.BundleInstallID.String,
+			Valid:  command.BundleInstallID.Valid,
 		},
 		CreatorUserID: command.CreatorUserID,
 		FlowSource:    flowSource,
@@ -83,17 +93,63 @@ func (c *Client) CreateCommand(ctx context.Context, command *model.Command) (*mo
 	return rowToCommand(row)
 }
 
-func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, change store.ItemChange) (*model.Command, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updated, err := c.updateCommandWithTx(ctx, tx, command, change)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) UpdateCommandEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.Command, error) {
+	row, err := c.Q.UpdateCommandEnabled(ctx, pgmodel.UpdateCommandEnabledParams{
+		ID:        id,
+		Enabled:   enabled,
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToCommand(row)
+}
+
+func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command, change store.ItemChange) (*model.Command, error) {
+	q := c.Q.WithTx(tx)
+
+	previous, err := q.GetCommandForUpdate(ctx, command.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	if err := checkBaseVersion(commandVersion(previous), change); err != nil {
+		return nil, err
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
+	row, err := q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,
-		Enabled:     command.Enabled,
 		FlowSource:  flowSource,
 		UpdatedAt:   pgtype.Timestamp{Time: command.UpdatedAt.UTC(), Valid: true},
 	})
@@ -101,6 +157,12 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*mo
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
+		return nil, err
+	}
+
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeCommand, id: row.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt.Time, row.FlowSource, change)
+	if err != nil {
 		return nil, err
 	}
 
@@ -125,17 +187,40 @@ func (c *Client) EnabledCommandIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetEnabledCommandIDs(ctx)
 }
 
-func (c *Client) DeleteCommand(ctx context.Context, id string) error {
-	err := c.Q.DeleteCommand(ctx, id)
+func (c *Client) DeleteCommand(ctx context.Context, id string, userID string) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	row, err := q.DeleteCommand(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
-
+		return err
+	}
+	if err := recordCommandDelete(ctx, q, row, userID); err != nil {
+		return err
+	}
+	if err := deleteEmptyBundleInstall(ctx, q, row.BundleInstallID); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
+}
+
+// deletedCommandData is what's needed besides the flow to restore a deleted
+// command. Its name and description are part of the flow.
+type deletedCommandData struct {
+	Enabled bool `json:"enabled"`
+}
+
+func recordCommandDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Command, userID string) error {
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeCommand, id: row.ID}
+	return recordItemDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
 }
 
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
@@ -145,15 +230,16 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	}
 
 	return &model.Command{
-		ID:            row.ID,
-		Name:          row.Name,
-		Description:   row.Description,
-		Enabled:       row.Enabled,
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		FlowSource:    flowSource,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Description:     row.Description,
+		Enabled:         row.Enabled,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		FlowSource:      flowSource,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		ContentVersion:  commandVersion(row),
 	}, nil
 }

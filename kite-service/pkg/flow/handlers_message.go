@@ -3,6 +3,8 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -19,6 +21,8 @@ func init() {
 		FlowNodeTypeActionPrivateMessageCreate: executeActionPrivateMessageCreate,
 		FlowNodeTypeActionPollCreate:           executeActionPollCreate,
 		FlowNodeTypeActionMessageGet:           executeActionMessageGet,
+		FlowNodeTypeActionMessageForward:       executeActionMessageForward,
+		FlowNodeTypeActionPersonaMessageCreate: executeActionPersonaMessageCreate,
 	})
 }
 
@@ -29,23 +33,23 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	messageData := data.ToSendMessageData(opts)
 
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	if n.Data.ReplyTarget != "" {
 		replyTarget, err := ctx.EvalTemplate(n.Data.ReplyTarget)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 		replyID, err := discordSnowflake(replyTarget)
 		if err != nil {
-			return traceError(n, fmt.Errorf("message to reply to %w", err))
+			return fmt.Errorf("message to reply to %w", err)
 		}
 		messageData.Reference = &discord.MessageReference{MessageID: discord.MessageID(replyID)}
 	}
@@ -56,7 +60,7 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		messageData,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
@@ -64,7 +68,7 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		// We have to create the resume point after the message has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -84,6 +88,81 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	return n.ExecuteChildren(ctx)
 }
 
+func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	if ctx.IsEntry() {
+		return n.resumeFromComponent(ctx)
+	}
+
+	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	if err != nil {
+		return err
+	}
+
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return err
+	}
+
+	name, err := ctx.EvalTemplate(n.Data.PersonaName)
+	if err != nil {
+		return err
+	}
+	persona := provider.Persona{Name: strings.TrimSpace(name.String())}
+	if persona.Name == "" {
+		return fmt.Errorf("name is empty")
+	}
+	if utf8.RuneCountInString(persona.Name) > 80 {
+		return fmt.Errorf("name is longer than 80 characters")
+	}
+
+	if n.Data.PersonaAvatarURL != "" {
+		avatarURL, err := ctx.EvalTemplate(n.Data.PersonaAvatarURL)
+		if err != nil {
+			return err
+		}
+		persona.AvatarURL = strings.TrimSpace(avatarURL.String())
+		if persona.AvatarURL != "" && !isHTTPURL(persona.AvatarURL) {
+			return fmt.Errorf("avatar URL must start with http:// or https://")
+		}
+	}
+
+	msg, err := ctx.Discord.CreatePersonaMessage(
+		ctx,
+		discord.ChannelID(channelTarget.Snowflake()),
+		persona,
+		data.ToSendMessageData(opts),
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+	if resumePointID != "" {
+		// We have to create the resume point after the message has been stored
+		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.Data.MessageTemplateID != "" {
+		// Like ephemeral messages, the bot can't edit it later, but the
+		// template's buttons still need the instance.
+		err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
+			MessageTemplateID: n.Data.MessageTemplateID,
+			MessageID:         msg.ID,
+			ChannelID:         msg.ChannelID,
+			GuildID:           ctx.Data.GuildID(),
+			Ephemeral:         true,
+		})
+		if err != nil {
+			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+		}
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
 func executeActionMessageEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if ctx.IsEntry() {
 		return n.resumeFromComponent(ctx)
@@ -91,17 +170,17 @@ func executeActionMessageEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	editData := data.ToEditMessageData(opts)
 
@@ -112,7 +191,7 @@ func executeActionMessageEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
@@ -120,7 +199,7 @@ func executeActionMessageEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		// We have to create the resume point after the message has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -147,23 +226,23 @@ func executeActionPrivateMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	messageData := data.ToSendMessageData(opts)
 
 	userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Snowflake()))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	msg, err := ctx.Discord.CreateMessage(ctx, channel.ID, messageData)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
@@ -171,7 +250,7 @@ func executeActionPrivateMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 		// We have to create the resume point after the message has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -188,12 +267,12 @@ func executeActionPollCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	pollData, err := n.Data.PollData.ToCreatePollData(ctx, ctx.EvalCtx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	msg, err := ctx.Discord.CreatePoll(
@@ -202,7 +281,7 @@ func executeActionPollCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		pollData,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
@@ -215,7 +294,7 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	if n.Data.ChannelTarget != "" {
 		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		channelID = discord.ChannelID(channelTarget.Snowflake())
@@ -223,7 +302,7 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	messageID, err := ctx.EvalTemplate(n.Data.MessageTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	message, err := ctx.Discord.Message(
@@ -232,7 +311,7 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 		discord.MessageID(messageID.Snowflake()),
 	)
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if message != nil {
@@ -241,6 +320,42 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, thing.Null)
 	}
 
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionMessageForward(n *CompiledFlowNode, ctx *FlowContext) error {
+	channelID := ctx.Data.ChannelID()
+	if n.Data.ChannelTarget != "" {
+		id, err := evalSnowflake(ctx, n.Data.ChannelTarget, "channel of the message")
+		if err != nil {
+			return err
+		}
+		channelID = discord.ChannelID(id)
+	}
+	if !channelID.IsValid() {
+		return fmt.Errorf("channel of the message is required")
+	}
+
+	messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "message to forward")
+	if err != nil {
+		return err
+	}
+	forwardChannelID, err := evalSnowflake(ctx, n.Data.ForwardChannelTarget, "channel to forward to")
+	if err != nil {
+		return err
+	}
+
+	msg, err := ctx.Discord.ForwardMessage(
+		ctx,
+		discord.ChannelID(forwardChannelID),
+		channelID,
+		discord.MessageID(messageID),
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 	return n.ExecuteChildren(ctx)
 }
 
@@ -260,12 +375,16 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		data.Flags |= int(discord.EphemeralMessage)
 	}
 
+	evalString := func(template string) (string, error) {
+		return eval.EvalTemplateToString(ctx, template, ctx.EvalCtx)
+	}
+
 	err := data.EachString(func(s *string) error {
 		if s == nil {
 			return nil
 		}
 
-		res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
+		res, err := evalString(*s)
 		if err != nil {
 			return err
 		}
@@ -274,6 +393,10 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		return nil
 	})
 	if err != nil {
+		return message.MessageData{}, err
+	}
+
+	if err := data.FillColors(evalString); err != nil {
 		return message.MessageData{}, err
 	}
 

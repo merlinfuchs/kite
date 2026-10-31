@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordOptionCommandPermissions: BlockDefinition = {
   type: "option_command_permissions",
+  id_prefix: "permissions",
   title: "Command Permissions",
   description:
     "Make the command only available to users with the specified permissions.",

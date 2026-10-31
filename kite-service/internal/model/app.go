@@ -38,6 +38,14 @@ type App struct {
 	// interactions and webhook events with. It's stored when the app is
 	// created, or for older apps the first time a flow needs it.
 	DiscordVerifyKey null.String
+
+	// CreditsPausedAt is when the app was paused for using all of its credits
+	// for the month. Paused apps stay enabled and connected, so their bot can
+	// tell users why it doesn't respond, but run no flows.
+	CreditsPausedAt null.Time
+	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
+	// the app used 80% or all of its credits for the month.
+	CreditNoticesEnabled bool
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
@@ -59,10 +67,20 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
+// AppDisabledReasonOwnerBanned is the reason the apps of a user Kite banned
+// are stopped. Unbanning them starts the apps stopped for this reason again.
+const AppDisabledReasonOwnerBanned = "Kite banned the owner of this app"
+
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.
 func HasInvalidToken(app *App) bool {
 	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
+}
+
+// HasNoCredits reports whether the app is paused because it used all of its
+// credits. Only the credit sweep pauses and unpauses apps.
+func HasNoCredits(app *App) bool {
+	return app.CreditsPausedAt.Valid
 }
 
 type AppCredentials struct {
@@ -88,6 +106,9 @@ type AppGatewayRequirements struct {
 	// longer relies on gateway events, it can be dropped and these apps will
 	// stop receiving message traffic they otherwise have no use for.
 	HasMessageInstances bool
+	// UsesVoice reports whether the app has flows that play audio. Joining a
+	// voice channel for that needs the bot's own voice state updates.
+	UsesVoice bool
 }
 
 // NeedsGuildMessages reports whether the app consumes guild message events.
@@ -167,6 +188,16 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	}
 
 	return false
+}
+
+// NeedsGuildModeration reports whether the app consumes audit log events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
+}
+
+// NeedsGuildVoiceStates reports whether the app consumes voice state events.
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	return r.UsesVoice
 }
 
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
@@ -255,6 +286,16 @@ type AppCollaborator struct {
 	Role      AppCollaboratorRole
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// AppCollaboratorInvite adds the user with a Discord username that no Kite user
+// has as a collaborator when they log in.
+type AppCollaboratorInvite struct {
+	AppID           string
+	DiscordUsername string
+	Role            AppCollaboratorRole
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
 }
 
 type AppEntity struct {

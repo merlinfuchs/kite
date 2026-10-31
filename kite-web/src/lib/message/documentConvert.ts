@@ -19,7 +19,10 @@ import type {
   MessageComponentThumbnail,
   MessageEmbed,
 } from "./schema";
-import type { messageSchema as restoreMessageSchema } from "./schemaRestore";
+import {
+  parseMessageData,
+  type messageSchema as restoreMessageSchema,
+} from "./schemaRestore";
 import { getUniqueId } from "@/lib/utils";
 import type { DocumentData, Node, NodeId } from "./document";
 
@@ -667,4 +670,15 @@ export function toMessage(state: DocumentData): ConvertedMessage {
   const converted = { message, pathToId, idToPath };
   cache.set(state.nodes, { rootId: state.rootId, converted });
   return converted;
+}
+
+// parsePreviewMessage is the message of stored data to show in a preview, or
+// null if it isn't one. It's read like the editor reads it, so messages that
+// don't pass validation, like ones saved before a rule was added, still show.
+export function parsePreviewMessage(data: unknown): Message | null {
+  try {
+    return toMessage(fromMessage(parseMessageData(data))).message;
+  } catch {
+    return null;
+  }
 }

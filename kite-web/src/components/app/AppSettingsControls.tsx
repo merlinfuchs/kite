@@ -9,7 +9,11 @@ import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
 import LoadingButton from "../common/LoadingButton";
 import { useApp } from "@/lib/hooks/api";
-import { useAppUpdateMutation } from "@/lib/api/mutations";
+import {
+  useAppCreditNoticesUpdateMutation,
+  useAppUpdateMutation,
+} from "@/lib/api/mutations";
+import { Switch } from "../ui/switch";
 import { useRedeployCommands } from "./CommandDeployStatus";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
@@ -17,7 +21,9 @@ import { toast } from "sonner";
 export default function AppSettingsControls() {
   const app = useApp();
 
-  const updateMutation = useAppUpdateMutation(useAppId());
+  const appId = useAppId();
+  const updateMutation = useAppUpdateMutation(appId);
+  const creditNoticesMutation = useAppCreditNoticesUpdateMutation(appId);
   const { redeploy, isPending: isRedeploying } = useRedeployCommands(() =>
     toast.success("Your commands are being sent to Discord again.")
   );
@@ -36,6 +42,21 @@ export default function AppSettingsControls() {
           if (res.success) {
             toast.success(app.enabled ? "App disabled!" : "App enabled!");
           } else {
+            toast.error(
+              `Failed to update app: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }
+
+  function toggleCreditNotices(enabled: boolean) {
+    creditNoticesMutation.mutate(
+      { enabled },
+      {
+        onSuccess(res) {
+          if (!res.success) {
             toast.error(
               `Failed to update app: ${res.error.message} (${res.error.code})`
             );
@@ -95,6 +116,20 @@ export default function AppSettingsControls() {
           >
             Sync Commands
           </LoadingButton>
+        </div>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-bold pb-1">Credit Messages</div>
+            <div className="text-muted-foreground">
+              Your bot sends its owner a direct message when it has used 80% of
+              its credits for the month, and when it has used all of them.
+            </div>
+          </div>
+          <Switch
+            checked={app?.credit_notices_enabled ?? true}
+            onCheckedChange={toggleCreditNotices}
+            disabled={!app || creditNoticesMutation.isPending}
+          />
         </div>
       </CardContent>
     </Card>

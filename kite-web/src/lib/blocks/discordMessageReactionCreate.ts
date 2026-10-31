@@ -4,11 +4,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageReactionCreate: BlockDefinition = {
   type: "action_message_reaction_create",
+  id_prefix: "reaction",
   title: "Create message reaction",
   description: "Bot adds a reaction to a message",
   icon: "smile-plus",
   category: "Messages",
   credits: 1,
+  permissions: ["ADD_REACTIONS", "READ_MESSAGE_HISTORY"],
   run: {
     kind: "request",
     integration: "discord",

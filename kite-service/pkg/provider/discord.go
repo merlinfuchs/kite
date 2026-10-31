@@ -5,6 +5,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
 // DiscordProvider provides access to the Discord API.
@@ -24,9 +25,13 @@ type DiscordProvider interface {
 	EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error)
 	DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error
 	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
+	// CreatePersonaMessage sends a message with another name and avatar
+	// through a webhook of the app in the channel.
+	CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
+	ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
@@ -35,9 +40,21 @@ type DiscordProvider interface {
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error)
 	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
+	// BotToken is for services that call Discord for the app, like Cookie
+	// API's transcripts, and only goes to integrations the app enabled.
+	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
+	// PlayAudio joins the voice channel and plays the uploaded sound in the
+	// background, replacing what the bot plays in the server. It returns once
+	// playback started.
+	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
+	// StopAudio stops what the bot plays in the server. The bot stays in the
+	// voice channel.
+	StopAudio(ctx context.Context, guildID discord.GuildID) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
+	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
+	EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error
 	// AppVerifyKey is the app's public key as hex, which Discord signs
 	// interactions and webhook events with.
 	AppVerifyKey(ctx context.Context) (string, error)
@@ -47,6 +64,33 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// PlayAudioOpts are the options of DiscordProvider.PlayAudio.
+type PlayAudioOpts struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	// AssetID is the ID of the asset of the uploaded sound.
+	AssetID string
+	// LeaveAfter makes the bot leave the voice channel once the sound ended.
+	LeaveAfter bool
+}
+
+// Persona is the name and avatar a message is sent with instead of the bot's.
+type Persona struct {
+	Name      string
+	AvatarURL string
+}
+
+// ServerProfileData is the body of a Modify Current Member request, the bot's
+// profile in one server. arikawa only supports its nickname. A field that's
+// nil stays as it is, and one that's null resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick option.NullableString `json:"nick,omitempty"`
+	// Avatar and Banner are data URIs of the image.
+	Avatar option.NullableString `json:"avatar,omitempty"`
+	Banner option.NullableString `json:"banner,omitempty"`
+	Bio    option.NullableString `json:"bio,omitempty"`
 }
 
 // CreatePollData is the poll object of a create message request. arikawa
@@ -157,11 +201,19 @@ func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
 	return nil
 }
 
 func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
 	return nil, nil
 }
 
@@ -193,6 +245,10 @@ func (p *MockDiscordProvider) StartThreadInForum(ctx context.Context, channelID 
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) BotToken() string {
+	return ""
+}
+
 func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {
 	return nil, nil
 }
@@ -201,7 +257,23 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 	return nil
 }
 
+func (p *MockDiscordProvider) PlayAudio(ctx context.Context, opts PlayAudioOpts) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	return nil
+}
+
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error {
 	return nil
 }
 

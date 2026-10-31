@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -10,12 +11,14 @@ import (
 )
 
 type UserHandler struct {
-	userStore store.UserStore
+	userStore    store.UserStore
+	adminUserIDs []string
 }
 
-func NewUserHandler(userStore store.UserStore) *UserHandler {
+func NewUserHandler(userStore store.UserStore, adminUserIDs []string) *UserHandler {
 	return &UserHandler{
-		userStore: userStore,
+		userStore:    userStore,
+		adminUserIDs: adminUserIDs,
 	}
 }
 
@@ -37,5 +40,7 @@ func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse,
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return wire.UserToWire(user, withEmail), nil
+	res := wire.UserToWire(user, withEmail)
+	res.IsAdmin = withEmail && slices.Contains(h.adminUserIDs, user.ID)
+	return res, nil
 }

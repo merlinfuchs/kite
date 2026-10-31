@@ -5,14 +5,20 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useVariables } from "@/lib/hooks/api";
 import VariableListEntry from "./VariableListEntry";
 import VariableCreateDialog from "./VariableCreateDialog";
+import { VariableIcon } from "lucide-react";
+import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function VariableList() {
   const variables = useVariables();
+  const limit = usePlanLimit("max_variables", variables?.length);
 
   const variableCreateButton = (
-    <VariableCreateDialog>
-      <Button>Create variable</Button>
-    </VariableCreateDialog>
+    <PlanLimitGate limit={limit} noun="variables" from="variables">
+      <VariableCreateDialog>
+        <Button>Create variable</Button>
+      </VariableCreateDialog>
+    </PlanLimitGate>
   );
 
   return (
@@ -25,17 +31,24 @@ export default function VariableList() {
         </>
       ) : variables.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no variables"
-          description="You can start now by creating the first variable!"
-          action={variableCreateButton}
+          icon={VariableIcon}
+          title="No variables yet"
+          description="Variables store values like counters or settings that your commands and events can read and change."
+          action={<ListActions>{variableCreateButton}</ListActions>}
         />
       ) : (
-        <>
-          {variables.map((variable, i) => (
-            <VariableListEntry variable={variable!} key={i} />
-          ))}
-          <div className="flex">{variableCreateButton}</div>
-        </>
+        <SearchableList
+          items={variables}
+          fields={(variable) => [variable.name]}
+          renderItem={(variable) => (
+            <VariableListEntry variable={variable} key={variable.id} />
+          )}
+          placeholder="Search variables"
+          actions={variableCreateButton}
+          status={
+            <PlanLimitCount limit={limit} noun="variables" from="variables" />
+          }
+        />
       )}
     </AutoAnimate>
   );

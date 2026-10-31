@@ -11,6 +11,9 @@ import (
 func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
 		appID := c.Param("appID")
+		if c.APIToken != nil && !c.APIToken.CanUseApp(appID) {
+			return handler.ErrForbidden("missing_access", "The API token can't use this app")
+		}
 
 		app, err := m.appStore.App(c.Context(), appID)
 		if err != nil {
@@ -34,7 +37,10 @@ func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc 
 			c.UserAppRole = model.AppCollaboratorRoleOwner
 		}
 
-		features := m.planManager.AppFeatures(c.Context(), appID)
+		features, err := m.planManager.AppFeatures(c.Context(), appID)
+		if err != nil {
+			return err
+		}
 
 		c.App = app
 		c.Features = features

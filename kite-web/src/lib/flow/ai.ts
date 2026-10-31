@@ -9,8 +9,9 @@ import {
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { normalizeHandle } from "./nodes";
 import { serializeFlow } from "./serialize";
-import { FlowIssue, validateFlow } from "./validate";
+import { describeIssue, FlowIssue, validateFlow } from "./validate";
 
 // The limits of the API.
 const maxMessages = 20;
@@ -33,6 +34,8 @@ interface FlowAIResult {
   message: string;
   // A request the user can send to make the change the message suggests.
   buildPrompt: string;
+  // A template of the marketplace the AI suggests adding instead of building.
+  templateId: string;
   // What the AI asks the user to fill in.
   fields: FlowAIField[];
   // How many rounds of problems the AI fixed in its own changes.
@@ -115,12 +118,14 @@ export async function runFlowAIPrompt({
     prompt_id: promptId,
     message,
     build_prompt: buildPrompt,
+    template_id: templateId,
     fields,
   } = res;
   const changed = new Set<string>();
   let result: FlowAIResult = {
     message,
     buildPrompt,
+    templateId,
     fields,
     repairs: 0,
     issues: [],
@@ -142,8 +147,12 @@ export async function runFlowAIPrompt({
     let after = before;
     if (res.edits.length > 0) {
       const edited = applyFlowEdits(flow, res.edits as FlowEdit[], context);
-      for (const id of getChangedNodeIds(flow.nodes, edited.nodes)) {
-        changed.add(id);
+      const changes = diffFlow(flow, edited);
+      for (const n of [
+        ...(changes?.added ?? []),
+        ...(changes?.changed ?? []),
+      ]) {
+        changed.add(n.id);
       }
       flow = applied = { nodes: edited.nodes, edges: edited.edges };
       after = getIssues(edited.issues);
@@ -190,6 +199,43 @@ function wasReverted(applied: Flow, current: Flow, changedNodeIds: string[]) {
   return changedNodeIds.some((id) => data.get(id) !== appliedData.get(id));
 }
 
+export interface FlowChanges {
+  added: Node<NodeData>[];
+  changed: Node<NodeData>[];
+  removed: Node<NodeData>[];
+}
+
+// Compares the blocks and connections of two flows, leaving out where blocks
+// are and whether they are selected. Returns nothing if they're the same.
+export function diffFlow(before: Flow, after: Flow): FlowChanges | undefined {
+  const previous = new Map(before.nodes.map((n) => [n.id, n.data]));
+  const ids = new Set(after.nodes.map((n) => n.id));
+  const changes = {
+    added: after.nodes.filter((n) => !previous.has(n.id)),
+    changed: after.nodes.filter(
+      (n) => previous.has(n.id) && previous.get(n.id) !== n.data
+    ),
+    removed: before.nodes.filter((n) => !ids.has(n.id)),
+  };
+  const edgesBefore = new Set(before.edges.map(edgeKey));
+  const edgesAfter = new Set(after.edges.map(edgeKey));
+  const edgesChanged =
+    edgesBefore.size !== edgesAfter.size ||
+    [...edgesAfter].some((e) => !edgesBefore.has(e));
+  if (
+    edgesChanged ||
+    changes.added.length + changes.changed.length + changes.removed.length > 0
+  ) {
+    return changes;
+  }
+}
+
+function edgeKey(e: Edge) {
+  return `${e.source}:${normalizeHandle(e.sourceHandle)}>${
+    e.target
+  }:${normalizeHandle(e.targetHandle)}`;
+}
+
 // Writes the values the user filled in for the AI's fields as a message,
 // leaving out empty ones.
 export function composeFieldAnswers(fields: FlowAIField[], values: string[]) {
@@ -204,18 +250,4 @@ function toRequestMessages(messages: FlowAIChatMessage[]) {
   return messages
     .slice(-maxMessages)
     .map((m) => ({ ...m, content: m.content.slice(0, maxMessageLength) }));
-}
-
-function getChangedNodeIds(before: Node<NodeData>[], after: Node<NodeData>[]) {
-  const previous = new Map(before.map((n) => [n.id, n.data]));
-  return after
-    .filter((n) => !previous.has(n.id) || previous.get(n.id) !== n.data)
-    .map((n) => n.id);
-}
-
-// Blocks of the same type have the same title, so the ID tells the AI which
-// one is meant.
-function describeIssue(issue: FlowIssue) {
-  const id = issue.nodeId ?? issue.edgeId;
-  return id ? `${id}: ${issue.message}` : issue.message;
 }

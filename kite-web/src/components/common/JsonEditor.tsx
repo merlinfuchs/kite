@@ -11,26 +11,25 @@ type ChangeEvent = {
 export default function JsonEditor({
   src,
   onChange,
+  readOnly,
 }: {
   src: any;
   onChange: (src: any) => void;
+  readOnly?: boolean;
 }) {
+  function change(e: ChangeEvent) {
+    onChange(e.updated_src);
+    return true;
+  }
+
   return (
     <ReactJson
       src={src}
       enableClipboard={true}
-      onEdit={(e: ChangeEvent) => {
-        onChange(e.updated_src);
-        return true;
-      }}
-      onAdd={(e: ChangeEvent) => {
-        onChange(e.updated_src);
-        return true;
-      }}
-      onDelete={(e: ChangeEvent) => {
-        onChange(e.updated_src);
-        return true;
-      }}
+      // false hides the buttons to edit, add and delete.
+      onEdit={!readOnly && change}
+      onAdd={!readOnly && change}
+      onDelete={!readOnly && change}
       theme="google"
       style={{
         padding: "10px",

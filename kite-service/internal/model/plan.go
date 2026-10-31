@@ -14,6 +14,9 @@ type Plan struct {
 	LemonSqueezyProductID string
 	LemonSqueezyVariantID string
 
+	YearlyPrice                 float32
+	LemonSqueezyYearlyVariantID string
+
 	DiscordRoleID string
 
 	FeatureMaxCollaborators     int
@@ -26,9 +29,15 @@ type Plan struct {
 	FeatureMaxEventListeners    int
 	FeaturePrioritySupport      bool
 	FeatureRotatingStatus       bool
+	FeatureServerProfiles       bool
+	FeatureAnimatedProfile      bool
+	FeaturePersonas             bool
+	FeatureVoiceAudio           bool
 
 	FeatureMaxScheduledEventListeners int
 	FeatureMinScheduleIntervalSeconds int
+
+	FeatureMaxWebhookEventListeners int
 
 	FeatureMaxAIPromptsPerMonth int
 }
@@ -45,9 +54,15 @@ func (p Plan) Features() Features {
 		MaxEventListeners:    p.FeatureMaxEventListeners,
 		PrioritySupport:      p.FeaturePrioritySupport,
 		RotatingStatus:       p.FeatureRotatingStatus,
+		ServerProfiles:       p.FeatureServerProfiles,
+		AnimatedProfile:      p.FeatureAnimatedProfile,
+		Personas:             p.FeaturePersonas,
+		VoiceAudio:           p.FeatureVoiceAudio,
 
 		MaxScheduledEventListeners: p.FeatureMaxScheduledEventListeners,
 		MinScheduleIntervalSeconds: p.FeatureMinScheduleIntervalSeconds,
+
+		MaxWebhookEventListeners: p.FeatureMaxWebhookEventListeners,
 
 		MaxAIPromptsPerMonth: p.FeatureMaxAIPromptsPerMonth,
 	}
@@ -64,9 +79,15 @@ type Features struct {
 	MaxEventListeners    int
 	PrioritySupport      bool
 	RotatingStatus       bool
+	ServerProfiles       bool
+	AnimatedProfile      bool
+	Personas             bool
+	VoiceAudio           bool
 
 	MaxScheduledEventListeners int
 	MinScheduleIntervalSeconds int
+
+	MaxWebhookEventListeners int
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	MaxAIPromptsPerMonth int
@@ -95,10 +116,16 @@ func (f Features) Merge(other Features) Features {
 		MaxEventListeners:    max(f.MaxEventListeners, other.MaxEventListeners),
 		PrioritySupport:      f.PrioritySupport || other.PrioritySupport,
 		RotatingStatus:       f.RotatingStatus || other.RotatingStatus,
+		ServerProfiles:       f.ServerProfiles || other.ServerProfiles,
+		AnimatedProfile:      f.AnimatedProfile || other.AnimatedProfile,
+		Personas:             f.Personas || other.Personas,
+		VoiceAudio:           f.VoiceAudio || other.VoiceAudio,
 
 		MaxScheduledEventListeners: max(f.MaxScheduledEventListeners, other.MaxScheduledEventListeners),
 		// A shorter interval is the better one, unlike every other field.
 		MinScheduleIntervalSeconds: minSet(f.MinScheduleIntervalSeconds, other.MinScheduleIntervalSeconds),
+
+		MaxWebhookEventListeners: max(f.MaxWebhookEventListeners, other.MaxWebhookEventListeners),
 
 		MaxAIPromptsPerMonth: max(f.MaxAIPromptsPerMonth, other.MaxAIPromptsPerMonth),
 	}

@@ -4,11 +4,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberBan: BlockDefinition = {
   type: "action_member_ban",
+  id_prefix: "member",
   title: "Ban member",
   description: "Ban a member from the server",
   icon: "user-round-x",
   category: "Members",
   credits: 1,
+  permissions: ["BAN_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",

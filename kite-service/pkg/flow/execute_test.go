@@ -99,6 +99,115 @@ func TestFlowExecuteCommand(t *testing.T) {
 	assert.Equal(t, "Pong!", discordProvider.response.Data.Content.Val)
 }
 
+func TestFlowErrorNamesFailingBlock(t *testing.T) {
+	random := &CompiledFlowNode{
+		ID:   "2",
+		Type: FlowNodeTypeActionRandomGenerate,
+		Data: FlowNodeData{
+			CustomLabel: "Roll",
+			RandomMin:   "5",
+			RandomMax:   "1",
+		},
+	}
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryCommand,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{{
+			ID:       "1",
+			Type:     FlowNodeTypeActionLog,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{random}},
+		}}},
+	}
+
+	discordProvider := &TestDiscordProvider{}
+	err := node.Execute(newErrorTestContext(t, discordProvider))
+	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
+	assert.EqualError(t, err, msg)
+
+	var trace *FlowErrorTrace
+	require.ErrorAs(t, err, &trace)
+	assert.Equal(t, "2", trace.NodeID)
+
+	var flowErr *FlowError
+	assert.ErrorAs(t, err, &flowErr)
+
+	require.NotNil(t, discordProvider.response.Data)
+	assert.Contains(t, discordProvider.response.Data.Content.Val, msg)
+}
+
+// Errors name the block they happened in, also when it doesn't run below
+// its parent like other blocks.
+func TestFlowErrorTracesBlock(t *testing.T) {
+	failing := func() *CompiledFlowNode {
+		return &CompiledFlowNode{
+			ID:   "failing",
+			Type: FlowNodeTypeActionRandomGenerate,
+			Data: FlowNodeData{RandomMin: "5", RandomMax: "1"},
+		}
+	}
+
+	condition := &CompiledFlowNode{
+		ID:   "condition",
+		Type: FlowNodeTypeControlConditionCompare,
+		Data: FlowNodeData{ConditionBaseValue: "a"},
+	}
+	item := &CompiledFlowNode{
+		ID:       "item",
+		Type:     FlowNodeTypeControlConditionItemCompare,
+		Data:     FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"},
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+	}
+	condition.Children.Default = []*CompiledFlowNode{item}
+
+	cooldown := &CompiledFlowNode{
+		ID:   "failing",
+		Type: FlowNodeTypeOptionCommandCooldown,
+		Data: FlowNodeData{CooldownDurationSeconds: "soon"},
+	}
+
+	tests := map[string]*CompiledFlowNode{
+		"condition item": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		},
+		"cooldown": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{cooldown}},
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+		},
+	}
+
+	for name, node := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := node.Execute(newErrorTestContext(t, &TestDiscordProvider{}))
+			assert.Equal(t, "failing", DescribeError(err).NodeID, err)
+		})
+	}
+}
+
+func newErrorTestContext(t *testing.T, discordProvider provider.DiscordProvider) *FlowContext {
+	c := NewContext(
+		context.Background(),
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Discord: discordProvider,
+			Log:     &provider.MockLogProvider{},
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxCredits:    1000,
+		},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+	return c
+}
+
 type TestDiscordProvider struct {
 	provider.MockDiscordProvider
 
@@ -265,8 +374,8 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 					CustomID:  "color",
 					MaxValues: 2,
 					Options: []ModalComponentOptionData{
-						{Label: "Red", Value: "red"},
-						{Label: "Blue", Default: true},
+						{Label: "Red", Value: "red", Emoji: &EmojiData{Name: "🔴"}},
+						{Label: "Blue", Default: true, Emoji: &EmojiData{ID: "123", Name: "blue"}},
 					},
 				}},
 			},
@@ -310,6 +419,8 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	options := sel["options"].([]any)
 	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
 	assert.Equal(t, true, options[1].(map[string]any)["default"])
+	assert.Equal(t, map[string]any{"name": "🔴"}, options[0].(map[string]any)["emoji"])
+	assert.Equal(t, map[string]any{"id": "123", "name": "blue"}, options[1].(map[string]any)["emoji"])
 
 	channel := components[2]["component"].(map[string]any)
 	assert.EqualValues(t, discord.ChannelSelectComponentType, channel["type"])
@@ -485,6 +596,19 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 			}}),
 		},
 		{
+			name: "radio group option with emoji",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeRadioGroup, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Emoji: &EmojiData{Name: "🔴"}},
+				{Label: "B"},
+			}}),
+		},
+		{
+			name: "select option with invalid emoji ID",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Emoji: &EmojiData{ID: "abc"}},
+			}}),
+		},
+		{
 			name: "single select with two defaults",
 			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
 				{Label: "A", Default: true},
@@ -529,17 +653,67 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 	}
 }
 
-func TestFlowExecuteConditionCompareEquality(t *testing.T) {
+func TestFlowExecuteConditionCompare(t *testing.T) {
 	tests := []struct {
-		name      string
-		mode      ComparsionMode
-		itemValue string
-		expected  bool
+		name       string
+		base       string
+		mode       ComparsionMode
+		itemValue  string
+		ignoreCase bool
+		expected   bool
 	}{
-		{name: "equal match", mode: ComparsionModeEqual, itemValue: "a", expected: true},
-		{name: "equal mismatch", mode: ComparsionModeEqual, itemValue: "b", expected: false},
-		{name: "not equal match", mode: ComparsionModeNotEqual, itemValue: "a", expected: false},
-		{name: "not equal mismatch", mode: ComparsionModeNotEqual, itemValue: "b", expected: true},
+		{name: "equal match", base: "a", mode: ComparsionModeEqual, itemValue: "a", expected: true},
+		{name: "equal mismatch", base: "a", mode: ComparsionModeEqual, itemValue: "b", expected: false},
+		{name: "not equal match", base: "a", mode: ComparsionModeNotEqual, itemValue: "a", expected: false},
+		{name: "not equal mismatch", base: "a", mode: ComparsionModeNotEqual, itemValue: "b", expected: true},
+		{name: "equal yes or no with text", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: true},
+		{name: "equal no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: false},
+		{name: "not equal yes or no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeNotEqual, itemValue: "false", expected: false},
+		{name: "equal number with text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5", expected: true},
+		{name: "equal yes or no with yes", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "yes", expected: true},
+		{name: "equal number with decimal text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5.0", expected: true},
+
+		{name: "one of match", base: "gtg", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: true},
+		{name: "one of mismatch", base: "afk", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: false},
+		{name: "one of trims lines and skips blank ones", base: "gtg", mode: ComparsionModeOneOf, itemValue: "\n  brb \n\n\t gtg \r\n", expected: true},
+		{name: "one of trims base", base: "{{ ' gtg\\n' }}", mode: ComparsionModeOneOf, itemValue: "brb\ngtg", expected: true},
+		{name: "not one of trims base", base: "{{ ' gtg\\n' }}", mode: ComparsionModeNotOneOf, itemValue: "brb\ngtg", expected: false},
+		{name: "one of blank lines don't match empty", base: "", mode: ComparsionModeOneOf, itemValue: "\n \n", expected: false},
+		{name: "one of keeps commas", base: "hi, there", mode: ComparsionModeOneOf, itemValue: "hi, there\nbye", expected: true},
+		{name: "one of doesn't split commas", base: "hi", mode: ComparsionModeOneOf, itemValue: "hi, there\nbye", expected: false},
+		{name: "one of evaluates placeholders", base: "gtg", mode: ComparsionModeOneOf, itemValue: "brb\n{{ 'g' + 'tg' }}", expected: true},
+		{name: "one of number", base: "{{ 5 }}", mode: ComparsionModeOneOf, itemValue: "4\n5", expected: true},
+		{name: "one of is case sensitive", base: "GTG", mode: ComparsionModeOneOf, itemValue: "gtg", expected: false},
+		{name: "one of ignore case", base: "GTG", mode: ComparsionModeOneOf, itemValue: "brb\nGtg", ignoreCase: true, expected: true},
+		{name: "not one of match", base: "afk", mode: ComparsionModeNotOneOf, itemValue: "brb\ngtg", expected: true},
+		{name: "not one of mismatch", base: "gtg", mode: ComparsionModeNotOneOf, itemValue: "brb\n gtg ", expected: false},
+		{name: "not one of empty list", base: "gtg", mode: ComparsionModeNotOneOf, itemValue: "\n\n", expected: true},
+		{name: "not one of ignore case", base: "GTG", mode: ComparsionModeNotOneOf, itemValue: "gtg", ignoreCase: true, expected: false},
+		{name: "one of array", base: "gtg", mode: ComparsionModeOneOf, itemValue: "{{ ['brb', ' gtg '] }}", expected: true},
+		{name: "one of array mismatch", base: "afk", mode: ComparsionModeOneOf, itemValue: "{{ ['brb', 'gtg'] }}", expected: false},
+		{name: "one of array of numbers", base: "{{ 5 }}", mode: ComparsionModeOneOf, itemValue: "{{ [4, 5] }}", expected: true},
+		{name: "one of array of numbers with text", base: "5", mode: ComparsionModeOneOf, itemValue: "{{ [4, 5.0] }}", expected: true},
+		{name: "one of empty array", base: "gtg", mode: ComparsionModeOneOf, itemValue: "{{ [] }}", expected: false},
+		{name: "one of array of blanks doesn't match empty", base: "", mode: ComparsionModeOneOf, itemValue: "{{ ['', ' '] }}", expected: false},
+		{name: "not one of empty array", base: "gtg", mode: ComparsionModeNotOneOf, itemValue: "{{ [] }}", expected: true},
+		{name: "one of array is case sensitive", base: "GTG", mode: ComparsionModeOneOf, itemValue: "{{ ['brb', 'gtg'] }}", expected: false},
+		{name: "one of array ignore case", base: "GTG", mode: ComparsionModeOneOf, itemValue: "{{ ['brb', 'Gtg'] }}", ignoreCase: true, expected: true},
+		{name: "contains any array ignore case", base: "image.PNG", mode: ComparsionModeContainsAny, itemValue: "{{ ['.gif', '.Png'] }}", ignoreCase: true, expected: true},
+		{name: "contains any array of blanks matches nothing", base: "image.png", mode: ComparsionModeContainsAny, itemValue: "{{ ['', ' '] }}", expected: false},
+		{name: "contains any match", base: "image.png", mode: ComparsionModeContainsAny, itemValue: ".gif\n.png", expected: true},
+		{name: "contains any mismatch", base: "image.png", mode: ComparsionModeContainsAny, itemValue: ".gif\n.jpg", expected: false},
+		{name: "contains any blank lines match nothing", base: "image.png", mode: ComparsionModeContainsAny, itemValue: "\n  \n", expected: false},
+		{name: "contains any is case sensitive", base: "image.PNG", mode: ComparsionModeContainsAny, itemValue: ".png", expected: false},
+		{name: "contains any ignore case", base: "image.PNG", mode: ComparsionModeContainsAny, itemValue: ".gif\n.png", ignoreCase: true, expected: true},
+
+		{name: "equal ignore case", base: "Hello", mode: ComparsionModeEqual, itemValue: "hELLO", ignoreCase: true, expected: true},
+		{name: "not equal ignore case", base: "Hello", mode: ComparsionModeNotEqual, itemValue: "hello", ignoreCase: true, expected: false},
+		{name: "equal number ignore case", base: "{{ 5 }}", mode: ComparsionModeEqual, itemValue: "{{ 5 }}", ignoreCase: true, expected: true},
+		{name: "contains ignore case", base: "Hello World", mode: ComparsionModeContains, itemValue: "WORLD", ignoreCase: true, expected: true},
+		{name: "starts with ignore case", base: "!Help me", mode: ComparsionModeStartsWith, itemValue: "!help", ignoreCase: true, expected: true},
+		{name: "starts with is case sensitive", base: "!Help me", mode: ComparsionModeStartsWith, itemValue: "!help", expected: false},
+		{name: "ends with ignore case", base: "photo.JPG", mode: ComparsionModeEndsWith, itemValue: ".jpg", ignoreCase: true, expected: true},
+		{name: "greater than ignores ignore case", base: "{{ 10 }}", mode: ComparsionModeGreaterThan, itemValue: "9", ignoreCase: true, expected: true},
 	}
 
 	for _, test := range tests {
@@ -569,14 +743,15 @@ func TestFlowExecuteConditionCompareEquality(t *testing.T) {
 			condition := &CompiledFlowNode{
 				ID:   "1",
 				Type: FlowNodeTypeControlConditionCompare,
-				Data: FlowNodeData{ConditionBaseValue: "a"},
+				Data: FlowNodeData{ConditionBaseValue: test.base},
 			}
 			item := &CompiledFlowNode{
 				ID:   "2",
 				Type: FlowNodeTypeControlConditionItemCompare,
 				Data: FlowNodeData{
-					ConditionItemMode:  test.mode,
-					ConditionItemValue: test.itemValue,
+					ConditionItemMode:       test.mode,
+					ConditionItemValue:      test.itemValue,
+					ConditionItemIgnoreCase: test.ignoreCase,
 				},
 				Parents: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
 				Children: ConnectedFlowNodes{

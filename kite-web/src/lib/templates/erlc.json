@@ -1,0 +1,343 @@
+{
+  "id": "erlc",
+  "version": 1,
+  "name": "ER:LC",
+  "description": "Show your ER:LC private server's status and players, and announce messages in it.",
+  "about": [
+    "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
+    "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Setup is two steps: enable ER:LC under Integrations in your app with your server key, and authorize Kite once so /announce can run commands."
+  ],
+  "faq": [
+    {
+      "question": "Where do I find my server key?",
+      "answer": "In ER:LC, open the settings of your private server and copy the server key. Paste it under Integrations in your Kite app."
+    },
+    {
+      "question": "Can the bot react to what happens in the game?",
+      "answer": "Yes. ER:LC can send your bot emergency calls and chat messages that start with ;, so you can build your own in-game commands with a webhook event listener. The ER:LC guide in Kite's docs shows how."
+    },
+    {
+      "question": "Can the bot run other ER:LC commands?",
+      "answer": "Yes. The Run ER:LC command block runs any command the game accepts, like :kick or :pm. Copy /announce in the editor and change its command."
+    }
+  ],
+  "usage": {
+    "unit": "ER:LC commands",
+    "unit_one": "command",
+    "per_thousand_members": 100
+  },
+  "icon": "siren",
+  "category": "games",
+  "setup": [
+    "Enable ER:LC under Integrations and add your server key.",
+    "Authorize Kite for your server once, so /announce can run commands."
+  ],
+  "parameters": [],
+  "commands": [
+    {
+      "id": "status",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_bcz",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 0
+            },
+            "data": {
+              "name": "status",
+              "description": "Show the status of the ER:LC server."
+            }
+          },
+          {
+            "id": "error_75c",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {}
+          },
+          {
+            "id": "erlc_ill",
+            "type": "action_erlc_server_get",
+            "position": {
+              "x": 410,
+              "y": 450
+            },
+            "data": {}
+          },
+          {
+            "id": "response_68x",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "**{{ result('erlc_ill').Name }}**\nPlayers: {{ result('erlc_ill').CurrentPlayers }}/{{ result('erlc_ill').MaxPlayers }}\nJoin code: `{{ result('erlc_ill').JoinKey }}`"
+              }
+            }
+          },
+          {
+            "id": "response_6ld",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 450
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't get the server: {{ result('error_75c') }}"
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "976773789",
+            "source": "command_bcz",
+            "target": "error_75c"
+          },
+          {
+            "id": "215312006",
+            "source": "error_75c",
+            "target": "erlc_ill",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "741510920",
+            "source": "erlc_ill",
+            "target": "response_68x"
+          },
+          {
+            "id": "99971482",
+            "source": "error_75c",
+            "target": "response_6ld",
+            "sourceHandle": "error"
+          }
+        ]
+      }
+    },
+    {
+      "id": "players",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_i0m",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 0
+            },
+            "data": {
+              "name": "players",
+              "description": "List the players in the ER:LC server."
+            }
+          },
+          {
+            "id": "error_4nh",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {}
+          },
+          {
+            "id": "erlc_60v",
+            "type": "action_erlc_server_get",
+            "position": {
+              "x": 410,
+              "y": 450
+            },
+            "data": {
+              "include_players": "true"
+            }
+          },
+          {
+            "id": "response_3bj",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "**Players in {{ result('erlc_60v').Name }} ({{ result('erlc_60v').CurrentPlayers }}/{{ result('erlc_60v').MaxPlayers }})**\n{{ len(result('erlc_60v').Players) == 0 ? 'Nobody is in the server.' : join(map(result('erlc_60v').Players, split(#.Player, ':')[0] + ' (' + #.Team + ')'), '\\n') }}"
+              }
+            }
+          },
+          {
+            "id": "response_er5",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 450
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't get the players: {{ result('error_4nh') }}"
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "566922093",
+            "source": "command_i0m",
+            "target": "error_4nh"
+          },
+          {
+            "id": "84929300",
+            "source": "error_4nh",
+            "target": "erlc_60v",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "417343727",
+            "source": "erlc_60v",
+            "target": "response_3bj"
+          },
+          {
+            "id": "39930159",
+            "source": "error_4nh",
+            "target": "response_er5",
+            "sourceHandle": "error"
+          }
+        ]
+      }
+    },
+    {
+      "id": "announce",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_wi5",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "announce",
+              "description": "Show a message to everyone in the ER:LC server."
+            }
+          },
+          {
+            "id": "arg_hvy",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "message",
+              "description": "The message to show.",
+              "command_argument_type": "string",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "permissions_i6a",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "32"
+            }
+          },
+          {
+            "id": "error_q3x",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "erlc_pgs",
+            "type": "action_erlc_command_run",
+            "position": {
+              "x": 410,
+              "y": 660
+            },
+            "data": {
+              "erlc_command": ":m {{interaction.command.args.message}}"
+            }
+          },
+          {
+            "id": "response_p1d",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 870
+            },
+            "data": {
+              "message_data": {
+                "content": "Announced in the server:\n>>> {{interaction.command.args.message}}"
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "response_uwq",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't announce the message: {{ result('error_q3x') }}"
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "829586113",
+            "source": "arg_hvy",
+            "target": "command_wi5"
+          },
+          {
+            "id": "890427141",
+            "source": "permissions_i6a",
+            "target": "command_wi5"
+          },
+          {
+            "id": "249615792",
+            "source": "command_wi5",
+            "target": "error_q3x"
+          },
+          {
+            "id": "65308546",
+            "source": "error_q3x",
+            "target": "erlc_pgs",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "104545141",
+            "source": "erlc_pgs",
+            "target": "response_p1d"
+          },
+          {
+            "id": "103342421",
+            "source": "error_q3x",
+            "target": "response_uwq",
+            "sourceHandle": "error"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": []
+}

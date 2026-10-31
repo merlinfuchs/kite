@@ -12,7 +12,7 @@ INSERT INTO event_listeners (
     description,
     enabled,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     filter,
     flow_source,
@@ -25,12 +25,17 @@ INSERT INTO event_listeners (
 
 -- name: UpdateEventListener :one
 UPDATE event_listeners SET
+    type = $2,
+    filter = $3,
+    description = $4,
+    flow_source = $5,
+    updated_at = $6
+WHERE id = $1 RETURNING *;
+
+-- name: UpdateEventListenerEnabled :one
+UPDATE event_listeners SET
     enabled = $2,
-    type = $3,
-    filter = $4,
-    description = $5,
-    flow_source = $6,
-    updated_at = $7
+    updated_at = $3
 WHERE id = $1 RETURNING *;
 
 -- name: UpdateEventListenerWebhookSecret :one
@@ -50,8 +55,8 @@ SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule';
 -- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE;
 
--- name: DeleteEventListener :exec
-DELETE FROM event_listeners WHERE id = $1;
+-- name: DeleteEventListener :one
+DELETE FROM event_listeners WHERE id = $1 RETURNING *;
 
 -- name: CountEventListenersByAppAndSource :one
 SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
@@ -63,3 +68,9 @@ FROM (
     SELECT UNNEST(@ids::TEXT[]) AS id, UNNEST(@last_run_ats::TIMESTAMP[]) AS last_run_at
 ) AS runs
 WHERE event_listeners.id = runs.id;
+
+-- name: DeleteEventListenersByBundleInstall :many
+DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING *;
+
+-- name: GetEventListenerForUpdate :one
+SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;

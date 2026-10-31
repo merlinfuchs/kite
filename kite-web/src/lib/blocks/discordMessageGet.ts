@@ -4,12 +4,14 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageGet: BlockDefinition = {
   type: "action_message_get",
+  id_prefix: "message",
   title: "Get channel message",
   description: "Get a message from a channel",
   icon: "mail-search",
   category: "Messages",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
+  permissions: ["READ_MESSAGE_HISTORY"],
   fields: [
     {
       name: "channel_target",

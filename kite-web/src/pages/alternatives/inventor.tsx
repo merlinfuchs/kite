@@ -11,14 +11,16 @@ import {
 const content: ComparisonPageContent = {
   title: "Free inventor.bot Alternative",
   description:
-    "Looking for an inventor.bot alternative? Kite is a free, open source Discord bot maker. Make up to 10 bots for free and build them in a visual editor.",
+    "Looking for an inventor.bot alternative? Kite is a free, open source Discord bot maker. Make up to 10 bots for free, each in up to 100 servers, with no inactivity rule.",
   competitor: "inventor.bot",
   lastChecked: "October 2026",
   heading: "A Free inventor.bot Alternative",
   intro:
-    "Kite and inventor.bot (formerly inventor.gg) both let you make a Discord bot with a visual editor. With Kite you can make up to 10 bots for free, and Kite is open source.",
+    "Kite and inventor.bot (formerly inventor.gg) both let you make a Discord bot with a visual editor. Kite's free plan has higher limits, no ad in your bot's status and keeps your bot online even on quiet days. Kite is also open source.",
   chooseKite: [
     "You want more than 2 bots for free",
+    "Your bot should be in more than 15 servers without paying",
+    "You want your own status without paying",
     "You want AI built into the editor",
     "You want a tool that is open source",
   ],
@@ -31,6 +33,26 @@ const content: ComparisonPageContent = {
       feature: "Free bots",
       kite: "10",
       competitor: "2",
+    },
+    {
+      feature: "Servers per bot (free)",
+      kite: "100",
+      competitor: "15",
+    },
+    {
+      feature: "Commands and events (free)",
+      kite: "15 commands and 10 event listeners",
+      competitor: "15 combined",
+    },
+    {
+      feature: "Branding on your bot (free)",
+      kite: 'Default "Powered by Kite.onl" status, free to change',
+      competitor: "invt.bot ad in the status, removing it needs Premium",
+    },
+    {
+      feature: "Stays online when unused (free)",
+      kite: "Yes",
+      competitor: "Up to 14 days without an event",
     },
     {
       feature: "Visual editor",
@@ -54,7 +76,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "Templates and plugins",
+      kite: "50+ templates in the marketplace",
       competitor: "Plugins",
     },
   ],
@@ -64,11 +86,21 @@ const content: ComparisonPageContent = {
       description:
         "inventor.bot includes 2 free bots and has paid plans for more. With Kite you can make up to 10 bots for free.",
     },
+    {
+      title: "Higher Free Limits",
+      description:
+        "inventor.bot's free plan allows 15 servers per bot and 15 commands and events combined. Kite's free plan allows 100 servers, 15 commands and 10 event listeners.",
+    },
+    {
+      title: "No Ad in Your Status",
+      description:
+        "Free inventor.bot bots show an invt.bot ad as their status, and free bots go offline after 14 days without an event. Kite lets you set your own status for free and keeps your bot online even on quiet days.",
+    },
     aiBuilderPoint,
     {
-      title: "Templates and Plugins",
+      title: "Templates You Can Change",
       description:
-        "Import templates for moderation, welcome messages and an AI chatbot, or turn on the Counting and Starboard plugins.",
+        "Add templates for moderation, welcome messages, counting, a starboard or an AI chatbot, and change every block of them.",
     },
     openSourcePoint,
   ],

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
 	"net/http"
 	"net/url"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
@@ -46,6 +48,8 @@ type blockField struct {
 	Min       *int64 `json:"min"`
 	Max       *int64 `json:"max"`
 	MaxLength *int   `json:"max_length"`
+	// The values a string field can have, if they're limited.
+	Options []string `json:"options"`
 }
 
 // blockRequest is how a block runs: a request to the API of an integration
@@ -56,10 +60,22 @@ type blockRequest struct {
 	Operation   string `json:"operation"`
 	Method      string `json:"method"`
 	Path        string `json:"path"`
+	// Values Kite adds to the request, which aren't settings.
+	Inject []blockRequestInject `json:"inject"`
+}
+
+// blockRequestInject is a value Kite adds to a request. Value
+// "discord_bot_token" is the app's bot token, for services that call Discord
+// for the app.
+type blockRequestInject struct {
+	In    string `json:"in"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type blockDefinition struct {
-	Type FlowNodeType `json:"type"`
+	Type  FlowNodeType `json:"type"`
+	Title string       `json:"title"`
 	// Nil for blocks whose cost depends on their settings, see CreditsCost.
 	Credits        *int `json:"credits"`
 	AuditLogReason bool `json:"audit_log_reason"`
@@ -260,7 +276,7 @@ var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
 	integration, ok := integrations[block.Run.Integration]
 	if block.Run.Kind != "request" || !ok {
-		return traceError(n, fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration))
+		return fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration)
 	}
 
 	pathParams := make(map[string]string)
@@ -270,11 +286,26 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 	for _, field := range block.Fields {
 		hasBody = hasBody || field.In == "body"
+		settingErr := func(err error) error {
+			return &settingError{Field: field.Name, Err: err}
+		}
 
 		raw := n.Data.Setting(field.Name)
+		if field.Type == "json_object" {
+			props, err := ctx.evalJSONObjectField(raw)
+			if err != nil {
+				return settingErr(fmt.Errorf("invalid value for %s: %w", field.Name, err))
+			}
+			if props == nil && field.Required {
+				return settingErr(fmt.Errorf("%s is required", field.Name))
+			}
+			maps.Copy(body, props)
+			continue
+		}
+
 		value, err := ctx.evalFieldValue(raw)
 		if err != nil {
-			return traceError(n, err)
+			return settingErr(err)
 		}
 		// Only a setting that's left empty falls back, not a placeholder
 		// that turns out empty, which could point e.g. a ban at the wrong
@@ -284,21 +315,21 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 		if isEmptyFieldValue(value) {
 			if field.Required || field.In == "path" {
-				return traceError(n, fmt.Errorf("%s is required", field.Name))
+				return settingErr(fmt.Errorf("%s is required", field.Name))
 			}
 			continue
 		}
 
 		v, err := field.value(value)
 		if err != nil {
-			return traceError(n, fmt.Errorf("invalid value for %s: %w", field.Name, err))
+			return settingErr(fmt.Errorf("invalid value for %s: %w", field.Name, err))
 		}
 
 		switch field.In {
 		case "path":
 			pathParams[field.Target], err = apiPathSegment(field.Name, fmt.Sprint(v))
 			if err != nil {
-				return traceError(n, err)
+				return settingErr(err)
 			}
 		case "query":
 			if list, ok := v.([]string); ok {
@@ -313,6 +344,17 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 	}
 
+	var secrets []string
+	for _, inject := range block.Run.Inject {
+		if inject.In != "body" || inject.Value != "discord_bot_token" {
+			return fmt.Errorf("unsupported injected value: %s in %s", inject.Value, inject.In)
+		}
+		token := ctx.Discord.BotToken()
+		secrets = append(secrets, token)
+		body[inject.Name] = token
+		hasBody = true
+	}
+
 	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
 		return pathParams[m[1:len(m)-1]]
 	})
@@ -325,7 +367,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -333,7 +375,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	if block.AuditLogReason {
 		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 		reason = api.AuditLogReason(auditLogReason.String())
 	}
@@ -348,16 +390,16 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 			Reason: reason,
 		})
 	} else {
-		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody)
+		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody, secrets...)
 	}
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	if block.Result != nil {
 		result, err := blockResult(block, resBody)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 		ctx.StoreNodeResult(n, result)
 	}
@@ -395,6 +437,31 @@ func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {
 		return thing.Null, err
 	}
 	return thing.NewFromJSONValue(v), nil
+}
+
+// evalJSONObjectField reads a JSON object stored as text, with the
+// placeholders in its strings filled in. It's nil if the setting is empty.
+func (ctx *FlowContext) evalJSONObjectField(raw any) (map[string]any, error) {
+	text, ok := raw.(string)
+	if !ok && raw != nil {
+		return nil, fmt.Errorf("must be a JSON object")
+	}
+	if strings.TrimSpace(text) == "" {
+		return nil, nil
+	}
+
+	b, err := ctx.EvalJSONTemplate(json.RawMessage(text))
+	if err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	// Keeps IDs written as numbers exact.
+	dec.UseNumber()
+	var props map[string]any
+	if err := dec.Decode(&props); err != nil || props == nil {
+		return nil, fmt.Errorf("must be a JSON object")
+	}
+	return props, nil
 }
 
 func isEmptyFieldValue(value thing.Thing) bool {
@@ -449,6 +516,13 @@ func (f blockField) value(value thing.Thing) (any, error) {
 			return nil, err
 		}
 		return n, nil
+	case "color":
+		// ParseColor checks the range itself.
+		n, err := message.ParseColor(strings.TrimSpace(value.String()))
+		if err != nil {
+			return nil, fmt.Errorf("must be a number or a hex color like #ff0000")
+		}
+		return n, nil
 	case "emoji":
 		// A custom emoji is sent as "name:id", a standard one as itself.
 		emoji := value.Object()
@@ -490,6 +564,9 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		s := value.String()
 		if f.MaxLength != nil && utf8.RuneCountInString(s) > *f.MaxLength {
 			return nil, fmt.Errorf("must be at most %d characters", *f.MaxLength)
+		}
+		if len(f.Options) > 0 && !slices.Contains(f.Options, s) {
+			return nil, fmt.Errorf("must be one of %s", strings.Join(f.Options, ", "))
 		}
 		return s, nil
 	}
@@ -555,8 +632,9 @@ func decodeDiscordResult[T any](body []byte, list bool, wrap func(T) thing.Thing
 // integrationRequest sends a request to an integration other than Discord,
 // with the app's credential if it needs one. The credential only goes to the
 // integration's own host: its base URL comes from its definition, and
-// redirects aren't followed.
-func integrationRequest(ctx *FlowContext, integration Integration, method string, path string, body []byte) ([]byte, error) {
+// redirects aren't followed. Errors don't contain the credential or the
+// other secrets of the request, like a bot token in its body.
+func integrationRequest(ctx *FlowContext, integration Integration, method string, path string, body []byte, secrets ...string) ([]byte, error) {
 	var credential string
 	if integration.NeedsCredential() {
 		var err error
@@ -565,35 +643,42 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 			return nil, err
 		}
 	}
-	secrets := &flowSecrets{values: map[string]string{"credential": credential, "kite_key": integration.kiteKey}}
+	redact := &flowSecrets{values: map[string]string{"credential": credential, "kite_key": integration.kiteKey}}
+	for i, secret := range secrets {
+		redact.values[fmt.Sprint(i)] = secret
+	}
 
 	req, err := integration.NewRequest(ctx, method, path, credential, body)
 	if err != nil {
-		return nil, secrets.Redact(err)
+		return nil, redact.Redact(err)
 	}
 
 	resp, err := integration.Do(ctx, credential, req, func(req *http.Request) (*http.Response, error) {
 		return ctx.HTTP.HTTPRequestWithoutRedirects(ctx, req)
 	})
 	if err != nil {
-		return nil, secrets.Redact(err)
+		return nil, redact.Redact(err)
 	}
 	defer resp.Body.Close()
 
 	data, err := io.ReadAll(io.LimitReader(resp.Body, thing.MaxBodySize+1))
 	if err != nil {
-		return nil, secrets.Redact(err)
+		return nil, redact.Redact(err)
 	}
 	if len(data) > thing.MaxBodySize {
 		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		// Redacted before it's cut, which could leave part of the credential.
-		msg := []rune(secrets.redactString(string(data)))
+		msg := []rune(redact.redactString(string(data)))
 		if len(msg) > 300 {
 			msg = msg[:300]
 		}
-		return nil, fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, string(msg))
+		return nil, &integrationError{
+			Integration: integration.ID,
+			Status:      resp.StatusCode,
+			Err:         fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, string(msg)),
+		}
 	}
 	return data, nil
 }

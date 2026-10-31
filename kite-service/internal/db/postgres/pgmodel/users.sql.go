@@ -31,12 +31,56 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
+const getUserByAppDiscordID = `-- name: GetUserByAppDiscordID :one
+SELECT users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM apps
+JOIN users ON users.id = apps.owner_user_id
+WHERE apps.discord_id = $1
+`
+
+func (q *Queries) GetUserByAppDiscordID(ctx context.Context, discordID string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByAppDiscordID, discordID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.DiscordID,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
 SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE discord_id = $1
 `
 
 func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByDiscordID, discordID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.DiscordID,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByDiscordUsername = `-- name: GetUserByDiscordUsername :one
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE lower(discord_username) = lower($1)
+ORDER BY updated_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetUserByDiscordUsername(ctx context.Context, lower string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByDiscordUsername, lower)
 	var i User
 	err := row.Scan(
 		&i.ID,

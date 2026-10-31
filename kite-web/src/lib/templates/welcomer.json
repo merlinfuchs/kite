@@ -1,0 +1,131 @@
+{
+  "id": "welcomer",
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The channel is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
+  "name": "Welcomer",
+  "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
+  "about": [
+    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
+    "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
+  ],
+  "faq": [
+    {
+      "question": "What does the bot need to welcome members?",
+      "answer": "The Server Members Intent, which you turn on under Bot in the Discord Developer Portal, and permission to send messages in the welcome channel."
+    },
+    {
+      "question": "Can I welcome members with a DM instead?",
+      "answer": "Yes. Replace the Send message block with a direct message block in the editor, or keep both."
+    },
+    {
+      "question": "Can new members get a role too?",
+      "answer": "Yes. Add an Add role to member block after the message. If members should click a button before they get the role, use the Verification template instead."
+    }
+  ],
+  "usage": {
+    "unit": "members joining or leaving",
+    "unit_one": "member",
+    "per_thousand_members": 120
+  },
+  "icon": "user-round-plus",
+  "category": "welcome",
+  "parameters": [
+    {
+      "key": "channel_id",
+      "label": "Channel",
+      "description": "The channel to send the welcome and leave messages to.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "welcome-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_3f2",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_type": "guild_member_add",
+              "description": "Welcome a new user to the server."
+            }
+          },
+          {
+            "id": "message_svs",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "channel_target": "{{params.channel_id}}",
+              "message_data": {
+                "content": "Welcome {{event.user.mention}} to the server!"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "282441148",
+            "source": "event_3f2",
+            "target": "message_svs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "leave-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_l7q",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_type": "guild_member_remove",
+              "description": "Say goodbye when a member leaves the server."
+            }
+          },
+          {
+            "id": "message_d3m",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "channel_target": "{{params.channel_id}}",
+              "message_data": {
+                "content": "**{{event.user.display_name}}** has left the server."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "581661197",
+            "source": "event_l7q",
+            "target": "message_d3m"
+          }
+        ]
+      }
+    }
+  ]
+}

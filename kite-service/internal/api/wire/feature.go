@@ -11,9 +11,15 @@ type Features struct {
 	MaxEventListeners    int  `json:"max_event_listeners"`
 	PrioritySupport      bool `json:"priority_support"`
 	RotatingStatus       bool `json:"rotating_status"`
+	ServerProfiles       bool `json:"server_profiles"`
+	AnimatedProfile      bool `json:"animated_profile"`
+	Personas             bool `json:"personas"`
+	VoiceAudio           bool `json:"voice_audio"`
 
 	MaxScheduledEventListeners int `json:"max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int `json:"min_schedule_interval_seconds"`
+
+	MaxWebhookEventListeners int `json:"max_webhook_event_listeners"`
 
 	MaxAIPromptsPerMonth int `json:"max_ai_prompts_per_month"`
 }

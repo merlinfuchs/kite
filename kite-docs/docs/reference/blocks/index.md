@@ -26,9 +26,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Message Blocks
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
+- [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
+- [Forward message](./actions/action_message_forward.md) - Forward messages to other channels
 - [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
 - [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
@@ -37,6 +39,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Publish message](./actions/action_message_publish.md) - Publish messages from announcement channels to following servers
 - [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
@@ -55,6 +58,8 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get role](./actions/action_role_get.md) - Retrieve role information
 - [Create role](./actions/action_role_create.md) - Create roles in servers
+- [Edit role](./actions/action_role_edit.md) - Edit the settings of roles
+- [Delete role](./actions/action_role_delete.md) - Delete roles from servers
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
@@ -64,10 +69,14 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
+- [Play audio](./actions/action_voice_audio_play.md) - Play an uploaded sound in a voice channel
+- [Stop audio](./actions/action_voice_audio_stop.md) - Stop the audio the app plays
 
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
 
 ## Variable Blocks
 
@@ -82,11 +91,13 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
 - [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
 - [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
+- [AI Translate](./actions/action_ai_translate.md) - Let AI translate text to another language
 
 ## Utility Blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
-- [Generate Random Number](./actions/action_random_generate.md) - Generate random numbers
+- [Generate Random Value](./actions/action_random_generate.md) - Generate random numbers or pick random items from a list
+- [Lookup Value](./actions/action_value_lookup.md) - Find the value for a key in a table
 - [Log Message](./actions/action_log.md) - Log messages for debugging
 
 ## API Request Blocks
@@ -94,17 +105,31 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
-## Roblox Blocks
+## Integration Blocks
+
+Integration blocks use services outside of Discord. They have their own **Integrations** tab in the flow editor's sidebar, and most of them only work after the integration has been enabled on your app's [Integrations](../integrations.md) page.
+
+### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
-## ER:LC Blocks
+### Cookie API
+
+- [Create transcript](./actions/action_cookie_api_transcript_create.md) - Save the messages of a channel as a web page
+- [Generate card](./actions/action_cookie_api_card_create.md) - Create an image like a welcome card
+- [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
+- [Create captcha](./actions/action_cookie_api_captcha_create.md) - Create a captcha page for a user to solve
+- [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
+- [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
+
+### ER:LC
 
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
 ## Control Flow Blocks
 
+- [If](./controls/control_if.md) - Run actions if something is true
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
@@ -112,6 +137,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
+- [End flow](./controls/control_flow_end.md) - Stop the flow early
 - [Wait](./controls/control_sleep.md) - Pause flow execution
 
 ## Command Options

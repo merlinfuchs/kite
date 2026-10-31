@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -23,7 +24,12 @@ type LogEntry struct {
 	CommandID       null.String `json:"command_id"`
 	EventListenerID null.String `json:"event_listener_id"`
 	MessageID       null.String `json:"message_id"`
-	CreatedAt       time.Time   `json:"created_at"`
+	// The block a flow error happened in.
+	NodeID    null.String        `json:"node_id"`
+	NodeType  null.String        `json:"node_type"`
+	ErrorCode null.String        `json:"error_code"`
+	Details   *flow.ErrorDetails `json:"details"`
+	CreatedAt time.Time          `json:"created_at"`
 }
 
 type LogSummary struct {

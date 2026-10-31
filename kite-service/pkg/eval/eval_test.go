@@ -239,6 +239,31 @@ func TestEvalTemplateKeepSpaceSinglePlaceholder(t *testing.T) {
 	}
 }
 
+// Placeholders that can't be filled stay as written, still within the limits.
+func TestEvalTemplateKeepUnresolved(t *testing.T) {
+	c := Context{Env: Env{"name": "world"}, KeepUnresolved: true}
+
+	for template, want := range map[string]string{
+		"{{user.mention}}":             "{{user.mention}}",
+		"hi {{name}} {{user.mention}}": "hi world {{user.mention}}",
+		"{{ arg('x') }} and {{ 1 + }}": "{{ arg('x') }} and {{ 1 + }}",
+		"unclosed {{ name":             "unclosed {{ name",
+	} {
+		res, err := EvalTemplate(context.Background(), template, c)
+		if err != nil {
+			t.Fatalf("%q: %v", template, err)
+		}
+		if got := res.String(); got != want {
+			t.Errorf("EvalTemplate(%q) = %q, want %q", template, got, want)
+		}
+	}
+
+	template := strings.Repeat(`{{repeat("x",20000)}}`, (MaxTemplateOutputLength/20_000)+2)
+	if _, err := EvalTemplate(context.Background(), template, c); !errors.Is(err, ErrTemplateOutputTooLong) {
+		t.Fatalf("expected ErrTemplateOutputTooLong, got %v", err)
+	}
+}
+
 func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	origin := Context{Env: Env{
 		"user": "origin-user",
@@ -280,6 +305,30 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 		`inputs("name")[0]`:       "previous-name",
 		`origin.arg("why")`:       "origin-why",
 		`origin.inputs("age")[0]`: "30",
+	}
+	for expression, want := range cases {
+		res, err := Eval(context.Background(), expression, c)
+		if err != nil {
+			t.Fatalf("%s: %v", expression, err)
+		}
+		if res.String() != want {
+			t.Errorf("%s = %q, want %q", expression, res.String(), want)
+		}
+	}
+}
+
+func TestResumeContextWithoutEarlierIsCurrent(t *testing.T) {
+	c := Context{Env: Env{
+		"user": "runner",
+		"arg":  func(name string) any { return "current-" + name },
+	}}
+	c.SetResumeContext(nil)
+
+	cases := map[string]string{
+		`origin.user`:         "runner",
+		`previous.user`:       "runner",
+		`origin.arg("why")`:   "current-why",
+		`previous.arg("why")`: "current-why",
 	}
 	for expression, want := range cases {
 		res, err := Eval(context.Background(), expression, c)

@@ -9,7 +9,7 @@ export interface NodeCategorySection {
 }
 
 const sections: Record<
-  "option" | "action" | "control_flow",
+  "option" | "action" | "control_flow" | "integration",
   Omit<NodeCategorySection, "nodeTypes">[]
 > = {
   option: [
@@ -28,8 +28,10 @@ const sections: Record<
   ],
   action: [
     {
+      // Event listeners can only use them after a button or select menu, see
+      // needs_interaction.
       title: "Responses",
-      contextTypes: ["command", "component_button", "component_select_menu"],
+      contextTypes: null,
     },
     {
       title: "Messages",
@@ -69,14 +71,6 @@ const sections: Record<
       contextTypes: null,
     },
     {
-      title: "Roblox",
-      contextTypes: null,
-    },
-    {
-      title: "ER:LC",
-      contextTypes: null,
-    },
-    {
       title: "AI",
       contextTypes: null,
     },
@@ -104,6 +98,23 @@ const sections: Record<
     },
     {
       title: "Others",
+      contextTypes: null,
+    },
+  ],
+  // Blocks of third-party services that are enabled on the app's
+  // integrations page. They have their own tab, last as they matter the least to
+  // most flows, so the action blocks stay about Discord.
+  integration: [
+    {
+      title: "Roblox",
+      contextTypes: null,
+    },
+    {
+      title: "Cookie API",
+      contextTypes: null,
+    },
+    {
+      title: "ER:LC",
       contextTypes: null,
     },
   ],

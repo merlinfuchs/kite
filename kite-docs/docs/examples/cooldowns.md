@@ -12,7 +12,7 @@ Build the cooldown from stored variables instead when you need:
 - Cooldowns on event listeners, which can't use the block.
 - A cooldown on only part of a flow, like one branch, or one that only starts once the flow succeeds.
 
-![Cooldown Result](./img/cooldown-result.png)
+![Cooldown Result](./img/cooldown-result.webp)
 
 ## Step 1 - Creating a variable
 
@@ -92,7 +92,7 @@ At the end of your actual command flow, add the **Set Stored Variable** block
 - **Operation** - `overwrite`
 - **Value** - `{{now().Unix()}}`
 
-![Cooldown Flow](./img/cooldowns-flow.png)
+![Cooldown Flow](./img/cooldowns-flow.webp)
 
 :::tip
 *If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*

@@ -8,10 +8,12 @@ import { BlockDefinition } from "./types";
 
 export const discordResponseEdit: BlockDefinition = {
   type: "action_response_edit",
+  id_prefix: "response",
   title: "Edit response message",
   description: "Bot edits an existing interaction response message",
   icon: "pen",
   category: "Responses",
+  needs_interaction: true,
   component: "action_message",
   requires: ["discord"],
   credits: 1,

@@ -5,6 +5,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 type InteractionData struct {
@@ -75,6 +77,14 @@ func (d *EventData) UserID() discord.UserID {
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.UserID
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		// Whoever did it.
+		return data.UserID
+	case *guildevent.MessageDelete:
+		// The author, if the bot saw the message.
+		if data.Message != nil {
+			return data.Message.Author.ID
+		}
 	}
 	return 0
 }
@@ -101,6 +111,10 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.ID
 	case *state.GuildLeaveEvent:
 		return data.ID
+	case *guildevent.MessageDelete:
+		return data.GuildID
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		return data.GuildID
 	}
 	return 0
 }
@@ -117,6 +131,10 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.ChannelID
+	case *guildevent.MessageDelete:
+		return data.ChannelID
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		return auditlog.ChannelID(data.AuditLogEntry)
 	}
 	return 0
 }
@@ -128,6 +146,8 @@ func (d *EventData) MessageID() discord.MessageID {
 	case *gateway.MessageUpdateEvent:
 		return data.ID
 	case *gateway.MessageDeleteEvent:
+		return data.ID
+	case *guildevent.MessageDelete:
 		return data.ID
 	case *gateway.MessageReactionAddEvent:
 		return data.MessageID

@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -78,81 +77,6 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 	}
 
 	return nil
-}
-
-// updateDiscordBotProfile sets the avatar and banner of the bot user. A nil
-// image is left unchanged and an empty one is removed.
-func (h *AppHandler) updateDiscordBotProfile(ctx context.Context, app *model.App, avatar *string, banner *string) (*discord.User, error) {
-	client, err := h.getAppClient(ctx, app)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get app client: %w", err)
-	}
-
-	// Discord removes an image when its field is null, so the fields can't be
-	// a struct with omitempty.
-	req := map[string]*string{}
-	if avatar != nil {
-		req["avatar"] = emptyToNil(avatar)
-	}
-	if banner != nil {
-		req["banner"] = emptyToNil(banner)
-	}
-
-	var user *discord.User
-	err = client.RequestJSON(&user, "PATCH", api.EndpointMe, httputil.WithJSONBody(req))
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func emptyToNil(s *string) *string {
-	if s == nil || *s == "" {
-		return nil
-	}
-	return s
-}
-
-func appProfileToWire(user *discord.User) *wire.AppProfile {
-	// AvatarURL falls back to the default avatar, which can't be removed.
-	var avatarURL string
-	if user.Avatar != "" {
-		avatarURL = user.AvatarURL()
-	}
-	bannerURL := user.BannerURL()
-
-	return &wire.AppProfile{
-		AvatarURL: null.NewString(avatarURL, avatarURL != ""),
-		BannerURL: null.NewString(bannerURL, bannerURL != ""),
-	}
-}
-
-// discordProfileErrorMessage returns the reason Discord gave for rejecting a
-// profile change, like changing the avatar too fast.
-func discordProfileErrorMessage(err error) string {
-	var restErr *httputil.HTTPError
-	if !errors.As(err, &restErr) {
-		return err.Error()
-	}
-
-	var fields map[string]struct {
-		Errors []struct {
-			Message string `json:"message"`
-		} `json:"_errors"`
-	}
-	if json.Unmarshal(restErr.Errors, &fields) == nil {
-		for _, name := range []string{"avatar", "banner"} {
-			if errs := fields[name].Errors; len(errs) > 0 && errs[0].Message != "" {
-				return errs[0].Message
-			}
-		}
-	}
-
-	if restErr.Message != "" {
-		return restErr.Message
-	}
-	return "Discord rejected the image"
 }
 
 // discordInstallParams is an install params object of Discord.

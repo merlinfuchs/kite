@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -44,6 +45,12 @@ type discordAPIOperation struct {
 	PathParams  []discordAPIParam `json:"path_params"`
 	QueryParams []discordAPIParam `json:"query_params"`
 	HasBody     bool              `json:"has_body"`
+	// Interaction is set for endpoints of the interaction the flow runs with,
+	// whose {application_id} and {interaction_token} Kite fills in.
+	Interaction bool `json:"interaction"`
+	// FlowOnly is set for endpoints that can't be called from outside of
+	// flows, like by MCP clients.
+	FlowOnly bool `json:"flow_only"`
 }
 
 var discordAPIOperations = func() map[string]discordAPIOperation {
@@ -64,9 +71,10 @@ var discordAPIOperations = func() map[string]discordAPIOperation {
 var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 
 // discordAPIPath builds the path of a request to op, relative to the API base
-// URL, from the evaluated path and query parameters.
-func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, query map[string]thing.Thing) (string, error) {
-	params := make(map[string]string, len(op.PathParams))
+// URL, from the evaluated path and query parameters, and the path parameters
+// Kite fills in itself.
+func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
+	params := make(map[string]string, len(op.PathParams)+len(filled))
 	for _, p := range op.PathParams {
 		value, ok := pathParams[p.Name]
 		if !ok {
@@ -78,6 +86,15 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 			return "", err
 		}
 		params[p.Name], err = apiPathSegment(p.Name, v)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Set last, so they win over a user's value of the same name.
+	for name, v := range filled {
+		var err error
+		params[name], err = apiPathSegment(name, v)
 		if err != nil {
 			return "", err
 		}
@@ -208,6 +225,20 @@ func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 	return discord.Snowflake(id), nil
 }
 
+// evalSnowflake evaluates a setting that must be an ID. what names the
+// setting in the error.
+func evalSnowflake(ctx *FlowContext, template string, what string) (discord.Snowflake, error) {
+	value, err := ctx.EvalTemplate(template)
+	if err != nil {
+		return 0, err
+	}
+	id, err := discordSnowflake(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s %w", what, err)
+	}
+	return id, nil
+}
+
 // discordAPIResult turns the JSON of a response into a result that later
 // blocks can read fields of, like {{result('id').code}}.
 func discordAPIResult(body []byte) (thing.Thing, error) {
@@ -220,4 +251,59 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 		return thing.Null, fmt.Errorf("failed to parse response: %w", err)
 	}
 	return thing.NewFromJSONValue(v), nil
+}
+
+// DiscordAPIRequestOutsideFlow is the request to the endpoint operation of
+// the Discord API Request block, for calls from outside of flows like the
+// ones of MCP clients. Parameters are JSON values, and endpoints of an
+// interaction can't be called as there is none.
+func DiscordAPIRequestOutsideFlow(operation string, pathParams map[string]json.RawMessage, query map[string]json.RawMessage, body json.RawMessage) (provider.DiscordAPIRequest, error) {
+	op, ok := discordAPIOperations[operation]
+	if !ok {
+		return provider.DiscordAPIRequest{}, fmt.Errorf("unknown Discord API endpoint: %s", operation)
+	}
+	if op.Interaction || op.FlowOnly {
+		return provider.DiscordAPIRequest{}, fmt.Errorf("the %s endpoint can only be used in flows", op.ID)
+	}
+
+	path, err := discordAPIPath(op, jsonParamThings(pathParams), jsonParamThings(query), nil)
+	if err != nil {
+		return provider.DiscordAPIRequest{}, err
+	}
+
+	req := provider.DiscordAPIRequest{Method: op.Method, Path: path}
+	if len(body) > 0 && string(body) != "null" {
+		if !op.HasBody {
+			return provider.DiscordAPIRequest{}, fmt.Errorf("the %s endpoint doesn't take a body", op.ID)
+		}
+		req.Body = body
+	}
+	return req, nil
+}
+
+func jsonParamThings(values map[string]json.RawMessage) map[string]thing.Thing {
+	res := make(map[string]thing.Thing, len(values))
+	for k, v := range values {
+		res[k] = jsonParamThing(v)
+	}
+	return res
+}
+
+// jsonParamThing keeps numbers as they are written instead of decoding them,
+// as IDs are too big for a float64.
+func jsonParamThing(raw json.RawMessage) thing.Thing {
+	raw = bytes.TrimSpace(raw)
+	var str string
+	if json.Unmarshal(raw, &str) == nil {
+		return thing.NewString(str)
+	}
+	var list []json.RawMessage
+	if json.Unmarshal(raw, &list) == nil {
+		items := make([]thing.Thing, len(list))
+		for i, item := range list {
+			items[i] = jsonParamThing(item)
+		}
+		return thing.NewArray(items)
+	}
+	return thing.NewString(string(raw))
 }

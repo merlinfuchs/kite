@@ -8,22 +8,54 @@ import { useAppId } from "./params";
 import { toast } from "sonner";
 import { track } from "../analytics";
 import { BillingPlan } from "../types/wire.gen";
+import { BillingInterval, planVariantId } from "../billing";
+import env from "../env/client";
 
 export function useLemonSqueezyCheckout() {
+  const openCheckout = useOpenCheckout();
+
+  return useCallback(
+    (plan: BillingPlan, interval: BillingInterval) =>
+      openCheckout(planVariantId(plan, interval), { plan: plan.id, interval }),
+    [openCheckout]
+  );
+}
+
+// useDonationCheckout opens the checkout of the pay what you want product.
+export function useDonationCheckout() {
+  const openCheckout = useOpenCheckout();
+
+  return useCallback(() => {
+    if (!env.NEXT_PUBLIC_DONATION_VARIANT_ID) return;
+    openCheckout(env.NEXT_PUBLIC_DONATION_VARIANT_ID, { plan: "donation" });
+  }, [openCheckout]);
+}
+
+function useOpenCheckout() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
 
   return useCallback(
-    (plan: BillingPlan) => {
+    (variantId: string, properties: Record<string, string>) => {
       checkoutMutation.mutate(
         {
-          lemonsqueezy_variant_id: plan.lemonsqueezy_variant_id,
+          lemonsqueezy_variant_id: variantId,
         },
         {
           onSuccess(res) {
             if (res.success) {
-              track("checkout_started", { plan: plan.id });
-              (window as any).LemonSqueezy.Url.Open(res.data.url);
+              track("checkout_started", properties);
+              const lemonSqueezy = (window as any).LemonSqueezy;
+              // Lemon.js has no event for closing the checkout, so abandoned
+              // checkouts are the started ones that never complete.
+              lemonSqueezy.Setup({
+                eventHandler: (event: { event: string }) => {
+                  if (event.event === "Checkout.Success") {
+                    track("checkout_completed", properties);
+                  }
+                },
+              });
+              lemonSqueezy.Url.Open(res.data.url);
             } else {
               toast.error(
                 `Failed to create checkout: ${res.error.message} ${res.error.code}`
@@ -48,17 +80,17 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
   );
 
   return useCallback(
-    (plan: BillingPlan) => {
+    (plan: BillingPlan, interval: BillingInterval) => {
       if (!subscriptionId) return;
 
       planUpdateMutation.mutate(
         {
-          lemonsqueezy_variant_id: plan.lemonsqueezy_variant_id,
+          lemonsqueezy_variant_id: planVariantId(plan, interval),
         },
         {
           onSuccess(res) {
             if (res.success) {
-              track("plan_switched", { plan: plan.id });
+              track("plan_switched", { plan: plan.id, interval });
               toast.success("Your plan has been updated.");
             } else {
               toast.error(

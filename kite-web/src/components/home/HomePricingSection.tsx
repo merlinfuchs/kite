@@ -1,84 +1,93 @@
-import PlanFeatureList from "@/components/common/PlanFeatureList";
-import { Badge } from "@/components/ui/badge";
+import PlanCards from "@/components/common/PlanCards";
+import PlanIntervalToggle from "@/components/common/PlanIntervalToggle";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";
+import type { Plans } from "@/lib/apiData";
+import { BillingInterval, plansHaveYearly } from "@/lib/billing";
 import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { ReactNode, useState } from "react";
 
-export default function HomePricingSection() {
-  const query = useBillingPlansQuery();
-  const plans = useResponseData(query)?.filter(
+// usePublicPlans returns the plans that are shown. They come with the page on
+// kite.onl. The export for self-hosting, or a page built without the API,
+// loads them in the browser. failed means there's nothing to show, as the API
+// can't be reached.
+export function usePublicPlans(initial: Plans) {
+  const query = useBillingPlansQuery(!initial);
+  const plans = (useResponseData(query) ?? initial)?.filter(
     (plan): plan is BillingPlan => !!plan && !plan.hidden
   );
+  return { plans, failed: !plans && (query.isError || query.isSuccess) };
+}
 
-  // Nothing to show if the API can't be reached.
-  if (query.isError || (query.isSuccess && !plans)) return null;
+// header replaces the heading, like the pricing page does with its own.
+export default function HomePricingSection({
+  initial,
+  header,
+}: {
+  initial: Plans;
+  header?: ReactNode;
+}) {
+  const { plans, failed } = usePublicPlans(initial);
+  const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
+  const yearlyAvailable = !!plans && plansHaveYearly(plans);
+
+  const heading = header ?? (
+    <>
+      <h2 className="text-3xl md:text-4xl font-bold text-center">Pricing</h2>
+      <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
+        Every bot starts on the free plan, which keeps it online 24/7 with your
+        own name, avatar and status. Upgrade a single bot when it needs higher
+        limits, and cancel any time.
+      </p>
+    </>
+  );
+
+  // Without plans only a header of the page stays, the cards have nothing to
+  // show.
+  if (failed) {
+    return header ? (
+      <section className="container py-16 sm:py-24">{header}</section>
+    ) : null;
+  }
 
   return (
     <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Simple{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Pricing
-        </span>
-      </h2>
-      <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
-        Every bot starts on the free plan. Upgrade a single bot when it needs
-        higher limits, and cancel any time.
-      </p>
+      {heading}
 
-      <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
-        {plans
-          ? plans.map((plan) => (
-              <div
-                key={plan.id}
-                className={cn(
-                  "rounded-xl border bg-card p-6 flex flex-col",
-                  plan.popular && "border-2 border-primary shadow-lg"
-                )}
+      {yearlyAvailable && (
+        <div className="mt-8">
+          <PlanIntervalToggle
+            plans={plans}
+            value={interval}
+            onChange={setBillingInterval}
+          />
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto mt-12">
+        {plans ? (
+          <PlanCards
+            plans={plans}
+            interval={interval}
+            button={(plan) => (
+              <Button
+                asChild
+                variant={plan.popular ? "default" : "outline"}
+                className="w-full"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">{plan.title}</h3>
-                  {plan.popular && (
-                    <Badge variant="secondary" className="text-primary">
-                      Best Value
-                    </Badge>
-                  )}
-                </div>
-                <div className="mt-4">
-                  {plan.price === 0 ? (
-                    <span className="text-4xl font-bold">Free</span>
-                  ) : (
-                    <>
-                      <span className="text-4xl font-bold">${plan.price}</span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        / month per bot
-                      </span>
-                    </>
-                  )}
-                </div>
-                <p className="text-muted-foreground mt-2">{plan.description}</p>
-                <Button
-                  asChild
-                  variant={plan.popular ? "default" : "outline"}
-                  className="mt-6"
-                >
-                  <Link href="/apps">
-                    {plan.price === 0 ? "Get Started for Free" : "Get Started"}
-                  </Link>
-                </Button>
-                <hr className="my-6" />
-                <PlanFeatureList plan={plan} />
-              </div>
-            ))
-          : // Keeps the height while loading, so the page doesn't jump.
-            Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="h-[620px] rounded-xl border bg-card" />
-            ))}
+                <Link href="/apps">
+                  {plan.price === 0 ? "Start for Free" : `Get ${plan.title}`}
+                </Link>
+              </Button>
+            )}
+          />
+        ) : (
+          // Keeps the height while loading, so the page doesn't jump.
+          <div className="h-[460px] rounded-xl border bg-card" />
+        )}
       </div>
 
       <p className="text-sm text-muted-foreground text-center mt-6">
@@ -90,6 +99,15 @@ export default function HomePricingSection() {
           About credits
         </a>
       </p>
+
+      <div className="text-center mt-4">
+        <Link
+          href="/pricing#compare"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Compare all limits
+        </Link>
+      </div>
     </section>
   );
 }

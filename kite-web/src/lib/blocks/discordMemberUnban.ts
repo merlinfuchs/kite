@@ -3,11 +3,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberUnban: BlockDefinition = {
   type: "action_member_unban",
+  id_prefix: "member",
   title: "Unban member",
   description: "Unban a member from the server",
   icon: "user-round-check",
   category: "Members",
   credits: 1,
+  permissions: ["BAN_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",

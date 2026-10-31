@@ -23,20 +23,21 @@ func TestDiscordAPIOperations(t *testing.T) {
 		"bulk_delete_messages",
 		"prune_guild",
 		"leave_guild",
-		"update_my_guild_member",
 		"get_my_application",
 	} {
 		assert.Contains(t, discordAPIOperations, id)
 	}
 
-	// Managed by Kite or not authenticated with the bot token.
+	// Managed by Kite, premium, or not authenticated with the bot token.
 	for _, id := range []string{
+		"update_my_guild_member",
 		"update_my_application",
 		"bulk_set_application_commands",
 		"create_application_emoji",
 		"update_my_user",
 		"create_interaction_response",
 		"execute_webhook",
+		"update_original_webhook_message",
 		"create_guild_sticker",
 	} {
 		assert.NotContains(t, discordAPIOperations, id)
@@ -47,11 +48,12 @@ func TestDiscordAPIPath(t *testing.T) {
 	str := func(s string) thing.Thing { return thing.NewString(s) }
 
 	tests := map[string]struct {
-		op    string
-		path  map[string]thing.Thing
-		query map[string]thing.Thing
-		want  string
-		err   string
+		op     string
+		path   map[string]thing.Thing
+		query  map[string]thing.Thing
+		filled map[string]string
+		want   string
+		err    string
 	}{
 		"path params": {
 			op:   "get_guild_member",
@@ -126,6 +128,12 @@ func TestDiscordAPIPath(t *testing.T) {
 			query: map[string]thing.Thing{"author_id": thing.NewAny([]any{"2", "3"})},
 			want:  "/guilds/1/messages/search?author_id=2&author_id=3",
 		},
+		"filled path params": {
+			op:     "update_followup_message",
+			path:   map[string]thing.Thing{"message_id": str("3")},
+			filled: map[string]string{"application_id": "1", "interaction_token": "a.b-c"},
+			want:   "/webhooks/1/a.b-c/messages/3",
+		},
 		"unknown query param": {
 			op:    "get_channel",
 			path:  map[string]thing.Thing{"channel_id": str("1")},
@@ -145,7 +153,7 @@ func TestDiscordAPIPath(t *testing.T) {
 			op, ok := discordAPIOperations[tt.op]
 			require.True(t, ok)
 
-			path, err := discordAPIPath(op, tt.path, tt.query)
+			path, err := discordAPIPath(op, tt.path, tt.query, tt.filled)
 			if tt.err != "" {
 				assert.EqualError(t, err, tt.err)
 				return
@@ -157,7 +165,7 @@ func TestDiscordAPIPath(t *testing.T) {
 }
 
 type discordAPITestProvider struct {
-	provider.MockDiscordProvider
+	TestDiscordProvider
 
 	req provider.DiscordAPIRequest
 	err error
@@ -172,13 +180,17 @@ func (p *discordAPITestProvider) APIRequest(ctx context.Context, req provider.Di
 }
 
 func executeDiscordAPIRequest(t *testing.T, p provider.DiscordProvider, data FlowNodeData) error {
+	return executeDiscordAPIRequestWith(t, p, &TestContextData{}, data)
+}
+
+func executeDiscordAPIRequestWith(t *testing.T, p provider.DiscordProvider, ctxData FlowContextData, data FlowNodeData) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	c := NewContext(
 		ctx,
 		5*time.Second,
-		&TestContextData{},
+		ctxData,
 		FlowProviders{
 			Discord: p,
 			Log:     &provider.MockLogProvider{},
@@ -224,6 +236,90 @@ func TestExecuteDiscordAPIRequest(t *testing.T) {
 		"nonce": 2,
 		"list": [true, [1, 2]]
 	}`, string(p.req.Body))
+}
+
+func TestExecuteDiscordAPIRequestInteraction(t *testing.T) {
+	tests := map[string]struct {
+		data      discord.InteractionData
+		responded bool
+		op        string
+		body      string
+		path      string
+		response  api.InteractionResponse
+	}{
+		"ephemeral followup to a command": {
+			data: &discord.CommandInteraction{},
+			op:   "create_followup_message",
+			body: `{"content": "Hi", "flags": "64"}`,
+			path: "/webhooks/2/secret.token",
+			response: api.InteractionResponse{
+				Type: api.DeferredMessageInteractionWithSource,
+				Data: &api.InteractionResponseData{Flags: discord.EphemeralMessage},
+			},
+		},
+		"edit of a button's message": {
+			data:     &discord.ButtonInteraction{},
+			op:       "update_original_interaction_response",
+			body:     `{"content": "Done"}`,
+			path:     "/webhooks/2/secret.token/messages/@original",
+			response: api.InteractionResponse{Type: api.DeferredMessageUpdate},
+		},
+		"already responded": {
+			data:      &discord.CommandInteraction{},
+			responded: true,
+			op:        "create_followup_message",
+			body:      `{"content": "Hi"}`,
+			path:      "/webhooks/2/secret.token",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			p := &discordAPITestProvider{TestDiscordProvider: TestDiscordProvider{responded: tt.responded}}
+			interaction := &discord.InteractionEvent{ID: 1, AppID: 2, Token: "secret.token", Data: tt.data}
+			err := executeDiscordAPIRequestWith(t, p, &TestContextData{interaction: interaction}, FlowNodeData{
+				DiscordAPIRequestData: &DiscordAPIRequestData{
+					Operation: tt.op,
+					BodyJSON:  json.RawMessage(tt.body),
+				},
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.path, p.req.Path)
+			assert.Equal(t, tt.response, p.response)
+		})
+	}
+}
+
+type eventContextData struct {
+	TestContextData
+}
+
+func (d *eventContextData) Interaction() *discord.InteractionEvent {
+	return nil
+}
+
+func TestExecuteDiscordAPIRequestWithoutInteraction(t *testing.T) {
+	err := executeDiscordAPIRequestWith(t, &discordAPITestProvider{}, &eventContextData{}, FlowNodeData{
+		DiscordAPIRequestData: &DiscordAPIRequestData{Operation: "create_followup_message"},
+	})
+	assert.ErrorContains(t, err, "the create_followup_message endpoint only works in flows started by an interaction")
+}
+
+func TestAutoDeferResponseForDiscordAPIRequest(t *testing.T) {
+	node := &CompiledFlowNode{
+		Type: FlowNodeTypeActionDiscordAPIRequest,
+		Data: FlowNodeData{DiscordAPIRequestData: &DiscordAPIRequestData{
+			Operation: "create_followup_message",
+			BodyJSON:  json.RawMessage(`{"content": "Hi", "flags": 64}`),
+		}},
+	}
+	require.True(t, isResponseNode(node))
+
+	resp := autoDeferResponse(&discord.InteractionEvent{Data: &discord.CommandInteraction{}}, node)
+	assert.Equal(t, discord.EphemeralMessage, resp.Data.Flags)
+
+	node.Data.DiscordAPIRequestData.Operation = "create_message"
+	assert.False(t, isResponseNode(node))
 }
 
 func TestExecuteDiscordAPIRequestErrors(t *testing.T) {
@@ -284,4 +380,37 @@ func TestDiscordAPIResult(t *testing.T) {
 	res, err = discordAPIResult(nil)
 	require.NoError(t, err)
 	assert.True(t, res.IsNil())
+}
+
+func TestDiscordAPIRequestOutsideFlow(t *testing.T) {
+	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
+
+	// IDs sent as JSON numbers keep all their digits.
+	req, err := DiscordAPIRequestOutsideFlow("get_guild_member",
+		map[string]json.RawMessage{"guild_id": raw(`1234567890123456789`), "user_id": raw(`"2"`)}, nil, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "GET", req.Method)
+	assert.Equal(t, "/guilds/1234567890123456789/members/2", req.Path)
+
+	req, err = DiscordAPIRequestOutsideFlow("list_messages",
+		map[string]json.RawMessage{"channel_id": raw(`"1"`)}, map[string]json.RawMessage{"limit": raw(`10`)}, raw(`null`))
+	require.NoError(t, err)
+	assert.Equal(t, "/channels/1/messages?limit=10", req.Path)
+	assert.Nil(t, req.Body)
+
+	for name, op := range map[string]string{
+		"unknown":     "launch_rocket",
+		"blocked":     "prune_guild",
+		"webhooks":    "get_guild_webhooks",
+		"interaction": "create_followup_message",
+	} {
+		_, err := DiscordAPIRequestOutsideFlow(op, map[string]json.RawMessage{}, nil, nil)
+		assert.Error(t, err, name)
+	}
+
+	_, err = DiscordAPIRequestOutsideFlow("get_channel", map[string]json.RawMessage{"channel_id": raw(`"../guilds"`)}, nil, nil)
+	assert.Error(t, err, "path traversal")
+
+	_, err = DiscordAPIRequestOutsideFlow("get_channel", map[string]json.RawMessage{"channel_id": raw(`"1"`)}, nil, raw(`{"a":1}`))
+	assert.Error(t, err, "body for an endpoint without one")
 }

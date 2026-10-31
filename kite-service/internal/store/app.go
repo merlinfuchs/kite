@@ -42,6 +42,7 @@ type AppGatewayRequirementsRow struct {
 	EventListenerTypes  []model.EventListenerType
 	PluginResources     []string
 	HasMessageInstances bool
+	UsesVoice           bool
 }
 
 type AppStore interface {
@@ -49,9 +50,17 @@ type AppStore interface {
 	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
+	// AppDiscordUserInstallCount is null until the gateway first fetched it.
+	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
-	DisableApp(ctx context.Context, opts AppDisableOpts) error
+	// DisableApp reports whether the app was enabled before.
+	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
+	// PauseAppForCredits and UnpauseAppForCredits report whether the app
+	// wasn't paused or was paused before.
+	PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
@@ -59,6 +68,7 @@ type AppStore interface {
 	// enabled app ID: disabling an app bumps updated_at, so the gateway
 	// manager can shut those connections down without a full table scan.
 	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
 	// AppGatewayRequirements reports what the app actually consumes from the
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)
@@ -79,10 +89,22 @@ type AppStore interface {
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)
-	CountCollaboratorsByApp(ctx context.Context, appID string) (int, error)
 	CreateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error)
 	UpdateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error)
 	DeleteCollaborator(ctx context.Context, appID string, userID string) error
 
+	CollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) ([]*model.AppCollaboratorInvite, error)
+	// CountCollaboratorsAndInvitesByApp counts collaborators and pending invites,
+	// which both take up a seat.
+	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
+	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
+	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
+	// ClaimCollaboratorInvites adds the user as a collaborator to every app that
+	// invited their Discord username and deletes the invites.
+	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
+
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
+	// HasAppFlows reports whether the app has an enabled command or event
+	// listener, or a posted message with flows.
+	HasAppFlows(ctx context.Context, appID string) (bool, error)
 }

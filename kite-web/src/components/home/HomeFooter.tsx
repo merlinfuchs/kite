@@ -7,7 +7,10 @@ const botLinks = [
   { label: "Moderation Bot", href: "/discord-moderation-bot" },
   { label: "Welcome Bot", href: "/discord-welcome-bot" },
   { label: "AI Bot", href: "/ai-discord-bot" },
+  { label: "AI Bot Maker", href: "/ai-discord-bot-maker" },
   { label: "ER:LC Bot", href: "/erlc-discord-bot" },
+  { label: "MCP Server", href: "/discord-mcp-server" },
+  { label: "Cookie API Bot", href: "/cookie-api" },
 ];
 
 const compareLinks = [
@@ -15,9 +18,6 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
-  { label: "vs. SCNX", href: "/alternatives/scnx" },
-  { label: "vs. FromFlow", href: "/alternatives/fromflow" },
-  { label: "vs. VibeBot", href: "/alternatives/vibebot" },
   { label: "All Comparisons", href: "/alternatives" },
 ];
 
@@ -110,16 +110,18 @@ export default function HomeFooter() {
             </a>
           </div>
           <div>
-            <Link
-              href="/guides/how-to-make-a-discord-bot"
-              className="opacity-60 hover:opacity-100"
-            >
-              Bot Building Guide
+            <Link href="/guides" className="opacity-60 hover:opacity-100">
+              Guides
             </Link>
           </div>
           <div>
             <Link href="/tools" className="opacity-60 hover:opacity-100">
               Discord Tools
+            </Link>
+          </div>
+          <div>
+            <Link href="/marketplace" className="opacity-60 hover:opacity-100">
+              Bot Templates
             </Link>
           </div>
         </div>
@@ -141,6 +143,12 @@ export default function HomeFooter() {
           <div>
             <Link href="/refund" className="opacity-60 hover:opacity-100">
               Refund Policy
+            </Link>
+          </div>
+
+          <div>
+            <Link href="/imprint" className="opacity-60 hover:opacity-100">
+              Legal Notice
             </Link>
           </div>
         </div>

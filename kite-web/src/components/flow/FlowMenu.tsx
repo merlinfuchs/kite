@@ -5,6 +5,8 @@ import {
   GitCompareIcon,
   LucideIcon,
   MessageSquareWarningIcon,
+  PlugIcon,
+  SlidersHorizontalIcon,
   TextCursorInputIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -12,20 +14,31 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowLogList from "./FlowLogList";
 import FlowNodeEditor from "./FlowNodeEditor";
 import FlowNodeExplorer from "./FlowNodeExplorer";
+import FlowParameterList from "./FlowParameterList";
 import { useStoreApi } from "@xyflow/react";
+import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 
-type Tab = "action" | "control_flow" | "option" | "logs";
+type Tab =
+  | "action"
+  | "control_flow"
+  | "option"
+  | "integration"
+  | "parameters"
+  | "logs";
 
 export default function FlowMenu({
   selectedNodeId,
   logs,
+  onShowNode,
 }: {
   selectedNodeId: string | null;
   logs?: LogEntry[];
+  onShowNode: (id: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("action");
 
   const store = useStoreApi();
+  const missingParameters = useMissingParameterCount();
 
   const wrappedSetTab = useCallback(
     (tab: Tab) => {
@@ -60,8 +73,27 @@ export default function FlowMenu({
             tab={tab}
             setTab={wrappedSetTab}
           />
+          <Tab
+            id="integration"
+            icon={PlugIcon}
+            title="Integration Blocks"
+            tab={tab}
+            setTab={wrappedSetTab}
+          />
         </div>
         <div className="flex-none flex flex-col items-center gap-1">
+          <Tab
+            id="parameters"
+            icon={SlidersHorizontalIcon}
+            title={
+              missingParameters
+                ? `Parameters (${missingParameters} without a value)`
+                : "Parameters"
+            }
+            badge={missingParameters}
+            tab={tab}
+            setTab={wrappedSetTab}
+          />
           <Tab
             id="logs"
             icon={MessageSquareWarningIcon}
@@ -72,11 +104,14 @@ export default function FlowMenu({
         </div>
       </div>
       <div className="flex-none relative w-96 bg-muted/30">
-        {(tab === "action" || tab === "control_flow" || tab === "option") && (
-          <FlowNodeExplorer category={tab} />
-        )}
+        {(tab === "action" ||
+          tab === "integration" ||
+          tab === "control_flow" ||
+          tab === "option") && <FlowNodeExplorer category={tab} />}
 
-        {tab === "logs" && <FlowLogList logs={logs} />}
+        {tab === "parameters" && <FlowParameterList />}
+
+        {tab === "logs" && <FlowLogList logs={logs} onShowNode={onShowNode} />}
 
         {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
       </div>
@@ -90,10 +125,13 @@ function Tab({
   title,
   tab,
   setTab,
+  badge,
 }: {
   id: Tab;
   icon: LucideIcon;
   title: string;
+  // Shown on the icon unless it's 0.
+  badge?: number;
   tab: Tab;
   setTab: (tab: Tab) => void;
 }) {
@@ -110,7 +148,14 @@ function Tab({
           onClick={() => setTab(id)}
           role="button"
         >
-          <Icon className="size-8" />
+          <div className="relative">
+            <Icon className="size-8" />
+            {!!badge && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-[10px] font-semibold leading-4 text-white text-center">
+                {badge}
+              </span>
+            )}
+          </div>
         </div>
       </TooltipTrigger>
       <TooltipContent side="right">{title}</TooltipContent>

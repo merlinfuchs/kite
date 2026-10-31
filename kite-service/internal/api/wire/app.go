@@ -29,6 +29,10 @@ type App struct {
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
+	// NoCredits is set when the app is paused because it used all of its
+	// credits for the month. It stays enabled and connected, but runs no
+	// flows.
+	NoCredits bool `json:"no_credits"`
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
 	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
@@ -36,6 +40,10 @@ type App struct {
 	// Discord's approximate counts, null until first fetched.
 	DiscordGuildCount       null.Int `json:"discord_guild_count"`
 	DiscordUserInstallCount null.Int `json:"discord_user_install_count"`
+
+	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
+	// the app used 80% or all of its credits for the month.
+	CreditNoticesEnabled bool `json:"credit_notices_enabled"`
 }
 
 type CommandsDeployError struct {
@@ -80,9 +88,10 @@ type AppGetResponse = App
 
 // AppSetupGetResponse is how far a new app is through the setup checklist.
 type AppSetupGetResponse struct {
-	Invited    bool `json:"invited"`
-	HasCommand bool `json:"has_command"`
-	RanCommand bool `json:"ran_command"`
+	Invited bool `json:"invited"`
+	// HasFlow is whether the app has something that can run, like a command.
+	HasFlow bool `json:"has_flow"`
+	RanFlow bool `json:"ran_flow"`
 }
 
 type AppCreateRequest struct {
@@ -111,54 +120,6 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
-
-// AppProfile is how the app's bot user looks in Discord. It's read from
-// Discord on demand instead of being stored.
-type AppProfile struct {
-	AvatarURL null.String `json:"avatar_url"`
-	BannerURL null.String `json:"banner_url"`
-}
-
-type AppProfileGetResponse = AppProfile
-
-// appProfileImageMaxLength bounds an image data URI. It leaves room for one
-// image of about 5 MB below handler.MaxJSONBodySize.
-const appProfileImageMaxLength = 7 * 1024 * 1024
-
-var appProfileImagePattern = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+=*$`)
-
-// AppProfileUpdateRequest changes the avatar and banner of the app's bot user.
-// A missing field is left unchanged, an empty string removes the image and
-// anything else must be an image data URI.
-type AppProfileUpdateRequest struct {
-	Avatar *string `json:"avatar,omitempty"`
-	Banner *string `json:"banner,omitempty"`
-}
-
-func (req AppProfileUpdateRequest) Validate() error {
-	return validation.ValidateStruct(&req,
-		validation.Field(&req.Avatar, validation.By(validateAppProfileImage)),
-		validation.Field(&req.Banner, validation.By(validateAppProfileImage)),
-	)
-}
-
-func validateAppProfileImage(value interface{}) error {
-	image, _ := value.(*string)
-	if image == nil || *image == "" {
-		return nil
-	}
-
-	if len(*image) > appProfileImageMaxLength {
-		return errors.New("the image is too large, the limit is 5 MB")
-	}
-	if !appProfileImagePattern.MatchString(*image) {
-		return errors.New("must be a PNG, JPEG, GIF or WebP image")
-	}
-
-	return nil
-}
-
-type AppProfileUpdateResponse = AppProfile
 
 // AppInstallation is how the app can be installed in Discord. A nil context
 // is turned off. It's read from Discord on demand instead of being stored.
@@ -245,6 +206,16 @@ func (p *AppInstallParams) validate(allowedScopes []string) error {
 
 type AppInstallationUpdateResponse = AppInstallation
 
+type AppCreditNoticesUpdateRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (req AppCreditNoticesUpdateRequest) Validate() error {
+	return nil
+}
+
+type AppCreditNoticesUpdateResponse = App
+
 type AppStatusUpdateRequest struct {
 	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
 }
@@ -323,12 +294,15 @@ func AppToWire(app *model.App) *App {
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
 		TokenInvalid:   model.HasInvalidToken(app),
+		NoCredits:      model.HasNoCredits(app),
 
 		CommandsDeployPending: app.CommandsDeployAt.Valid,
 		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),
 
 		DiscordGuildCount:       app.DiscordGuildCount,
 		DiscordUserInstallCount: app.DiscordUserInstallCount,
+
+		CreditNoticesEnabled: app.CreditNoticesEnabled,
 	}
 }
 

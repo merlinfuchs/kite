@@ -21,17 +21,17 @@ func init() {
 func executeActionMemberEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	guildID, err := n.targetGuildID(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	data := api.ModifyMemberData{
@@ -42,7 +42,7 @@ func executeActionMemberEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		if n.Data.MemberData.Nick != nil {
 			nick, err := eval.EvalTemplateToString(ctx, *n.Data.MemberData.Nick, ctx.EvalCtx)
 			if err != nil {
-				return traceError(n, err)
+				return err
 			}
 
 			data.Nick = &nick
@@ -56,7 +56,7 @@ func executeActionMemberEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		data,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -65,17 +65,17 @@ func executeActionMemberEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionMemberGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	guildID, err := n.targetGuildID(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	memberID, err := ctx.EvalTemplate(n.Data.UserTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	member, err := ctx.Discord.Member(ctx, guildID, discord.UserID(memberID.Snowflake()))
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if member != nil {
@@ -90,12 +90,12 @@ func executeActionMemberGet(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	user, err := ctx.Discord.User(ctx, discord.UserID(userID.Snowflake()))
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if user != nil {

@@ -11,7 +11,7 @@ const content: ComparisonPageContent = {
   lastChecked: "October 2026",
   heading: "A Free VibeBot Alternative",
   intro:
-    "Kite and VibeBot both let you make a Discord bot by describing what it should do. VibeBot's AI writes code for your bot, while Kite's AI builds blocks you can see and change. On VibeBot your own bot costs from $5 a month after a 3-day trial. On Kite it's free.",
+    "Kite and VibeBot both let you make a Discord bot by describing what it should do. VibeBot's AI writes code for your bot, while Kite's AI builds blocks you can see and change. On VibeBot your own bot costs $5 a month, or $10 with the AI builder, and the 3-day trial turns into the $10 plan. On Kite it's free.",
   chooseKite: [
     "You want your own bot without paying",
     "You don't want to add a card to get started",
@@ -27,7 +27,7 @@ const content: ComparisonPageContent = {
     {
       feature: "Your own bot",
       kite: "Free",
-      competitor: "From $5/month after a 3-day trial",
+      competitor: "$5/month, $10/month with the AI builder",
     },
     {
       feature: "Free plan",

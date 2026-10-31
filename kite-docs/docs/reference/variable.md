@@ -10,7 +10,9 @@ They can be accessed in commands or event listeners using the "Set variable" or 
 
 Variables can be scoped by a key, which can be anything. Common examples are a user ID, channel ID, or server ID. This allows you to store multiple values in the same variable and access them later.
 
-![Example Variable](./img/example-variable.png)
+Blocks that use a scoped variable need a scope. They fail when it's empty, like `{{user.id}}` in an event without a user. Blocks that use a variable that isn't scoped ignore their scope.
+
+![Example Variable](./img/example-variable.webp)
 
 ## Viewing and editing values
 

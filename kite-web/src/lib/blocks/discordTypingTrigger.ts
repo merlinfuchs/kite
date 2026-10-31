@@ -2,10 +2,12 @@ import { BlockDefinition } from "./types";
 
 export const discordTypingTrigger: BlockDefinition = {
   type: "action_typing_trigger",
+  id_prefix: "typing",
   title: "Show typing",
   description: "Bot shows as typing in a channel",
   icon: "message-circle-more",
   category: "Messages",
+  permissions: ["SEND_MESSAGES"],
   credits: 1,
   strict_settings: true,
   run: {

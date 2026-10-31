@@ -22,7 +22,7 @@ After creating your app, you'll need to configure how it can be installed. Open 
 
 You can also do this in the [Discord Developer Portal](https://discord.com/developers/applications). Open your app, navigate to the `Installation` section in the left sidebar, enable the `User Install` checkbox under `Installation Contexts` and save your changes.
 
-![Developer Portal Installation](./img/devportal-installation.png)
+![Developer Portal Installation](./img/devportal-installation.webp)
 
 ## Installing the App
 
@@ -40,4 +40,4 @@ This block allows you to:
 - Restrict commands to only work with user installations
 - Specify whether commands work in DMs, servers, or both
 
-![Command Contexts](./img/example-cmd-contexts.png)
+![Command Contexts](./img/example-cmd-contexts.webp)

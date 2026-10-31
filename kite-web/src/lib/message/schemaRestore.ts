@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { parseColorValue } from "@/tools/common/utils/color";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 export const uniqueIdSchema = z.preprocess(
@@ -194,9 +195,14 @@ export const embedTimestampSchema = z.preprocess(
 
 export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
+// Text without placeholders is a hex color, which the service reads as a
+// number too.
 export const embedColor = z.preprocess(
-  (d) => d ?? undefined,
-  z.optional(z.number())
+  (d) =>
+    typeof d === "string" && !d.includes("{{")
+      ? parseColorValue(d) ?? d
+      : d ?? undefined,
+  z.optional(z.union([z.number(), z.string()]))
 );
 
 export type EmbedColor = z.infer<typeof embedColor>;
@@ -331,7 +337,7 @@ export const unfurledMediaItemSchema = z.preprocess(
     .object({
       url: z.preprocess((d) => d ?? undefined, z.string().default("")),
     })
-    .default({ url: "" })
+    .prefault({ url: "" })
 );
 
 export const textDisplaySchema = z.object({
@@ -413,7 +419,7 @@ export const containerSchema = z.object({
       )
       .default([])
   ),
-  accent_color: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  accent_color: embedColor,
   spoiler: optionalBoolean,
 });
 

@@ -5,6 +5,72 @@ import { ConfigValues as PluginConfigValues, Metadata as PluginMetadata, Config 
 interface Empty {}
 
 //////////
+// source: api_token.go
+
+/**
+ * MaxAPITokenDays is how long a token can last at most, unless it doesn't
+ * expire at all.
+ */
+export const MaxAPITokenDays = 365;
+/**
+ * MaxAPITokenApps is how many apps a token that can't use all of them can
+ * have.
+ */
+export const MaxAPITokenApps = 100;
+/**
+ * APIToken never includes the token itself, it's only shown when created.
+ */
+export interface APIToken {
+  id: string;
+  name: string;
+  scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
+  last_used_at: null | string /* RFC3339 */;
+  expires_at: null | string /* RFC3339 */;
+  created_at: string /* RFC3339 */;
+  /**
+   * The OAuth client the token is for, like Claude, null for tokens the
+   * user made. It's the URL of the client's metadata document.
+   */
+  oauth_client_id: null | string;
+  /**
+   * When the token of an OAuth client expires, which it refreshes before.
+   * ExpiresAt is when its refresh token does, if it isn't used.
+   */
+  access_expires_at: null | string /* RFC3339 */;
+}
+export type APITokenListResponse = (APIToken | undefined)[];
+export interface APITokenCreateRequest {
+  name: string;
+  /**
+   * How many days the token lasts, null for a token that doesn't expire.
+   */
+  expires_in_days: null | number;
+  /**
+   * Like kite:read, see model.APITokenScopes.
+   */
+  scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
+}
+export interface APITokenCreateResponse {
+  api_token?: APIToken;
+  /**
+   * The token to send as "Authorization: Bearer <token>". It can't be read
+   * again later.
+   */
+  token: string;
+}
+export type APITokenCurrentGetResponse = APIToken;
+export interface APITokenDeleteResponse {
+}
+
+//////////
 // source: app.go
 
 export interface App {
@@ -24,6 +90,12 @@ export interface App {
    * accept its token.
    */
   token_invalid: boolean;
+  /**
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
+   */
+  no_credits: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
   /**
@@ -31,6 +103,11 @@ export interface App {
    */
   discord_guild_count: null | number;
   discord_user_install_count: null | number;
+  /**
+   * CreditNoticesEnabled is whether the owner gets a DM from the bot when
+   * the app used 80% or all of its credits for the month.
+   */
+  credit_notices_enabled: boolean;
 }
 export interface CommandsDeployError {
   message: string;
@@ -56,8 +133,11 @@ export type AppGetResponse = App;
  */
 export interface AppSetupGetResponse {
   invited: boolean;
-  has_command: boolean;
-  ran_command: boolean;
+  /**
+   * HasFlow is whether the app has something that can run, like a command.
+   */
+  has_flow: boolean;
+  ran_flow: boolean;
 }
 export interface AppCreateRequest {
   discord_token: string;
@@ -69,25 +149,6 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
-/**
- * AppProfile is how the app's bot user looks in Discord. It's read from
- * Discord on demand instead of being stored.
- */
-export interface AppProfile {
-  avatar_url: null | string;
-  banner_url: null | string;
-}
-export type AppProfileGetResponse = AppProfile;
-/**
- * AppProfileUpdateRequest changes the avatar and banner of the app's bot user.
- * A missing field is left unchanged, an empty string removes the image and
- * anything else must be an image data URI.
- */
-export interface AppProfileUpdateRequest {
-  avatar?: string;
-  banner?: string;
-}
-export type AppProfileUpdateResponse = AppProfile;
 /**
  * AppInstallation is how the app can be installed in Discord. A nil context
  * is turned off. It's read from Discord on demand instead of being stored.
@@ -114,6 +175,10 @@ export interface AppInstallationUpdateRequest {
   user_install?: AppInstallParams;
 }
 export type AppInstallationUpdateResponse = AppInstallation;
+export interface AppCreditNoticesUpdateRequest {
+  enabled: boolean;
+}
+export type AppCreditNoticesUpdateResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
@@ -186,12 +251,49 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * StateUser is the Discord user the app's bot sends messages as. It's empty
+ * while the app isn't running.
+ */
+export interface StateUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+  /**
+   * Empty if the bot has no banner.
+   */
+  banner_url: string;
+}
+export type StateUserGetResponse = StateUser;
+/**
+ * StateGuildProfile is the bot's profile in a server. Fields are empty where
+ * it uses its own profile. Discord doesn't return the About Me.
+ */
+export interface StateGuildProfile {
+  nick: string;
+  avatar_url: string;
+  banner_url: string;
+}
+export type StateGuildProfileGetResponse = StateGuildProfile;
+/**
+ * StateUserUpdateRequest changes the bot's avatar and banner. A field that
+ * isn't set stays as it is, and an empty one removes the image.
+ */
+export interface StateUserUpdateRequest {
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateUserUpdateResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
   description: string;
   icon_url: null | string;
   created_at: string /* RFC3339 */;
+  bot_permissions?: null | string;
 }
 export type StateGuildListResponse = (Guild | undefined)[];
 export interface Channel {
@@ -218,6 +320,21 @@ export interface ForumTag {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+/**
+ * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
+ * field that isn't set stays as it is, and an empty one resets to the bot's
+ * own profile.
+ */
+export interface StateGuildProfileUpdateRequest {
+  nick?: string;
+  bio?: string;
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {
   id: string;
   name: string;
@@ -229,6 +346,16 @@ export interface Role {
   position: number /* int */;
 }
 export type StateGuildRoleListResponse = (Role | undefined)[];
+/**
+ * StateGuildEmojis are the custom emojis of one guild the app is in. The app
+ * can use them in messages and components like its own emojis.
+ */
+export interface StateGuildEmojis {
+  guild_id: string;
+  guild_name: string;
+  emojis: (AppEmoji | undefined)[];
+}
+export type StateEmojiListResponse = (StateGuildEmojis | undefined)[];
 
 //////////
 // source: asset.go
@@ -236,7 +363,7 @@ export type StateGuildRoleListResponse = (Role | undefined)[];
 export interface Asset {
   id: string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   url: string;
   name: string;
@@ -258,39 +385,6 @@ export type AuthLogoutResponse = Empty;
 //////////
 // source: billing.go
 
-export interface BillingWebhookRequest {
-  meta: {
-    event_name: string;
-    custom_data: { [key: string]: any};
-  };
-  data: {
-    id: string;
-    attributes: {
-      store_id: number /* int */;
-      customer_id: number /* int */;
-      order_id: number /* int */;
-      order_item_id: number /* int */;
-      product_id: number /* int */;
-      variant_id: number /* int */;
-      product_name: string;
-      variant_name: string;
-      user_name: string;
-      user_email: string;
-      status: string;
-      status_formatted: string;
-      card_brand: string;
-      card_last_four: string;
-      cancelled: boolean;
-      trial_ends_at: null | string /* RFC3339 */;
-      billing_anchor: number /* int */;
-      renews_at: null | string /* RFC3339 */;
-      ends_at: null | string /* RFC3339 */;
-      created_at: string /* RFC3339 */;
-      updated_at: string /* RFC3339 */;
-      test_mode: boolean;
-    };
-  };
-}
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {
@@ -342,6 +436,8 @@ export interface BillingPlan {
   hidden: boolean;
   lemonsqueezy_product_id: string;
   lemonsqueezy_variant_id: string;
+  yearly_price: number /* float32 */;
+  lemonsqueezy_yearly_variant_id: string;
   discord_role_id: string;
   feature_max_collaborators: number /* int */;
   feature_usage_credits_per_month: number /* int */;
@@ -353,11 +449,519 @@ export interface BillingPlan {
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
+  feature_server_profiles: boolean;
+  feature_animated_profile: boolean;
+  feature_personas: boolean;
+  feature_voice_audio: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_webhook_event_listeners: number /* int */;
   feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
+
+//////////
+// source: bundle.go
+
+/**
+ * Bundle is a bundle with the content of the version apps install.
+ */
+export interface Bundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  /**
+   * Listing is how it's shown: the listing Kite approved while it's listed,
+   * otherwise the page of a user's bundle. Name and Description are the same
+   * as its own.
+   */
+  listing?: BundleListing;
+  /**
+   * Listed is whether it's listed in the marketplace.
+   */
+  listed: boolean;
+  /**
+   * Content is the version in the format of the templates of kite-web.
+   */
+  content: Record<string, any> | null;
+  /**
+   * Official bundles are made by Kite, the others by users.
+   */
+  official: boolean;
+  /**
+   * Yours is whether the current user made it.
+   */
+  yours: boolean;
+  /**
+   * Owner is the user who made it, null for official bundles.
+   */
+  owner?: BundleOwner;
+  /**
+   * VersionNotes are what changed in the last versions, newest first.
+   */
+  version_notes: BundleVersionNotes[];
+  /**
+   * InstallCount is how many apps added it.
+   */
+  install_count: number /* int */;
+  /**
+   * StarCount is how many users starred it.
+   */
+  star_count: number /* int */;
+  /**
+   * CreatedAt is when it was made, which the marketplace shows the newest
+   * by.
+   */
+  created_at: string /* RFC3339 */;
+}
+export interface BundleVersionNotes {
+  version: number /* int */;
+  notes: string;
+  created_at: string /* RFC3339 */;
+}
+/**
+ * BundleOwner is the user who made a bundle, as anyone can see it on Discord.
+ */
+export interface BundleOwner {
+  display_name: string;
+  discord_id: string;
+  discord_username: string;
+  discord_avatar: null | string;
+}
+/**
+ * BundleListing is how a bundle is shown on its page and in the marketplace.
+ */
+export interface BundleListing {
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  about: string[];
+  faq: BundleFAQ[];
+  setup: string[];
+}
+export interface BundleFAQ {
+  question: string;
+  answer: string;
+}
+export type BundleListResponse = (Bundle | undefined)[];
+export type BundleGetResponse = Bundle;
+/**
+ * UserBundle is a bundle the user made, without its content.
+ */
+export interface UserBundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  /**
+   * SourceAppID is the app new versions are published from, null if it was
+   * deleted.
+   */
+  source_app_id: null | string;
+  /**
+   * ItemCount is how many commands, event listeners, messages and variables
+   * the version has.
+   */
+  item_count: number /* int */;
+  /**
+   * InstallCount is how many apps added it, also ones not from the
+   * marketplace.
+   */
+  install_count: number /* int */;
+  /**
+   * ListedVersion is the version apps install from the marketplace, null if
+   * it isn't listed.
+   */
+  listed_version: null | number;
+  /**
+   * ApprovedVersion is the version a review approved last, which apps
+   * install also after it leaves the marketplace, null if none was.
+   */
+  approved_version: null | number;
+  /**
+   * Page is its listing as the user last wrote it. While it's listed, the
+   * marketplace shows the one Kite approved last.
+   */
+  page: BundleListing;
+  /**
+   * LatestReview is the newest review for the marketplace, null if it was
+   * never submitted.
+   */
+  latest_review?: BundleReview;
+  /**
+   * RemovedReason is why Kite took the bundle down, null if it didn't.
+   */
+  removed_reason: null | string;
+}
+export type UserBundleListResponse = (UserBundle | undefined)[];
+/**
+ * BundleContentRequest is what a version of a bundle is made of: items of the
+ * app, with the message templates and stored variables they use.
+ */
+export interface BundleContentRequest extends BundleExportRequest {
+  /**
+   * SharedParameterKeys are the text parameters whose values the owner
+   * shares. Apps that add the bundle start with them.
+   */
+  shared_parameter_keys?: string[];
+}
+/**
+ * BundleCreateRequest makes a bundle of the user from items of the app.
+ */
+export interface BundleCreateRequest extends BundleContentRequest {
+  name: string;
+  description: string;
+}
+export type BundleCreateResponse = UserBundle;
+/**
+ * BundleVersionCreateRequest publishes items of the app as the new version of
+ * a bundle. They can be different ones than before. Its name and description
+ * are part of its page, which changes without a new version.
+ */
+export interface BundleVersionCreateRequest extends BundleContentRequest {
+  /**
+   * Notes are what changed, for the apps that update to it.
+   */
+  notes: string;
+}
+export type BundleVersionCreateResponse = UserBundle;
+/**
+ * BundleUpdateRequest changes the page of a bundle that isn't in the
+ * marketplace. Kite reviews changes to one that is, so they're submitted with
+ * BundleListingSubmitRequest instead.
+ */
+export interface BundleUpdateRequest extends BundleListing {
+}
+export interface BundleUpdateResponse {
+}
+export interface BundleDeleteResponse {
+}
+export interface BundleListingDeleteResponse {
+}
+
+//////////
+// source: bundle_install.go
+
+export interface BundleInstall {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  app_id: string;
+  bundle_id: string;
+  bundle_version: number /* int */;
+  parameters: { [key: string]: string};
+  /**
+   * Official is whether the bundle is a template made by Kite.
+   */
+  official: boolean;
+  /**
+   * Owner is who made a user's bundle, null for official ones and ones that
+   * were deleted.
+   */
+  owner?: BundleOwner;
+  /**
+   * Yours is whether the current user made the bundle.
+   */
+  yours: boolean;
+  /**
+   * Icon is the icon of the bundle's listing, empty if it isn't listed.
+   */
+  icon: string;
+  /**
+   * AvailableVersion is the version the app can update to, null if the
+   * user can't see the bundle anymore.
+   */
+  available_version: null | number;
+  /**
+   * Removed is whether Kite took the bundle down for breaking the rules.
+   */
+  removed: boolean;
+  items: BundleInstallItem[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+/**
+ * BundleInstallItem is a command, event listener or message the install
+ * created.
+ */
+export interface BundleInstallItem {
+  key: string;
+  type: string;
+  id: string;
+  /**
+   * Edited is whether the user changed it since it was installed or updated.
+   */
+  edited: boolean;
+  /**
+   * Deleted is whether the user deleted it. An update doesn't add it again.
+   */
+  deleted: boolean;
+  /**
+   * Parameters are the values its flows have now, which can differ from the
+   * install's after a change in the editor.
+   */
+  parameters: { [key: string]: string};
+}
+export type BundleInstallListResponse = (BundleInstall | undefined)[];
+/**
+ * BundleInstallCreateRequest installs items of a bundle. The service fills in
+ * the parameters, so an install is always the bundle at that version.
+ */
+export interface BundleInstallCreateRequest {
+  bundle_id: string;
+  /**
+   * BundleVersion is the version the user chose the items and parameters for.
+   */
+  bundle_version: number /* int */;
+  parameters: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners and messages to add.
+   */
+  items: string[];
+  /**
+   * Messages are the data of the messages the user changed while adding
+   * them, by their keys.
+   */
+  messages?: { [key: string]: MessageData};
+}
+export type BundleInstallCreateResponse = BundleInstall;
+/**
+ * BundleInstallUpdateRequest updates an install to the current version of its
+ * bundle. Items the user deleted stay deleted, and edited ones are kept unless
+ * they're in Overwrite.
+ */
+export interface BundleInstallUpdateRequest {
+  /**
+   * BundleVersion is the version the user saw the changes of.
+   */
+  bundle_version: number /* int */;
+  /**
+   * Parameters are values for parameters the new version needs, the install
+   * keeps the values of the others.
+   */
+  parameters: { [key: string]: string};
+  /**
+   * Overwrite are the keys of edited items to replace with the new version.
+   */
+  overwrite: string[];
+}
+export type BundleInstallUpdateResponse = BundleInstall;
+export type BundleInstallDeleteResponse = Empty;
+/**
+ * BundleInstallParametersUpdateRequest sets parameters of an install in every
+ * flow it created that uses them, also where they were changed in the editor.
+ */
+export interface BundleInstallParametersUpdateRequest {
+  parameters: { [key: string]: string};
+}
+export type BundleInstallParametersUpdateResponse = BundleInstall;
+/**
+ * BundleExportRequest exports items of the app as a bundle. The message
+ * templates and stored variables they use are exported with them.
+ */
+export interface BundleExportRequest {
+  command_ids: string[];
+  event_listener_ids: string[];
+  message_ids: string[];
+}
+export interface BundleExportResponse {
+  /**
+   * Content is the bundle, whose parameters are the ones of its flows.
+   */
+  content: Record<string, any> | null;
+}
+/**
+ * BundleImportRequest imports items of an exported bundle with the parameters
+ * filled in. The items are copies, they aren't linked to the bundle.
+ */
+export interface BundleImportRequest {
+  content: Record<string, any> | null;
+  parameters: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners, messages and
+   * variables to add.
+   */
+  items: string[];
+}
+export interface BundleImportResponse {
+  /**
+   * Items are what the import created, keyed like the bundle. Messages and
+   * variables the app already had aren't created again.
+   */
+  items: BundleInstallItem[];
+}
+
+//////////
+// source: bundle_report.go
+
+/**
+ * BundleReportCreateRequest reports that a bundle breaks the rules.
+ */
+export interface BundleReportCreateRequest {
+  /**
+   * Category is harmful, scam, inappropriate, spam or other.
+   */
+  category: string;
+  details: string;
+}
+export interface BundleReportCreateResponse {
+}
+/**
+ * OpenBundleReport is a report waiting for a decision, for the admins.
+ */
+export interface OpenBundleReport {
+  id: string;
+  bundle_id: string;
+  bundle_name: string;
+  bundle_description: string;
+  owner?: BundleOwner;
+  reporter?: BundleOwner;
+  category: string;
+  details: string;
+  created_at: string /* RFC3339 */;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
+}
+export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
+export interface BundleReportDismissResponse {
+}
+/**
+ * BundleRemoveRequest takes a bundle down for breaking the rules.
+ */
+export interface BundleRemoveRequest {
+  /**
+   * Reason is shown to the bundle's owner.
+   */
+  reason: string;
+}
+export interface BundleRemoveResponse {
+}
+
+//////////
+// source: bundle_review.go
+
+/**
+ * BundleListingSubmitRequest submits the newest version of a bundle to
+ * the marketplace with its page, which becomes the bundle's page. Kite reviews
+ * both before they're listed.
+ */
+export interface BundleListingSubmitRequest extends BundleListing {
+}
+export type BundleListingSubmitResponse = BundleReview;
+/**
+ * BundleReview is a review of a version of a user's bundle for the
+ * marketplace.
+ */
+export interface BundleReview {
+  id: string;
+  version: number /* int */;
+  listing: BundleListing;
+  /**
+   * Status is pending, approved, rejected or withdrawn, when the bundle
+   * left the marketplace before or after a rejection.
+   */
+  status: string;
+  /**
+   * Reason is why it was rejected.
+   */
+  reason: string;
+  created_at: string /* RFC3339 */;
+  decided_at: null | string /* RFC3339 */;
+}
+/**
+ * PendingBundleReview is a review waiting for a decision, for the admins.
+ */
+export interface PendingBundleReview extends BundleReview {
+  /**
+   * Bundle is the reviewed version with the submitted listing, as it would
+   * be shown once approved. Its content is null in the list of reviews.
+   */
+  bundle?: Bundle;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
+  /**
+   * ListedVersion is the version listed in the marketplace, null if the
+   * bundle isn't listed.
+   */
+  listed_version: null | number;
+  /**
+   * ApprovedVersion is the version apps install now, null if none was
+   * approved yet. Approving the review replaces it.
+   */
+  approved_version: null | number;
+  /**
+   * Prescreen is what the AI pre-screen made of it, which only admins see.
+   */
+  prescreen: BundleReviewPrescreen;
+}
+/**
+ * BundleReviewPrescreen is the AI's take on a review, before an admin
+ * decides.
+ */
+export interface BundleReviewPrescreen {
+  /**
+   * Verdict is review, reject when it rejected it, failed, skipped when
+   * it was too big, or empty while it didn't run.
+   */
+  verdict: string;
+  /**
+   * Rating is how likely an admin approves it, from 0 to 100.
+   */
+  rating: null | number;
+  summary: string;
+  concerns: BundleReviewConcern[];
+  model: string;
+  screened_at: null | string /* RFC3339 */;
+}
+export interface BundleReviewConcern {
+  /**
+   * Severity is high, medium or low.
+   */
+  severity: string;
+  text: string;
+}
+export type AutoRejectedBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export interface BundleReviewPrescreenRunResponse {
+}
+export interface BundleReviewReopenResponse {
+}
+export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export type PendingBundleReviewGetResponse = PendingBundleReview;
+/**
+ * BundleReviewDecideRequest approves or rejects a pending review.
+ */
+export interface BundleReviewDecideRequest {
+  approve: boolean;
+  /**
+   * Reason is why it's rejected, which its owner sees.
+   */
+  reason: string;
+}
+export type BundleReviewDecideResponse = BundleReview;
+
+//////////
+// source: bundle_star.go
+
+/**
+ * BundleStarResponse has how many users starred the bundle now, which pages
+ * rendered before don't know.
+ */
+export interface BundleStarResponse {
+  star_count: number /* int */;
+}
+export type BundleUnstarResponse = BundleStarResponse;
+/**
+ * StarredBundleListResponse are the IDs of the bundles the user starred,
+ * newest first.
+ */
+export type StarredBundleListResponse = string[];
 
 //////////
 // source: collaborator.go
@@ -369,12 +973,30 @@ export interface AppCollaborator {
   updated_at: string /* RFC3339 */;
 }
 export type AppCollaboratorListResponse = (AppCollaborator | undefined)[];
+export interface AppCollaboratorInvite {
+  discord_username: string;
+  role: string;
+  created_at: string /* RFC3339 */;
+  expires_at: string /* RFC3339 */;
+}
 export interface AppCollaboratorCreateRequest {
-  discord_user_id: string;
+  /**
+   * DiscordUser is the user's Discord ID or username.
+   */
+  discord_user: string;
   role: string;
 }
-export type AppCollaboratorCreateResponse = AppCollaborator;
+/**
+ * AppCollaboratorCreateResponse has the invite instead of the collaborator when
+ * the user hasn't logged in to Kite yet.
+ */
+export interface AppCollaboratorCreateResponse {
+  collaborator?: AppCollaborator;
+  invite?: AppCollaboratorInvite;
+}
 export type AppCollaboratorDeleteResponse = Empty;
+export type AppCollaboratorInviteListResponse = (AppCollaboratorInvite | undefined)[];
+export type AppCollaboratorInviteDeleteResponse = Empty;
 
 //////////
 // source: command.go
@@ -385,11 +1007,15 @@ export interface Command {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -404,6 +1030,15 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession identifies the editor that saved, see store.EditorChange.
+   */
+  editor_session?: string;
+  /**
+   * BaseVersion is the version of the command the change was made on. The
+   * update fails if its content changed since, see store.ItemChange.
+   */
+  base_version?: string;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -412,6 +1047,31 @@ export interface CommandUpdateEnabledRequest {
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
+
+//////////
+// source: discord_api.go
+
+/**
+ * DiscordAPIRequestRequest calls an endpoint of the Discord API Request block
+ * with the app's bot token. Parameters are JSON values, like the IDs in the
+ * path as strings.
+ */
+export interface DiscordAPIRequestRequest {
+  operation: string;
+  path_params: { [key: string]: any };
+  query: { [key: string]: any };
+  body: any;
+  /**
+   * The reason in the server's audit log, if the endpoint takes one.
+   */
+  reason: string;
+}
+export interface DiscordAPIRequestResponse {
+  /**
+   * The JSON the endpoint returned, null if it returned nothing.
+   */
+  result: any;
+}
 
 //////////
 // source: event_listener.go
@@ -423,12 +1083,16 @@ export interface EventListener {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
   last_run_at: null | string /* RFC3339 */;
   webhook_secret: null | string;
 }
@@ -448,6 +1112,11 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
+   */
+  editor_session?: string;
+  base_version?: string;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -472,8 +1141,13 @@ export interface Features {
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
+  server_profiles: boolean;
+  animated_profile: boolean;
+  personas: boolean;
+  voice_audio: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_webhook_event_listeners: number /* int */;
   max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
@@ -509,6 +1183,11 @@ export interface FlowAIChatResponse {
    * message suggests, if any.
    */
   build_prompt: string;
+  /**
+   * TemplateID is a template of the marketplace the message suggests adding
+   * instead of building what it does, if any.
+   */
+  template_id: string;
   /**
    * Fields ask the user for what the AI needs but only they know.
    */
@@ -585,6 +1264,40 @@ export type AppIntegrationConnectResponse = Empty;
 export type AppIntegrationRemoveResponse = Empty;
 
 //////////
+// source: item_version.go
+
+/**
+ * ItemVersion is a saved state of a command, event listener or message,
+ * without its content.
+ */
+export interface ItemVersion {
+  id: string;
+  /**
+   * What made the version: initial, editor, api_token, bundle or delete.
+   */
+  source: string;
+  creator_user_id: null | string;
+  creator_display_name: null | string;
+  created_at: string /* RFC3339 */;
+  /**
+   * When later changes merged into the version last updated it, if any.
+   */
+  updated_at: null | string /* RFC3339 */;
+}
+export type ItemVersionListResponse = (ItemVersion | undefined)[];
+export interface ItemVersionGetResponse {
+  id: string;
+  source: string;
+  creator_user_id: null | string;
+  /**
+   * The flow of a command or event listener, or the data and flow_sources
+   * of a message.
+   */
+  content: Record<string, any> | null;
+  created_at: string /* RFC3339 */;
+}
+
+//////////
 // source: log.go
 
 export interface LogEntry {
@@ -594,7 +1307,24 @@ export interface LogEntry {
   command_id: null | string;
   event_listener_id: null | string;
   message_id: null | string;
+  /**
+   * The block a flow error happened in.
+   */
+  node_id: null | string;
+  node_type: null | string;
+  error_code: null | string;
+  details?: LogEntryDetails;
   created_at: string /* RFC3339 */;
+}
+export interface LogEntryDetails {
+  discord_status?: number /* int */;
+  discord_code?: number /* int */;
+  integration?: string;
+  http_status?: number /* int */;
+  /**
+   * The setting of the block that was invalid.
+   */
+  field?: string;
 }
 export type LogEntryListResponse = (LogEntry | undefined)[];
 export interface LogSummary {
@@ -614,12 +1344,16 @@ export interface Message {
   name: string;
   description: null | string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type MessageGetResponse = Message;
 export type MessageListResponse = (Message | undefined)[];
@@ -639,6 +1373,11 @@ export interface MessageUpdateRequest {
   description: null | string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
+  /**
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
+   */
+  editor_session?: string;
+  base_version?: string;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;
@@ -671,6 +1410,50 @@ export interface MessageInstanceUpdateRequest {
 }
 export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
+
+//////////
+// source: oauth.go
+
+export interface OAuthClient {
+  /**
+   * The URL of the client's metadata document.
+   */
+  id: string;
+  name: string;
+  /**
+   * The host of the ID, which says who the client is. Its name can be
+   * anything.
+   */
+  domain: string;
+}
+export interface OAuthAuthorizeGetResponse {
+  client: OAuthClient;
+  /**
+   * The scopes the client asks for, the user can grant fewer.
+   */
+  scopes: string[];
+}
+/**
+ * OAuthAuthorizeRequest is sent with the client's authorization request in
+ * the query string, like for OAuthAuthorizeGetResponse.
+ */
+export interface OAuthAuthorizeRequest {
+  /**
+   * False if the user denied the client.
+   */
+  approved: boolean;
+  scopes: string[];
+  /**
+   * The apps the client can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
+}
+export interface OAuthAuthorizeResponse {
+  /**
+   * Where to send the user, back to the client.
+   */
+  redirect_url: string;
+}
 
 //////////
 // source: plugin.go
@@ -773,10 +1556,55 @@ export interface User {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  /**
+   * IsAdmin is whether the current user can review bundles, false for
+   * other users.
+   */
+  is_admin: boolean;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: user_ban.go
+
+/**
+ * UserBan bans a user from a feature, for the admins.
+ */
+export interface UserBan {
+  user_id: string;
+  user?: User;
+  /**
+   * Feature is what they're banned from, marketplace or kite.
+   */
+  feature: string;
+  reason: string;
+  created_at: string /* RFC3339 */;
+}
+export type UserBanListResponse = (UserBan | undefined)[];
+/**
+ * UserBanCreateRequest bans a user from a feature, replacing their ban from
+ * it.
+ */
+export interface UserBanCreateRequest {
+  /**
+   * UserID is the Kite user to ban. Set either it or DiscordID.
+   */
+  user_id?: string;
+  /**
+   * DiscordID is the Discord ID of the user or of one of their bots.
+   */
+  discord_id?: string;
+  feature: string;
+  /**
+   * Reason is shown to the user.
+   */
+  reason: string;
+}
+export type UserBanCreateResponse = UserBan;
+export interface UserBanDeleteResponse {
+}
 
 //////////
 // source: variable.go
@@ -786,7 +1614,7 @@ export interface Variable {
   name: string;
   scoped: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   total_values: null | number;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;

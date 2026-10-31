@@ -4,6 +4,7 @@ import {
   LucideIcon,
   ScaleIcon,
   SparklesIcon,
+  StoreIcon,
   WorkflowIcon,
 } from "lucide-react";
 import { externalTools, kiteTools, Tool } from "@/tools/registry";
@@ -30,9 +31,15 @@ export const productLinks: NavLink[] = [
     icon: WorkflowIcon,
   },
   {
-    title: "Guide",
-    description: "Step by step: make your first Discord bot.",
-    href: "/guides/how-to-make-a-discord-bot",
+    title: "Marketplace",
+    description: "Ready-made commands and messages to start from.",
+    href: "/marketplace",
+    icon: StoreIcon,
+  },
+  {
+    title: "Guides",
+    description: "Step by step: make your bot in Kite, Claude or ChatGPT.",
+    href: "/guides",
     icon: BookOpenIcon,
   },
   {

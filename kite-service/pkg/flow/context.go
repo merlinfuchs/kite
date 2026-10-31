@@ -19,6 +19,10 @@ type FlowContext struct {
 	Data    FlowContextData
 	EvalCtx eval.Context
 	Cancel  context.CancelFunc
+
+	// Set by an End Flow block, no blocks run after it. Execute stops before
+	// counting operations then, so loops have to check it too.
+	ended bool
 }
 
 func NewContext(
@@ -139,8 +143,15 @@ func (c *FlowContext) increaseOperations() error {
 }
 
 func (c *FlowContext) increaseCredits(credits int) error {
+	err := c.ensureCredits(credits)
 	c.credits += credits
-	if c.credits > c.MaxCredits && c.MaxCredits != 0 {
+	return err
+}
+
+// ensureCredits fails if the credits don't fit the limit, without using them,
+// for credits that are only known after paying for something.
+func (c *FlowContext) ensureCredits(credits int) error {
+	if c.credits+credits > c.MaxCredits && c.MaxCredits != 0 {
 		return &FlowError{
 			Code:    FlowNodeErrorMaxCreditsReached,
 			Message: fmt.Sprintf("credits limit exceeded: %d", c.MaxCredits),

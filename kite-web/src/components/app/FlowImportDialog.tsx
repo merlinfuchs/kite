@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -12,18 +11,16 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
   useMessagesImportMutation,
-  useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
 import { apiRequest } from "@/lib/api/client";
 import { useAppId } from "@/lib/hooks/params";
 import { useAppSecrets, useMessages, useVariables } from "@/lib/hooks/api";
-import { getReferencedSecretNames } from "@/lib/flow/secrets";
+import { missingSecretNames } from "@/lib/flow/secrets";
 import {
   SharedMessage,
   flowSourcesReference,
@@ -37,9 +34,21 @@ import {
   MessageUpdateResponse,
 } from "@/lib/types/wire.gen";
 import { toast } from "sonner";
-import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
-import { BracesIcon, KeyRoundIcon } from "lucide-react";
+import { ShareCodeImportForm } from "./ShareCodeImportForm";
+import {
+  EventListenerSource,
+  eventListenerLabel,
+  eventSourceName,
+  eventSourceOfFlow,
+} from "@/lib/flow/eventTypes";
+import { eventFlowContext } from "@/lib/flow/bundleExport";
 import { track } from "@/lib/analytics";
+import { CircleAlertIcon, SlashSquareIcon } from "lucide-react";
+import {
+  FlowItemCard,
+  MessageItemCard,
+  PreviewItemsProvider,
+} from "./ItemPreviewCards";
 
 const kinds = {
   command: {
@@ -71,9 +80,13 @@ type ShareData = {
 
 export default function FlowImportDialog({
   kind,
+  eventSource,
   children,
 }: {
   kind: Kind;
+  // Only event listeners of this source can be imported, as each source has
+  // its own page.
+  eventSource?: EventListenerSource;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -81,8 +94,13 @@ export default function FlowImportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <ImportForm kind={kind} onImported={() => setOpen(false)} />
+      {/* Wider while the preview of what's imported shows. */}
+      <DialogContent className="max-w-lg has-[[data-preview]]:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <ImportForm
+          kind={kind}
+          eventSource={eventSource}
+          onImported={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -91,15 +109,19 @@ export default function FlowImportDialog({
 // Separate from the dialog so the variable and message queries only run while it's open.
 function ImportForm({
   kind,
+  eventSource,
   onImported,
 }: {
   kind: Kind;
+  eventSource?: EventListenerSource;
   onImported: () => void;
 }) {
-  const [useJson, setUseJson] = useState(false);
-  const [json, setJson] = useState("");
-  const [code, setCode] = useState("");
   const [importing, setImporting] = useState(false);
+  // The data is previewed before it's imported.
+  const [preview, setPreview] = useState<{
+    data: ShareData;
+    via: "json" | "share_code";
+  } | null>(null);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -111,16 +133,14 @@ function ImportForm({
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
   const messagesImportMutation = useMessagesImportMutation(appId);
-  const shareCodeResolveMutation = useShareCodeResolveMutation();
 
-  const { label, entryNodeType, href } = kinds[kind];
+  const { entryNodeType, href } = kinds[kind];
+  const label =
+    kind === "event_listener" && eventSource
+      ? eventSourceName(eventSource).singular
+      : kinds[kind].label;
 
-  const loading =
-    importing ||
-    shareCodeResolveMutation.isPending ||
-    !variables ||
-    !messages ||
-    !secrets;
+  const loading = importing || !variables || !messages || !secrets;
 
   // Imports the templates and adds the id each one got in this app to idMap,
   // keyed by its id in the original app. Templates that already exist in this
@@ -217,12 +237,16 @@ function ImportForm({
     queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
   }
 
-  async function importShareData(parsed: ShareData | null | undefined) {
+  // previewShareData shows the data before it's imported, if it's for this
+  // page.
+  function previewShareData(
+    parsed: ShareData | null | undefined,
+    via: "json" | "share_code"
+  ) {
     const flow = parsed?.flow_source;
-    const mainMessage = parsed?.message;
 
     if (kind === "message") {
-      if (!isSharedMessage(mainMessage)) {
+      if (!isSharedMessage(parsed?.message)) {
         toast.error(`Invalid share code, make sure it's for a ${label}`);
         return;
       }
@@ -235,29 +259,61 @@ function ImportForm({
       return;
     }
 
-    const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
-    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
+    // An event listener belongs on the page of its source, e.g. a webhook
+    // can't be imported on the page of Discord events.
+    if (kind === "event_listener" && eventSource) {
+      const flowSource = eventSourceOfFlow(flow);
+      if (flowSource !== eventSource) {
+        const other = eventSourceName(flowSource);
+        toast.error(
+          `This is a ${other.singular}, not a ${label}. Import it on the ${other.plural} page.`
+        );
+        return;
+      }
+    }
 
+    setPreview({ data: parsed!, via });
+  }
+
+  // sharedMessages are the message templates of the data, the imported one
+  // first if it's a message template.
+  function sharedMessages(parsed: ShareData) {
     const bundled = (
-      Array.isArray(parsed?.messages) ? parsed.messages : []
+      Array.isArray(parsed.messages) ? parsed.messages : []
     ).filter(isSharedMessage);
     // Each template is created once, even if the JSON lists it twice.
     const seenIds = new Set<string>();
-    const shared = (
-      kind === "message" ? [mainMessage!, ...bundled] : bundled
+    return (
+      kind === "message" ? [parsed.message!, ...bundled] : bundled
     ).filter((m) => !seenIds.has(m.id) && seenIds.add(m.id));
+  }
+
+  // usedFlows are all flows of the data, to find the secrets they use.
+  function usedFlows(parsed: ShareData, shared: SharedMessage[]) {
+    return [
+      ...(parsed.flow_source ? [parsed.flow_source] : []),
+      ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
+    ];
+  }
+
+  async function importShareData(
+    parsed: ShareData,
+    via: "json" | "share_code"
+  ) {
+    const flow = parsed.flow_source;
+
+    const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
+    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
+
+    const shared = sharedMessages(parsed);
 
     const idMap = new Map<string, string>();
     setImporting(true);
     try {
-      const usedFlows = [
-        ...(flow ? [flow] : []),
-        ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
-      ];
-      const secretNames = new Set(secrets?.map((s) => s?.name));
-      const missingSecrets = Array.from(
-        new Set(usedFlows.flatMap((f) => getReferencedSecretNames(f)))
-      ).filter((name) => !secretNames.has(name));
+      const missingSecrets = missingSecretNames(
+        usedFlows(parsed, shared),
+        secrets?.map((s) => s?.name) ?? []
+      );
 
       let removed = await importMessages(
         shared,
@@ -286,7 +342,7 @@ function ImportForm({
             : await eventListenersImportMutation.mutateAsync({
                 event_listeners: [
                   {
-                    source: parsed?.source ?? "discord",
+                    source: eventSourceOfFlow(flow),
                     flow_source: remapped.flow,
                     enabled: true,
                   },
@@ -301,7 +357,7 @@ function ImportForm({
       }
       track(`${kind}_created`, {
         source: "import",
-        via: useJson ? "json" : "share_code",
+        via,
       });
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
@@ -336,90 +392,169 @@ function ImportForm({
     }
   }
 
-  function onImport() {
-    if (useJson) {
-      let parsed;
-      try {
-        parsed = JSON.parse(json);
-      } catch {}
-      importShareData(parsed);
-      return;
-    }
+  if (preview) {
+    const shared = sharedMessages(preview.data);
+    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
 
-    if (!code) {
-      toast.error("Enter a share code");
-      return;
-    }
-
-    shareCodeResolveMutation.mutate(code, {
-      onSuccess: (res) => {
-        if (!res.success) {
-          toast.error(
-            res.error.code === "unknown_share_code"
-              ? "Unknown share code"
-              : `Failed to resolve share code: ${res.error.message} (${res.error.code})`
-          );
-          return;
-        }
-        if (res.data.type !== kind) {
-          toast.error(`This share code is not for a ${label}`);
-          return;
-        }
-        importShareData(res.data.data);
-      },
-    });
+    // The blocks use the shared message templates, which the app may not
+    // have yet. Variables from another app aren't imported.
+    return (
+      <PreviewItemsProvider
+        messages={shared.map((m) => ({
+          key: m.id,
+          name: m.name,
+          data: m.data,
+        }))}
+      >
+        <ImportPreview
+          kind={kind}
+          label={label}
+          data={preview.data}
+          // Templates that already exist in this app are reused.
+          extraMessages={shared
+            .slice(kind === "message" ? 1 : 0)
+            .filter((m) => !existingIds.has(m.id))}
+          missingSecrets={missingSecretNames(
+            usedFlows(preview.data, shared),
+            secrets?.map((s) => s?.name) ?? []
+          )}
+          loading={loading}
+          onBack={() => setPreview(null)}
+          onImport={() => importShareData(preview.data, preview.via)}
+        />
+      </PreviewItemsProvider>
+    );
   }
+
+  return (
+    <ShareCodeImportForm
+      title={`Import ${label}`}
+      jsonPlaceholder={
+        kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
+      }
+      submitLabel="Continue"
+      loading={loading}
+      onData={(data, type) => {
+        if (type === null) {
+          previewShareData(data as ShareData, "json");
+        } else if (type === "bundle") {
+          toast.error(
+            "This share code has several items, import it under Templates"
+          );
+        } else if (type !== kind) {
+          toast.error(`This share code is not for a ${label}`);
+        } else {
+          previewShareData(data as ShareData, "share_code");
+        }
+      }}
+    />
+  );
+}
+
+// ImportPreview shows what's imported, so it can be checked before it's added
+// to the app.
+function ImportPreview({
+  kind,
+  label,
+  data,
+  extraMessages,
+  missingSecrets,
+  loading,
+  onBack,
+  onImport,
+}: {
+  kind: Kind;
+  label: string;
+  data: ShareData;
+  extraMessages: SharedMessage[];
+  missingSecrets: string[];
+  loading: boolean;
+  onBack: () => void;
+  onImport: () => void;
+}) {
+  const flow = data.flow_source;
+  const entry = flow?.nodes.find(
+    (n) => n.type === kinds[kind].entryNodeType
+  )?.data;
+  const source = eventSourceOfFlow(flow);
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>Import {label}</DialogTitle>
         <DialogDescription>
-          {useJson
-            ? "Paste the JSON that was exported from another app."
-            : "Enter the share code that was exported from another app."}
+          A copy is added to your app, so you can change it like anything you
+          built yourself.
         </DialogDescription>
       </DialogHeader>
 
-      {useJson ? (
-        <Textarea
-          value={json}
-          onChange={(e) => setJson(e.target.value)}
-          placeholder={
-            kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
-          }
-          minRows={8}
-          maxRows={8}
-          className="resize-none break-all font-mono md:text-xs"
-          autoFocus
-        />
-      ) : (
-        <ShareCodePanel>
-          <ShareCodeInput
-            value={code}
-            onChange={setCode}
-            onSubmit={() => !loading && onImport()}
+      <div className="space-y-5" data-preview>
+        {kind === "message" ? (
+          <MessageItemCard
+            name={data.message!.name}
+            description={data.message!.description ?? null}
+            data={data.message!.data}
+            flowSources={data.message!.flow_sources ?? {}}
+            defaultOpen
           />
-        </ShareCodePanel>
-      )}
+        ) : (
+          <FlowItemCard
+            icon={
+              kind === "command"
+                ? SlashSquareIcon
+                : eventSourceName(source).icon
+            }
+            name={
+              kind === "command"
+                ? `/${String(entry?.name ?? "")}`
+                : eventListenerLabel(source, String(entry?.event_type ?? ""))
+            }
+            description={String(entry?.description ?? "")}
+            context={kind === "command" ? "command" : eventFlowContext(source)}
+            flow={flow!}
+            defaultOpen
+          />
+        )}
 
-      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
-        <Button variant="ghost" onClick={() => setUseJson(!useJson)}>
-          {useJson ? (
-            <KeyRoundIcon className="mr-2 h-4 w-4" />
-          ) : (
-            <BracesIcon className="mr-2 h-4 w-4" />
-          )}
-          {useJson ? "Use share code" : "Use JSON"}
+        {!!extraMessages.length && (
+          <div>
+            <div className="text-sm font-medium mb-2.5">
+              Also adds the message templates it uses
+            </div>
+            <div className="space-y-3">
+              {extraMessages.map((message) => (
+                <MessageItemCard
+                  key={message.id}
+                  name={message.name}
+                  description={message.description ?? null}
+                  data={message.data}
+                  flowSources={message.flow_sources ?? {}}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!missingSecrets.length && (
+          <div className="flex gap-2 text-sm text-amber-600 dark:text-amber-500">
+            <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+            <span>
+              This {label} uses secrets your app doesn&apos;t have:{" "}
+              {missingSecrets.join(", ")}. Create them under Secrets after
+              importing.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Stays in view while the items scroll. */}
+      <DialogFooter className="sticky -bottom-6 -mx-6 -mb-6 px-6 py-4 border-t bg-background flex-row justify-between gap-2 sm:justify-between sm:space-x-0">
+        <Button variant="ghost" onClick={onBack}>
+          Back
         </Button>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <LoadingButton onClick={onImport} loading={loading}>
-            Import
-          </LoadingButton>
-        </div>
+        <LoadingButton onClick={onImport} loading={loading}>
+          Import
+        </LoadingButton>
       </DialogFooter>
     </>
   );

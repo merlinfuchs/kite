@@ -1,36 +1,45 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
+import { discordEventTypes } from "@/lib/flow/eventTypes";
+import { auditLogActions } from "@/lib/flow/auditLogActions";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
-import { duplicateFlowNode } from "@/lib/flow/clipboard";
+import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
-import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
+import { getFlowCredits } from "@/lib/flow/credits";
+import { describeList } from "@/lib/flow/list";
 import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
-import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition } from "@/lib/blocks";
-import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
-import { integrations, needsCredential } from "@/lib/integrations";
 import {
-  ModalInputType,
-  modalInputHasOptions,
-  modalInputHasPlaceholder,
-  modalInputHasValueLimits,
-  modalInputTypes,
-  modalComponentNumber,
-  modalMaxComponents,
-  modalOptionCounts,
-  newModalInput,
-  newModalOption,
-  nextModalInputNumber,
-  normalizeModalComponents,
-} from "@/lib/flow/modal";
+  aiAnswerLimits,
+  aiModelTiers,
+  aiOutputStepTokens,
+  aiPromptLimits,
+  getAiModelTier,
+} from "@/lib/flow/aiModels";
+import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
+import { parseColorValue } from "@/tools/common/utils/color";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
+import { translateLanguages } from "@/lib/flow/translateLanguages";
+import { randomModes } from "@/lib/blocks/randomGenerate";
+import {
+  lookupMaxRows,
+  lookupModes,
+  parseLookupLines,
+} from "@/lib/blocks/valueLookup";
+import ColorPicker from "@/tools/common/components/ColorPicker";
+import {
+  getIntegration,
+  integrations,
+  needsCredential,
+} from "@/lib/integrations";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -38,16 +47,19 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
-  ModalComponentData,
-  ModalComponentOptionData,
+  LookupRow,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -58,6 +70,13 @@ import {
   useStoreApi,
 } from "@xyflow/react";
 import {
+  booleanEventFilterTargets,
+  eventFilterTargetLabels,
+  getEventFilterModes,
+  getEventFilterTargets,
+} from "@/lib/flow/eventFilterTargets";
+import {
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   CircleAlertIcon,
@@ -69,13 +88,32 @@ import {
   SmileIcon,
   TrashIcon,
   XIcon,
+  PlugIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  ChangeEvent,
+  ReactNode,
+  memo,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  EditOnly,
+  FlowReadOnlyContext,
+  PreviewInert,
+  useFlowMessages,
+  useFlowVariables,
+} from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
+import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
@@ -108,6 +146,15 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
 import {
   Select,
   SelectContent,
@@ -121,10 +168,11 @@ import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { channelTypeOptions } from "@/lib/message/selectMenu";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -167,6 +215,7 @@ export const settingInputs: Record<string, any> = {
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
+  event_filter_ignore_case: EventFilterIgnoreCaseInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
@@ -177,12 +226,21 @@ export const settingInputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  channel_edit_data: ChannelEditDataInput,
   thread_data: ThreadDataInput,
   forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
+  forward_source_channel_target: ForwardSourceChannelTargetInput,
+  forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_asset_id: AudioAssetInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -200,11 +258,16 @@ export const settingInputs: Record<string, any> = {
   ai_choice_data: AiChoiceDataInput,
   ai_check_data: AiCheckDataInput,
   ai_score_data: AiScoreDataInput,
+  ai_translate_data: AiTranslateDataInput,
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
-  random_min: RandomMinInput,
-  random_max: RandomMaxInput,
+  random: RandomInput,
+  lookup_value: LookupValueInput,
+  lookup_mode: LookupModeInput,
+  lookup_ignore_case: LookupIgnoreCaseInput,
+  lookup_rows: LookupRowsInput,
+  lookup_default: LookupDefaultInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   guild_target: GuildTargetInput,
@@ -219,6 +282,7 @@ export const settingInputs: Record<string, any> = {
   condition_compare_base_value: ConditionCompareBaseValueInput,
   condition_item_compare_mode: ConditionItemCompareModeInput,
   condition_item_compare_value: ConditionItemCompareValueInput,
+  condition_item_ignore_case: ConditionItemIgnoreCaseInput,
   condition_user_base_value: ConditionUserBaseValueInput,
   condition_item_user_mode: ConditionItemUserModeInput,
   condition_item_user_value: ConditionItemUserValueInput,
@@ -268,26 +332,34 @@ export default function FlowNodeEditor({
   }
 
   const nodes = useNodes<Node<NodeData>>();
+  // Flows that are only shown, like the ones of a template, show the settings
+  // of their blocks without letting them change.
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const node = nodes.find((n) => n.id === nodeId);
   const data = node?.data;
 
-  function updateData(newData: Partial<NodeData>) {
-    setNodes((nodes) =>
-      nodes.map((n) => {
-        if (n.id === nodeId) {
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              ...newData,
-            },
-          };
-        }
-        return n;
-      })
-    );
-  }
+  const updateData = useCallback(
+    (newData: Partial<NodeData>) => {
+      // Nothing in a preview changes, even where an input misses it.
+      if (readOnly) return;
+      setNodes((nodes) =>
+        nodes.map((n) => {
+          if (n.id === nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                ...newData,
+              },
+            };
+          }
+          return n;
+        })
+      );
+    },
+    [setNodes, nodeId, readOnly]
+  );
 
   function deleteNode() {
     deleteElements({
@@ -298,8 +370,8 @@ export default function FlowNodeEditor({
   function duplicateNode() {
     if (!node) return;
 
-    const [newNodes, newEdges] = duplicateFlowNode(
-      node.id,
+    const [newNodes, newEdges] = duplicateFlowNodes(
+      [node.id],
       getNodes(),
       getEdges()
     );
@@ -316,6 +388,7 @@ export default function FlowNodeEditor({
   const hasPremiumFeature = useAppFeature((f) =>
     premiumFeature ? !!f[premiumFeature] : true
   );
+  const premiumPlan = useFeaturePlan(premiumFeature);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -333,6 +406,11 @@ export default function FlowNodeEditor({
   if (!node || !data) return null;
 
   const creditsCost = getNodeCreditsCost(values, data);
+  // The services other than Discord the block talks to, like Cookie API.
+  const block = getBlockDefinition(node.type);
+  const blockServices = (block ? blockIntegrations(block) : [])
+    .filter((id) => id !== "discord")
+    .map((id) => getIntegration(id)?.name ?? id);
 
   const docsPage = nodeTypeDocsPage(node.type!);
 
@@ -375,12 +453,21 @@ export default function FlowNodeEditor({
                 <div className="bg-muted rounded px-2 py-1 text-xs">
                   {nodeId}
                 </div>
-                {creditsCost && (
+                {!!creditsCost && (
                   <div className="bg-muted rounded px-2 py-1 text-xs flex gap-1">
                     {creditsCost}
                     <div>credit{creditsCost === 1 ? "" : "s"}</div>
                   </div>
                 )}
+                {blockServices.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-muted rounded px-2 py-1 text-xs flex items-center gap-1"
+                  >
+                    <PlugIcon className="h-3 w-3" />
+                    {name}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -393,7 +480,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  Premium
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>
@@ -408,7 +495,7 @@ export default function FlowNodeEditor({
 
               return (
                 <Input
-                  key={field}
+                  key={`${nodeId}-${field}`}
                   id={nodeId}
                   type={node.type}
                   name={name}
@@ -420,7 +507,7 @@ export default function FlowNodeEditor({
             })}
           </div>
           <div className="flex-none space-y-3 mt-5">
-            {!values.fixed && (
+            {!values.fixed && !readOnly && (
               <>
                 <Button
                   variant="destructive"
@@ -537,30 +624,32 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
             <div className="text-xs text-muted-foreground flex-none">
               {arg.data.command_argument_required ? "Required" : "Optional"}
             </div>
-            <div className="flex flex-none">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, -1)}
-                onClick={() => move(i, -1)}
-                aria-label="Move up"
-              >
-                <ChevronUpIcon className="h-5 w-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, 1)}
-                onClick={() => move(i, 1)}
-                aria-label="Move down"
-              >
-                <ChevronDownIcon className="h-5 w-5" />
-              </Button>
-            </div>
+            <EditOnly>
+              <div className="flex flex-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, -1)}
+                  onClick={() => move(i, -1)}
+                  aria-label="Move up"
+                >
+                  <ChevronUpIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, 1)}
+                  onClick={() => move(i, 1)}
+                  aria-label="Move down"
+                >
+                  <ChevronDownIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </EditOnly>
           </div>
         ))}
       </div>
@@ -686,6 +775,7 @@ function CommandArgumentMaxLengthInput({
 }
 
 function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const addChoice = useCallback(() => {
     updateData({
       command_argument_choices: [
@@ -745,33 +835,39 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               placeholder="Name"
               value={choice.name || ""}
               onChange={(e) => updateChoice(i, { name: e.target.value })}
+              readOnly={readOnly}
             />
             <Input
               type="text"
               placeholder="Value"
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
+              readOnly={readOnly}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              className="flex-none"
-              aria-label="Remove choice"
-              onClick={() => removeChoice(i)}
-            >
-              <MinusIcon className="h-5 w-5" />
-            </Button>
+            <EditOnly>
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove choice"
+                onClick={() => removeChoice(i)}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </EditOnly>
           </div>
         ))}
       </div>
-      <div className="flex space-x-2">
-        <Button variant="outline" size="icon" onClick={addChoice}>
-          <PlusIcon className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={clearChoices}>
-          <TrashIcon className="h-5 w-5" />
-        </Button>
-      </div>
+      <EditOnly>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="icon" onClick={addChoice}>
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={clearChoices}>
+            <TrashIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </EditOnly>
     </div>
   );
 }
@@ -788,6 +884,7 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      searchable
     />
   );
 }
@@ -927,32 +1024,25 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   // Scheduled and webhook listeners can't become Discord listeners or the
   // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
-  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
+  // The URL belongs to the listener being edited, not to a previewed flow.
+  if (data.event_type === EventTypeWebhook) {
+    return readOnly ? null : <WebhookUrlInput />;
+  }
 
   return (
     <BaseInput
       type="select"
       field="event_type"
       title="Event"
-      options={[
-        { value: "message_create", label: "Message Create" },
-        { value: "direct_message_create", label: "Direct Message Received" },
-        { value: "message_update", label: "Message Update" },
-        { value: "message_delete", label: "Message Delete" },
-        { value: "guild_member_add", label: "Server Member Add" },
-        { value: "guild_member_remove", label: "Server Member Remove" },
-        { value: "message_reaction_add", label: "Message Reaction Add" },
-        {
-          value: "message_reaction_remove",
-          label: "Message Reaction Remove",
-        },
-        { value: "guild_create", label: "Bot Joined Server" },
-        { value: "guild_delete", label: "Bot Left Server" },
-        { value: "guild_boost", label: "Server Boost" },
-      ]}
+      options={discordEventTypes.map((t) => ({
+        value: t.value,
+        label: t.label,
+      }))}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
@@ -966,10 +1056,14 @@ function EventScheduleCronInput(props: InputProps) {
 }
 
 function ScheduleCronInput({ data, updateData, errors }: InputProps) {
-  const nodes = useNodes();
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
 
   const cron = data.event_schedule_cron || "";
-  const creditsPerRun = useMemo(() => getFlowCreditsCost(nodes), [nodes]);
+  const creditsPerRun = useMemo(
+    () => getFlowCredits(nodes, edges).max,
+    [nodes, edges]
+  );
 
   return (
     <div className="space-y-2">
@@ -992,43 +1086,125 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+// useConnectedEventType returns the event type of the listener an event
+// filter is connected to, if any.
+function useConnectedEventType(filterId: string) {
+  const edges = useEdges();
+  const nodes = useNodes<Node<NodeData>>();
+
+  return useMemo(() => {
+    const edge = edges.find((e) => e.source === filterId);
+    const entry = edge && nodes.find((n) => n.id === edge.target);
+    return entry?.type === "entry_event" ? entry.data.event_type : undefined;
+  }, [edges, nodes, filterId]);
+}
+
+function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
+  const eventType = useConnectedEventType(id);
+  const targets = getEventFilterTargets(eventType);
+  const target = data.event_filter_target || "";
+
+  const targetErrors =
+    target && eventType && !targets.includes(target)
+      ? {
+          ...errors,
+          event_filter_target: `${
+            eventFilterTargetLabels[target] || target
+          } isn't available for ${eventType
+            .split("_")
+            .join(" ")} events, so the listener would never run.`,
+        }
+      : errors;
+
   return (
     <BaseInput
       type="select"
       field="event_filter_target"
       title="Filter Target"
-      options={[
-        { value: "message_content", label: "Message Content" },
-        { value: "user_id", label: "User ID" },
-        { value: "guild_id", label: "Guild ID" },
-        { value: "channel_id", label: "Channel ID" },
-        { value: "message_id", label: "Message ID" },
-      ]}
-      value={data.event_filter_target || ""}
-      updateValue={(v) =>
+      options={targets.map((t) => ({
+        value: t,
+        label: eventFilterTargetLabels[t] || t,
+      }))}
+      value={target}
+      updateValue={(v) => {
+        // Some targets only take some modes, and yes or no filters start as
+        // "yes". Yes or no filters have no value, emojis and actions are
+        // picked, so no other value carries over to or from them.
+        const isPicked = (t: string) =>
+          booleanEventFilterTargets.includes(t) ||
+          t === "emoji" ||
+          t === "audit_log_action";
+
+        const modes = getEventFilterModes(v);
+        const mode =
+          modes && !modes.includes(data.event_filter_mode || "")
+            ? modes[0]
+            : data.event_filter_mode;
+
         updateData({
           event_filter_target: v || undefined,
-        })
-      }
-      errors={errors}
+          event_filter_mode: mode,
+          event_filter_value:
+            isPicked(v) || isPicked(target)
+              ? undefined
+              : data.event_filter_value,
+          event_filter_ignore_case:
+            v === "message_content" ? data.event_filter_ignore_case : undefined,
+        });
+      }}
+      errors={targetErrors}
     />
   );
 }
 
+const oneOfModes = [
+  { value: "one_of", label: "Is One Of" },
+  { value: "not_one_of", label: "Is Not One Of" },
+];
+
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="select"
-      field="event_filter_mode"
-      title="Filter Mode"
-      options={[
+  const target = data.event_filter_target || "";
+  const isBoolean = booleanEventFilterTargets.includes(target);
+
+  const options = isBoolean
+    ? [
+        { value: "equal", label: "Yes" },
+        { value: "not_equal", label: "No" },
+      ]
+    : target === "role_id"
+    ? [
+        { value: "equal", label: "Has Role" },
+        { value: "not_equal", label: "Doesn't Have Role" },
+      ]
+    : target === "emoji"
+    ? [
+        { value: "equal", label: "Is" },
+        { value: "not_equal", label: "Is Not" },
+      ]
+    : target === "audit_log_action"
+    ? oneOfModes
+    : [
         { value: "equal", label: "Equal" },
         { value: "not_equal", label: "Not Equal" },
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
-      ]}
+        ...oneOfModes,
+      ];
+
+  return (
+    <BaseInput
+      type="select"
+      field="event_filter_mode"
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      description={
+        target === "user_is_bot"
+          ? "Choose No to ignore bots."
+          : target === "message_mentions_bot"
+          ? "Whether the message pings your bot."
+          : undefined
+      }
+      options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -1037,15 +1213,93 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+
+  // Yes or no filters pick yes or no as their mode instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
+
+  if (target === "audit_log_action") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Actions"
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
+        options={auditLogActions}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
+        searchable
+      />
+    );
+  }
+
+  if (target === "emoji") {
+    return (
+      <BaseEmojiPicker
+        title="Emoji"
+        field="event_filter_value"
+        errors={errors}
+        emoji={emojiFilterData(data.event_filter_value)}
+        onChange={(emoji) =>
+          updateData({
+            event_filter_value: emoji ? emoji.id || emoji.name : undefined,
+          })
+        }
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title="Filter Value"
+      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      description={
+        target === "role_id"
+          ? "The ID of the role, or the role mention."
+          : data.event_filter_mode === "one_of" ||
+            data.event_filter_mode === "not_one_of"
+          ? "Separate the values with commas."
+          : undefined
+      }
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({
           event_filter_value: v || undefined,
         })
+      }
+      errors={errors}
+      placeholders="parameters"
+    />
+  );
+}
+
+// The value of an emoji filter is the ID of a custom emoji or a unicode emoji.
+// Filters saved before the picker can also hold a custom emoji's mention.
+function emojiFilterData(value?: string): EmojiData | undefined {
+  if (!value) return undefined;
+  const id =
+    /^<a?:\w+:(\d+)>$/.exec(value)?.[1] ??
+    (/^\d+$/.test(value) ? value : undefined);
+  return id ? { id } : { name: value };
+}
+
+function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target !== "message_content") return null;
+
+  return (
+    <BaseCheckbox
+      field="event_filter_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so !help also matches !Help."
+      value={!!data.event_filter_ignore_case}
+      updateValue={(v) =>
+        updateData({ event_filter_ignore_case: v || undefined })
       }
       errors={errors}
     />
@@ -1240,6 +1494,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1370,6 +1625,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholder="Key"
                       value={h.key || ""}
                       onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                      readOnly={readOnly}
                     />
                     <BaseInput
                       type="text"
@@ -1381,40 +1637,47 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholders
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeHeader(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeHeader(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
               ))}
 
-              <div className="flex">
-                <Button variant="outline" size="icon" onClick={addHeader}>
-                  <PlusIcon className="h-5 w-5" />
-                </Button>
-              </div>
+              <EditOnly>
+                <div className="flex">
+                  <Button variant="outline" size="icon" onClick={addHeader}>
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </EditOnly>
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="font-medium text-foreground">JSON Body</div>
-              <Switch
-                checked={!!data.http_request_data?.body_json}
-                onCheckedChange={(checked) =>
-                  updateField({
-                    body_json: checked ? {} : undefined,
-                  })
-                }
-              />
+              <PreviewInert>
+                <Switch
+                  checked={!!data.http_request_data?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateField({
+                      body_json: checked ? {} : undefined,
+                    })
+                  }
+                />
+              </PreviewInert>
             </div>
             {!!data.http_request_data?.body_json && (
               <JsonEditor
                 src={data.http_request_data?.body_json || {}}
                 onChange={(v) => updateField({ body_json: v })}
+                readOnly={readOnly}
               />
             )}
           </div>
@@ -1430,8 +1693,35 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
-  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+// Links in a field's description, like to a card builder, can be opened.
+function linkify(text: string) {
+  return text.split(/(https?:\/\/\S*[^\s.,)])/).map((part, i) =>
+    i % 2 ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="text-primary hover:underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
+function BlockFieldInput({
+  id,
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  const definition = getBlockDefinition(type);
+  const field = definition?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
   const key = field.name;
@@ -1456,6 +1746,52 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
+  if (field.options) {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={linkify(description)}
+        options={field.options}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
+      />
+    );
+  }
+  if (field.type === "color") {
+    return (
+      <BaseColorInput
+        // Text mode is per block.
+        key={id}
+        field={key}
+        title={title}
+        description={description}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+      />
+    );
+  }
+  // Edits keep what's left out, so they need "No" besides leaving it empty.
+  if (
+    field.type === "boolean" &&
+    definition?.run.kind === "request" &&
+    definition.run.method === "PATCH"
+  ) {
+    return (
+      <BaseKeepSelect
+        field={key}
+        title={title}
+        description={description}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+      />
+    );
+  }
   // Stored as text like the other fields. Off leaves the setting out, which
   // the APIs these blocks call treat as false.
   if (field.type === "boolean") {
@@ -1472,10 +1808,10 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
   }
   return (
     <BaseInput
-      type="text"
+      type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
-      description={description}
+      description={linkify(description)}
       value={value}
       updateValue={setValue}
       errors={errors}
@@ -1612,6 +1948,12 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 {op.method} {op.path}
               </div>
             )}
+            {op?.interaction && (
+              <div className="text-muted-foreground text-sm mt-2">
+                Kite fills in the app&apos;s ID and the token of the interaction
+                that started the flow, like a command or button click.
+              </div>
+            )}
             {operationError && (
               <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
                 <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -1646,51 +1988,57 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 errors={errors}
                 placeholders
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                onClick={() =>
-                  updateRequest({
-                    query: request.query?.filter((v) => v.key !== q.key),
-                  })
-                }
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    updateRequest({
+                      query: request.query?.filter((v) => v.key !== q.key),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
           {unusedQueryParams.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(key) =>
-                updateRequest({
-                  query: [...(request?.query ?? []), { key, value: "" }],
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Add query parameter" />
-              </SelectTrigger>
-              <SelectContent>
-                {unusedQueryParams.map((p) => (
-                  <SelectItem key={p.name} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EditOnly>
+              <Select
+                value=""
+                onValueChange={(key) =>
+                  updateRequest({
+                    query: [...(request?.query ?? []), { key, value: "" }],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add query parameter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unusedQueryParams.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditOnly>
           )}
           {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-foreground">JSON Body</div>
-                <Switch
-                  checked={!!request?.body_json}
-                  onCheckedChange={(checked) =>
-                    updateRequest({ body_json: checked ? {} : undefined })
-                  }
-                />
+                <PreviewInert>
+                  <Switch
+                    checked={!!request?.body_json}
+                    onCheckedChange={(checked) =>
+                      updateRequest({ body_json: checked ? {} : undefined })
+                    }
+                  />
+                </PreviewInert>
               </div>
               {!!request?.body_json && (
                 <FlowJsonInput
@@ -1774,7 +2122,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Prompt"
-        description="The message to send to the AI which it will respond to."
+        description={`The message to send to the AI which it will respond to. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -1787,7 +2135,38 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
+      />
     </>
+  );
+}
+
+function AiMaxCompletionTokensInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      field="ai_chat_completion_data.max_completion_tokens"
+      title="Max Answer Length"
+      description={`The most tokens the answer can have. A token is about 4 characters of English. ${aiAnswerLimits}`}
+      placeholder={aiOutputStepTokens.toString()}
+      value={data.ai_chat_completion_data?.max_completion_tokens || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            max_completion_tokens: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 
@@ -1801,7 +2180,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Query"
-        description="The search query to send to the AI."
+        description={`The search query to send to the AI. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -1813,6 +2192,11 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+      />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
       />
     </>
   );
@@ -1947,27 +2331,31 @@ function AiScoreDataInput(props: InputProps) {
                 }
                 errors={errors}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                aria-label="Remove level"
-                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  aria-label="Remove level"
+                  onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Add level"
-          disabled={levels.length >= aiScoreMaxLevels}
-          onClick={() => updateLevels([...levels, ""])}
-        >
-          <PlusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Add level"
+            disabled={levels.length >= aiScoreMaxLevels}
+            onClick={() => updateLevels([...levels, ""])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
         {errors["ai_decision_data.levels"] && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
             <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -1975,6 +2363,72 @@ function AiScoreDataInput(props: InputProps) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
+  const language = data.ai_translate_data?.language || "";
+  const isLanguage = translateLanguages.some((l) => l.value === language);
+  // A placeholder is picked before it's typed in, so it can't be told apart
+  // from an unset language by the value alone.
+  const [placeholderPicked, setPlaceholderPicked] = useState(false);
+  const fromPlaceholder = placeholderPicked || (language !== "" && !isLanguage);
+
+  function updateLanguage(language: string) {
+    updateData({
+      ai_translate_data: {
+        ...data.ai_translate_data,
+        language: language || undefined,
+      },
+    });
+  }
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="ai_translate_data.text"
+        title="Text"
+        description={`What to translate, like {{message.content}}. ${aiTranslateLimits}`}
+        value={data.ai_translate_data?.text || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_translate_data: {
+              ...data.ai_translate_data,
+              text: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="select"
+        field="ai_translate_data.language"
+        title="Language"
+        description="The language to translate to."
+        options={[
+          ...translateLanguages,
+          { value: "placeholder", label: "From a placeholder" },
+        ]}
+        value={fromPlaceholder ? "placeholder" : isLanguage ? language : ""}
+        updateValue={(v) => {
+          setPlaceholderPicked(v === "placeholder");
+          updateLanguage(v === "placeholder" ? "" : v);
+        }}
+        errors={fromPlaceholder ? {} : errors}
+      />
+      {fromPlaceholder && (
+        <BaseInput
+          field="ai_translate_data.language"
+          description="A single placeholder that becomes the code of a language, like es or pt-BR."
+          value={language}
+          updateValue={updateLanguage}
+          errors={errors}
+          placeholders
+        />
+      )}
     </>
   );
 }
@@ -2026,26 +2480,333 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function RandomMinInput({ data, updateData, errors }: InputProps) {
+function RandomInput({ data, updateData, errors }: InputProps) {
+  const mode = data.random_mode || "number";
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="random_mode"
+        title="Mode"
+        options={[...randomModes]}
+        value={mode}
+        updateValue={(v) => updateData({ random_mode: v || undefined })}
+        errors={errors}
+      />
+      {mode === "item" || mode === "items" ? (
+        <>
+          <ListInput
+            field="random_items"
+            title="Items"
+            noun="item"
+            value={data.random_items || ""}
+            updateValue={(v) => updateData({ random_items: v || undefined })}
+            errors={errors}
+          />
+          {mode === "items" && (
+            <BaseInput
+              field="random_count"
+              title="Count"
+              description="How many different items to pick, from 1 to 100."
+              value={data.random_count || ""}
+              updateValue={(v) => updateData({ random_count: v || undefined })}
+              errors={errors}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <BaseInput
+            field="random_min"
+            title="Min"
+            value={data.random_min || ""}
+            updateValue={(v) => updateData({ random_min: v || undefined })}
+            errors={errors}
+          />
+          <BaseInput
+            field="random_max"
+            title="Max"
+            value={data.random_max || ""}
+            updateValue={(v) => updateData({ random_max: v || undefined })}
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function LookupValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      field="random_min"
-      title="Min"
-      value={data.random_min || ""}
-      updateValue={(v) => updateData({ random_min: v || undefined })}
+      field="lookup_value"
+      title="Value"
+      description="The value to look up in the table, like {{message.content}}."
+      value={data.lookup_value || ""}
+      updateValue={(v) => updateData({ lookup_value: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function LookupModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="lookup_mode"
+      title="Match Mode"
+      description="How the key of a row has to match the value."
+      options={[...lookupModes]}
+      value={data.lookup_mode || "equal"}
+      updateValue={(v) => updateData({ lookup_mode: v || undefined })}
       errors={errors}
     />
   );
 }
 
-function RandomMaxInput({ data, updateData, errors }: InputProps) {
+function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="lookup_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so hello also matches Hello."
+      value={!!data.lookup_ignore_case}
+      updateValue={(v) => updateData({ lookup_ignore_case: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function LookupRowsInput({ data, updateData, errors }: InputProps) {
+  const rows = data.lookup_rows || [];
+  const [pasted, setPasted] = useState("");
+  const [pasteError, setPasteError] = useState("");
+
+  const setRows = (newRows: LookupRow[]) =>
+    updateData({ lookup_rows: newRows.length ? newRows : undefined });
+
+  // Rows are memoized with stable callbacks, so typing in a cell only
+  // re-renders its row, which matters with hundreds of them.
+  const latest = useRef({ rows, setRows });
+  latest.current = { rows, setRows };
+  const updateRow = useCallback(
+    (index: number, newData: Partial<LookupRow>) => {
+      const { rows, setRows } = latest.current;
+      setRows(rows.map((r, i) => (i === index ? { ...r, ...newData } : r)));
+    },
+    []
+  );
+  const removeRow = useCallback((index: number) => {
+    const { rows, setRows } = latest.current;
+    setRows(rows.filter((_, i) => i !== index));
+  }, []);
+
+  function addPasted(replace: boolean) {
+    const pastedRows = parseLookupLines(pasted);
+    if (!pastedRows.length) return;
+    const newRows = replace ? pastedRows : [...rows, ...pastedRows];
+    if (newRows.length > lookupMaxRows) {
+      setPasteError(
+        `The table can have up to ${lookupMaxRows} rows, this would make it ${newRows.length}.`
+      );
+      return;
+    }
+    setRows(newRows);
+    setPasted("");
+    setPasteError("");
+  }
+
+  const rowError = (i: number) =>
+    errors[`lookup_rows.${i}.key`] || errors[`lookup_rows.${i}.value`];
+  const rowErrors = rows.filter((_, i) => rowError(i)).length;
+  const error =
+    errors["lookup_rows"] ||
+    (rowErrors > 0 &&
+      `${rowErrors} ${rowErrors === 1 ? "row has" : "rows have"} an error`);
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Table</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The block returns the value of the first row whose key matches.
+      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Edit Table ({rows.length} {rows.length === 1 ? "row" : "rows"})
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Table</DialogTitle>
+            <DialogDescription>
+              Up to {lookupMaxRows} rows. Keys and values can use placeholders,
+              like {"{{user.id}}"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              {rows.length > 0 && (
+                <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <div>Key</div>
+                    <div>Value</div>
+                  </div>
+                  {/* Room for the remove buttons. */}
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {rows.map((row, i) => (
+                  <LookupRowInput
+                    key={i}
+                    index={i}
+                    row={row}
+                    error={rowError(i)}
+                    onChange={updateRow}
+                    onRemove={removeRow}
+                  />
+                ))}
+                <EditOnly>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add row"
+                      onClick={() => setRows([...rows, { key: "", value: "" }])}
+                      disabled={rows.length >= lookupMaxRows}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </EditOnly>
+              </div>
+            </div>
+            <EditOnly>
+              <div>
+                <div className="font-medium text-foreground mb-1">
+                  Paste Rows
+                </div>
+                <div className="text-muted-foreground text-sm mb-2">
+                  One row per line, as key = value, or copy two columns from a
+                  spreadsheet.
+                </div>
+                <Textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder={"hello = Hi there!\nbye = See you later!"}
+                  className="min-h-24"
+                />
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => addPasted(false)}
+                    disabled={!pasted.trim()}
+                  >
+                    Add Rows
+                  </Button>
+                  <ConfirmDialog
+                    title="Replace all rows?"
+                    description="This removes the rows of the table and adds the pasted ones instead."
+                    onConfirm={() => addPasted(true)}
+                  >
+                    <Button variant="outline" disabled={!pasted.trim()}>
+                      Replace All Rows
+                    </Button>
+                  </ConfirmDialog>
+                </div>
+                {pasteError && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{pasteError}</div>
+                  </div>
+                )}
+              </div>
+            </EditOnly>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const LookupRowInput = memo(function LookupRowInput({
+  index,
+  row,
+  error,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  row: LookupRow;
+  error?: string;
+  onChange: (index: number, newData: Partial<LookupRow>) => void;
+  onRemove: (index: number) => void;
+}) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 flex-auto">
+          <Input
+            type="text"
+            placeholder="Key"
+            value={row.key}
+            onChange={(e) => onChange(index, { key: e.target.value })}
+            readOnly={readOnly}
+          />
+          <Input
+            type="text"
+            placeholder="Value"
+            value={row.value}
+            onChange={(e) => onChange(index, { value: e.target.value })}
+            readOnly={readOnly}
+          />
+        </div>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-none"
+            aria-label="Remove row"
+            onClick={() => onRemove(index)}
+          >
+            <MinusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+function LookupDefaultInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      field="random_max"
-      title="Max"
-      value={data.random_max || ""}
-      updateValue={(v) => updateData({ random_max: v || undefined })}
+      type="textarea"
+      field="lookup_default"
+      title="Default Value"
+      description="The result when no row matches. Leave empty to return nothing, which a Comparison Condition can check for."
+      value={data.lookup_default || ""}
+      updateValue={(v) => updateData({ lookup_default: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -2145,6 +2906,7 @@ function RobloxUserTargetInput({ data, updateData, errors }: InputProps) {
       type="text"
       field="roblox_user_target"
       title="Roblox User Target"
+      description="The Roblox ID or username of the user. Discord users and IDs don't work here."
       value={data.roblox_user_target || ""}
       updateValue={(v) => updateData({ roblox_user_target: v || undefined })}
       errors={errors}
@@ -2171,57 +2933,74 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
-  const messages = useMessages();
+  const messages = useFlowMessages();
+  const readOnly = useContext(FlowReadOnlyContext);
+  const template = data.message_template_id
+    ? messages?.find((m) => m.id === data.message_template_id)
+    : undefined;
 
   const appId = useAppId();
 
   return (
-    <div className="flex space-x-2 items-end">
-      <BaseInput
-        type="select"
-        field="message_template_id"
-        title="Message Template"
-        description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
-        value={data.message_template_id || ""}
-        updateValue={(v) => updateData({ message_template_id: v || undefined })}
-        errors={errors}
-        clearable
-      />
-      {data.message_template_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/messages/[messageId]",
-                  query: { appId: appId, messageId: data.message_template_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit message template</TooltipContent>
-        </Tooltip>
-      ) : (
-        <MessageCreateDialog
-          onMessageCreated={(v) => updateData({ message_template_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </MessageCreateDialog>
+    <>
+      <div className="flex space-x-2 items-end">
+        <BaseInput
+          type="select"
+          field="message_template_id"
+          title="Message Template"
+          description="Select a message template to use for the response."
+          options={messages?.map((m) => ({
+            value: m!.id,
+            label: m!.name,
+          }))}
+          value={data.message_template_id || ""}
+          updateValue={(v) =>
+            updateData({ message_template_id: v || undefined })
+          }
+          errors={errors}
+          clearable
+        />
+        {!readOnly &&
+          (data.message_template_id ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" asChild>
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/messages/[messageId]",
+                      query: {
+                        appId: appId,
+                        messageId: data.message_template_id,
+                      },
+                    }}
+                    target="_blank"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit message template</TooltipContent>
+            </Tooltip>
+          ) : (
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </MessageCreateDialog>
+          ))}
+      </div>
+      {readOnly && template && (
+        <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
-    </div>
+    </>
   );
 }
 
 function MessageDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   if (data.message_template_id) {
     return null;
   }
@@ -2251,12 +3030,16 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         />
       )}
 
-      <MessageEditorDialog
-        onClose={(v) => updateData({ message_data: v })}
-        message={data.message_data || {}}
-      >
-        <Button className="w-full">Edit Message</Button>
-      </MessageEditorDialog>
+      {readOnly ? (
+        <FlowMessageViewDialog message={data.message_data} />
+      ) : (
+        <MessageEditorDialog
+          onClose={(v) => updateData({ message_data: v })}
+          message={data.message_data || {}}
+        >
+          <Button className="w-full">Edit Message</Button>
+        </MessageEditorDialog>
+      )}
 
       <AllowedMentionsDialog
         data={data}
@@ -2399,21 +3182,43 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function ResponseTargetInput({ data, updateData, errors }: InputProps) {
+  // Picking Other clears the target, so it has to be remembered until an ID
+  // is entered.
+  const [pickedOther, setPickedOther] = useState(false);
+  const other =
+    pickedOther ||
+    (!!data.message_target && data.message_target !== "@original");
+
   return (
-    <BaseInput
-      type="select"
-      field="message_target"
-      title="Target Response"
-      value={data.message_target || ""}
-      options={[
-        {
-          label: "Original Response",
-          value: "@original",
-        },
-      ]}
-      updateValue={(v) => updateData({ message_target: v || undefined })}
-      errors={errors}
-    />
+    <>
+      <BaseInput
+        type="select"
+        field="message_target"
+        title="Target Response"
+        value={other ? "other" : data.message_target || ""}
+        options={[
+          { label: "Original Response", value: "@original" },
+          { label: "Other Response", value: "other" },
+        ]}
+        updateValue={(v) => {
+          setPickedOther(v === "other");
+          updateData({ message_target: v === "other" ? undefined : v });
+        }}
+        errors={other ? {} : errors}
+      />
+      {other && (
+        <BaseInput
+          type="text"
+          field="message_target"
+          title="Response ID"
+          description="ID of a response this interaction created after the first one, like the result of another Create Response Message block."
+          value={data.message_target || ""}
+          updateValue={(v) => updateData({ message_target: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+    </>
   );
 }
 
@@ -2449,6 +3254,7 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
 const pollMaxAnswers = 10;
 
 function PollDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const updateField = useCallback(
     (newData: Partial<PollData>) => {
       updateData({ poll_data: { ...data.poll_data, ...newData } });
@@ -2511,54 +3317,65 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             return (
               <div key={i}>
                 <div className="flex gap-2">
-                  <EmojiPicker
-                    onEmojiSelect={(emoji) =>
-                      updateAnswer(i, {
-                        emoji: emoji.native
-                          ? { name: emoji.name }
-                          : { id: emoji.id, name: emoji.name },
-                      })
-                    }
-                  >
-                    <Button size="icon" variant="outline" className="flex-none">
-                      {answer.emoji?.id ? (
-                        <img
-                          src={discordEmojiUrl(answer.emoji.id)}
-                          alt=""
-                          className="h-6 w-6"
-                        />
-                      ) : answer.emoji ? (
-                        <Twemoji options={{ className: "h-6 w-6" }}>
-                          {answer.emoji.name}
-                        </Twemoji>
-                      ) : (
-                        <SmileIcon className="h-6 w-6 text-foreground/80" />
-                      )}
-                    </Button>
-                  </EmojiPicker>
-                  {answer.emoji && (
-                    <div
-                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
-                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                  <PreviewInert className="flex-none">
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) =>
+                        updateAnswer(i, {
+                          emoji: emoji.native
+                            ? { name: emoji.name }
+                            : { id: emoji.id, name: emoji.name },
+                        })
+                      }
                     >
-                      <XIcon className="h-5 w-5" />
-                    </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="flex-none"
+                      >
+                        {answer.emoji?.id ? (
+                          <img
+                            src={discordEmojiUrl(answer.emoji.id)}
+                            alt=""
+                            className="h-6 w-6"
+                          />
+                        ) : answer.emoji ? (
+                          <Twemoji options={{ className: "h-6 w-6" }}>
+                            {answer.emoji.name}
+                          </Twemoji>
+                        ) : (
+                          <SmileIcon className="h-6 w-6 text-foreground/80" />
+                        )}
+                      </Button>
+                    </EmojiPicker>
+                  </PreviewInert>
+                  {answer.emoji && (
+                    <EditOnly>
+                      <div
+                        className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => updateAnswer(i, { emoji: undefined })}
+                      >
+                        <XIcon className="h-5 w-5" />
+                      </div>
+                    </EditOnly>
                   )}
                   <div className="flex-auto">
                     <PlaceholderInput
                       value={answer.text || ""}
                       onChange={(v) => updateAnswer(i, { text: v })}
                       placeholder={`Answer ${i + 1}`}
+                      readOnly={readOnly}
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeAnswer(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeAnswer(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
                 {error && (
                   <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -2570,16 +3387,18 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             );
           })}
 
-          <div className="flex">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={addAnswer}
-              disabled={answers.length >= pollMaxAnswers}
-            >
-              <PlusIcon className="h-5 w-5" />
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={addAnswer}
+                disabled={answers.length >= pollMaxAnswers}
+              >
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </EditOnly>
         </div>
         {answersError && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -2610,531 +3429,13 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function parseOptionalInt(v: string) {
-  const n = parseInt(v);
-  return isNaN(n) ? undefined : n;
-}
-
-let nextListKey = 0;
-
-// Keys for the items of a list that can be reordered or removed, so the
-// inputs of an item stay with it. The items have no IDs to use instead. Moves
-// and removals have to go through move and remove, other changes, like an
-// undo, only keep the keys of the first items.
-function useListKeys(length: number) {
-  const keys = useRef<number[]>([]);
-  while (keys.current.length < length) keys.current.push(nextListKey++);
-  keys.current.length = length;
-
-  return {
-    keys: keys.current,
-    move: (i: number, j: number) => {
-      const k = keys.current;
-      [k[i], k[j]] = [k[j], k[i]];
-    },
-    remove: (i: number) => {
-      keys.current.splice(i, 1);
-    },
-  };
-}
-
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  // Older modals are converted when they are edited, so the editor only
-  // deals with labels and text displays.
-  const components = useMemo(
-    () => normalizeModalComponents(data.modal_data?.components),
-    [data.modal_data?.components]
-  );
-  const componentKeys = useListKeys(components.length);
-
-  const setComponents = useCallback(
-    (newComponents: ModalComponentData[]) => {
-      updateData({
-        modal_data: {
-          title: data.modal_data?.title,
-          components: newComponents,
-        },
-      });
-    },
-    [updateData, data.modal_data?.title]
-  );
-
-  const updateComponent = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      setComponents(
-        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
-      );
-    },
-    [setComponents, components]
-  );
-
-  const updateInput = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      const input = components[i]?.components?.[0] ?? {};
-      updateComponent(i, { components: [{ ...input, ...newData }] });
-    },
-    [updateComponent, components]
-  );
-
-  const moveComponent = useCallback(
-    (i: number, dir: -1 | 1) => {
-      const j = i + dir;
-      if (j < 0 || j >= components.length) return;
-      const res = [...components];
-      [res[i], res[j]] = [res[j], res[i]];
-      componentKeys.move(i, j);
-      setComponents(res);
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const removeComponent = useCallback(
-    (i: number) => {
-      componentKeys.remove(i);
-      setComponents(components.filter((_, j) => j !== i));
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const addInput = useCallback(() => {
-    const n = nextModalInputNumber(components);
-    setComponents([
-      ...components,
-      {
-        type: "label",
-        label: `Input ${n}`,
-        components: [newModalInput("text_input", `input_${n}`)],
-      },
-    ]);
-  }, [setComponents, components]);
-
-  const addText = useCallback(() => {
-    setComponents([...components, { type: "text_display", content: "" }]);
-  }, [setComponents, components]);
-
-  const componentsError =
-    errors["modal_data.components"] || errors["modal_data"];
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure Modal</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure Modal</DialogTitle>
-          <DialogDescription>
-            Configure your modal here! A modal must have a title and at least
-            one input. It can have up to {modalMaxComponents} inputs and texts.
-            The answers can be read with {"{{input('identifier')}}"}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="text"
-            field="modal_data.title"
-            title="Title"
-            value={data.modal_data?.title || ""}
-            updateValue={(v) =>
-              updateData({
-                modal_data: {
-                  title: v || undefined,
-                  components,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
-          <div className="space-y-3">
-            <div className="font-medium text-foreground">Components</div>
-            {components.map((component, i) => (
-              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
-                <div className="flex items-center gap-2">
-                  <div className="font-medium text-foreground flex-auto">
-                    {component.type === "text_display" ? "Text" : "Input"}{" "}
-                    {modalComponentNumber(components, i)}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === 0}
-                    onClick={() => moveComponent(i, -1)}
-                  >
-                    <ChevronUpIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === components.length - 1}
-                    onClick={() => moveComponent(i, 1)}
-                  >
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeComponent(i)}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </Button>
-                </div>
-                {component.type === "text_display" ? (
-                  <BaseInput
-                    type="textarea"
-                    field={`modal_data.components.${i}.content`}
-                    title="Content"
-                    description="Markdown text shown in the modal."
-                    value={component.content || ""}
-                    updateValue={(v) =>
-                      updateComponent(i, { content: v || undefined })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                ) : (
-                  <ModalLabelInput
-                    index={i}
-                    component={component}
-                    updateComponent={(d) => updateComponent(i, d)}
-                    updateInput={(d) => updateInput(i, d)}
-                    errors={errors}
-                  />
-                )}
-              </Card>
-            ))}
-          </div>
-
-          {componentsError && (
-            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
-              <CircleAlertIcon className="h-5 w-5 flex-none" />
-              <div>{componentsError}</div>
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <Button
-              onClick={addInput}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Input
-            </Button>
-            <Button
-              variant="outline"
-              onClick={addText}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Text
-            </Button>
-            <Button variant="outline" onClick={() => setComponents([])}>
-              Clear
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ModalLabelInput({
-  index,
-  component,
-  updateComponent,
-  updateInput,
-  errors,
-}: {
-  index: number;
-  component: ModalComponentData;
-  updateComponent: (data: Partial<ModalComponentData>) => void;
-  updateInput: (data: Partial<ModalComponentData>) => void;
-  errors: Record<string, string>;
-}) {
-  const input = component.components?.[0] ?? {};
-  const type = input.type || "text_input";
-  const field = `modal_data.components.${index}`;
-  const inputField = `${field}.components.0`;
-
-  return (
-    <>
-      <div className="flex space-x-3">
-        <BaseInput
-          type="select"
-          field={`${inputField}.type`}
-          title="Type"
-          value={type}
-          options={[...modalInputTypes]}
-          updateValue={(v) =>
-            updateComponent({
-              components: [newModalInput(v as ModalInputType, input.custom_id)],
-            })
-          }
-          errors={errors}
-        />
-        {type === "checkbox" ? (
-          <BaseCheckbox
-            field={`${inputField}.default`}
-            title="Checked"
-            value={!!input.default}
-            updateValue={(v) => updateInput({ default: v || undefined })}
-            errors={errors}
-          />
-        ) : (
-          <BaseCheckbox
-            field={`${inputField}.required`}
-            title="Required"
-            value={!!input.required}
-            updateValue={(v) => updateInput({ required: v || undefined })}
-            errors={errors}
-          />
-        )}
-      </div>
-      <BaseInput
-        type="text"
-        field={`${inputField}.custom_id`}
-        title="Identifier"
-        description="Used to read the answer in your flow with input('identifier')."
-        value={input.custom_id || ""}
-        updateValue={(v) => updateInput({ custom_id: v || undefined })}
-        errors={errors}
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.label`}
-        title="Label"
-        value={component.label || ""}
-        updateValue={(v) => updateComponent({ label: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.description`}
-        title="Description"
-        description="Optional smaller text shown below the label."
-        value={component.description || ""}
-        updateValue={(v) => updateComponent({ description: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      {type === "text_input" && (
-        <>
-          <BaseInput
-            type="select"
-            field={`${inputField}.style`}
-            title="Style"
-            value={input.style?.toString() || "1"}
-            options={[
-              { label: "Short", value: "1" },
-              { label: "Paragraph", value: "2" },
-            ]}
-            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
-            errors={errors}
-          />
-          <div className="flex space-x-3">
-            <BaseInput
-              type="text"
-              field={`${inputField}.min_length`}
-              title="Min Length"
-              value={input.min_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ min_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-            <BaseInput
-              type="text"
-              field={`${inputField}.max_length`}
-              title="Max Length"
-              value={input.max_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ max_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-          </div>
-          <BaseInput
-            type="text"
-            field={`${inputField}.value`}
-            title="Pre-filled Value"
-            value={input.value || ""}
-            updateValue={(v) => updateInput({ value: v || undefined })}
-            errors={errors}
-            placeholders
-          />
-        </>
-      )}
-      {modalInputHasPlaceholder(type) && (
-        <BaseInput
-          type="text"
-          field={`${inputField}.placeholder`}
-          title="Placeholder"
-          value={input.placeholder || ""}
-          updateValue={(v) => updateInput({ placeholder: v || undefined })}
-          errors={errors}
-          placeholders
-        />
-      )}
-      {modalInputHasValueLimits(type) && (
-        <div className="flex space-x-3">
-          <BaseInput
-            type="text"
-            field={`${inputField}.min_values`}
-            title={type === "file_upload" ? "Min Files" : "Min Picks"}
-            value={input.min_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ min_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-          <BaseInput
-            type="text"
-            field={`${inputField}.max_values`}
-            title={type === "file_upload" ? "Max Files" : "Max Picks"}
-            value={input.max_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ max_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-        </div>
-      )}
-      {type === "channel_select" && (
-        <BaseMultiSelect
-          field={`${inputField}.channel_types`}
-          title="Channel Types"
-          description="Leave empty to allow all channel types."
-          options={channelTypeOptions}
-          values={(input.channel_types ?? []).map((t) => t.toString())}
-          updateValues={(v) =>
-            updateInput({
-              channel_types:
-                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
-            })
-          }
-          errors={errors}
-        />
-      )}
-      {modalInputHasOptions(type) && (
-        <ModalOptionsInput
-          field={`${inputField}.options`}
-          options={input.options ?? []}
-          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
-          updateOptions={(options) => updateInput({ options })}
-          errors={errors}
-        />
-      )}
-    </>
-  );
-}
-
-function ModalOptionsInput({
-  field,
-  options,
-  max,
-  updateOptions,
-  errors,
-}: {
-  field: string;
-  options: ModalComponentOptionData[];
-  max: number;
-  updateOptions: (options: ModalComponentOptionData[]) => void;
-  errors: Record<string, string>;
-}) {
-  const optionKeys = useListKeys(options.length);
-  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
-    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
-
-  const error = errors[field];
-
-  return (
-    <div>
-      <div className="font-medium text-foreground mb-1">Options</div>
-      <div className="text-muted-foreground text-sm mb-2">
-        The value is what input() returns when the option is picked. Leave it
-        empty to use the label.
-      </div>
-      <div className="flex flex-col gap-3">
-        {options.map((option, i) => {
-          const optionError =
-            errors[`${field}.${i}.label`] ||
-            errors[`${field}.${i}.value`] ||
-            errors[`${field}.${i}.description`];
-
-          return (
-            <div key={optionKeys.keys[i]}>
-              <div className="flex gap-2 items-center">
-                <div className="flex-auto grid grid-cols-3 gap-2">
-                  <PlaceholderInput
-                    value={option.label || ""}
-                    onChange={(v) => updateOption(i, { label: v || undefined })}
-                    placeholder="Label"
-                  />
-                  <PlaceholderInput
-                    value={option.value || ""}
-                    onChange={(v) => updateOption(i, { value: v || undefined })}
-                    placeholder="Value"
-                  />
-                  <PlaceholderInput
-                    value={option.description || ""}
-                    onChange={(v) =>
-                      updateOption(i, { description: v || undefined })
-                    }
-                    placeholder="Description"
-                  />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Switch
-                        checked={!!option.default}
-                        onCheckedChange={(v) =>
-                          updateOption(i, { default: v || undefined })
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>Picked by default</TooltipContent>
-                </Tooltip>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() => {
-                    optionKeys.remove(i);
-                    updateOptions(options.filter((_, j) => j !== i));
-                  }}
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </div>
-              {optionError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{optionError}</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div className="flex">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={options.length >= max}
-            onClick={() => updateOptions([...options, newModalOption(options)])}
-          >
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-      {error && (
-        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-          <CircleAlertIcon className="h-5 w-5 flex-none" />
-          <div>{error}</div>
-        </div>
-      )}
-    </div>
+    <ModalEditorDialog
+      modal={data.modal_data}
+      onChange={(modal_data) => updateData({ modal_data })}
+      errors={errors}
+    />
   );
 }
 
@@ -3162,7 +3463,12 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-function ChannelDataInput({ data, updateData, errors }: InputProps) {
+function ChannelDataInput({
+  data,
+  updateData,
+  errors,
+  children,
+}: InputProps & { children?: ReactNode }) {
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3498,25 +3804,31 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   }
                   errors={errors}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex gap-2"
-                  onClick={() => removeOverwrite(i)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  <div>Remove Overwrite</div>
-                </Button>
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex gap-2"
+                    onClick={() => removeOverwrite(i)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    <div>Remove Overwrite</div>
+                  </Button>
+                </EditOnly>
               </Card>
             ))}
           </div>
 
-          <div className="flex space-x-3">
-            <Button onClick={addOverwrite}>Add Overwrite</Button>
-            <Button variant="outline" onClick={clearOverwrites}>
-              Clear Overwrites
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex space-x-3">
+              <Button onClick={addOverwrite}>Add Overwrite</Button>
+              <Button variant="outline" onClick={clearOverwrites}>
+                Clear Overwrites
+              </Button>
+            </div>
+          </EditOnly>
+
+          {children}
         </div>
       </DialogContent>
     </Dialog>
@@ -3557,6 +3869,50 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
         placeholders
       />
     </>
+  );
+}
+
+const threadEditSettings = [
+  {
+    field: "archived",
+    title: "Archive Thread",
+    description:
+      "Only for threads. A new message unarchives it unless it's locked.",
+  },
+  {
+    field: "locked",
+    title: "Lock Thread",
+    description:
+      "Only for threads. Only moderators can unarchive a locked thread.",
+  },
+] as const;
+
+// Edit channel can also archive and lock threads.
+function ChannelEditDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  return (
+    <ChannelDataInput {...props}>
+      <div className="flex space-x-3">
+        {threadEditSettings.map(({ field, title, description }) => (
+          <BaseKeepSelect
+            key={field}
+            field={`channel_data.${field}`}
+            title={title}
+            description={description}
+            value={data.channel_data?.[field]?.toString() ?? ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  [field]: v ? v === "true" : undefined,
+                },
+              })
+            }
+            errors={errors}
+          />
+        ))}
+      </div>
+    </ChannelDataInput>
   );
 }
 
@@ -3655,12 +4011,12 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             placeholders
           />
 
-          {(!data.channel_data?.type || data.channel_data.type === 0) && (
+          {data.channel_data?.type === 12 && (
             <BaseCheckbox
               field="channel_data.invitable"
               title="Invitable"
               description="Whether non-moderators can add new members to the thread."
-              value={data.channel_data?.invitable || false}
+              value={data.channel_data?.invitable ?? true}
               updateValue={(v) =>
                 updateData({
                   channel_data: {
@@ -3692,6 +4048,73 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
+    />
+  );
+}
+
+function ForwardSourceChannelTargetInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Message Channel"
+      description="The channel the message to forward is in. Leave blank to use the channel the flow runs in."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ForwardChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="forward_channel_target"
+      title="Forward To"
+      description="The channel to forward the message to."
+      value={data.forward_channel_target || ""}
+      updateValue={(v) =>
+        updateData({ forward_channel_target: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 function VoiceSelfMuteInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
@@ -3713,6 +4136,109 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice Channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
+
+  const createMutation = useAssetCreateMutation(appId, "sounds");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace Sound" : "Upload Sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave When Done"
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
     />
   );
@@ -3786,6 +4312,73 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  const reset = !!data.server_profile_data?.reset;
+
+  return (
+    <>
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset Profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
+        errors={errors}
+      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 function RoleDataInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -3817,7 +4410,8 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function VariableIdInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const appId = useAppId();
 
@@ -3836,51 +4430,58 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.variable_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/variables/[variableId]",
-                  query: { appId: appId, variableId: data.variable_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
+      {!readOnly &&
+        (data.variable_id ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/variables/[variableId]",
+                    query: { appId: appId, variableId: data.variable_id },
+                  }}
+                  target="_blank"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Manage variable</TooltipContent>
+          </Tooltip>
+        ) : (
+          <VariableCreateDialog
+            onVariableCreated={(v) => updateData({ variable_id: v })}
+          >
+            <Button variant="outline" size="icon">
+              <PlusIcon className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Manage variable</TooltipContent>
-        </Tooltip>
-      ) : (
-        <VariableCreateDialog
-          onVariableCreated={(v) => updateData({ variable_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </VariableCreateDialog>
-      )}
+          </VariableCreateDialog>
+        ))}
     </div>
   );
 }
 
 function VariableScopeInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const scoped = useMemo(() => {
     const variable = variables?.find((v) => v?.id === data.variable_id);
     return variable?.scoped;
   }, [variables, data]);
 
-  useEffect(() => {
-    if (scoped === false) {
-      updateData({ variable_scope: undefined });
-    }
-  }, [scoped, updateData]);
+  const hasScope = !!data.variable_scope?.trim();
+  // Shown for unscoped variables too while a scope is left, so it can be
+  // cleared.
+  if (!scoped && !hasScope) return null;
 
-  if (!scoped) return null;
+  // Previews don't show validation.
+  let error: string | undefined;
+  if (!readOnly && scoped === false) {
+    error = "The variable isn't scoped, so the scope is ignored.";
+  } else if (!readOnly && scoped && !hasScope) {
+    error = "Scoped variables need a scope.";
+  }
 
   return (
     <BaseInput
@@ -3889,7 +4490,7 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
       title="Scope"
       value={data.variable_scope || ""}
       updateValue={(v) => updateData({ variable_scope: v || undefined })}
-      errors={errors}
+      errors={error ? { ...errors, variable_scope: error } : errors}
       placeholders
     />
   );
@@ -3930,6 +4531,7 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
 }
 
 function ConditionCompareBaseValueInput({
+  type,
   data,
   updateData,
   errors,
@@ -3937,7 +4539,12 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Value"
+      title={type === "control_if" ? "Condition" : "Base Value"}
+      description={
+        type === "control_if"
+          ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, yes or 1, No otherwise."
+          : undefined
+      }
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -3949,6 +4556,13 @@ function ConditionCompareBaseValueInput({
     />
   );
 }
+
+const numericComparisonModes = [
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+];
 
 function ConditionItemCompareModeInput({
   data,
@@ -3970,31 +4584,116 @@ function ConditionItemCompareModeInput({
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
+        ...oneOfModes,
+        { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
-      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      updateValue={(v) =>
+        updateData({
+          condition_item_mode: v || undefined,
+          // Number modes hide Ignore Case, so it can't stay set unseen.
+          condition_item_ignore_case: numericComparisonModes.includes(v)
+            ? undefined
+            : data.condition_item_ignore_case,
+        })
+      }
       errors={errors}
     />
   );
 }
+
+const conditionListModes = ["one_of", "not_one_of", "contains_any"];
 
 function ConditionItemCompareValueInput({
   data,
   updateData,
   errors,
 }: InputProps) {
+  const value = data.condition_item_value || "";
+  const updateValue = (v: string) =>
+    updateData({ condition_item_value: v || undefined });
+
+  if (conditionListModes.includes(data.condition_item_mode || "")) {
+    return (
+      <ListInput
+        field="condition_item_value"
+        title="Comparison Values"
+        noun="value"
+        value={value}
+        updateValue={updateValue}
+        errors={errors}
+      />
+    );
+  }
+
   return (
     <BaseInput
+      // A list stays multi-line after switching to another mode, so its lines
+      // aren't hidden in a single-line input.
+      type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
       title="Comparison Value"
-      value={data.condition_item_value || ""}
-      updateValue={(v) =>
-        updateData({
-          condition_item_value: v || undefined,
-        })
-      }
+      value={value}
+      updateValue={updateValue}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+// ListInput edits a setting that takes a list: one item per line, or a
+// placeholder that holds a list.
+function ListInput({
+  field,
+  title,
+  noun,
+  value,
+  updateValue,
+  errors,
+}: {
+  field: string;
+  title: string;
+  noun: string;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      type="textarea"
+      field={field}
+      title={title}
+      description={`One ${noun} per line, or a placeholder that holds a list. ${describeList(
+        value,
+        noun
+      )}.`}
+      value={value}
+      updateValue={updateValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ConditionItemIgnoreCaseInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (numericComparisonModes.includes(data.condition_item_mode || "")) {
+    return null;
+  }
+
+  return (
+    <BaseCheckbox
+      field="condition_item_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
+      value={!!data.condition_item_ignore_case}
+      updateValue={(v) =>
+        updateData({ condition_item_ignore_case: v || undefined })
+      }
+      errors={errors}
     />
   );
 }
@@ -4256,6 +4955,35 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// A yes or no setting of a block that edits something, where "" keeps what it
+// is. Select items can't have an empty value, so "keep" stands for it.
+function BaseKeepSelect({
+  value,
+  updateValue,
+  ...props
+}: {
+  field: string;
+  title: string;
+  description?: ReactNode;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      {...props}
+      type="select"
+      options={[
+        { value: "keep", label: "Keep current" },
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ]}
+      value={value || "keep"}
+      updateValue={(v) => updateValue(v === "keep" ? "" : v)}
+    />
+  );
+}
+
 function BaseInput({
   type,
   field,
@@ -4269,6 +4997,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4280,11 +5009,18 @@ function BaseInput({
   value: string;
   placeholder?: string;
   updateValue: (value: string) => void;
-  placeholders?: boolean;
+  // "parameters" offers only the flow's parameters.
+  placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
+  // Previews can still open selects and scroll through text to read them.
+  const readOnly = useContext(FlowReadOnlyContext);
+  const update = readOnly ? () => {} : updateValue;
+  const showPlaceholders = !!placeholders && !readOnly;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -4313,74 +5049,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear Selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            // Room for the placeholder explorer in the corner.
-            className={cn(placeholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => updateValue(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => updateValue(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        )}
-        {placeholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4414,7 +5166,9 @@ function BaseCheckbox({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <Switch checked={value} onCheckedChange={updateValue} />
+      <PreviewInert>
+        <Switch checked={value} onCheckedChange={updateValue} />
+      </PreviewInert>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4433,6 +5187,7 @@ function BaseMultiSelect({
   options,
   values,
   updateValues,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4441,8 +5196,25 @@ function BaseMultiSelect({
   options: { value: string; label: string }[];
   values: string[];
   updateValues: (value: string[]) => void;
+  // Shows a search bar at the top of the list, for long lists of options.
+  searchable?: boolean;
 }) {
   const error = errors[field];
+
+  function toggleValue(value: string) {
+    if (values.includes(value)) {
+      updateValues(values.filter((val) => val !== value));
+    } else {
+      updateValues([...values, value]);
+    }
+  }
+
+  const trigger = (
+    <Button variant="outline" className="w-full flex items-center">
+      <div>{values.length} selected</div>
+      <ChevronDownIcon className="h-4 w-4 ml-auto" />
+    </Button>
+  );
 
   return (
     <div>
@@ -4450,31 +5222,145 @@ function BaseMultiSelect({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full flex items-center">
-            <div>{values.length} selected</div>
-            <ChevronDownIcon className="h-4 w-4 ml-auto" />
+      {searchable ? (
+        <Popover modal>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent className="w-64 p-0">
+            <Command>
+              <CommandInput placeholder="Search..." />
+              <CommandList>
+                <CommandEmpty>No results</CommandEmpty>
+                <CommandGroup>
+                  {options.map((o) => (
+                    <CommandItem
+                      key={o.value}
+                      value={o.value}
+                      keywords={[o.label]}
+                      onSelect={() => toggleValue(o.value)}
+                      // Keeps focus in the search bar to pick several options.
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4 flex-none",
+                          values.includes(o.value) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {o.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
+            {options.map((o) => (
+              <DropdownMenuCheckboxItem
+                key={o.value}
+                checked={values.includes(o.value)}
+                onCheckedChange={() => toggleValue(o.value)}
+              >
+                {o.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A color setting, picked like the color of an embed and stored as a number,
+// or a placeholder.
+function BaseColorInput({
+  field,
+  title,
+  description,
+  errors,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  value: string;
+  updateValue: (value: string) => void;
+}) {
+  const parsed = parseColorValue(value);
+  const color = parsed !== undefined && parsed <= 0xffffff ? parsed : undefined;
+  // Values that aren't colors, like placeholders, are shown as text, so they
+  // can be fixed instead of being lost. Once typed in, text stays text.
+  const [textMode, setTextMode] = useState(false);
+
+  if (textMode || (!!value && color === undefined)) {
+    return (
+      <div>
+        <BaseInput
+          type="text"
+          field={field}
+          title={title}
+          description={description}
+          value={value}
+          updateValue={(v) => {
+            setTextMode(true);
+            updateValue(v);
+          }}
+          errors={errors}
+          placeholder="#ff0000 or {{ placeholder }}"
+          placeholders
+        />
+        <EditOnly>
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 h-auto mt-1"
+            onClick={() => {
+              setTextMode(false);
+              if (color === undefined) updateValue("");
+            }}
+          >
+            Use the color picker
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
-          {options.map((o) => (
-            <DropdownMenuCheckboxItem
-              key={o.value}
-              checked={values.includes(o.value)}
-              onCheckedChange={(v) => {
-                if (v) {
-                  updateValues([...values, o.value]);
-                } else {
-                  updateValues(values.filter((val) => val !== o.value));
-                }
-              }}
-            >
-              {o.label}
-            </DropdownMenuCheckboxItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </EditOnly>
+      </div>
+    );
+  }
+
+  const error = errors[field];
+
+  return (
+    <div className="flex-auto">
+      <div className="font-medium text-foreground">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mt-1">{description}</div>
+      ) : null}
+      <PreviewInert className="mt-2">
+        <ColorPicker
+          value={color}
+          onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
+        />
+      </PreviewInert>
+      <EditOnly>
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => setTextMode(true)}
+        >
+          Use a placeholder instead
+        </Button>
+      </EditOnly>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4492,6 +5378,7 @@ function BasePermissionInput({
   errors,
   value,
   updateValue,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4499,6 +5386,7 @@ function BasePermissionInput({
   errors: Record<string, string>;
   value: string;
   updateValue: (value: string) => void;
+  searchable?: boolean;
 }) {
   const availablePermissions = useMemo(
     () =>
@@ -4532,6 +5420,7 @@ function BasePermissionInput({
       options={availablePermissions}
       updateValues={setPermissions}
       errors={errors}
+      searchable={searchable}
     />
   );
 }
@@ -4560,30 +5449,38 @@ function BaseEmojiPicker({
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
       <div className="flex">
-        <EmojiPicker onEmojiSelect={onChange}>
-          <Button size="icon" variant="outline">
-            {emoji?.id ? (
-              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
-            ) : emoji ? (
-              <Twemoji
-                options={{
-                  className: "h-6 w-6",
-                }}
-              >
-                {emoji.name}
-              </Twemoji>
-            ) : (
-              <SmileIcon className="h-6 w-6 text-foreground/80" />
-            )}
-          </Button>
-        </EmojiPicker>
+        <PreviewInert>
+          <EmojiPicker onEmojiSelect={onChange}>
+            <Button size="icon" variant="outline">
+              {emoji?.id ? (
+                <img
+                  src={discordEmojiUrl(emoji.id)}
+                  alt=""
+                  className="h-6 w-6"
+                />
+              ) : emoji ? (
+                <Twemoji
+                  options={{
+                    className: "h-6 w-6",
+                  }}
+                >
+                  {emoji.name}
+                </Twemoji>
+              ) : (
+                <SmileIcon className="h-6 w-6 text-foreground/80" />
+              )}
+            </Button>
+          </EmojiPicker>
+        </PreviewInert>
         {emoji && (
-          <div
-            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(undefined)}
-          >
-            <XIcon className="h-5 w-5" />
-          </div>
+          <EditOnly>
+            <div
+              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(undefined)}
+            >
+              <XIcon className="h-5 w-5" />
+            </div>
+          </EditOnly>
         )}
       </div>
       {error && (

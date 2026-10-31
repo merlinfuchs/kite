@@ -1,0 +1,624 @@
+{
+  "id": "flag-translator",
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "Fixes flag reactions not translating anything, because a condition compared a yes or no with text."
+    }
+  ],
+  "name": "Flag Translator",
+  "description": "Translates a message when someone reacts to it with a country flag.",
+  "about": [
+    "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji and links as they are.",
+    "Each flag translates a message once, even if people remove it and add it again, and a message that's already in the language gets no reply. Messages over 2,000 characters aren't translated, so the translation fits in the reply. The flags and their languages are in a Lookup Value block, so you can add flags or change their language."
+  ],
+  "faq": [
+    {
+      "question": "How many credits does a translation cost?",
+      "answer": "4 credits for a message of up to 1,000 characters: 1 to remember the message was translated, 1 to look up the language of the flag, 1 to translate and 1 to reply. A message of up to 2,000 characters costs 5. Reactions that aren't flags cost nothing, and a flag without a language costs 2 credits once per message."
+    },
+    {
+      "question": "Which flags work?",
+      "answer": "The flags of the main countries of 35 languages, like 🇺🇸 and 🇬🇧 for English or 🇧🇷 for Brazilian Portuguese. Other flags are ignored. To add one, open the event listener and add a row to the Lookup Value block with the flag and the code of a language AI Translate supports, like 🇨🇱 and es."
+    },
+    {
+      "question": "Does it translate a message more than once?",
+      "answer": "Only for different flags. Each flag translates a message once, even if people remove it and add it again. 🇺🇸 and 🇬🇧 each get a reply though, even though both are English."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "View Channel, Read Message History, Send Messages and Embed Links in the channels people translate messages in."
+    },
+    {
+      "question": "Do I need the Message Content Intent?",
+      "answer": "Yes, or the bot can't read the messages to translate them. Turn it on under Bot in the Discord Developer Portal."
+    },
+    {
+      "question": "Where are messages sent to be translated?",
+      "answer": "To OpenAI. Only the text of the message is sent, not who wrote it."
+    }
+  ],
+  "usage": {
+    "unit": "translations",
+    "unit_one": "translation",
+    "per_thousand_members": 50
+  },
+  "icon": "languages",
+  "category": "ai",
+  "setup": [
+    "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages it translates."
+  ],
+  "parameters": [],
+  "commands": [],
+  "variables": [
+    {
+      "id": "translated",
+      "name": "translated_messages",
+      "scoped": true
+    }
+  ],
+  "event_listeners": [
+    {
+      "id": "flag-reaction",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_t1r",
+            "type": "entry_event",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "event_type": "message_reaction_add",
+              "description": "Translate a message when someone reacts to it with a flag."
+            }
+          },
+          {
+            "id": "condition_f1g",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 820,
+              "y": 210
+            },
+            "data": {
+              "custom_label": "Flag reaction",
+              "condition_base_value": "{{event.emoji.name matches '^[🇦-🇿]{2}$'}}"
+            }
+          },
+          {
+            "id": "condition_f2t",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 615,
+              "y": 420
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_f3e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1025,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_v1g",
+            "type": "action_variable_get",
+            "position": {
+              "x": 615,
+              "y": 630
+            },
+            "data": {
+              "variable_id": "translated",
+              "variable_scope": "{{event.message.id}}-{{event.emoji.name}}"
+            }
+          },
+          {
+            "id": "condition_v2n",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 615,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Not translated with this flag yet",
+              "condition_base_value": "{{nodes.variable_v1g.result}}"
+            }
+          },
+          {
+            "id": "condition_v3t",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 410,
+              "y": 1050
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "condition_v4e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 1050
+            },
+            "data": {}
+          },
+          {
+            "id": "message_m1g",
+            "type": "action_message_get",
+            "position": {
+              "x": 410,
+              "y": 1260
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}"
+            }
+          },
+          {
+            "id": "condition_r1f",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 1470
+            },
+            "data": {
+              "custom_label": "Has text, up to 2,000 characters",
+              "condition_base_value": "{{nodes.message_m1g.result.content != '' && len(nodes.message_m1g.result.content) <= 2000}}"
+            }
+          },
+          {
+            "id": "condition_r2t",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 1680
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_r3e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 1680
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_v5s",
+            "type": "action_variable_set",
+            "position": {
+              "x": 205,
+              "y": 1890
+            },
+            "data": {
+              "variable_id": "translated",
+              "variable_scope": "{{event.message.id}}-{{event.emoji.name}}",
+              "variable_operation": "overwrite",
+              "variable_value": "true"
+            }
+          },
+          {
+            "id": "lookup_l1k",
+            "type": "action_value_lookup",
+            "position": {
+              "x": 205,
+              "y": 2100
+            },
+            "data": {
+              "custom_label": "Language of the flag",
+              "lookup_value": "{{event.emoji.name}}",
+              "lookup_rows": [
+                {
+                  "key": "🇺🇸",
+                  "value": "en"
+                },
+                {
+                  "key": "🇬🇧",
+                  "value": "en"
+                },
+                {
+                  "key": "🇦🇺",
+                  "value": "en"
+                },
+                {
+                  "key": "🇨🇦",
+                  "value": "en"
+                },
+                {
+                  "key": "🇪🇸",
+                  "value": "es"
+                },
+                {
+                  "key": "🇲🇽",
+                  "value": "es"
+                },
+                {
+                  "key": "🇦🇷",
+                  "value": "es"
+                },
+                {
+                  "key": "🇨🇴",
+                  "value": "es"
+                },
+                {
+                  "key": "🇫🇷",
+                  "value": "fr"
+                },
+                {
+                  "key": "🇩🇪",
+                  "value": "de"
+                },
+                {
+                  "key": "🇦🇹",
+                  "value": "de"
+                },
+                {
+                  "key": "🇮🇹",
+                  "value": "it"
+                },
+                {
+                  "key": "🇧🇷",
+                  "value": "pt-BR"
+                },
+                {
+                  "key": "🇵🇹",
+                  "value": "pt-PT"
+                },
+                {
+                  "key": "🇳🇱",
+                  "value": "nl"
+                },
+                {
+                  "key": "🇵🇱",
+                  "value": "pl"
+                },
+                {
+                  "key": "🇷🇺",
+                  "value": "ru"
+                },
+                {
+                  "key": "🇺🇦",
+                  "value": "uk"
+                },
+                {
+                  "key": "🇹🇷",
+                  "value": "tr"
+                },
+                {
+                  "key": "🇸🇦",
+                  "value": "ar"
+                },
+                {
+                  "key": "🇪🇬",
+                  "value": "ar"
+                },
+                {
+                  "key": "🇦🇪",
+                  "value": "ar"
+                },
+                {
+                  "key": "🇮🇳",
+                  "value": "hi"
+                },
+                {
+                  "key": "🇮🇩",
+                  "value": "id"
+                },
+                {
+                  "key": "🇻🇳",
+                  "value": "vi"
+                },
+                {
+                  "key": "🇹🇭",
+                  "value": "th"
+                },
+                {
+                  "key": "🇯🇵",
+                  "value": "ja"
+                },
+                {
+                  "key": "🇰🇷",
+                  "value": "ko"
+                },
+                {
+                  "key": "🇨🇳",
+                  "value": "zh-CN"
+                },
+                {
+                  "key": "🇹🇼",
+                  "value": "zh-TW"
+                },
+                {
+                  "key": "🇭🇰",
+                  "value": "zh-TW"
+                },
+                {
+                  "key": "🇸🇪",
+                  "value": "sv"
+                },
+                {
+                  "key": "🇩🇰",
+                  "value": "da"
+                },
+                {
+                  "key": "🇳🇴",
+                  "value": "no"
+                },
+                {
+                  "key": "🇫🇮",
+                  "value": "fi"
+                },
+                {
+                  "key": "🇨🇿",
+                  "value": "cs"
+                },
+                {
+                  "key": "🇬🇷",
+                  "value": "el"
+                },
+                {
+                  "key": "🇷🇴",
+                  "value": "ro"
+                },
+                {
+                  "key": "🇭🇺",
+                  "value": "hu"
+                },
+                {
+                  "key": "🇧🇬",
+                  "value": "bg"
+                },
+                {
+                  "key": "🇭🇷",
+                  "value": "hr"
+                },
+                {
+                  "key": "🇱🇹",
+                  "value": "lt"
+                },
+                {
+                  "key": "🇮🇱",
+                  "value": "he"
+                },
+                {
+                  "key": "🇵🇭",
+                  "value": "fil"
+                },
+                {
+                  "key": "🇲🇾",
+                  "value": "ms"
+                }
+              ]
+            }
+          },
+          {
+            "id": "condition_k1l",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 205,
+              "y": 2310
+            },
+            "data": {
+              "custom_label": "Flag has a language",
+              "condition_base_value": "{{nodes.lookup_l1k.result}}"
+            }
+          },
+          {
+            "id": "condition_k2n",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 2520
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "condition_k3e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 2520
+            },
+            "data": {}
+          },
+          {
+            "id": "translate_t2x",
+            "type": "action_ai_translate",
+            "position": {
+              "x": 0,
+              "y": 2730
+            },
+            "data": {
+              "ai_translate_data": {
+                "text": "{{nodes.message_m1g.result.content}}",
+                "language": "{{nodes.lookup_l1k.result}}"
+              }
+            }
+          },
+          {
+            "id": "condition_s1d",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 0,
+              "y": 2940
+            },
+            "data": {
+              "custom_label": "Not in that language already",
+              "condition_base_value": "{{nodes.translate_t2x.result.source_language}}"
+            }
+          },
+          {
+            "id": "condition_s2n",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": -205,
+              "y": 3150
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": "{{nodes.lookup_l1k.result}}"
+            }
+          },
+          {
+            "id": "condition_s3e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 205,
+              "y": 3150
+            },
+            "data": {}
+          },
+          {
+            "id": "message_r4p",
+            "type": "action_message_create",
+            "position": {
+              "x": -205,
+              "y": 3360
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "reply_target": "{{event.message.id}}",
+              "message_data": {
+                "embeds": [
+                  {
+                    "description": "{{nodes.translate_t2x.result.text}}",
+                    "color": 5793266,
+                    "footer": {
+                      "text": "{{event.emoji.name}} Translated for {{event.user.display_name}}"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "100000000",
+            "source": "event_t1r",
+            "target": "condition_f1g"
+          },
+          {
+            "id": "100007919",
+            "source": "condition_f1g",
+            "target": "condition_f2t"
+          },
+          {
+            "id": "100015838",
+            "source": "condition_f1g",
+            "target": "condition_f3e"
+          },
+          {
+            "id": "100023757",
+            "source": "condition_f2t",
+            "target": "variable_v1g"
+          },
+          {
+            "id": "100031676",
+            "source": "variable_v1g",
+            "target": "condition_v2n"
+          },
+          {
+            "id": "100039595",
+            "source": "condition_v2n",
+            "target": "condition_v3t"
+          },
+          {
+            "id": "100047514",
+            "source": "condition_v2n",
+            "target": "condition_v4e"
+          },
+          {
+            "id": "100055433",
+            "source": "condition_v3t",
+            "target": "message_m1g"
+          },
+          {
+            "id": "100063352",
+            "source": "message_m1g",
+            "target": "condition_r1f"
+          },
+          {
+            "id": "100071271",
+            "source": "condition_r1f",
+            "target": "condition_r2t"
+          },
+          {
+            "id": "100079190",
+            "source": "condition_r1f",
+            "target": "condition_r3e"
+          },
+          {
+            "id": "100087109",
+            "source": "condition_r2t",
+            "target": "variable_v5s"
+          },
+          {
+            "id": "100095028",
+            "source": "variable_v5s",
+            "target": "lookup_l1k"
+          },
+          {
+            "id": "100102947",
+            "source": "lookup_l1k",
+            "target": "condition_k1l"
+          },
+          {
+            "id": "100110866",
+            "source": "condition_k1l",
+            "target": "condition_k2n"
+          },
+          {
+            "id": "100118785",
+            "source": "condition_k1l",
+            "target": "condition_k3e"
+          },
+          {
+            "id": "100126704",
+            "source": "condition_k2n",
+            "target": "translate_t2x"
+          },
+          {
+            "id": "100134623",
+            "source": "translate_t2x",
+            "target": "condition_s1d"
+          },
+          {
+            "id": "100142542",
+            "source": "condition_s1d",
+            "target": "condition_s2n"
+          },
+          {
+            "id": "100150461",
+            "source": "condition_s1d",
+            "target": "condition_s3e"
+          },
+          {
+            "id": "100158380",
+            "source": "condition_s2n",
+            "target": "message_r4p"
+          }
+        ]
+      }
+    }
+  ]
+}

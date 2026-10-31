@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFlowCatalog } from "./catalog";
 import { getNodeValues, nodeTypes } from "./nodes";
-import { getTemplates } from "./templates";
+import { getTemplates } from "./templateFiles";
 
 const catalog = buildFlowCatalog();
 
@@ -54,13 +54,10 @@ describe("flow catalog", () => {
 describe("data schemas", () => {
   it("accept the blocks of the built-in templates", () => {
     const flows = getTemplates().flatMap((template) => {
-      // Inputs are things like channel IDs, so a numeric string fits all.
-      const inputs = Object.fromEntries(
-        template.inputs.map((input) => [input.key, "123"])
-      );
       return [
-        ...template.commands.map((c) => c.flowSource(inputs)),
-        ...template.eventListeners.map((l) => l.flowSource(inputs)),
+        ...template.commands.map((c) => c.flowSource),
+        ...template.eventListeners.map((l) => l.flowSource),
+        ...template.messages.flatMap((m) => Object.values(m.flowSources)),
       ];
     });
 

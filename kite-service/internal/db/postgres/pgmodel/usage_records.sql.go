@@ -72,7 +72,7 @@ func (q *Queries) DeleteUsageRecordsBefore(ctx context.Context, arg DeleteUsageR
 
 const getAllUsageCreditsUsedBetween = `-- name: GetAllUsageCreditsUsedBetween :many
 SELECT u.app_id, SUM(u.credits_used) FROM usage_records u
-JOIN apps a ON a.id = u.app_id AND a.enabled
+JOIN apps a ON a.id = u.app_id AND (a.enabled OR a.credits_paused_at IS NOT NULL)
 WHERE u.created_at BETWEEN $1 AND $2
 GROUP BY u.app_id
 `
@@ -87,10 +87,10 @@ type GetAllUsageCreditsUsedBetweenRow struct {
 	Sum   int64
 }
 
-// Only enabled apps. A disabled app's usage rows stay for the rest of the
-// month, so without this filter the credit sweep re-disables it on every run:
-// an UPDATE per app per minute, each bumping apps.updated_at, which is the
-// cursor GetDisabledAppIDsUpdatedSince feeds to the gateway manager's poll.
+// Only enabled apps and apps paused for credits, which the credit sweep
+// unpauses once they are under their limit, even if they were stopped since.
+// Other disabled apps would only add work, their usage rows stay for the rest
+// of the month.
 func (q *Queries) GetAllUsageCreditsUsedBetween(ctx context.Context, arg GetAllUsageCreditsUsedBetweenParams) ([]GetAllUsageCreditsUsedBetweenRow, error) {
 	rows, err := q.db.Query(ctx, getAllUsageCreditsUsedBetween, arg.StartAt, arg.EndAt)
 	if err != nil {
@@ -250,12 +250,12 @@ func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageR
 	return items, nil
 }
 
-const hasAppCommandUsage = `-- name: HasAppCommandUsage :one
-SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1 AND command_id IS NOT NULL)
+const hasAppUsage = `-- name: HasAppUsage :one
+SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1)
 `
 
-func (q *Queries) HasAppCommandUsage(ctx context.Context, appID string) (bool, error) {
-	row := q.db.QueryRow(ctx, hasAppCommandUsage, appID)
+func (q *Queries) HasAppUsage(ctx context.Context, appID string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasAppUsage, appID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

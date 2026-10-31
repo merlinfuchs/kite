@@ -9,6 +9,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageEdit: BlockDefinition = {
   type: "action_message_edit",
+  id_prefix: "message",
   title: "Edit channel message",
   description: "Bot edits an existing message in a channel",
   icon: "pen",
@@ -16,6 +17,7 @@ export const discordMessageEdit: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
+  permissions: ["VIEW_CHANNEL", "SEND_MESSAGES"],
   fields: [
     channelTargetSetting,
     messageTargetSetting,

@@ -56,12 +56,96 @@ var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
 	Edges []FlowEdge `json:"edges"`
+	// Parameters are the values blocks use as {{params.<key>}}, which are set
+	// next to the flow instead of in each block.
+	Parameters []FlowParameter `json:"parameters,omitempty"`
+}
+
+// WithCommandName returns the flow with the name of its command entry
+// changed, without changing the flow it's called on.
+func (d FlowData) WithCommandName(name string) FlowData {
+	d.Nodes = slices.Clone(d.Nodes)
+	for i, node := range d.Nodes {
+		if node.Type == FlowNodeTypeEntryCommand {
+			d.Nodes[i].Data.Name = name
+		}
+	}
+	return d
 }
 
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),
-		validation.Field(&d.Edges),
+		validation.Field(&d.Edges, validation.By(func(any) error {
+			notes := make(map[string]bool)
+			for _, n := range d.Nodes {
+				if n.Type == FlowNodeTypeNote {
+					notes[n.ID] = true
+				}
+			}
+			for _, e := range d.Edges {
+				if notes[e.Source] || notes[e.Target] {
+					return errors.New("notes can't be connected")
+				}
+			}
+			return nil
+		})),
+		validation.Field(&d.Parameters, validation.Length(0, 50), validation.By(func(any) error {
+			keys := make(map[string]bool, len(d.Parameters))
+			for _, p := range d.Parameters {
+				if keys[p.Key] {
+					return fmt.Errorf("parameter %s is defined twice", p.Key)
+				}
+				keys[p.Key] = true
+			}
+			return nil
+		})),
+	)
+}
+
+type FlowParameterType string
+
+const (
+	FlowParameterTypeText     FlowParameterType = "text"
+	FlowParameterTypeTextarea FlowParameterType = "textarea"
+	FlowParameterTypeChannel  FlowParameterType = "channel"
+	FlowParameterTypeRole     FlowParameterType = "role"
+	// Yes or no, picked from a menu. The value is true or false.
+	FlowParameterTypeBoolean FlowParameterType = "boolean"
+)
+
+// Picked is whether the value is picked from a server, as the ID of a channel
+// or role.
+func (t FlowParameterType) Picked() bool {
+	return t == FlowParameterTypeChannel || t == FlowParameterTypeRole
+}
+
+// FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+type FlowParameter struct {
+	Key         string            `json:"key"`
+	Label       string            `json:"label,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Type        FlowParameterType `json:"type"`
+	Required    bool              `json:"required,omitempty"`
+	// Value is the ID of the channel or role for those types.
+	Value string `json:"value"`
+}
+
+func (p FlowParameter) Validate() error {
+	return validation.ValidateStruct(&p,
+		validation.Field(&p.Key, validation.Required, validation.Length(1, 100), validation.Match(ParameterKeyPattern)),
+		validation.Field(&p.Label, validation.Length(0, 100)),
+		validation.Field(&p.Description, validation.Length(0, 500)),
+		validation.Field(&p.Type, validation.Required, validation.In(
+			FlowParameterTypeText,
+			FlowParameterTypeTextarea,
+			FlowParameterTypeChannel,
+			FlowParameterTypeRole,
+			FlowParameterTypeBoolean,
+		)),
+		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
+			return p.CheckValue(p.Value)
+		})),
 	)
 }
 
@@ -71,6 +155,10 @@ const (
 	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
 	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
 	FlowNodeTypeEntryComponentButton FlowNodeType = "entry_component_button"
+
+	// Notes are text the editor puts on the canvas. They aren't blocks:
+	// nothing connects to them, so they never run.
+	FlowNodeTypeNote FlowNodeType = "note"
 
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
@@ -92,6 +180,7 @@ const (
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
 	FlowNodeTypeActionPollCreate            FlowNodeType = "action_poll_create"
+	FlowNodeTypeActionMessageForward        FlowNodeType = "action_message_forward"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -118,15 +207,22 @@ const (
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
+	FlowNodeTypeActionAITranslate           FlowNodeType = "action_ai_translate"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
+	FlowNodeTypeActionValueLookup           FlowNodeType = "action_value_lookup"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
+	FlowNodeTypeActionVoiceAudioPlay        FlowNodeType = "action_voice_audio_play"
+	FlowNodeTypeActionVoiceAudioStop        FlowNodeType = "action_voice_audio_stop"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
+	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
+	FlowNodeTypeActionPersonaMessageCreate  FlowNodeType = "action_persona_message_create"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -137,11 +233,13 @@ const (
 	FlowNodeTypeControlConditionRole        FlowNodeType = "control_condition_role"
 	FlowNodeTypeControlConditionItemRole    FlowNodeType = "control_condition_item_role"
 	FlowNodeTypeControlConditionItemElse    FlowNodeType = "control_condition_item_else"
+	FlowNodeTypeControlIf                   FlowNodeType = "control_if"
 	FlowNodeTypeControlErrorHandler         FlowNodeType = "control_error_handler"
 	FlowNodeTypeControlLoop                 FlowNodeType = "control_loop"
 	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
+	FlowNodeTypeControlFlowEnd              FlowNodeType = "control_flow_end"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
 	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
 
@@ -160,11 +258,20 @@ const EventTypeScheduleCron = "cron"
 // sent to their webhook URL.
 const EventTypeWebhook = "webhook"
 
+// Same as noteMaxLength and noteTitleMaxLength in the editor.
+const (
+	noteMaxLength      = 2000
+	noteTitleMaxLength = 100
+)
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
 	Data     FlowNodeData     `json:"data" tstype:"FlowNodeData & StringIndexable"`
 	Position FlowNodePosition `json:"position"`
+	// Only notes have a size, other nodes are as large as their content.
+	Width  float64 `json:"width,omitempty"`
+	Height float64 `json:"height,omitempty"`
 }
 
 func (n FlowNode) Validate() error {
@@ -175,6 +282,14 @@ func (n FlowNode) Validate() error {
 	)
 	if err != nil {
 		return err
+	}
+
+	if n.Type == FlowNodeTypeNote {
+		title, _ := n.Data.Setting("note_title").(string)
+		text, _ := n.Data.Setting("note_text").(string)
+		if utf8.RuneCountInString(title) > noteTitleMaxLength || utf8.RuneCountInString(text) > noteMaxLength {
+			return errors.New("note is too long")
+		}
 	}
 
 	return n.Data.Validate(n.Type)
@@ -224,11 +339,18 @@ type FlowNodeData struct {
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
+	// Persona Message Create
+	PersonaName      string `json:"persona_name,omitempty"`
+	PersonaAvatarURL string `json:"persona_avatar_url,omitempty"`
+
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
 
 	// Poll Create
 	PollData *PollData `json:"poll_data,omitempty"`
+
+	// Message Forward
+	ForwardChannelTarget string `json:"forward_channel_target,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
@@ -247,8 +369,15 @@ type FlowNodeData struct {
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
 
+	// Voice Audio Play
+	AudioAssetID    string `json:"audio_asset_id,omitempty"`
+	AudioLeaveAfter bool   `json:"audio_leave_after,omitempty"`
+
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
+
+	// Server Profile Edit
+	ServerProfileData *ServerProfileData `json:"server_profile_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -298,18 +427,27 @@ type FlowNodeData struct {
 	AIChoiceName        string `json:"ai_choice_name,omitempty"`
 	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
+	// AI Translate
+	AITranslateData *AITranslateData `json:"ai_translate_data,omitempty"`
+
 	// Random Generate
-	RandomMin string `json:"random_min,omitempty"`
-	RandomMax string `json:"random_max,omitempty"`
+	RandomMode RandomMode `json:"random_mode,omitempty"`
+	RandomMin  string     `json:"random_min,omitempty"`
+	RandomMax  string     `json:"random_max,omitempty"`
+	// Items of the item and items modes, one per line, or a list placeholder.
+	RandomItems string `json:"random_items,omitempty"`
+	// How many different items the items mode picks.
+	RandomCount string `json:"random_count,omitempty"`
 
 	// Event Entry
 	EventType         string `json:"event_type,omitempty"`
 	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
-	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
-	EventFilterValue  string            `json:"event_filter_value,omitempty"`
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode       ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue      string            `json:"event_filter_value,omitempty"`
+	EventFilterIgnoreCase bool              `json:"event_filter_ignore_case,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -318,11 +456,19 @@ type FlowNodeData struct {
 	// Expression Evaluate
 	Expression string `json:"expression,omitempty"`
 
+	// Value Lookup
+	LookupValue      string         `json:"lookup_value,omitempty"`
+	LookupMode       ComparsionMode `json:"lookup_mode,omitempty"`
+	LookupIgnoreCase bool           `json:"lookup_ignore_case,omitempty"`
+	LookupRows       []LookupRow    `json:"lookup_rows,omitempty"`
+	LookupDefault    string         `json:"lookup_default,omitempty"`
+
 	// Condition
-	ConditionBaseValue     string         `json:"condition_base_value,omitempty"`
-	ConditionAllowMultiple bool           `json:"condition_allow_multiple,omitempty"`
-	ConditionItemMode      ComparsionMode `json:"condition_item_mode,omitempty"`
-	ConditionItemValue     string         `json:"condition_item_value,omitempty"`
+	ConditionBaseValue      string         `json:"condition_base_value,omitempty"`
+	ConditionAllowMultiple  bool           `json:"condition_allow_multiple,omitempty"`
+	ConditionItemMode       ComparsionMode `json:"condition_item_mode,omitempty"`
+	ConditionItemValue      string         `json:"condition_item_value,omitempty"`
+	ConditionItemIgnoreCase bool           `json:"condition_item_ignore_case,omitempty"`
 	// Loop
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
@@ -525,11 +671,30 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// If
+		validation.Field(&d.ConditionBaseValue, validation.When(
+			nodeType == FlowNodeTypeControlIf,
+			validation.Required,
+			validation.By(func(value any) error {
+				condition := value.(string)
+				if condition != "true" && condition != "false" && !singlePlaceholderRe.MatchString(condition) {
+					return errors.New("must be a single {{ }} placeholder")
+				}
+				return nil
+			}),
+		)),
+
 		// AI Choice, Check, Score
 		validation.Field(&d.AIDecisionData, validation.When(
 			nodeType == FlowNodeTypeControlConditionAIChoice ||
 				nodeType == FlowNodeTypeControlAICheck ||
 				nodeType == FlowNodeTypeActionAIScore,
+			validation.Required,
+		)),
+
+		// AI Translate
+		validation.Field(&d.AITranslateData, validation.When(
+			nodeType == FlowNodeTypeActionAITranslate,
 			validation.Required,
 		)),
 
@@ -539,6 +704,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Random Generate
+		validation.Field(&d.RandomItems, validation.Length(0, maxRandomItemsLength)),
+
+		// Value Lookup
+		// An empty mode means ComparsionModeEqual, the default the editor shows.
+		validation.Field(&d.LookupValue, validation.Length(0, maxLookupTextLength)),
+		validation.Field(&d.LookupMode, validation.When(nodeType == FlowNodeTypeActionValueLookup,
+			validation.In(ComparsionModeEqual, ComparsionModeContains, ComparsionModeStartsWith),
+		)),
+		validation.Field(&d.LookupRows, validation.Length(0, maxLookupRows)),
+		validation.Field(&d.LookupDefault, validation.Length(0, maxLookupTextLength)),
 
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
@@ -559,6 +736,14 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxRandomItemsLength is the longest list of items a Generate Random Value
+// block can have, in characters.
+const maxRandomItemsLength = 10000
+
+// maxRandomCount is the most items the items mode of a Generate Random Value
+// block picks at once.
+const maxRandomCount = 100
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
 // Cooldowns are kept in memory and reset when Kite restarts, so they have to
@@ -610,6 +795,12 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
+	// Lists of values, separated by commas in event filters and by lines in
+	// compare conditions
+	ComparsionModeOneOf       ComparsionMode = "one_of"
+	ComparsionModeNotOneOf    ComparsionMode = "not_one_of"
+	ComparsionModeContainsAny ComparsionMode = "contains_any"
+
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
 	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
@@ -649,11 +840,29 @@ const (
 type EventFilterTarget string
 
 const (
-	EventFilterTypeMessageContent EventFilterTarget = "message_content"
-	EventFilterTypeUserID         EventFilterTarget = "user_id"
-	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
-	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
-	EventFilterTypeMessageID      EventFilterTarget = "message_id"
+	EventFilterTypeMessageContent       EventFilterTarget = "message_content"
+	EventFilterTypeUserID               EventFilterTarget = "user_id"
+	EventFilterTypeGuildID              EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID            EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID            EventFilterTarget = "message_id"
+	EventFilterTypeRoleID               EventFilterTarget = "role_id"
+	EventFilterTypeEmoji                EventFilterTarget = "emoji"
+	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
+	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
+	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+)
+
+type RandomMode string
+
+const (
+	// Empty is the number mode too, as blocks from before the item mode have
+	// no mode.
+	RandomModeNumber RandomMode = "number"
+	RandomModeItem   RandomMode = "item"
+	// Several different items, see randomItems.
+	RandomModeItems RandomMode = "items"
 )
 
 type RobloxLookupType string
@@ -662,6 +871,29 @@ const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
 )
+
+// maxLookupRows is the most rows a lookup block can have. Every row's key is
+// evaluated until one matches, so it bounds the work of a single block.
+const maxLookupRows = 500
+
+const (
+	maxLookupKeyLength  = 500
+	maxLookupTextLength = 2000
+)
+
+// LookupRow is a row of a lookup block's table, mapping a key to the value
+// the block returns when the key matches.
+type LookupRow struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (r LookupRow) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Key, validation.Required, validation.Length(1, maxLookupKeyLength)),
+		validation.Field(&r.Value, validation.Length(0, maxLookupTextLength)),
+	)
+}
 
 type CommandArgumentChoiceData struct {
 	Name  string `json:"name,omitempty"`
@@ -676,6 +908,18 @@ type StatusData struct {
 	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
+// ServerProfileData is the bot's profile in one server. A field that isn't set
+// stays as it is, and one that's empty resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick      *string `json:"nick,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+	BannerURL *string `json:"banner_url,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	// Reset resets the whole profile to the bot's own, the other fields are
+	// ignored then.
+	Reset bool `json:"reset,omitempty"`
+}
+
 type ChannelData struct {
 	Name                 string                    `json:"name,omitempty"`
 	Type                 int                       `json:"type,omitempty"`
@@ -688,8 +932,11 @@ type ChannelData struct {
 	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
-	// Thread specific
-	Invitable bool `json:"invitable,omitempty"`
+	// Thread specific, nil for Discord's default, which is invitable
+	Invitable *bool `json:"invitable,omitempty"`
+	// Thread specific, for editing a thread, nil leaves them as they are
+	Archived *bool `json:"archived,omitempty"`
+	Locked   *bool `json:"locked,omitempty"`
 
 	// Forum post specific, names or IDs of the forum's tags separated by
 	// commas
@@ -978,6 +1225,9 @@ type ModalComponentOptionData struct {
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
 	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
 }
 
 const (
@@ -1038,6 +1288,77 @@ type AIDecisionData struct {
 	Levels []string `json:"levels,omitempty"`
 }
 
+type AITranslateData struct {
+	Text string `json:"text,omitempty"`
+	// A code of aiTranslateLanguages, or a placeholder that becomes one.
+	Language string `json:"language,omitempty"`
+}
+
+func (d AITranslateData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Text, validation.Required, validation.Length(1, aiTranslateMaxLength)),
+		validation.Field(&d.Language, validation.Required, validation.By(func(value any) error {
+			language := value.(string)
+			if _, ok := aiTranslateLanguages[language]; !ok && !singlePlaceholderRe.MatchString(language) {
+				return errors.New("unsupported language")
+			}
+			return nil
+		})),
+	)
+}
+
+// aiTranslateLanguages are the languages AI Translate translates to, by the
+// code a block stores. Mirrors translateLanguages in
+// kite-web/src/lib/flow/translateLanguages.ts.
+var aiTranslateLanguages = map[string]string{
+	"ar":    "Arabic",
+	"bg":    "Bulgarian",
+	"cs":    "Czech",
+	"da":    "Danish",
+	"de":    "German",
+	"el":    "Greek",
+	"en":    "English",
+	"es":    "Spanish",
+	"fi":    "Finnish",
+	"fil":   "Filipino",
+	"fr":    "French",
+	"he":    "Hebrew",
+	"hi":    "Hindi",
+	"hr":    "Croatian",
+	"hu":    "Hungarian",
+	"id":    "Indonesian",
+	"it":    "Italian",
+	"ja":    "Japanese",
+	"ko":    "Korean",
+	"lt":    "Lithuanian",
+	"ms":    "Malay",
+	"nl":    "Dutch",
+	"no":    "Norwegian",
+	"pl":    "Polish",
+	"pt-BR": "Portuguese (Brazil)",
+	"pt-PT": "Portuguese (Portugal)",
+	"ro":    "Romanian",
+	"ru":    "Russian",
+	"sv":    "Swedish",
+	"th":    "Thai",
+	"tr":    "Turkish",
+	"uk":    "Ukrainian",
+	"vi":    "Vietnamese",
+	"zh-CN": "Chinese (Simplified)",
+	"zh-TW": "Chinese (Traditional)",
+}
+
+// aiTranslateLanguageCode returns the code of aiTranslateLanguages that s is,
+// ignoring case, as placeholders can hold codes like pt-br or EN.
+func aiTranslateLanguageCode(s string) (string, bool) {
+	for code := range aiTranslateLanguages {
+		if strings.EqualFold(code, s) {
+			return code, true
+		}
+	}
+	return "", false
+}
+
 const (
 	AIModelSmall  = "small"
 	AIModelMedium = "medium"
@@ -1047,6 +1368,9 @@ const (
 type aiModelTier struct {
 	Model           string
 	ReasoningEffort string
+	// MaxInputLength bounds the bytes of the prompt and system prompt together,
+	// so the input steps of one block fit the credits limit of a run.
+	MaxInputLength int
 	aiModelCost
 }
 
@@ -1060,10 +1384,28 @@ type aiModelCost struct {
 // is billed per call. The tiers' Search credits assume it.
 const aiMaxWebSearches = 2
 
-// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
-// extra room on top: the model spends whatever is left on the answer, so any
-// allowance would let answers run past the block's max_completion_tokens.
-const aiMaxOutputTokens = 500
+// aiDefaultOutputTokens and aiMaxOutputTokens cap reasoning and answer
+// together. Reasoning isn't given extra room on top: the model spends whatever
+// is left on the answer, so any allowance would let answers run past the
+// block's max_completion_tokens.
+const (
+	aiDefaultOutputTokens = aiOutputStepTokens
+	aiMaxOutputTokens     = 1000
+)
+
+// A block's credits cover one step of input and one of output. Every further
+// step costs the tier's Chat credits again, as it costs Kite about as much as
+// the first: 8,000 bytes are about 2,000 tokens, which cost about as much as
+// 500 output tokens.
+const (
+	aiInputStepLength  = 8000
+	aiOutputStepTokens = 500
+)
+
+// extraStepCredits prices the steps of n after the first.
+func (t aiModelTier) extraStepCredits(n int, stepSize int) int {
+	return t.Chat * (max(0, n-1) / stepSize)
+}
 
 // AI blocks store a tier rather than a model, so the model behind a tier can
 // be swapped for a newer or cheaper one without touching stored flows.
@@ -1073,20 +1415,25 @@ const aiMaxOutputTokens = 500
 // meant any model not named in it billed the tenant at the floor while the
 // operator paid the real rate on their own API key. A model swapped in here has
 // to fit its tier's credits; change the credits deliberately if it doesn't.
+// AI Translate runs on the model of AIModelSmall, so it has to fit that block's
+// credits too.
 var aiModelTiers = map[string]aiModelTier{
 	AIModelSmall: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "none",
+		MaxInputLength:  64000,
 		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
 	},
 	AIModelMedium: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "low",
+		MaxInputLength:  64000,
 		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
 	},
 	AIModelLarge: {
 		Model:           "gpt-6-sol",
 		ReasoningEffort: "none",
+		MaxInputLength:  8000,
 		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
 	},
 }
@@ -1126,7 +1473,8 @@ var maxAIModelCost = func() aiModelCost {
 	return ceiling
 }()
 
-// AICreditsCost prices one AI node.
+// AICreditsCost prices one AI node before it runs: its first input and output
+// step.
 //
 // Unknown models are charged the most expensive tier rather than the least, so
 // anything that reaches execution without passing the allowlist -- a flow saved
@@ -1152,7 +1500,7 @@ func (d AIChatCompletionData) Validate() error {
 			}
 			return nil
 		})),
-		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
+		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 4000)),
 	)
 }
 

@@ -1,3 +1,4 @@
+import { withoutParameterValues } from "./parameters";
 import { FlowData } from "../types/flow.gen";
 import { Message, MessageCreateRequest } from "../types/wire.gen";
 
@@ -7,7 +8,8 @@ import { Message, MessageCreateRequest } from "../types/wire.gen";
 export type SharedMessage = MessageCreateRequest & { id: string };
 
 export function messageToShared(message: Message): SharedMessage {
-  // Attachments are assets of the original app, so they aren't exported.
+  // Attachments are assets of the original app, so they aren't exported, and
+  // the values of parameters belong to it.
   const data = { ...message.data };
   delete data.attachments;
 
@@ -16,7 +18,12 @@ export function messageToShared(message: Message): SharedMessage {
     name: message.name,
     description: message.description,
     data,
-    flow_sources: message.flow_sources ?? {},
+    flow_sources: Object.fromEntries(
+      Object.entries(message.flow_sources ?? {}).map(([id, flow]) => [
+        id,
+        withoutParameterValues(flow),
+      ])
+    ),
   };
 }
 
@@ -37,11 +44,21 @@ export function collectReferencedMessages(
   messages: (Message | undefined)[],
   excludeIds: string[] = []
 ): SharedMessage[] {
+  return referencedMessages(flows, messages, excludeIds).map(messageToShared);
+}
+
+// referencedMessages is collectReferencedMessages with the templates as the
+// app has them.
+export function referencedMessages(
+  flows: (FlowData | null | undefined)[],
+  messages: (Message | undefined)[],
+  excludeIds: string[] = []
+): Message[] {
   const byId = new Map(
     messages.flatMap((m) => (m ? [[m.id, m] as const] : []))
   );
   const seen = new Set(excludeIds);
-  const res: SharedMessage[] = [];
+  const res: Message[] = [];
 
   const queue = flows.flatMap((f) => Array.from(getReferencedMessageIds(f)));
   while (queue.length > 0) {
@@ -52,7 +69,7 @@ export function collectReferencedMessages(
     const message = byId.get(id);
     if (!message) continue;
 
-    res.push(messageToShared(message));
+    res.push(message);
     for (const flow of Object.values(message.flow_sources ?? {})) {
       queue.push(...Array.from(getReferencedMessageIds(flow)));
     }

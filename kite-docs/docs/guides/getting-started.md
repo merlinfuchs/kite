@@ -51,7 +51,11 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 5. Click on the `Create response message` block and type in some text for the response
 6. Save the command by clicking on `Save Changes` at the top. Kite adds it to Discord a few seconds later.
 
-![Example Flow](./img/example-flow.png)
+![Example Flow](./img/example-flow.webp)
+
+### Saving and History
+
+Click `History` at the top right to see the last 25 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way. Template updates are kept in the history too.
 
 It's time to try it out inside Discord!
 
@@ -67,6 +71,6 @@ It can take up to a minute for your new command to appear inside Discord. Make s
 
 To start a new forum post with the message, switch to the `Forum Post` tab in the same dialog and pick a forum or media channel. Enter a title for the post, choose up to 5 of the channel's tags, and click on `Create Post`. The message becomes the first message of the post, and you can still update it later from the same dialog.
 
-![Example Message](./img/example-message.png)
+![Example Message](./img/example-message.webp)
 
 You can also use the newly created message template as a response to your previously created command!

@@ -18,9 +18,9 @@ Kite is a third-party app and isn't affiliated with ER:LC or Police Roleplay Com
 
 The key is stored encrypted and is only ever sent to ER:LC. See [Integrations](../reference/integrations.md) for more.
 
-## Importing the ER:LC Template
+## Adding the ER:LC Template
 
-The quickest start is the ER:LC template. Go to `Templates` in the sidebar, click on `View details` under ER:LC and import the commands you want:
+The quickest start is the ER:LC template. Go to `Marketplace` in the sidebar, click on ER:LC and add the commands you want:
 
 - `/status` shows the server's name, player count and join code.
 - `/players` lists everyone in the server with their team.

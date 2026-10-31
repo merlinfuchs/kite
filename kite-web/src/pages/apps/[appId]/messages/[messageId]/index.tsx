@@ -18,8 +18,15 @@ import {
 } from "@/lib/message/state";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  saveErrorMessage,
+  useEditorSession,
+  useVersionHistory,
+} from "@/lib/hooks/versionHistory";
+import VersionHistory from "@/components/common/VersionHistory";
+import { FlowData } from "@/lib/types/flow.gen";
 
 function AppMessagePageInner() {
   const router = useRouter();
@@ -45,48 +52,48 @@ function AppMessagePageInner() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  // The version of the message in the editor, like useSaveBase. The editor
+  // loads the message again whenever it changes, so this follows it.
+  const base = useRef<string | null>(null);
 
-  useEffect(() => {
-    const unsubscribeMessage = messageStore.subscribe(() => {
-      if (!ignoreChange.current) {
-        setHasUnsavedChanges(true);
+  // Puts a message into the editor, and says whether its data was valid.
+  const applyMessage = useCallback(
+    (data: unknown, flowSources: Record<string, FlowData>) => {
+      try {
+        messageStore.getState().replaceAll(parseMessageData(data));
+        flowStore.getState().replaceAll(flowSources);
+        return true;
+      } catch (e) {
+        toast.error(`Failed to parse message data: ${e}`);
+        return false;
       }
-    });
-
-    const unsubscribeFlow = flowStore.subscribe(() => {
-      if (!ignoreChange.current) {
-        setHasUnsavedChanges(true);
-      }
-    });
-
-    return () => {
-      unsubscribeMessage();
-      unsubscribeFlow();
-    };
-  }, [ignoreChange, messageStore, flowStore]);
+    },
+    [messageStore, flowStore]
+  );
 
   useEffect(() => {
     if (!message) return;
 
-    try {
-      const data = parseMessageData(message.data);
-
-      ignoreChange.current = true;
-      messageStore.getState().replaceAll(data);
-      messageStore.temporal.getState().clear();
-      flowStore.getState().replaceAll(message.flow_sources);
-      ignoreChange.current = false;
-    } catch (e) {
-      toast.error(`Failed to parse message data: ${e}`);
-    }
-  }, [message, messageStore, flowStore]);
+    ignoreChange.current = true;
+    applyMessage(message.data, message.flow_sources);
+    base.current = message.version;
+    messageStore.temporal.getState().clear();
+    ignoreChange.current = false;
+  }, [message, messageStore, applyMessage]);
 
   const instances = useMessageInstances();
   const hasInstances = !!instances?.length;
 
-  const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
+  const appId = useAppId();
+  const messageId = useMessageId();
+  const updateMutation = useMessageUpdateMutation(appId, messageId);
 
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+
+  const editorSession = useEditorSession();
+  // Set by a restore until it's saved, so it's saved without the session even
+  // if the first try fails.
+  const restorePending = useRef(false);
 
   const save = useCallback(
     (options?: { onSuccess?: () => void }) => {
@@ -103,14 +110,19 @@ function AppMessagePageInner() {
           description: message.description,
           data: data,
           flow_sources: flowSources,
+          editor_session: restorePending.current ? undefined : editorSession,
+          base_version: base.current ?? undefined,
         },
         {
           onSuccess(res) {
             if (res.success) {
+              restorePending.current = false;
+              base.current = res.data.version;
               track("message_saved", {
                 embeds: data.embeds.length,
                 flows: Object.keys(flowSources).length,
               });
+              setHasUnsavedChanges(false);
               toast.success("Message saved!", {
                 description: hasInstances
                   ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
@@ -122,14 +134,12 @@ function AppMessagePageInner() {
                 kind: "message",
                 code: res.error.code,
               });
-              toast.error(
-                `Failed to update message: ${res.error.message} (${res.error.code})`
-              );
+              if (res.error.code === "item_outdated") base.current = null;
+              toast.error(saveErrorMessage("message", res.error));
             }
           },
           onSettled() {
             setIsSaving(false);
-            setHasUnsavedChanges(false);
           },
         }
       );
@@ -137,6 +147,7 @@ function AppMessagePageInner() {
     [
       message,
       hasInstances,
+      editorSession,
       updateMutation,
       setIsSaving,
       setHasUnsavedChanges,
@@ -144,6 +155,40 @@ function AppMessagePageInner() {
       flowStore,
     ]
   );
+
+  const versionTarget = useMemo(
+    () => ({ appId, type: "message" as const, id: messageId }),
+    [appId, messageId]
+  );
+  const history = useVersionHistory({
+    target: versionTarget,
+    hasUnsavedChanges,
+    apply: useCallback(
+      (content: Record<string, any>) => {
+        if (applyMessage(content.data, content.flow_sources ?? {})) {
+          restorePending.current = true;
+          save();
+        }
+      },
+      [applyMessage, save]
+    ),
+  });
+  const { resetUndoChain } = history;
+
+  useEffect(() => {
+    const onEdit = () => {
+      if (ignoreChange.current) return;
+      setHasUnsavedChanges(true);
+      resetUndoChain();
+    };
+    const unsubscribeMessage = messageStore.subscribe(onEdit);
+    const unsubscribeFlow = flowStore.subscribe(onEdit);
+
+    return () => {
+      unsubscribeMessage();
+      unsubscribeFlow();
+    };
+  }, [messageStore, flowStore, resetUndoChain]);
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
@@ -186,8 +231,10 @@ function AppMessagePageInner() {
           <MessageNav
             hasUnsavedChanges={hasUnsavedChanges}
             isSaving={isSaving}
+            bundleInstallId={message?.bundle_install_id}
             onSave={save}
             onExit={handleExitRequest}
+            history={<VersionHistory history={history} isSaving={isSaving} />}
           />
         </div>
         {message && (

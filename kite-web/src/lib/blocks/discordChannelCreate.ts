@@ -3,12 +3,14 @@ import { BlockDefinition } from "./types";
 
 export const discordChannelCreate: BlockDefinition = {
   type: "action_channel_create",
+  id_prefix: "channel",
   title: "Create channel",
   description: "Create a channel",
   icon: "folder-plus",
   category: "Channels",
   requires: ["discord"],
   credits: 1,
+  permissions: ["MANAGE_CHANNELS"],
   fields: [guildTargetSetting, channelDataSetting],
   audit_log_reason: true,
   result: { thing: "discord_channel" },
