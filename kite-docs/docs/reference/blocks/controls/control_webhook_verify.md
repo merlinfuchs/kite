@@ -19,6 +19,7 @@ Pick the service that sends the requests:
 | GitHub            | The secret of the webhook                                                                                                  |
 | Stripe            | The signing secret starting with `whsec_`                                                                                  |
 | Slack             | The app's signing secret                                                                                                   |
+| Top.gg            | The webhook secret starting with `whs_`                                                                                    |
 | Discord           | None, your app's public key is used                                                                                        |
 | Standard Webhooks | The signing secret starting with `whsec_`, or the public key starting with `whpk_`. Used by Svix, Clerk, Resend and others |
 

@@ -121,6 +121,22 @@ func TestVerifyPresetStripe(t *testing.T) {
 	assertPreset(t, "stripe", "whsec_secret", event)
 }
 
+func TestVerifyPresetTopgg(t *testing.T) {
+	ts := strconv.FormatInt(verifyNow.Unix(), 10)
+	body := `{"type":"vote.create","data":{"weight":1}}`
+	event := &Event{Body: body, Headers: map[string]string{
+		"x-topgg-signature": fmt.Sprintf("t=%s,v1=%s", ts, hmacHex(sha256.New, []byte("whs_secret"), ts+"."+body)),
+	}}
+	assertPreset(t, "topgg", "whs_secret", event)
+
+	// Stripe's header isn't read for Top.gg.
+	stripe := receivedAt(event, verifyNow)
+	stripe.Headers = map[string]string{"stripe-signature": event.Headers["x-topgg-signature"]}
+	valid, err := VerifyPreset("topgg", "whs_secret", stripe)
+	require.NoError(t, err)
+	assert.False(t, valid)
+}
+
 func TestVerifyPresetStandardWebhooks(t *testing.T) {
 	secret := []byte("0123456789abcdef")
 	key := "whsec_" + base64.StdEncoding.EncodeToString(secret)

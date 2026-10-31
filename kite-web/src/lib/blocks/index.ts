@@ -113,6 +113,9 @@ import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { topggMetricsUpdate } from "./topggMetricsUpdate";
+import { topggProjectGet } from "./topggProjectGet";
+import { topggVoteGet } from "./topggVoteGet";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
@@ -193,6 +196,9 @@ export const blockDefinitions: BlockDefinition[] = [
   cookieApiMinecraftUserGet,
   erlcServerGet,
   erlcCommandRun,
+  topggVoteGet,
+  topggProjectGet,
+  topggMetricsUpdate,
   aiChatCompletion,
   aiWebSearch,
   controlConditionAiChoice,
