@@ -141,6 +141,7 @@ function BundlePageForm({
       description: form.description.trim(),
       icon: form.icon,
       category: form.category,
+      ai_use: "unknown",
       about: paragraphs,
       faq: [],
       setup: steps,

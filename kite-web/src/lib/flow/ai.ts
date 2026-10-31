@@ -154,7 +154,35 @@ export async function runFlowAIPrompt({
       ]) {
         changed.add(n.id);
       }
-      flow = applied = { nodes: edited.nodes, edges: edited.edges };
+      const touched = new Set(
+        [...(changes?.added ?? []), ...(changes?.changed ?? [])].map(
+          (node) => node.id
+        )
+      );
+      if (changes && touched.size === 0) {
+        // A prompt can change only the connections. Attribute that to the
+        // entry block so the bundle still records that AI contributed.
+        const entry = edited.nodes.find((node) =>
+          node.type?.startsWith("entry_")
+        );
+        if (entry) touched.add(entry.id);
+      }
+      const nodes = edited.nodes.map((node) => {
+        if (!touched.has(node.id)) return node;
+        const previous = flow.nodes.find((old) => old.id === node.id);
+        const existing = node.data.ai_contribution;
+        const contribution =
+          existing === "generated" || existing === "assisted"
+            ? existing
+            : previous
+            ? "assisted"
+            : "generated";
+        return {
+          ...node,
+          data: { ...node.data, ai_contribution: contribution },
+        };
+      });
+      flow = applied = { nodes, edges: edited.edges };
       after = getIssues(edited.issues);
     }
     caused = new Set([...after].filter((i) => !before.has(i) || caused.has(i)));

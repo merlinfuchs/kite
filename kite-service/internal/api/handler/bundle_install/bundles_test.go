@@ -286,6 +286,7 @@ func TestBundleListingSubmit(t *testing.T) {
 	assert.Equal(t, 3, review.Version)
 	assert.Equal(t, model.BundleReviewStatusPending, review.Status)
 	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
+	assert.Equal(t, "unknown", review.Listing.AIUse)
 	// It's the page of the template now.
 	assert.Equal(t, "Moderation", bundles.bundles[id].Page.Name)
 
@@ -307,7 +308,7 @@ func TestBundleUpdate(t *testing.T) {
 	id := res["data"].(map[string]any)["id"].(string)
 
 	// A page that isn't in the marketplace needs only a name.
-	page := wire.BundleUpdateRequest{BundleListing: wire.BundleListing{Name: "Moderation", About: []string{"Bans members."}}}
+	page := wire.BundleUpdateRequest{BundleListing: wire.BundleListing{Name: "Moderation", AIUse: "unknown", About: []string{"Bans members."}}}
 	code, res = callAs(t, update, "other_user", "app", id, page)
 	assert.Equal(t, "unknown_bundle", errorCode(res), code)
 	code, res = callAs(t, update, "user", "app", id, wire.BundleListing{About: []string{"Bans members."}})
@@ -336,7 +337,7 @@ func TestRemovedBundleCantBeListedOrDeleted(t *testing.T) {
 	id := res["data"].(map[string]any)["id"].(string)
 	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
 
-	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Name: "Mod", Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
+	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Name: "Mod", AIUse: "none", Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
 	assert.Equal(t, "bundle_removed", errorCode(res), code)
 	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleUpdate), "user", "app", id, wire.BundleListing{Name: "Mod"})
 	assert.Equal(t, "bundle_removed", errorCode(res), code)

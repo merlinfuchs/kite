@@ -63,6 +63,11 @@ func (h *BundleHandler) loadList(ctx context.Context) ([]*model.Bundle, error) {
 	// A bundle whose content can't be read is left out, not the whole list.
 	list := make([]*model.Bundle, 0, len(official)+len(listed))
 	for _, b := range append(official, listed...) {
+		var declaredAIUse string
+		if b.Listing != nil {
+			declaredAIUse = b.Listing.AIUse
+		}
+		b.AIUse = bundle.AIUseDisclosure(b.Content, declaredAIUse)
 		if b.Content, err = bundle.CardContent(b.Content); err != nil {
 			slog.With("error", err, "bundle_id", b.ID).Error("Failed to get card content of bundle")
 			continue
@@ -93,6 +98,11 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 
+	declaredAIUse := b.Page.AIUse
+	if b.Listing != nil {
+		declaredAIUse = b.Listing.AIUse
+	}
+	b.AIUse = bundle.AIUseDisclosure(b.Content, declaredAIUse)
 	res := wire.BundleToWire(b)
 	res.Yours = b.OwnedBy(userID)
 	if b.OwnerUserID.Valid {

@@ -22,6 +22,7 @@ import {
   templatePath,
 } from "@/lib/flow/templates";
 import { cn, formatNumber } from "@/lib/utils";
+import { useHideAITemplates } from "@/lib/hooks/templates";
 import { creatorImageVersion, ogImagePath } from "@/lib/og/path";
 import { Bundle } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
@@ -64,9 +65,13 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 
 // CreatorPage lists the templates a user has in the marketplace.
 export default function CreatorPage({ creatorId, listed }: Props) {
+  const hideAI = useHideAITemplates();
   const templates = useMemo(
-    () => listed.flatMap((b) => templateFromBundle(b) ?? []),
-    [listed]
+    () =>
+      listed
+        .flatMap((b) => templateFromBundle(b) ?? [])
+        .filter((template) => !hideAI || !template.aiUse),
+    [listed, hideAI]
   );
   const owner = listed[0].owner!;
   const avatar = userAvatar({ id: creatorId, avatar: owner.discord_avatar });

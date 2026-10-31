@@ -37,6 +37,9 @@ type Bundle struct {
 	InstallCount int `json:"install_count"`
 	// StarCount is how many users starred it.
 	StarCount int `json:"star_count"`
+	// AIUse is the measured AI contribution to its flows, empty when none was
+	// recorded.
+	AIUse *string `json:"ai_use,omitempty"`
 	// CreatedAt is when it was made, which the marketplace shows the newest
 	// by.
 	CreatedAt time.Time `json:"created_at"`
@@ -69,6 +72,7 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 type BundleListing struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
+	AIUse       string      `json:"ai_use"`
 	Icon        string      `json:"icon"`
 	Category    string      `json:"category"`
 	About       []string    `json:"about"`
@@ -98,6 +102,9 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		InstallCount: bundle.InstallCount,
 		StarCount:    bundle.StarCount,
 		CreatedAt:    bundle.CreatedAt,
+	}
+	if bundle.AIUse != "" {
+		res.AIUse = &bundle.AIUse
 	}
 	for i, n := range bundle.VersionNotes {
 		res.VersionNotes[i] = BundleVersionNotes{Version: n.Version, Notes: n.Notes, CreatedAt: n.CreatedAt}

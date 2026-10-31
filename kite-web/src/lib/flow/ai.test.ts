@@ -96,7 +96,8 @@ describe("runFlowAIPrompt", () => {
     expect(res.repairs).toBe(1);
     expect(res.issues).toEqual([]);
     const log = res.editor.flow.nodes.find((n) => n.type === "action_log")!;
-    expect(log.data).toEqual({ log_level: "info", log_message: "hi" });
+    expect(log.data).toMatchObject({ log_level: "info", log_message: "hi" });
+    expect(log.data.ai_contribution).toBe("generated");
     expect(res.changedNodeIds).toEqual([log.id]);
     expect(res.editor.changedNodeIds).toEqual([log.id]);
   });
