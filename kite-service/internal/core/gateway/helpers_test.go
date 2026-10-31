@@ -145,6 +145,26 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
 		},
 		{
+			name: "AutoMod listeners add AutoMod execution and message content",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordAutoModerationActionExecution,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentAutoModerationExecution | gateway.IntentMessageContent,
+		},
+		{
+			name: "AutoMod listeners without the content flag",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordAutoModerationActionExecution,
+				},
+			},
+			flags: 0,
+			want:  gateway.IntentGuilds | gateway.IntentAutoModerationExecution,
+		},
+		{
 			name: "flows that play audio add voice states",
 			reqs: model.AppGatewayRequirements{
 				UsesVoice: true,
@@ -230,7 +250,8 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration |
+		gateway.IntentAutoModerationExecution
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

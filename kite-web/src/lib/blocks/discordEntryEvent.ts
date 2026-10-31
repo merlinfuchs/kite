@@ -30,11 +30,12 @@ export const discordEntryEvent: BlockDefinition = {
           "direct_message_create",
           "guild_boost",
           "guild_audit_log_entry_create",
+          "auto_moderation_action_execution",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. auto_moderation_action_execution runs once for each action AutoMod takes, so pick them with an Event Filter on automod_action. Its placeholders are {{automod.action}}, {{automod.rule_name}}, {{automod.trigger}}, {{automod.content}}, {{automod.matched_keyword}} and more, and {{user}} is whoever wrote what AutoMod acted on."
         ),
     },
     {

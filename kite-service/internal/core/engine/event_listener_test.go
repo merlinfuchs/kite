@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -282,5 +283,30 @@ func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
 	data := &EventData{event: other}
 	if data.UserID() != 3 || data.GuildID() != 2 {
 		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
+	}
+}
+
+// AutoMod listeners get the derived event with the name of the rule instead of
+// Discord's.
+func TestAutoModActionListeners(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("automod", model.EventSourceDiscord, model.EventListenerTypeDiscordAutoModerationActionExecution))
+
+	raw := &gateway.AutoModerationActionExecutionEvent{GuildID: 2, UserID: 1, ChannelID: 3, MessageID: 4}
+	if got := listenerIDs(app.listenersForEvent(raw)); len(got) != 0 {
+		t.Errorf("Discord's event went to %v", got)
+	}
+	derived := &guildevent.AutoModAction{AutoModerationActionExecutionEvent: *raw, RuleName: "No invites"}
+	if got := listenerIDs(app.listenersForEvent(derived)); !slices.Equal(got, []string{"automod"}) {
+		t.Errorf("derived event went to %v, want the AutoMod listener", got)
+	}
+
+	if !(&EventListener{}).shouldHandleEvent(derived, 0) {
+		t.Error("ignored the derived event")
+	}
+
+	data := &EventData{event: derived}
+	if data.UserID() != 1 || data.GuildID() != 2 || data.ChannelID() != 3 || data.MessageID() != 4 {
+		t.Errorf("got user %d, guild %d, channel %d, message %d, want 1, 2, 3, 4", data.UserID(), data.GuildID(), data.ChannelID(), data.MessageID())
 	}
 }

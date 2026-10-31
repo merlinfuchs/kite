@@ -195,6 +195,12 @@ func (r AppGatewayRequirements) NeedsGuildModeration() bool {
 	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
 }
 
+// NeedsAutoModerationExecution reports whether the app consumes AutoMod
+// action events.
+func (r AppGatewayRequirements) NeedsAutoModerationExecution() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordAutoModerationActionExecution)
+}
+
 // NeedsGuildVoiceStates reports whether the app consumes voice state events.
 func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
 	return r.UsesVoice
