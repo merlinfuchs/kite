@@ -55,6 +55,7 @@ export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_c
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionResponseAutocomplete: FlowNodeType = "action_response_autocomplete";
 export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
@@ -177,9 +178,20 @@ export interface FlowNodeData {
   command_argument_max_value?: number /* float64 */;
   command_argument_max_length?: number /* int */;
   /**
+   * CommandArgumentAutocomplete makes Discord ask for choices while the user
+   * types, see autocomplete.go. The choices aren't sent to Discord then.
+   */
+  command_argument_autocomplete?: boolean;
+  /**
    * Command Permissions
    */
   command_permissions?: string;
+  /**
+   * Autocomplete Response
+   */
+  autocomplete_choices?: CommandArgumentChoiceData[];
+  autocomplete_choices_list?: string;
+  autocomplete_filter?: boolean;
   /**
    * Command Contexts
    */

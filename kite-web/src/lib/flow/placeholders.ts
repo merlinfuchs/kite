@@ -8,7 +8,7 @@ import {
   resultFields,
   thingTypeName,
 } from "./expressionTypes";
-import { getNodeTitle, getNodeValues } from "./nodes";
+import { getNodeTitle, getNodeValues, isAutocompleteOutput } from "./nodes";
 import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
 import { EventGroup, discordEventTypes } from "./eventTypes";
@@ -73,8 +73,44 @@ export function getAvailablePlaceholders(
 
   return [
     ...res,
+    ...autocompletePlaceholders(nodeId, nodes, edges),
     ...resumePlaceholders(nodeId, nodes, edges, contextType),
     ...upstreamPlaceholders(nodeId, nodes, edges, sameInteraction),
+  ];
+}
+
+// The blocks after the autocomplete output of an argument run while the user
+// types in it, and can use what was typed.
+function autocompletePlaceholders(
+  nodeId: string,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): PlaceholderGroup[] {
+  const types = new Map(nodes.map((n) => [n.id, n.type]));
+  const upstream = new Set([nodeId, ...walkUpstream([nodeId], edges)]);
+  const inAutocomplete = edges.some(
+    (e) =>
+      upstream.has(e.target) &&
+      isAutocompleteOutput(types.get(e.source), e.sourceHandle)
+  );
+  if (!inAutocomplete) return [];
+
+  return [
+    {
+      label: "Autocomplete",
+      placeholders: [
+        {
+          label: "Typed Text",
+          value: "autocomplete.value",
+          description: "What the user typed in the argument so far.",
+        },
+        {
+          label: "Argument Name",
+          value: "autocomplete.name",
+          description: "The name of the argument the user is typing in.",
+        },
+      ],
+    },
   ];
 }
 

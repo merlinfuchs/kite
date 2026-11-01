@@ -13,6 +13,8 @@ import {
   getNodeValues,
   getOwnedChildTypes,
   getOwnerTypes,
+  hasAutocompleteOutput,
+  isAutocompleteOutput,
   isKnownNodeType,
   normalizeHandle,
 } from "./nodes";
@@ -320,6 +322,43 @@ export function validateFlow(
 
   const entryIds = entries.map((n) => n.id);
   const reachable = new Set([...entryIds, ...walkDownstream(entryIds, edges)]);
+
+  // The blocks after the autocomplete output of an argument run while the
+  // user types in it, and can only show choices.
+  const autocompleteStarts = edges
+    .filter((e) =>
+      isAutocompleteOutput(knownById.get(e.source)?.type, e.sourceHandle)
+    )
+    .map((e) => e.target);
+  const autocompleteIds = new Set([
+    ...autocompleteStarts,
+    ...walkDownstream(autocompleteStarts, edges),
+  ]);
+  for (const id of autocompleteIds) reachable.add(id);
+  for (const node of knownNodes) {
+    if (node.type === "action_response_autocomplete") {
+      if (!autocompleteIds.has(node.id)) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' only works after the autocomplete output of a command argument.`,
+          { nodeId: node.id }
+        );
+      }
+    } else if (
+      autocompleteIds.has(node.id) &&
+      getNodeValues(node.type!).needsInteraction
+    ) {
+      report(
+        "error",
+        `'${getNodeTitle(
+          node
+        )}' can't be used after the autocomplete output of an argument, which can only show choices.`,
+        { nodeId: node.id }
+      );
+    }
+  }
   for (const node of knownNodes) {
     if (node.type!.startsWith("option_")) {
       if (!edges.some((e) => e.source === node.id)) {
@@ -507,7 +546,11 @@ export function getConnectionIssue(
   const sourceTitle = getNodeTitle(source);
   const targetTitle = getNodeTitle(target);
 
-  if (!canConnect(source.type!, target.type!)) {
+  const autocomplete = isAutocompleteOutput(source.type, handle);
+  if (!canConnect(source.type!, target.type!, handle)) {
+    if (autocomplete) {
+      return `'${targetTitle}' can't be connected to the autocomplete output of '${sourceTitle}'.`;
+    }
     if (source.type!.startsWith("option_")) {
       return `'${sourceTitle}' can only be connected to the entry block, which happens automatically.`;
     }
@@ -515,7 +558,10 @@ export function getConnectionIssue(
       ? `Nothing can be connected into '${targetTitle}'. Options are connected to the entry block automatically.`
       : `Only options can be connected into '${targetTitle}'.`;
   }
-  if (source.type!.startsWith("option_")) return;
+  if (autocomplete && !hasAutocompleteOutput(source)) {
+    return `'${sourceTitle}' has no autocomplete output, as autocomplete is off or the argument isn't text or a number.`;
+  }
+  if (source.type!.startsWith("option_") && !autocomplete) return;
 
   const owned = getOwnedChildTypes(source.type!);
   if (owned.includes(target.type!)) {

@@ -191,6 +191,20 @@
       "result": null
     },
     {
+      "type": "action_response_autocomplete",
+      "title": "Show autocomplete choices",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "suspend_response_modal",
       "title": "Show Modal",
       "credits": null,

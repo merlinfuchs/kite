@@ -170,6 +170,7 @@ const (
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionResponseAutocomplete  FlowNodeType = "action_response_autocomplete"
 	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
@@ -315,9 +316,17 @@ type FlowNodeData struct {
 	CommandArgumentMinValue  float64                     `json:"command_argument_min_value,omitempty"`
 	CommandArgumentMaxValue  float64                     `json:"command_argument_max_value,omitempty"`
 	CommandArgumentMaxLength int                         `json:"command_argument_max_length,omitempty"`
+	// CommandArgumentAutocomplete makes Discord ask for choices while the user
+	// types, see autocomplete.go. The choices aren't sent to Discord then.
+	CommandArgumentAutocomplete bool `json:"command_argument_autocomplete,omitempty"`
 
 	// Command Permissions
 	CommandPermissions string `json:"command_permissions,omitempty"`
+
+	// Autocomplete Response
+	AutocompleteChoices     []CommandArgumentChoiceData `json:"autocomplete_choices,omitempty"`
+	AutocompleteChoicesList string                      `json:"autocomplete_choices_list,omitempty"`
+	AutocompleteFilter      bool                        `json:"autocomplete_filter,omitempty"`
 
 	// Command Contexts
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
@@ -642,6 +651,27 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.CommandArgumentMaxValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Min(float64(-maxCommandArgumentNumber)),
 			validation.Max(float64(maxCommandArgumentNumber)),
+		)),
+		validation.Field(&d.CommandArgumentAutocomplete, validation.When(
+			nodeType == FlowNodeTypeOptionCommandArgument && d.CommandArgumentAutocomplete,
+			validation.By(func(any) error {
+				if !argumentTypeHasChoices(d.CommandArgumentType) {
+					return errors.New("only works for text, integer and number arguments")
+				}
+				return nil
+			}),
+		)),
+		// Without autocomplete, Discord rejects more than 25 choices when the
+		// command is deployed.
+		validation.Field(&d.CommandArgumentChoices, validation.When(
+			nodeType == FlowNodeTypeOptionCommandArgument && d.CommandArgumentAutocomplete,
+			validation.Length(0, maxAutocompleteChoices),
+		)),
+
+		// Autocomplete Response
+		validation.Field(&d.AutocompleteChoices, validation.When(
+			nodeType == FlowNodeTypeActionResponseAutocomplete,
+			validation.Length(0, maxAutocompleteChoices),
 		)),
 
 		// Event Entry

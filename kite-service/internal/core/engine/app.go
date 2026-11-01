@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -289,6 +290,14 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 			if command != nil {
 				go command.HandleEvent(appID, session, event)
+			}
+		case *discord.AutocompleteInteraction:
+			a.RLock()
+			command := a.commandsByName[getFullAutocompleteCommandName(d)]
+			a.RUnlock()
+
+			if command != nil {
+				go command.HandleAutocomplete(appID, session, e, eval.FocusedOption(d.Options))
 			}
 		case discord.ComponentInteraction:
 			customID := string(d.ID())
@@ -722,6 +731,29 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 			)
 		}
 	}()
+}
+
+// getFullAutocompleteCommandName is like getFullCommandName, for the command
+// whose argument the user is typing in.
+func getFullAutocompleteCommandName(d *discord.AutocompleteInteraction) string {
+	fullName := d.Name
+	for _, option := range d.Options {
+		if option.Type == discord.SubcommandOptionType {
+			fullName += " " + option.Name
+			break
+		} else if option.Type == discord.SubcommandGroupOptionType {
+			fullName += " " + option.Name
+			for _, subOption := range option.Options {
+				if subOption.Type == discord.SubcommandOptionType {
+					fullName += " " + subOption.Name
+					break
+				}
+			}
+			break
+		}
+	}
+
+	return fullName
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

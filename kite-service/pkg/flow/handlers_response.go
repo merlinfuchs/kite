@@ -24,6 +24,8 @@ func init() {
 		FlowNodeTypeActionResponseDefer:  executeActionResponseDefer,
 		FlowNodeTypeSuspendResponseModal: executeSuspendResponseModal,
 
+		FlowNodeTypeActionResponseAutocomplete: executeActionResponseAutocomplete,
+
 		FlowNodeTypeActionWebhookResponseCreate: executeActionWebhookResponseCreate,
 	})
 }

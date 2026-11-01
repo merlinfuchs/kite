@@ -358,7 +358,8 @@ export default function FlowEditor({
 
       const source = getNode(con.source)!;
       const target = getNode(con.target)!;
-      if (!canConnect(source.type!, target.type!)) return false;
+      if (!canConnect(source.type!, target.type!, con.sourceHandle))
+        return false;
 
       // Prevent cycles
       /*const hasCycle = (node: Node, visited = new Set()) => {

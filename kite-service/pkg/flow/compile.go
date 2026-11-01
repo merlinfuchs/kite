@@ -28,7 +28,7 @@ func (n *CompiledFlowNode) CheckCommandArguments() error {
 		}
 		names[node.Data.Name] = true
 	}
-	return nil
+	return n.checkAutocomplete()
 }
 
 func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
@@ -127,6 +127,7 @@ func isInteractionOnly(t FlowNodeType) bool {
 		FlowNodeTypeActionResponseEdit,
 		FlowNodeTypeActionResponseDelete,
 		FlowNodeTypeActionResponseDefer,
+		FlowNodeTypeActionResponseAutocomplete,
 		FlowNodeTypeSuspendResponseModal:
 		return true
 	}
@@ -344,6 +345,14 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	for _, node := range n.commandArgumentNodes() {
 		var o discord.CommandOption
 
+		// Discord rejects choices on arguments with autocomplete. Kite shows
+		// the matching ones while the user types instead.
+		autocomplete := node.usesAutocomplete()
+		argChoices := node.Data.CommandArgumentChoices
+		if autocomplete {
+			argChoices = nil
+		}
+
 		switch node.Data.CommandArgumentType {
 		case CommandArgumentTypeString:
 			var maxLength option.Int
@@ -352,7 +361,7 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			var choices []discord.StringChoice
-			for _, choice := range node.Data.CommandArgumentChoices {
+			for _, choice := range argChoices {
 				if choice.Name == "" || choice.Value == "" {
 					continue
 				}
@@ -364,11 +373,12 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			o = &discord.StringOption{
-				OptionName:  node.Data.Name,
-				Description: node.Data.Description,
-				Required:    node.Data.CommandArgumentRequired,
-				MaxLength:   maxLength,
-				Choices:     choices,
+				OptionName:   node.Data.Name,
+				Description:  node.Data.Description,
+				Required:     node.Data.CommandArgumentRequired,
+				MaxLength:    maxLength,
+				Choices:      choices,
+				Autocomplete: autocomplete,
 			}
 		case CommandArgumentTypeInteger:
 			var minValue option.Int
@@ -382,7 +392,7 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			var choices []discord.IntegerChoice
-			for _, choice := range node.Data.CommandArgumentChoices {
+			for _, choice := range argChoices {
 				if choice.Name == "" || choice.Value == "" {
 					continue
 				}
@@ -396,12 +406,13 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			o = &discord.IntegerOption{
-				OptionName:  node.Data.Name,
-				Description: node.Data.Description,
-				Required:    node.Data.CommandArgumentRequired,
-				Min:         minValue,
-				Max:         maxValue,
-				Choices:     choices,
+				OptionName:   node.Data.Name,
+				Description:  node.Data.Description,
+				Required:     node.Data.CommandArgumentRequired,
+				Min:          minValue,
+				Max:          maxValue,
+				Choices:      choices,
+				Autocomplete: autocomplete,
 			}
 		case CommandArgumentTypeBoolean:
 			o = &discord.BooleanOption{
@@ -445,7 +456,7 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			var choices []discord.NumberChoice
-			for _, choice := range node.Data.CommandArgumentChoices {
+			for _, choice := range argChoices {
 				if choice.Name == "" || choice.Value == "" {
 					continue
 				}
@@ -459,12 +470,13 @@ func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 			}
 
 			o = &discord.NumberOption{
-				OptionName:  node.Data.Name,
-				Description: node.Data.Description,
-				Required:    node.Data.CommandArgumentRequired,
-				Min:         minValue,
-				Max:         maxValue,
-				Choices:     choices,
+				OptionName:   node.Data.Name,
+				Description:  node.Data.Description,
+				Required:     node.Data.CommandArgumentRequired,
+				Min:          minValue,
+				Max:          maxValue,
+				Choices:      choices,
+				Autocomplete: autocomplete,
 			}
 		case CommandArgumentTypeAttachment:
 			o = &discord.AttachmentOption{

@@ -85,6 +85,7 @@ import { discordOptionCommandPermissions } from "./discordOptionCommandPermissio
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
 import { discordPrivateMessageCreate } from "./discordPrivateMessageCreate";
+import { discordResponseAutocomplete } from "./discordResponseAutocomplete";
 import { discordResponseCreate } from "./discordResponseCreate";
 import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
@@ -133,6 +134,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordResponseEdit,
   discordResponseDelete,
   discordResponseDefer,
+  discordResponseAutocomplete,
   discordSuspendResponseModal,
   webhookResponseCreate,
   discordMessageCreate,

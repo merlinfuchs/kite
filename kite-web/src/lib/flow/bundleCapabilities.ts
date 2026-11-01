@@ -106,6 +106,7 @@ export const harmlessTypes = [
   "action_message_unpin",
   "action_poll_create",
   "action_random_generate",
+  "action_response_autocomplete",
   "action_response_create",
   "action_response_defer",
   "action_response_delete",

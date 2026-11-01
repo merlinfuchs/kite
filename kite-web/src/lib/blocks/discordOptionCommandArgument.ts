@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { BlockDefinition } from "./types";
+import { autocompleteMaxChoices } from "./discordResponseAutocomplete";
+import { BlockDefinition, SettingsSchema } from "./types";
 
 export const discordOptionCommandArgument: BlockDefinition = {
   type: "option_command_argument",
@@ -84,6 +85,15 @@ export const discordOptionCommandArgument: BlockDefinition = {
         .describe("Maximum length for string arguments, up to 6000."),
     },
     {
+      name: "command_argument_autocomplete",
+      schema: z
+        .boolean()
+        .optional()
+        .describe(
+          "Suggest choices while the user types, for string, integer and number arguments. Without blocks after the argument's autocomplete output, the choices that contain what was typed are shown. Blocks after the autocomplete output run on every key press instead, and show choices with a Show autocomplete choices block. The user can still enter any value."
+        ),
+    },
+    {
       name: "command_argument_choices",
       schema: z
         .array(
@@ -95,11 +105,28 @@ export const discordOptionCommandArgument: BlockDefinition = {
               .describe("Value the flow receives when the choice is picked."),
           })
         )
+        .max(autocompleteMaxChoices)
         .optional()
         .describe(
-          "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored."
+          "Fixed choices the user picks from, for string, integer and number arguments. Choices with an empty name or value are ignored. Up to 25, or 500 with autocomplete."
         ),
     },
   ],
+  // Discord rejects more than 25 choices when the command is deployed. With
+  // autocomplete, Kite shows the matching ones instead.
+  refine: (schema: SettingsSchema) =>
+    schema.superRefine((data, ctx) => {
+      if (
+        !data.command_argument_autocomplete &&
+        (data.command_argument_choices?.length ?? 0) > 25
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["command_argument_choices"],
+          message:
+            "Discord allows up to 25 choices. Turn on autocomplete for more.",
+        });
+      }
+    }),
   run: { kind: "custom" },
 };
