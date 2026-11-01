@@ -41,10 +41,22 @@ import { useLogEntriesQuery } from "@/lib/api/queries";
 import { useAppEntities, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { LogEntry } from "@/lib/types/wire.gen";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import LogLevelBadge from "./LogLevelBadge";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
+
+const entityPaths: Record<string, string> = {
+  command: "commands",
+  event_listener: "events",
+  message: "messages",
+};
+
+function entityHref(appId: string, type: string, id: string) {
+  const path = entityPaths[type];
+  return appId && path ? `/apps/${appId}/${path}/${id}` : null;
+}
 
 // Leaves more room for the message on phones.
 const hiddenOnMobile = (columnId: string) =>
@@ -77,7 +89,7 @@ export const columns: ColumnDef<{
 
     cell: function SourceCell({ row }) {
       const sourceID = row.getValue<string>("source_id");
-
+      const appId = useAppId();
       const entities = useAppEntities();
 
       const entity = useMemo(() => {
@@ -87,19 +99,37 @@ export const columns: ColumnDef<{
 
       if (!entity) return null;
 
-      return (
-        <div className="flex items-center gap-1.5 text-foreground/80">
+      const href = entityHref(appId, entity.type, entity.id);
+      const content = (
+        <>
           {entity.type === "command" ? (
-            <SquareSlashIcon className="h-4 w-4" />
+            <SquareSlashIcon className="h-4 w-4 flex-none" />
           ) : entity.type === "event_listener" ? (
-            <SatelliteDishIcon className="h-4 w-4" />
+            <SatelliteDishIcon className="h-4 w-4 flex-none" />
           ) : entity.type === "message" ? (
-            <MailPlusIcon className="h-4 w-4" />
+            <MailPlusIcon className="h-4 w-4 flex-none" />
           ) : (
-            <SquareSlash className="h-4 w-4" />
+            <SquareSlash className="h-4 w-4 flex-none" />
           )}
           <div>{entity?.name ?? sourceID}</div>
-        </div>
+        </>
+      );
+
+      if (!href) {
+        return (
+          <div className="flex items-center gap-1.5 text-foreground/80">
+            {content}
+          </div>
+        );
+      }
+
+      return (
+        <Link
+          href={href}
+          className="inline-flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:underline"
+        >
+          {content}
+        </Link>
       );
     },
   },
