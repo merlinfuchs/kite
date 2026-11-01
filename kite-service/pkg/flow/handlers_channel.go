@@ -127,7 +127,16 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
-	err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	channelID := discord.ChannelID(channelTarget.Snowflake())
+	tags, err := n.forumPostTags(ctx, channelID, true)
+	if err != nil {
+		return err
+	}
+	if tags != nil {
+		editData.AppliedTags = &tags
+	}
+
+	err = ctx.Discord.EditChannel(ctx, channelID, editData)
 	if err != nil {
 		return err
 	}
@@ -220,7 +229,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return fmt.Errorf("post name is required")
 	}
 
-	tags, err := n.forumPostTags(ctx, channelID)
+	tags, err := n.forumPostTags(ctx, channelID, false)
 	if err != nil {
 		return err
 	}
@@ -271,8 +280,9 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 // forumPostTags returns the IDs of the forum's tags the node names, by name
-// or ID, since Discord doesn't show tag IDs.
-func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.ChannelID) ([]discord.TagID, error) {
+// or ID, since Discord doesn't show tag IDs. When isPost is true, channelID is
+// the forum post and its parent forum channel is looked up.
+func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.ChannelID, isPost bool) ([]discord.TagID, error) {
 	value, err := ctx.EvalTemplate(n.Data.ChannelData.AppliedTags)
 	if err != nil {
 		return nil, err
@@ -296,6 +306,17 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 	}
 	if len(names) > maxForumPostTags {
 		return nil, fmt.Errorf("a post can have at most %d tags, got %d", maxForumPostTags, len(names))
+	}
+
+	if isPost {
+		post, err := ctx.Discord.Channel(ctx, channelID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get post channel: %w", err)
+		}
+		if post == nil || !post.ParentID.IsValid() {
+			return nil, fmt.Errorf("channel %s is not a forum or media post", channelID)
+		}
+		channelID = post.ParentID
 	}
 
 	channel, err := ctx.Discord.Channel(ctx, channelID)

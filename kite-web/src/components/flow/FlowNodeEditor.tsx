@@ -3912,6 +3912,23 @@ function ChannelEditDataInput(props: InputProps) {
           />
         ))}
       </div>
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Forum Post Tags"
+        description="Only for forum and media posts. Names of up to 5 of the channel's tags, separated by commas. Leave empty to keep its current tags."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
     </ChannelDataInput>
   );
 }
