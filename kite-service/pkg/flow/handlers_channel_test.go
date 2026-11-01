@@ -191,8 +191,16 @@ func TestThreadCreateInvitable(t *testing.T) {
 type channelTestProvider struct {
 	provider.MockDiscordProvider
 
-	create api.CreateChannelData
-	edit   api.ModifyChannelData
+	create   api.CreateChannelData
+	edit     api.ModifyChannelData
+	channels map[discord.ChannelID]*discord.Channel
+}
+
+func (p *channelTestProvider) Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error) {
+	if c, ok := p.channels[channelID]; ok {
+		return c, nil
+	}
+	return nil, provider.ErrNotFound
 }
 
 func (p *channelTestProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
@@ -213,7 +221,7 @@ func TestChannelEditArchiveLock(t *testing.T) {
 	}{
 		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, []string{`"name"`}},
 		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
-		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
+		{`{"name": "t"}`, nil, []string{"archived", "locked", "applied_tags"}},
 	} {
 		p := &channelTestProvider{}
 		ctx, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
@@ -245,4 +253,53 @@ func TestChannelAuditLogReason(t *testing.T) {
 	_, err = executeChannelBlock(t, tp, FlowNodeTypeActionThreadCreate, `{"channel_data": {"name": "thread", "parent": "3"}, "audit_log_reason": "started {{3 + 3}}"}`)
 	require.NoError(t, err)
 	assert.Equal(t, api.AuditLogReason("started%206"), tp.thread.AuditLogReason)
+}
+
+func TestChannelEditAppliedTags(t *testing.T) {
+	p := &channelTestProvider{
+		channels: map[discord.ChannelID]*discord.Channel{
+			9: {
+				ID:       9,
+				Type:     discord.GuildPublicThread,
+				ParentID: 3,
+			},
+			3: {
+				ID:   3,
+				Type: discord.GuildForum,
+				AvailableTags: []discord.Tag{
+					{ID: 11, Name: "Bug Report"},
+					{ID: 12, Name: "Resolved"},
+				},
+			},
+			5: {
+				ID:   5,
+				Type: discord.GuildText,
+			},
+		},
+	}
+
+	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+		"channel_target": "9",
+		"channel_data": {"archived": true, "locked": true, "applied_tags": "resolved, 11"}
+	}`)
+	require.NoError(t, err)
+	require.NotNil(t, p.edit.AppliedTags)
+	assert.Equal(t, []discord.TagID{12, 11}, *p.edit.AppliedTags)
+
+	// Template evaluating to empty string should leave AppliedTags unset without
+	// failing on a non-post channel.
+	p.edit = api.ModifyChannelData{}
+	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+		"channel_target": "5",
+		"channel_data": {"name": "general", "applied_tags": "{{''}}"}
+	}`)
+	require.NoError(t, err)
+	assert.Nil(t, p.edit.AppliedTags)
+
+	// Non-post channel with tags should return an error.
+	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+		"channel_target": "5",
+		"channel_data": {"applied_tags": "resolved"}
+	}`)
+	require.ErrorContains(t, err, "is not a forum or media post")
 }
