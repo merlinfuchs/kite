@@ -6,6 +6,7 @@ import { getTemplates, templateFiles } from "./templateFiles";
 import { parameterKeys, referencedParameters } from "./parameters";
 import {
   featuredTemplates,
+  tagCounts,
   Template,
   templateFileSchema,
   TemplateFile,
@@ -214,6 +215,28 @@ describe("templates", () => {
 });
 
 describe("marketplace", () => {
+  it("counts the tags of listed templates, the most used first", () => {
+    const base = getTemplates()[0]!;
+    const t = (id: string, tags: string[], listed = true): Template => ({
+      ...base,
+      id,
+      tags,
+      listed,
+    });
+    expect(
+      tagCounts([
+        t("a", ["roblox", "economy"]),
+        t("b", ["economy"]),
+        t("c", ["games"]),
+        t("d", ["economy", "secret"], false),
+      ])
+    ).toEqual([
+      { tag: "economy", count: 2 },
+      { tag: "games", count: 1 },
+      { tag: "roblox", count: 1 },
+    ]);
+  });
+
   // Templates are at /marketplace/<id>, next to pages like a future
   // /marketplace/browse, which would win. Users' bundles have random IDs of
   // 16 characters, so only official templates can clash.

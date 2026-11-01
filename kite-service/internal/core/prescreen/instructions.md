@@ -27,7 +27,7 @@ When you're not sure a reason applies, don't reject. A template that has at leas
 - Discord IDs (numbers of 17 to 20 digits) typed into settings instead of being parameters, so the template points at the creator's server.
 - Requests to other websites: which ones, what they send and why. Sending data like user IDs, messages or tokens to unknown places is a concern.
 - Destructive actions, like banning, kicking, deleting messages or channels, or mass DMs, especially without a permission check or a limit.
-- A page that doesn't match what the content does, or overpromises.
+- A page that doesn't match what the content does, or overpromises. That includes tags that don't fit it, or popular words added only to show up in more searches.
 - Copies of Kite's own templates with no real changes: {{official}}.
 - Low effort or unfinished parts, broken flows, missing replies, confusing setup.
 - Offensive or inappropriate text in messages and replies.

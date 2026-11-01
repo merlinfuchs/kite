@@ -1,5 +1,5 @@
 import env from "@/lib/env/client";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -33,15 +33,20 @@ import {
   maxBundleDescription,
   maxBundleName,
   nameHasSymbols,
+  normalizeTag,
 } from "@/lib/flow/bundleListing";
 import {
   iconName,
   lucideName,
+  tagCounts,
   templateCategories,
   templateIcons,
 } from "@/lib/flow/templates";
 import TemplateIcon, { loadLucide } from "./TemplateIcon";
-import { BundleListing, UserBundle } from "@/lib/types/wire.gen";
+import { BundleListing, MaxBundleTags, UserBundle } from "@/lib/types/wire.gen";
+import { XIcon } from "lucide-react";
+import { useTemplates } from "@/lib/hooks/templates";
+import { cn } from "@/lib/utils";
 
 // BundlePageDialog edits the page of a bundle the user made. Its link shows
 // changes right away, unless it's in the marketplace, where Kite reviews them
@@ -112,9 +117,14 @@ function BundlePageForm({
   const [form, setForm] = useState(initial);
   const set = (key: keyof typeof initial) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
-  const changed = Object.entries(initial).some(
-    ([key, value]) => form[key as keyof typeof initial] !== value
-  );
+  const initialTags = bundle.page.tags ?? [];
+  const [tags, setTags] = useState<string[]>(initialTags);
+  const changed =
+    Object.entries(initial).some(
+      ([key, value]) => form[key as keyof typeof initial] !== value
+    ) ||
+    tags.length !== initialTags.length ||
+    tags.some((t, i) => t !== initialTags[i]);
 
   const paragraphs = splitParagraphs(form.about);
   const tooLong = paragraphs.some((p) => p.length > maxParagraph);
@@ -141,6 +151,7 @@ function BundlePageForm({
       description: form.description.trim(),
       icon: form.icon,
       category: form.category,
+      tags,
       about: paragraphs,
       faq: [],
       setup: steps,
@@ -252,6 +263,10 @@ function BundlePageForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="page-tags">Tags</Label>
+          <TagInput id="page-tags" value={tags} onChange={setTags} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="page-about">How it works</Label>
@@ -508,3 +523,170 @@ function IconPicker({
     </div>
   );
 }
+
+// TagInput edits the tags of a bundle. A tag is added with Enter or a comma,
+// and the last one is removed with Backspace in the empty input. It suggests
+// the tags other templates use, so the same thing gets the same tag.
+function TagInput({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const [text, setText] = useState("");
+  const [focused, setFocused] = useState(false);
+  // The suggestion the arrow keys picked, -1 for what was typed.
+  const [highlight, setHighlight] = useState(-1);
+  const templates = useTemplates();
+  const full = value.length >= MaxBundleTags;
+
+  const typed = normalizeTag(text);
+  const used = useMemo(() => tagCounts(templates ?? []), [templates]);
+  // The ones that start with what was typed first, then the ones that have
+  // it. The most used without typing.
+  const suggestions = used
+    .filter(({ tag }) => !value.includes(tag) && tag !== typed)
+    .filter(({ tag }) => !typed || tag.includes(typed))
+    .sort(
+      (a, b) =>
+        Number(b.tag.startsWith(typed)) - Number(a.tag.startsWith(typed))
+    )
+    .slice(0, maxTagSuggestions);
+  const open = focused && !full && !!suggestions.length;
+
+  const addTag = (tag: string) => {
+    setText("");
+    setHighlight(-1);
+    if (tag.length < 2 || value.includes(tag) || full) return;
+    onChange([...value, tag]);
+  };
+
+  return (
+    <div className="space-y-2">
+      {!!value.length && (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full border bg-muted px-2.5 py-0.5 text-xs"
+            >
+              #{tag}
+              <button
+                type="button"
+                aria-label={`Remove ${tag}`}
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => onChange(value.filter((t) => t !== tag))}
+              >
+                <XIcon className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="relative">
+        <Input
+          id={id}
+          value={text}
+          disabled={full}
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={`${id}-suggestions`}
+          placeholder={
+            full
+              ? `At most ${MaxBundleTags} tags`
+              : "Like roblox or economy, press Enter to add"
+          }
+          onChange={(e) => {
+            setHighlight(-1);
+            // A comma adds what's before it, like when pasting a list.
+            if (e.target.value.includes(",")) {
+              const parts = e.target.value.split(",");
+              const last = parts.pop() ?? "";
+              const added = parts
+                .map(normalizeTag)
+                .filter((t, i, all) => t.length >= 2 && all.indexOf(t) === i)
+                .filter((t) => !value.includes(t));
+              onChange([...value, ...added].slice(0, MaxBundleTags));
+              setText(last);
+            } else {
+              setText(e.target.value);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown" && open) {
+              e.preventDefault();
+              setHighlight((h) => Math.min(h + 1, suggestions.length - 1));
+            } else if (e.key === "ArrowUp" && open) {
+              e.preventDefault();
+              setHighlight((h) => Math.max(h - 1, -1));
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              addTag(
+                open && highlight >= 0 ? suggestions[highlight]!.tag : typed
+              );
+            } else if (e.key === "Escape" && open) {
+              // Closes the suggestions, not the dialog.
+              e.preventDefault();
+              e.stopPropagation();
+              setFocused(false);
+            } else if (e.key === "Backspace" && !text && value.length) {
+              onChange(value.slice(0, -1));
+            }
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            addTag(typed);
+          }}
+        />
+        {open && (
+          <div
+            id={`${id}-suggestions`}
+            role="listbox"
+            className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md"
+          >
+            {!typed && (
+              <div className="px-2 py-1 text-xs text-muted-foreground">
+                Used by other templates
+              </div>
+            )}
+            {suggestions.map(({ tag, count }, i) => (
+              <button
+                key={tag}
+                type="button"
+                role="option"
+                aria-selected={i === highlight}
+                // Before the input loses focus, which would add what was
+                // typed instead.
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  addTag(tag);
+                }}
+                onMouseEnter={() => setHighlight(i)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
+                  i === highlight && "bg-accent text-accent-foreground"
+                )}
+              >
+                <span>#{tag}</span>
+                <span className="text-xs text-muted-foreground">
+                  {count} {count === 1 ? "template" : "templates"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {`Up to ${MaxBundleTags} words on what it does, so people find it. Pick one others use when it fits.`}
+      </p>
+    </div>
+  );
+}
+
+// How many tags TagInput suggests at once.
+const maxTagSuggestions = 6;

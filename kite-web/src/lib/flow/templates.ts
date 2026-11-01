@@ -21,7 +21,8 @@ import {
 import { z } from "zod";
 import { FlowData } from "./dataSchema";
 import { MessageData } from "../types/message.gen";
-import { Bundle } from "../types/wire.gen";
+import { Bundle, MaxBundleTags } from "../types/wire.gen";
+import { bundleTagPattern } from "./bundleListing";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
 import userAvatar from "@/tools/common/utils/discordCdn";
 
@@ -320,6 +321,11 @@ export const templateFileSchema = z.object({
       ...TemplateCategory[]
     ]
   ),
+  // Words on what it does that the marketplace finds it by, like economy.
+  tags: z
+    .array(z.string().min(2).regex(bundleTagPattern))
+    .max(MaxBundleTags)
+    .optional(),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
   parameters: z.array(
@@ -458,6 +464,7 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   variables?: BundleContent["variables"];
   icon: string;
   category?: TemplateCategory;
+  tags?: string[];
   about: string[];
   faq: TemplateFile["faq"];
   setup?: string[];
@@ -488,6 +495,8 @@ export type Template = {
   icon: string;
   // Bundles of users have no category.
   category?: TemplateCategory;
+  // Lowercase words on what it does, like roblox or economy.
+  tags: string[];
   author: TemplateAuthor;
   // Whether it's in the marketplace, like official templates and the bundles
   // of users a review approved.
@@ -556,6 +565,19 @@ export function relatedTemplates(template: Template, templates: Template[]) {
   return { byCreator, similar };
 }
 
+// tagCounts are the tags of the listed templates with how many have each,
+// the most used first, then by name.
+export function tagCounts(templates: Template[]) {
+  const counts = new Map<string, number>();
+  for (const t of templates) {
+    if (!t.listed) continue;
+    for (const tag of t.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
 // templatePath is the public page of a template or a listed bundle in the
 // marketplace.
 export function templatePath(id: string) {
@@ -600,6 +622,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     description: bundle.description,
     icon: listing?.icon || "package",
     category,
+    tags: listing?.tags ?? [],
     about: listing?.about ?? [],
     faq: listing?.faq ?? [],
     setup: listing?.setup,
@@ -651,6 +674,7 @@ export function loadTemplate(
     description: file.description,
     icon: file.icon,
     category: file.category,
+    tags: file.tags ?? [],
     author,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,

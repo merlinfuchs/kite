@@ -190,6 +190,7 @@ func prompt(r *model.PendingBundleReview) (string, error) {
 		"how_it_works": l.About,
 		"setup":        l.Setup,
 		"category":     l.Category,
+		"tags":         l.Tags,
 	})
 	if err != nil {
 		return "", err

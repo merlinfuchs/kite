@@ -104,6 +104,7 @@ export default function TemplatePage({ bundle, related }: Props) {
             categoryHref: categoryPath,
             href: (t) => templatePath(t.id),
           }}
+          tagHref={(tag) => ({ pathname: "/marketplace", query: { tag } })}
         />
       </div>
 

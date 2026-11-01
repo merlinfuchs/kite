@@ -116,12 +116,14 @@ type BundleVersionNotes struct {
 
 // BundleListing is how a bundle is shown on its page and in the marketplace.
 // Official bundles always have one, users' bundles write theirs and need a
-// review to list it. It can change without a new version.
+// review to list it. It can change without a new version. Tags are words on
+// what it does, like roblox or economy, that the marketplace finds it by.
 type BundleListing struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	Icon        string      `json:"icon"`
 	Category    string      `json:"category"`
+	Tags        []string    `json:"tags"`
 	About       []string    `json:"about"`
 	FAQ         []BundleFAQ `json:"faq"`
 	Setup       []string    `json:"setup"`

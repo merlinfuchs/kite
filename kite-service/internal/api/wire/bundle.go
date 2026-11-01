@@ -66,11 +66,13 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 }
 
 // BundleListing is how a bundle is shown on its page and in the marketplace.
+// Tags are lowercase words on what it does, like roblox or economy.
 type BundleListing struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	Icon        string      `json:"icon"`
 	Category    string      `json:"category"`
+	Tags        []string    `json:"tags"`
 	About       []string    `json:"about"`
 	FAQ         []BundleFAQ `json:"faq"`
 	Setup       []string    `json:"setup"`

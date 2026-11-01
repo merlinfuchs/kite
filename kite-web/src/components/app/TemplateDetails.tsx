@@ -62,6 +62,7 @@ export function TemplateDetails({
   backOnMobile,
   aside,
   related,
+  tagHref,
   starrable = true,
 }: {
   template: Template;
@@ -72,6 +73,9 @@ export function TemplateDetails({
   aside: React.ReactNode;
   // Whether users can star it here, which they can't while reviewing it.
   starrable?: boolean;
+  // The marketplace with the templates of a tag. Without it, tags are only
+  // shown.
+  tagHref?: (tag: string) => LinkProps["href"];
   // Other templates to look at, see relatedTemplates.
   related?: {
     templates: Template[];
@@ -178,6 +182,28 @@ export function TemplateDetails({
               </BundleReportDialog>
             )}
           </div>
+          {!!template.tags.length && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {template.tags.map((tag) =>
+                tagHref ? (
+                  <Link
+                    key={tag}
+                    href={tagHref(tag)}
+                    className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    #{tag}
+                  </Link>
+                ) : (
+                  <span
+                    key={tag}
+                    className="rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground"
+                  >
+                    #{tag}
+                  </span>
+                )
+              )}
+            </div>
+          )}
         </div>
         <div className="col-start-2 sm:col-start-3 sm:row-start-1 empty:hidden flex gap-2 mt-4 sm:mt-0">
           <TemplateCopyLinkButton template={template} />
