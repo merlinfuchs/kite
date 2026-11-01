@@ -52,6 +52,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}},
 		&gateway.ReadyEvent{},
 		&guildevent.MessageDelete{},
+		&guildevent.MemberUpdate{},
 		&gateway.GuildAuditLogEntryCreateEvent{},
 	}
 
@@ -71,6 +72,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordMessageDelete,
 		model.EventListenerTypeDiscordGuildMemberAdd,
 		model.EventListenerTypeDiscordGuildMemberRemove,
+		model.EventListenerTypeDiscordGuildMemberUpdate,
 		model.EventListenerTypeDiscordMessageReactionAdd,
 		model.EventListenerTypeDiscordMessageReactionRemove,
 		model.EventListenerTypeDiscordGuildCreate,
@@ -91,6 +93,9 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 func TestDerivedEventsMatchListenerTypes(t *testing.T) {
 	if got := model.EventTypeFromDiscordEventType((&guildevent.MessageDelete{}).EventType()); got != model.EventListenerTypeDiscordMessageDelete {
 		t.Errorf("MessageDelete maps to %q, want %q", got, model.EventListenerTypeDiscordMessageDelete)
+	}
+	if got := model.EventTypeFromDiscordEventType((&guildevent.MemberUpdate{}).EventType()); got != model.EventListenerTypeDiscordGuildMemberUpdate {
+		t.Errorf("MemberUpdate maps to %q, want %q", got, model.EventListenerTypeDiscordGuildMemberUpdate)
 	}
 }
 

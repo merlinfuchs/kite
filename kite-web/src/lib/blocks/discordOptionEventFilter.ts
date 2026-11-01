@@ -29,7 +29,7 @@ function refineEventFilter(schema: SettingsSchema) {
       }
     })
     .describe(
-      "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+      "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action and member_change only one_of or not_one_of, as the editor picks them from a list. The targets available depend on the event type of the listener."
     );
 }
 
@@ -60,9 +60,10 @@ export const discordOptionEventFilter: BlockDefinition = {
           "message_mentions_bot",
           "user_is_bot",
           "audit_log_action",
+          "member_change",
         ])
         .describe(
-          "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
+          "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create. member_change is what changed about the member of a guild_member_update event: nickname, avatar or screening_passed (the member accepted the server rules)."
         ),
     },
     {

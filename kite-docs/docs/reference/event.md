@@ -12,6 +12,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Direct Message Received
 - Member Join
 - Member Leave
+- [Member Update](#member-update)
 - Reaction Add
 - Reaction Remove
 - Bot Joined Server
@@ -37,6 +38,25 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ![Example Event Flow](./img/example-event-flow.webp)
+
+## Member Update
+
+Member Update runs when a member changes their nickname or server avatar, or passes the server's membership screening. Discord's screening is the "accept the rules" step of servers with **Rules Screening** turned on, so a member passing it is a clean trigger to give them a verified role or send a welcome. Like the other member events, it needs the "Server Members Intent".
+
+It runs for any of the three, so add an [Event Filter](./blocks/options/option_event_filter.md) with the target **What Changed** and pick the changes the flow is for, like **Membership Screening Passed** for verification. Updates that are filtered out don't use credits.
+
+| Placeholder                                                               | Value                                                                          |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `{{member_update.changes}}`                                               | What changed, separated by commas: `nickname`, `avatar` and `screening_passed` |
+| `{{member_update.screening_passed}}`                                      | `true` if the member just accepted the server rules                            |
+| `{{member_update.nickname_changed}}`                                      | `true` if the nickname was set, changed or removed                             |
+| `{{member_update.old_nickname}}` and `{{member_update.new_nickname}}`     | The nickname before and after, empty without one                               |
+| `{{member_update.avatar_changed}}`                                        | `true` if the server avatar was set, changed or removed                        |
+| `{{member_update.old_avatar_url}}` and `{{member_update.new_avatar_url}}` | The server avatar before and after, empty without one                          |
+| `{{user}}`                                                                | The member after the update, with their roles and nickname                     |
+
+- Roles, timeouts and the user's own profile (username, global avatar) don't run Member Update.
+- Kite compares the member with how it was before the update. For a member Kite hasn't seen since your app connected, it can't tell what changed, so the first update of that member doesn't run the event. Members who join while your app is online are always known, so screening always works for new members.
 
 ## Audit Log Entry
 

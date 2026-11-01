@@ -471,6 +471,8 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+
+	MemberUpdate *MemberUpdateEnv `expr:"member_update" json:"member_update"`
 }
 
 type ScheduleEnv struct {
@@ -541,6 +543,48 @@ func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
 
 func (e AuditLogEnv) String() string {
 	return e.Action
+}
+
+// MemberUpdateEnv is what changed about a member of a Member Update event.
+// The member after the update is the user of the event.
+type MemberUpdateEnv struct {
+	// Changes are what changed, separated by commas, like the Event Filter
+	// names them: nickname, avatar and screening_passed.
+	Changes         string `expr:"changes" json:"changes"`
+	NicknameChanged bool   `expr:"nickname_changed" json:"nickname_changed"`
+	// The nicknames are empty without one.
+	OldNickname   string `expr:"old_nickname" json:"old_nickname"`
+	NewNickname   string `expr:"new_nickname" json:"new_nickname"`
+	AvatarChanged bool   `expr:"avatar_changed" json:"avatar_changed"`
+	// The server avatars are empty without one.
+	OldAvatarURL    string `expr:"old_avatar_url" json:"old_avatar_url"`
+	NewAvatarURL    string `expr:"new_avatar_url" json:"new_avatar_url"`
+	ScreeningPassed bool   `expr:"screening_passed" json:"screening_passed"`
+}
+
+func NewMemberUpdateEnv(e *guildevent.MemberUpdate) *MemberUpdateEnv {
+	return &MemberUpdateEnv{
+		Changes:         strings.Join(e.Changes(), ", "),
+		NicknameChanged: e.NicknameChanged(),
+		OldNickname:     e.Old.Nick,
+		NewNickname:     e.Nick,
+		AvatarChanged:   e.AvatarChanged(),
+		OldAvatarURL:    memberAvatarURL(e.GuildID, e.User.ID, e.Old.Avatar),
+		NewAvatarURL:    memberAvatarURL(e.GuildID, e.User.ID, e.Avatar),
+		ScreeningPassed: e.ScreeningPassed(),
+	}
+}
+
+func (e MemberUpdateEnv) String() string {
+	return e.Changes
+}
+
+// memberAvatarURL is the URL of a server avatar, empty without one.
+func memberAvatarURL(guildID discord.GuildID, userID discord.UserID, avatar discord.Hash) string {
+	if avatar == "" {
+		return ""
+	}
+	return discord.Member{User: discord.User{ID: userID}, Avatar: avatar}.AvatarURL(guildID)
 }
 
 type WebhookEnv struct {
@@ -663,6 +707,13 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = guild(e.GuildID).guildEnv()
+	case *guildevent.MemberUpdate:
+		member := e.Old
+		e.UpdateMember(&member)
+		env.Member = guild(e.GuildID).memberEnv(member)
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		env.MemberUpdate = NewMemberUpdateEnv(e)
 	case *gateway.MessageReactionAddEvent:
 		if e.Member != nil {
 			env.Member = guild(e.GuildID).memberEnv(*e.Member)
@@ -773,18 +824,19 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
-			"event":     env,
-			"user":      env.User,
-			"member":    env.Member,
-			"channel":   env.Channel,
-			"guild":     env.Guild,
-			"server":    env.Guild,
-			"message":   env.Message,
-			"emoji":     env.Emoji,
-			"schedule":  env.Schedule,
-			"webhook":   env.Webhook,
-			"audit_log": env.AuditLog,
-			"app":       NewAppEnv(session),
+			"event":         env,
+			"user":          env.User,
+			"member":        env.Member,
+			"channel":       env.Channel,
+			"guild":         env.Guild,
+			"server":        env.Guild,
+			"message":       env.Message,
+			"emoji":         env.Emoji,
+			"schedule":      env.Schedule,
+			"webhook":       env.Webhook,
+			"audit_log":     env.AuditLog,
+			"member_update": env.MemberUpdate,
+			"app":           NewAppEnv(session),
 		},
 	}
 }

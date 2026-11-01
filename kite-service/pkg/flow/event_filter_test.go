@@ -49,6 +49,21 @@ func TestEventFilterMessageContent(t *testing.T) {
 	assert.True(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeEqual, "edited"), edited))
 }
 
+func TestEventFilterMemberChange(t *testing.T) {
+	verified := &guildevent.MemberUpdate{
+		GuildMemberUpdateEvent: gateway.GuildMemberUpdateEvent{Nick: "jack", RoleIDs: []discord.RoleID{5}},
+		Old:                    discord.Member{IsPending: true},
+	}
+
+	assert.True(t, matches(filter(EventFilterTypeMemberChange, ComparsionModeOneOf, "screening_passed"), verified))
+	assert.True(t, matches(filter(EventFilterTypeMemberChange, ComparsionModeOneOf, "avatar, nickname"), verified))
+	assert.False(t, matches(filter(EventFilterTypeMemberChange, ComparsionModeOneOf, "avatar"), verified))
+	assert.False(t, matches(filter(EventFilterTypeMemberChange, ComparsionModeNotOneOf, "nickname"), verified))
+	assert.True(t, matches(filter(EventFilterTypeMemberChange, ComparsionModeNotOneOf, "avatar"), verified))
+	// The roles after the update.
+	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "5"), verified))
+}
+
 func TestEventFilterMessageFlags(t *testing.T) {
 	plain := &gateway.MessageCreateEvent{}
 	rich := &gateway.MessageCreateEvent{Message: discord.Message{
@@ -199,6 +214,9 @@ func TestValidateEventFilters(t *testing.T) {
 		{"channels one of", "message_create", filter(EventFilterTypeChannelID, ComparsionModeOneOf, "1,2"), false},
 		{"role one of", "message_create", filter(EventFilterTypeRoleID, ComparsionModeOneOf, "1,2"), true},
 		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
+		{"member change one of", "guild_member_update", filter(EventFilterTypeMemberChange, ComparsionModeOneOf, "screening_passed"), false},
+		{"member change equal", "guild_member_update", filter(EventFilterTypeMemberChange, ComparsionModeEqual, "screening_passed"), true},
+		{"member change on joins", "guild_member_add", filter(EventFilterTypeMemberChange, ComparsionModeOneOf, "nickname"), true},
 	}
 
 	for _, tt := range tests {

@@ -38,6 +38,13 @@
       "guild_id",
       "user_is_bot"
     ],
+    "guild_member_update": [
+      "member_change",
+      "user_id",
+      "guild_id",
+      "role_id",
+      "user_is_bot"
+    ],
     "message_create": [
       "message_content",
       "user_id",
@@ -90,6 +97,10 @@
     "emoji": [
       "equal",
       "not_equal"
+    ],
+    "member_change": [
+      "one_of",
+      "not_one_of"
     ],
     "message_has_attachment": [
       "equal",

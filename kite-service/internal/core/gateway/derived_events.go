@@ -55,6 +55,8 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 // cache is the part of the state cache deriving events reads.
 type cache interface {
 	Message(discord.ChannelID, discord.MessageID) (*discord.Message, error)
+	Member(discord.GuildID, discord.UserID) (*discord.Member, error)
+	MemberSet(discord.GuildID, *discord.Member, bool) error
 }
 
 // deriveEvents returns the events Kite derives from a Discord event. c is the
@@ -80,6 +82,22 @@ func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event
 			return nil
 		}
 		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
+	case *gateway.GuildMemberUpdateEvent:
+		old, err := c.Member(e.GuildID, e.User.ID)
+		if err != nil {
+			// Without the member from before there's no telling what changed.
+			// The state only updates members it has, so it's added here, and
+			// the next update of the member can be compared to this one.
+			member := discord.Member{User: e.User}
+			e.UpdateMember(&member)
+			_ = c.MemberSet(e.GuildID, &member, true)
+			return nil
+		}
+		update := &guildevent.MemberUpdate{GuildMemberUpdateEvent: *e, Old: *old}
+		if len(update.Changes()) == 0 {
+			return nil
+		}
+		return []guildevent.Event{update}
 	}
 	return nil
 }

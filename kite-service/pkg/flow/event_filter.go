@@ -47,6 +47,10 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 	"guild_member_remove": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeUserIsBot,
 	},
+	"guild_member_update": {
+		EventFilterTypeMemberChange, EventFilterTypeUserID, EventFilterTypeGuildID,
+		EventFilterTypeRoleID, EventFilterTypeUserIsBot,
+	},
 	"message_reaction_add": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
 		EventFilterTypeMessageID, EventFilterTypeRoleID, EventFilterTypeEmoji,
@@ -90,12 +94,12 @@ func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 
 // eventFilterModes returns the modes a target can use, nil if it can use all.
 // Yes or no filters, roles and emojis are either equal or not, and audit log
-// actions are picked from a list.
+// actions and member changes are picked from a list.
 func eventFilterModes(target EventFilterTarget) []ComparsionMode {
 	switch {
 	case isBooleanEventFilterTarget(target), target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
 		return []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual}
-	case target == EventFilterTypeAuditLogAction:
+	case target == EventFilterTypeAuditLogAction, target == EventFilterTypeMemberChange:
 		return []ComparsionMode{ComparsionModeOneOf, ComparsionModeNotOneOf}
 	}
 	return nil
@@ -154,6 +158,10 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 		return eventMemberHasRole(event, value) != notEqual
 	case target == EventFilterTypeEmoji:
 		return eventEmojiMatches(event, value) != notEqual
+	case target == EventFilterTypeMemberChange:
+		// Several things can change at once, so one of means any of them.
+		changed := eventMemberChanged(event, value)
+		return changed != (filter.EventFilterMode == ComparsionModeNotOneOf)
 	case isBooleanEventFilterTarget(target):
 		return eventFilterBool(target, event, botID) != notEqual
 	}
@@ -232,6 +240,8 @@ func eventFilterBool(target EventFilterTarget, event any, botID discord.UserID) 
 			return e.User.Bot
 		case *gateway.GuildMemberRemoveEvent:
 			return e.User.Bot
+		case *guildevent.MemberUpdate:
+			return e.User.Bot
 		case *gateway.MessageReactionAddEvent:
 			return e.Member != nil && e.Member.User.Bot
 		}
@@ -265,6 +275,9 @@ func eventMemberHasRole(event any, value string) bool {
 		member = e.Member
 	case *gateway.GuildMemberAddEvent:
 		member = &e.Member
+	case *guildevent.MemberUpdate:
+		// The roles the member has after the update.
+		member = &discord.Member{RoleIDs: e.RoleIDs}
 	}
 	if member == nil {
 		return false
@@ -274,6 +287,18 @@ func eventMemberHasRole(event any, value string) bool {
 	roleID := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(value), "<@&"), ">")
 	return slices.ContainsFunc(member.RoleIDs, func(id discord.RoleID) bool {
 		return id.String() == roleID
+	})
+}
+
+// eventMemberChanged reports whether any of the changes separated by commas
+// in value happened to the member.
+func eventMemberChanged(event any, value string) bool {
+	e, ok := event.(*guildevent.MemberUpdate)
+	if !ok {
+		return false
+	}
+	return slices.ContainsFunc(e.Changes(), func(change string) bool {
+		return isOneOf(change, value)
 	})
 }
 

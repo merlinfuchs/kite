@@ -23,6 +23,7 @@ export const discordEntryEvent: BlockDefinition = {
           "message_delete",
           "guild_member_add",
           "guild_member_remove",
+          "guild_member_update",
           "message_reaction_add",
           "message_reaction_remove",
           "guild_create",
@@ -34,7 +35,7 @@ export const discordEntryEvent: BlockDefinition = {
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. guild_member_update runs when a member's nickname or server avatar changes or they pass membership screening (accept the server rules), pick which with an Event Filter on member_change. Its placeholders are {{member_update.changes}}, {{member_update.screening_passed}}, {{member_update.old_nickname}}, {{member_update.new_nickname}} and more, and {{user}} is the member after the update."
         ),
     },
     {

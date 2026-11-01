@@ -74,6 +74,7 @@ import {
   eventFilterTargetLabels,
   getEventFilterModes,
   getEventFilterTargets,
+  memberChanges,
 } from "@/lib/flow/eventFilterTargets";
 import {
   CheckIcon,
@@ -1133,7 +1134,8 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
         const isPicked = (t: string) =>
           booleanEventFilterTargets.includes(t) ||
           t === "emoji" ||
-          t === "audit_log_action";
+          t === "audit_log_action" ||
+          t === "member_change";
 
         const modes = getEventFilterModes(v);
         const mode =
@@ -1181,7 +1183,7 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
         { value: "equal", label: "Is" },
         { value: "not_equal", label: "Is Not" },
       ]
-    : target === "audit_log_action"
+    : target === "audit_log_action" || target === "member_change"
     ? oneOfModes
     : [
         { value: "equal", label: "Equal" },
@@ -1235,6 +1237,26 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         searchable
+      />
+    );
+  }
+
+  if (target === "member_change") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Changes"
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
+        options={memberChanges}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
       />
     );
   }

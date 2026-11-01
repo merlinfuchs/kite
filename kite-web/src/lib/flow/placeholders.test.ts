@@ -387,6 +387,13 @@ describe("getAvailablePlaceholders", () => {
       ?.placeholders.map((p) => p.value);
     expect(left).toContain("user.username");
     expect(left).not.toContain("user.nick");
+
+    expect(groups("guild_member_update").map((g) => g.label)).toEqual([
+      "Member Update",
+      "User",
+      "Server",
+      "App",
+    ]);
   });
 
   it("lists every group when the event isn't known", () => {
