@@ -386,7 +386,8 @@ describe("getAvailablePlaceholders", () => {
       .find((g) => g.label === "User")
       ?.placeholders.map((p) => p.value);
     expect(left).toContain("user.username");
-    expect(left).not.toContain("user.nick");
+    expect(left).toContain("user.nick");
+    expect(left).toContain("user.role_ids");
   });
 
   it("lists every group when the event isn't known", () => {

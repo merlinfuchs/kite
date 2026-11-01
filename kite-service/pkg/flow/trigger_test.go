@@ -185,6 +185,10 @@ func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
 			MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2},
 			Message:            &discord.Message{ID: 6, ChannelID: 5, GuildID: 2, Author: discord.User{ID: 3}, Content: "deleted"},
 		},
+		&guildevent.MemberRemove{
+			GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: 2, User: discord.User{ID: 3}},
+			Member:                 &discord.Member{Nick: "Jacky", RoleIDs: []discord.RoleID{10}},
+		},
 		// Discord's own events still decode as before.
 		&gateway.MessageReactionAddEvent{UserID: 3, ChannelID: 5, MessageID: 6, GuildID: 2},
 	}
@@ -200,12 +204,19 @@ func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
 		require.NoError(t, json.Unmarshal(data, &decoded))
 		assert.IsType(t, e, decoded.Event)
 		assert.Equal(t, e.EventType(), decoded.Event.EventType())
-		// A flow that waits keeps the deleted message.
+		// A flow that waits keeps the deleted message or removed member.
 		if del, ok := decoded.Event.(*guildevent.MessageDelete); ok {
 			assert.Equal(t, discord.MessageID(6), del.ID)
 			require.NotNil(t, del.Message)
 			assert.Equal(t, "deleted", del.Message.Content)
 			assert.Equal(t, discord.UserID(3), del.Message.Author.ID)
+		}
+		if rem, ok := decoded.Event.(*guildevent.MemberRemove); ok {
+			assert.Equal(t, discord.GuildID(2), rem.GuildID)
+			assert.Equal(t, discord.UserID(3), rem.User.ID)
+			require.NotNil(t, rem.Member)
+			assert.Equal(t, "Jacky", rem.Member.Nick)
+			assert.Equal(t, []discord.RoleID{10}, rem.Member.RoleIDs)
 		}
 	}
 }
@@ -221,4 +232,18 @@ func TestFlowTriggerDecodesStoredMessageDelete(t *testing.T) {
 	require.True(t, ok, "decoded event is %T", decoded.Event)
 	assert.Equal(t, gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2}, del.MessageDeleteEvent)
 	assert.Nil(t, del.Message)
+}
+
+func TestFlowTriggerDecodesStoredMemberRemove(t *testing.T) {
+	// Resume points stored Discord's GUILD_MEMBER_REMOVE before Server Member
+	// Remove listeners got guildevent.MemberRemove.
+	stored := []byte(`{"event_type":"GUILD_MEMBER_REMOVE","event":{"guild_id":"2","user":{"id":"3","username":"jack"}}}`)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(stored, &decoded))
+	rem, ok := decoded.Event.(*guildevent.MemberRemove)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, discord.GuildID(2), rem.GuildID)
+	assert.Equal(t, discord.UserID(3), rem.User.ID)
+	assert.Nil(t, rem.Member)
 }

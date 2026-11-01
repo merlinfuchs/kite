@@ -120,8 +120,6 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return !d.Author.Bot
 	case *gateway.GuildMemberAddEvent:
 		return true
-	case *gateway.GuildMemberRemoveEvent:
-		return true
 	case *gateway.MessageReactionAddEvent:
 		// Ignore the app's own reactions, or a flow that adds a reaction
 		// would trigger itself. Reactions of other bots still go through,
@@ -140,8 +138,8 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		// Ignore the app's own actions, or a flow that logs channel updates
 		// by editing a channel would trigger itself.
 		return d.UserID != botID
-	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
-	// never gets here, see listenersForEvent.
+	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE and
+	// GUILD_MEMBER_REMOVE never get here, see listenersForEvent.
 	case guildevent.Event:
 		return true
 	}

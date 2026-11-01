@@ -36,6 +36,7 @@
     "guild_member_remove": [
       "user_id",
       "guild_id",
+      "role_id",
       "user_is_bot"
     ],
     "message_create": [

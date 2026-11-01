@@ -74,3 +74,26 @@ func TestMessageDeletePlaceholders(t *testing.T) {
 		t.Fatalf("member nick: got %q, want %q", got, "Jacky")
 	}
 }
+
+func TestMemberRemovePlaceholders(t *testing.T) {
+	session := testSession(t)
+	user := discord.User{ID: testUserID, Username: "jack"}
+
+	withMember := NewEventEnv(&guildevent.MemberRemove{
+		GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: testGuildID, User: user},
+		Member:                 &discord.Member{Nick: "Jacky", RoleIDs: []discord.RoleID{11, 12}},
+	}, session)
+	c := NewContext(Env{"user": withMember.User, "member": withMember.Member})
+	if got := evalString(t, c, "{{user.username}}|{{user.nick}}|{{user.role_ids}}|{{user.role_names}}|{{member.role_count}}"); got != "jack|Jacky|[11 12]|Admin, Member|2" {
+		t.Errorf("with member: got %q", got)
+	}
+
+	// Without a cached member, user fields work and member fields are empty.
+	withoutMember := NewEventEnv(&guildevent.MemberRemove{
+		GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: testGuildID, User: user},
+	}, session)
+	c = NewContext(Env{"user": withoutMember.User, "member": withoutMember.Member})
+	if got := evalString(t, c, "{{user.username}}|{{user.nick}}|{{user.role_ids}}|{{user.role_names}}|{{member.role_count}}"); got != "jack||[]||0" {
+		t.Errorf("without member: got %q", got)
+	}
+}

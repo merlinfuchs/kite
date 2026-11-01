@@ -20,8 +20,8 @@ import {
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
 
 // EventGroup is a group of placeholders a Discord event fills in. user is the
-// member in the server, user_account the user without server fields, like for
-// someone who left. The *_id groups only have the ID (and the user's mention).
+// member in the server, user_account the user without server fields, like in a
+// DM. The *_id groups only have the ID (and the user's mention).
 export type EventGroup =
   | "user"
   | "user_account"
@@ -126,7 +126,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A member leaves the server",
     icon: LogOutIcon,
     category: "Members",
-    placeholders: ["user_account", "server"],
+    placeholders: ["user", "server"],
     note: membersIntent,
   },
   {

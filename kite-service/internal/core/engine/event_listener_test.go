@@ -68,6 +68,24 @@ func TestMessageDeleteEventData(t *testing.T) {
 	}
 }
 
+func TestMemberRemoveEventData(t *testing.T) {
+	l := &EventListener{}
+	if l.shouldHandleEvent(&gateway.GuildMemberRemoveEvent{GuildID: 1, User: discord.User{ID: 2}}, 0) {
+		t.Error("handled Discord's member remove")
+	}
+	event := &guildevent.MemberRemove{
+		GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: 2, User: discord.User{ID: 1}},
+	}
+	if !l.shouldHandleEvent(event, 0) {
+		t.Error("ignored the derived member remove")
+	}
+
+	data := &EventData{event: event}
+	if data.UserID() != 1 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 1 and 2", data.UserID(), data.GuildID())
+	}
+}
+
 // A flow that adds or removes a reaction must not trigger its own reaction
 // listeners.
 func TestShouldHandleReactionsIgnoresOwnApp(t *testing.T) {

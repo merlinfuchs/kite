@@ -349,12 +349,13 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // DM once an app has the direct messages intent would change what existing
 // flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
 // boost listeners on top of the message create ones. Discord's MESSAGE_DELETE
-// goes to no listeners, they get guildevent.MessageDelete instead, which has
-// the same type. The same goes for MESSAGE_UPDATE and guildevent.MessageEdit,
-// so link previews and pins don't run Message Update listeners.
+// and GUILD_MEMBER_REMOVE go to no listeners, they get guildevent.MessageDelete
+// and guildevent.MemberRemove instead, which have the same type. The same goes
+// for MESSAGE_UPDATE and guildevent.MessageEdit, so link previews and pins
+// don't run Message Update listeners.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	switch event.(type) {
-	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent:
+	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent, *gateway.GuildMemberRemoveEvent:
 		return nil
 	}
 

@@ -659,6 +659,19 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Member = guild(e.GuildID).memberEnv(e.Member)
 		env.User = env.Member
 		env.Guild = guild(e.GuildID).guildEnv()
+	case *guildevent.MemberRemove:
+		// Discord only sends the user, the member is known if the bot saw them
+		// in the server before they left.
+		if e.Member != nil {
+			member := *e.Member
+			member.User = e.User
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserEnv(e.User)
+			env.Member = env.User
+		}
+		env.Guild = guild(e.GuildID).guildEnv()
 	case *gateway.GuildMemberRemoveEvent:
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User

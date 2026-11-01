@@ -292,11 +292,24 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		// Already sent to the plugin as Discord's event.
 		{"derived message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, false},
 		{"derived message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, false},
+		{"derived member remove", &guildevent.MemberRemove{GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: 1}}, false},
 	}
 
 	for _, tt := range tests {
 		if got := p.WantsEvent(tt.event); got != tt.want {
 			t.Errorf("%s: WantsEvent() = %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+func TestListenersForEventRoutesMemberRemove(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("remove", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildMemberRemove))
+
+	if got := listenerIDs(app.listenersForEvent(&guildevent.MemberRemove{GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{GuildID: 1}})); !slices.Equal(got, []string{"remove"}) {
+		t.Errorf("derived member remove listeners = %v, want [remove]", got)
+	}
+	if got := listenerIDs(app.listenersForEvent(&gateway.GuildMemberRemoveEvent{GuildID: 1})); len(got) != 0 {
+		t.Errorf("raw member remove listeners = %v, want none", got)
 	}
 }

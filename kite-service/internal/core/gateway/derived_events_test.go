@@ -14,6 +14,7 @@ import (
 
 type fakeCache struct {
 	messages map[discord.MessageID]discord.Message
+	members  map[discord.UserID]discord.Member
 }
 
 var errNotCached = errors.New("not cached")
@@ -26,12 +27,23 @@ func (c fakeCache) Message(channelID discord.ChannelID, id discord.MessageID) (*
 	return &m, nil
 }
 
+func (c fakeCache) Member(guildID discord.GuildID, id discord.UserID) (*discord.Member, error) {
+	m, ok := c.members[id]
+	if !ok {
+		return nil, errNotCached
+	}
+	return &m, nil
+}
+
 func TestDeriveEvents(t *testing.T) {
 	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
 		messages: map[discord.MessageID]discord.Message{
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
 			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
+		},
+		members: map[discord.UserID]discord.Member{
+			5: {User: discord.User{ID: 5}, RoleIDs: []discord.RoleID{10}},
 		},
 	}
 
@@ -52,6 +64,8 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"cached member removed", &gateway.GuildMemberRemoveEvent{GuildID: 2, User: discord.User{ID: 5}}, []ws.EventType{guildevent.MemberRemoveType}},
+		{"unknown member removed", &gateway.GuildMemberRemoveEvent{GuildID: 2, User: discord.User{ID: 6}}, []ws.EventType{guildevent.MemberRemoveType}},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 
@@ -175,5 +189,43 @@ func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
 	}
 	if len(update(first.Add(time.Minute))) != 1 {
 		t.Fatal("second edit isn't an edit")
+	}
+}
+
+func TestTrackDerivedEventsKeepsRemovedMember(t *testing.T) {
+	session := state.New("Bot token")
+	derived := make(chan gateway.Event, 1)
+	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	dispatch := func(e any) { session.Session.Handler.Call(e) }
+
+	const guildID = discord.GuildID(20)
+	user := discord.User{ID: 5, Username: "jack"}
+
+	dispatch(&gateway.GuildMemberAddEvent{
+		GuildID: guildID,
+		Member:  discord.Member{User: user, Nick: "Jacky", RoleIDs: []discord.RoleID{10, 11}},
+	})
+	dispatch(&gateway.GuildMemberRemoveEvent{GuildID: guildID, User: user})
+
+	var e gateway.Event
+	select {
+	case e = <-derived:
+	case <-time.After(time.Second):
+		t.Fatal("no event derived from the member remove")
+	}
+
+	if _, err := session.Cabinet.Member(guildID, user.ID); err == nil {
+		t.Fatal("removed member is still in the cache")
+	}
+
+	rem, ok := e.(*guildevent.MemberRemove)
+	if !ok {
+		t.Fatalf("got %T, want *guildevent.MemberRemove", e)
+	}
+	if rem.GuildID != guildID || rem.User.ID != user.ID {
+		t.Errorf("IDs = %d, %d, want %d, %d", rem.GuildID, rem.User.ID, guildID, user.ID)
+	}
+	if rem.Member == nil || rem.Member.Nick != "Jacky" || len(rem.Member.RoleIDs) != 2 {
+		t.Fatalf("member = %+v, want the cached member", rem.Member)
 	}
 }

@@ -85,6 +85,8 @@ func TestEventFilterRole(t *testing.T) {
 	assert.False(t, matches(filter(EventFilterTypeRoleID, ComparsionModeNotEqual, "123"), msg))
 	assert.False(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), dm))
 	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeNotEqual, "123"), dm))
+	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), &guildevent.MemberRemove{Member: member}))
+	assert.False(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), &guildevent.MemberRemove{}))
 }
 
 func TestEventFilterEmoji(t *testing.T) {
@@ -103,7 +105,8 @@ func TestEventFilterUserIsBot(t *testing.T) {
 	ignoreBots := filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, "")
 
 	assert.False(t, matches(ignoreBots, &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{Bot: true}}}))
-	assert.True(t, matches(ignoreBots, &gateway.GuildMemberRemoveEvent{User: discord.User{}}))
+	assert.True(t, matches(ignoreBots, &guildevent.MemberRemove{GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{User: discord.User{}}}))
+	assert.False(t, matches(ignoreBots, &guildevent.MemberRemove{GuildMemberRemoveEvent: gateway.GuildMemberRemoveEvent{User: discord.User{Bot: true}}}))
 	assert.False(t, matches(ignoreBots, &gateway.MessageReactionAddEvent{Member: &discord.Member{User: discord.User{Bot: true}}}))
 }
 
