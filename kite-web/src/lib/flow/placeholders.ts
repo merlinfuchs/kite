@@ -245,6 +245,27 @@ function buildInteractionPlaceholders(
         },
       ],
     },
+    automod: {
+      label: `${labelPrefix}AutoMod`,
+      placeholders: [
+        { label: "Action", value: `${prefix}automod.action` },
+        { label: "Rule Name", value: `${prefix}automod.rule_name` },
+        { label: "Rule ID", value: `${prefix}automod.rule_id` },
+        { label: "Trigger", value: `${prefix}automod.trigger` },
+        { label: "Content", value: `${prefix}automod.content` },
+        { label: "Matched Keyword", value: `${prefix}automod.matched_keyword` },
+        { label: "Matched Content", value: `${prefix}automod.matched_content` },
+        { label: "Message ID", value: `${prefix}automod.message_id` },
+        {
+          label: "Alert Message ID",
+          value: `${prefix}automod.alert_message_id`,
+        },
+        {
+          label: "Timeout (Seconds)",
+          value: `${prefix}automod.timeout_seconds`,
+        },
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed

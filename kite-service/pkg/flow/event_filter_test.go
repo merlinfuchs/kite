@@ -121,6 +121,25 @@ func TestEventFilterAuditLogAction(t *testing.T) {
 	assert.False(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_update"), timeout))
 }
 
+func TestEventFilterAutoMod(t *testing.T) {
+	block := &guildevent.AutoModAction{AutoModerationActionExecutionEvent: gateway.AutoModerationActionExecutionEvent{
+		Action:  discord.AutoModerationAction{Type: discord.AutoModerationBlockMessage},
+		Content: "join discord.gg/abc",
+	}}
+	alert := &guildevent.AutoModAction{AutoModerationActionExecutionEvent: gateway.AutoModerationActionExecutionEvent{
+		Action: discord.AutoModerationAction{Type: discord.AutoModerationSendAlertMessage},
+	}}
+
+	// A rule that blocks and alerts runs the listener once for each action.
+	onlyBlocks := filter(EventFilterTypeAutoModAction, ComparsionModeOneOf, "block_message")
+	assert.True(t, matches(onlyBlocks, block))
+	assert.False(t, matches(onlyBlocks, alert))
+	assert.True(t, matches(filter(EventFilterTypeAutoModAction, ComparsionModeNotOneOf, "timeout, block_message"), alert))
+
+	// The content is what the member wrote, even though it was never posted.
+	assert.True(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeContains, "discord.gg"), block))
+}
+
 func TestEventFilterOneOf(t *testing.T) {
 	msg := &gateway.MessageCreateEvent{Message: discord.Message{Content: "Yes"}}
 

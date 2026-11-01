@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -175,5 +176,39 @@ func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
 	}
 	if len(update(first.Add(time.Minute))) != 1 {
 		t.Fatal("second edit isn't an edit")
+	}
+}
+
+func TestRuleNames(t *testing.T) {
+	var fetches int
+	now := time.Unix(1000, 0)
+	names := newRuleNames(func(guildID discord.GuildID, ruleID discord.AutoModerationRuleID) (discord.AutoModerationRule, error) {
+		fetches++
+		if ruleID == 2 {
+			return discord.AutoModerationRule{}, errors.New("missing permissions")
+		}
+		return discord.AutoModerationRule{ID: ruleID, GuildID: guildID, Name: fmt.Sprintf("Rule %d of %d", ruleID, fetches)}, nil
+	})
+	names.now = func() time.Time { return now }
+
+	if got := names.name(20, 1); got != "Rule 1 of 1" {
+		t.Errorf("first fetch = %q", got)
+	}
+	// Kept for the next actions of a raid.
+	if got := names.name(20, 1); got != "Rule 1 of 1" || fetches != 1 {
+		t.Errorf("kept name = %q after %d fetches, want 1", got, fetches)
+	}
+	// A rule that can't be fetched has no name, and isn't fetched again.
+	if got := names.name(20, 2); got != "" {
+		t.Errorf("failed fetch = %q, want empty", got)
+	}
+	names.name(20, 2)
+	if fetches != 2 {
+		t.Errorf("%d fetches, want 2", fetches)
+	}
+	// Renamed rules show their new name once the old one expires.
+	now = now.Add(ruleNameTTL)
+	if got := names.name(20, 1); got != "Rule 1 of 3" {
+		t.Errorf("expired name = %q, want it fetched again", got)
 	}
 }

@@ -18,6 +18,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Left Server
 - Server Boost
 - Audit Log Entry
+- AutoMod Action
 
 ## Restrictions
 
@@ -117,6 +118,39 @@ These are the actions the Event Filter can pick, and the value `{{audit_log.acti
 | `auto_moderation_rule_delete`                 | AutoMod Rule Deleted           | ID                    |
 
 Rarer actions, like onboarding or soundboard changes, also run the event. Their `{{audit_log.action}}` is Discord's name of the action in lowercase, like `soundboard_sound_create`. Actions Discord added after Kite are given as their number.
+
+## AutoMod Action
+
+AutoMod Action runs when Discord's AutoMod acts in a server: it blocks a message, sends an alert to a channel, times a member out, or stops a member from using interactions. Use it to log AutoMod with your own embed, to tell members why their message was blocked, or to count strikes in a variable and punish members who keep breaking the rules. Your bot needs the **Manage Server** permission in the server, or Discord doesn't send it the actions.
+
+It's separate from [Audit Log Entry](#audit-log-entry), which only shows some of what AutoMod does, and never what the member wrote.
+
+A rule with several actions runs it once for each of them, so a rule that blocks a message and sends an alert runs it twice. Add an [Event Filter](./blocks/options/option_event_filter.md) with the target **AutoMod Action** and pick the actions the flow is for. Actions that are filtered out don't use credits.
+
+| Placeholder                    | Value                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| `{{automod.action}}`           | What AutoMod did, see below                                                                   |
+| `{{user}}`                     | Who wrote what AutoMod acted on                                                               |
+| `{{channel}}`                  | Where they wrote it. Empty for member profiles                                                |
+| `{{automod.rule_name}}`        | The name of the rule, like `No invite links`                                                  |
+| `{{automod.rule_id}}`          | The ID of the rule                                                                            |
+| `{{automod.trigger}}`          | What the rule checks: `keyword`, `keyword_preset`, `spam`, `mention_spam` or `member_profile` |
+| `{{automod.content}}`          | What the member wrote                                                                         |
+| `{{automod.matched_keyword}}`  | The word or pattern of the rule that matched                                                  |
+| `{{automod.matched_content}}`  | The part of what they wrote that matched                                                      |
+| `{{automod.message_id}}`       | Their message. Empty when AutoMod blocked it, as it was never sent                            |
+| `{{automod.alert_message_id}}` | The alert AutoMod posted, for `send_alert_message`                                            |
+| `{{automod.timeout_seconds}}`  | How long the member is timed out, for `timeout`                                               |
+
+| `{{automod.action}}`       | In the Event Filter            |
+| -------------------------- | ------------------------------ |
+| `block_message`            | Blocked a Message              |
+| `send_alert_message`       | Sent an Alert                  |
+| `timeout`                  | Timed Out a Member             |
+| `block_member_interaction` | Blocked a Member's Interaction |
+
+- `{{automod.content}}` and `{{automod.matched_content}}` need the "Message Content Intent". Without it, Discord leaves them empty.
+- `{{automod.rule_name}}` is empty if your bot can't see the rule. A renamed rule can show its old name for up to 10 minutes.
 
 ## Placeholders
 

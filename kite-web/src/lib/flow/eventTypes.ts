@@ -14,6 +14,7 @@ import {
   SmilePlusIcon,
   SmileIcon,
   SatelliteDishIcon,
+  ShieldAlertIcon,
   TimerIcon,
   WebhookIcon,
 } from "lucide-react";
@@ -32,7 +33,8 @@ export type EventGroup =
   | "message"
   | "message_id"
   | "emoji"
-  | "audit_log";
+  | "audit_log"
+  | "automod";
 
 export interface DiscordEventType {
   value: string;
@@ -147,6 +149,18 @@ export const discordEventTypes: DiscordEventType[] = [
     // The user is whoever did it, the channel the one the entry is about.
     placeholders: ["audit_log", "user", "server", "channel"],
     note: "Runs for bans, kicks, timeouts, role changes, channel changes and more. Your bot needs the View Audit Log permission in the server. Pick the actions with an Event Filter.",
+  },
+  {
+    value: "auto_moderation_action_execution",
+    label: "AutoMod Action",
+    description:
+      "AutoMod blocks a message, sends an alert or times out a member",
+    icon: ShieldAlertIcon,
+    category: "Moderation",
+    // The user is whoever wrote what AutoMod acted on. A blocked message is
+    // never posted, so there's no message.
+    placeholders: ["automod", "user", "server", "channel"],
+    note: "Your bot needs the Manage Server permission in the server. A rule that blocks a message and sends an alert runs it once for each, so pick the actions with an Event Filter.",
   },
   {
     value: "guild_create",

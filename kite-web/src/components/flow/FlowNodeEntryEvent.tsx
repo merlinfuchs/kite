@@ -12,6 +12,7 @@ const eventTitles: Record<string, string> = {
   direct_message_create: "Direct message received",
   guild_boost: "Member boosted the server",
   guild_audit_log_entry_create: "Audit log entry created",
+  auto_moderation_action_execution: "AutoMod took action",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {

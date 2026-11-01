@@ -471,6 +471,7 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+	AutoMod  *AutoModEnv  `expr:"automod" json:"automod"`
 }
 
 type ScheduleEnv struct {
@@ -540,6 +541,54 @@ func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
 }
 
 func (e AuditLogEnv) String() string {
+	return e.Action
+}
+
+// AutoModEnv is an action AutoMod took. The user of the event is whoever wrote
+// what AutoMod acted on.
+type AutoModEnv struct {
+	// Action is what AutoMod did, like block_message, as the Event Filter
+	// matches it.
+	Action   string `expr:"action" json:"action"`
+	RuleID   string `expr:"rule_id" json:"rule_id"`
+	RuleName string `expr:"rule_name" json:"rule_name" desc:"Empty if the bot can't see the rule"`
+	Trigger  string `expr:"trigger" json:"trigger" desc:"What the rule checks: keyword, keyword_preset, spam, mention_spam or member_profile"`
+	// Content is what the member wrote, and MatchedKeyword and MatchedContent
+	// what of it the rule matched.
+	Content        string `expr:"content" json:"content" desc:"What the member wrote, empty without the Message Content intent"`
+	MatchedKeyword string `expr:"matched_keyword" json:"matched_keyword" desc:"The word or pattern of the rule that matched"`
+	MatchedContent string `expr:"matched_content" json:"matched_content" desc:"The part of the content that matched, empty without the Message Content intent"`
+	// MessageID is the message of the member, empty if AutoMod blocked it, as
+	// it was never posted. AlertMessageID is the message AutoMod posted in its
+	// alert channel, only set for send_alert_message.
+	MessageID      string `expr:"message_id" json:"message_id" desc:"Empty if AutoMod blocked the message"`
+	AlertMessageID string `expr:"alert_message_id" json:"alert_message_id"`
+	// TimeoutSeconds is how long a timeout action times the member out, 0
+	// for other actions.
+	TimeoutSeconds int `expr:"timeout_seconds" json:"timeout_seconds"`
+}
+
+func NewAutoModEnv(e *guildevent.AutoModAction) *AutoModEnv {
+	res := &AutoModEnv{
+		Action:         e.ActionName(),
+		RuleID:         e.RuleID.String(),
+		RuleName:       e.RuleName,
+		Trigger:        e.TriggerName(),
+		Content:        e.Content,
+		MatchedKeyword: e.MatchedKeyword,
+		MatchedContent: e.MatchedContent,
+		TimeoutSeconds: e.Action.Metadata.DurationSeconds,
+	}
+	if e.MessageID.IsValid() {
+		res.MessageID = e.MessageID.String()
+	}
+	if e.AlertSystemMessageID.IsValid() {
+		res.AlertMessageID = e.AlertSystemMessageID.String()
+	}
+	return res
+}
+
+func (e AutoModEnv) String() string {
 	return e.Action
 }
 
@@ -710,6 +759,19 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Channel = currentChannelEnv(session, id, nil)
 		}
 		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
+	case *guildevent.AutoModAction:
+		if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		// Member profiles aren't posted anywhere.
+		if e.ChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
+		}
+		env.AutoMod = NewAutoModEnv(e)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -784,6 +846,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"schedule":  env.Schedule,
 			"webhook":   env.Webhook,
 			"audit_log": env.AuditLog,
+			"automod":   env.AutoMod,
 			"app":       NewAppEnv(session),
 		},
 	}
