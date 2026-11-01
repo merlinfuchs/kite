@@ -99,8 +99,23 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
     [screenToFlowPosition, contextType, insertNodes]
   );
 
+  const duplicate = useCallback(
+    (ids: string[]) => {
+      const [newNodes, newEdges] = duplicateFlowNodes(
+        ids,
+        getNodes(),
+        getEdges()
+      );
+      if (newNodes.length === 0) return false;
+
+      insertNodes(newNodes, newEdges);
+      return true;
+    },
+    [getNodes, getEdges, insertNodes]
+  );
+
   useEffect(() => {
-    const shouldIgnore = (e: ClipboardEvent) => {
+    const shouldIgnore = (e: Event) => {
       const target = e.target as HTMLElement | null;
       if (
         target?.closest("input, textarea, [contenteditable]") ||
@@ -145,15 +160,40 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key.toLowerCase() !== "d" ||
+        !(e.ctrlKey || e.metaKey) ||
+        e.shiftKey ||
+        e.altKey ||
+        shouldIgnore(e)
+      ) {
+        return;
+      }
+
+      if (duplicate(getSelectedIds())) {
+        e.preventDefault();
+      }
+    };
+
     document.addEventListener("copy", writeSelection);
     document.addEventListener("cut", onCut);
     document.addEventListener("paste", onPaste);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("copy", writeSelection);
       document.removeEventListener("cut", onCut);
       document.removeEventListener("paste", onPaste);
+      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [containerRef, copyText, getSelectedIds, deleteNodes, pasteText]);
+  }, [
+    containerRef,
+    copyText,
+    getSelectedIds,
+    deleteNodes,
+    pasteText,
+    duplicate,
+  ]);
 
   const copy = useCallback(
     async (ids: string[]) => {
@@ -176,18 +216,6 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       if (await copy(ids)) deleteNodes(ids);
     },
     [copy, deleteNodes]
-  );
-
-  const duplicate = useCallback(
-    (ids: string[]) => {
-      const [newNodes, newEdges] = duplicateFlowNodes(
-        ids,
-        getNodes(),
-        getEdges()
-      );
-      insertNodes(newNodes, newEdges);
-    },
-    [getNodes, getEdges, insertNodes]
   );
 
   const paste = useCallback(
