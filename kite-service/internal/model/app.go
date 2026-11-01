@@ -270,6 +270,11 @@ func (r AppCollaboratorRole) CanDeleteApp() bool {
 	return r == AppCollaboratorRoleOwner
 }
 
+// CanDuplicateApp is owner only, because the copy includes the app's secrets.
+func (r AppCollaboratorRole) CanDuplicateApp() bool {
+	return r == AppCollaboratorRoleOwner
+}
+
 func (r AppCollaboratorRole) CanManageCollaborators() bool {
 	return r == AppCollaboratorRoleOwner
 }

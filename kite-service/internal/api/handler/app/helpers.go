@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
 )
@@ -75,6 +77,126 @@ func (h *AppHandler) updateDiscordBotUser(ctx context.Context, app *model.App) e
 	}
 
 	return nil
+}
+
+// discordInstallParams is an install params object of Discord.
+type discordInstallParams struct {
+	Scopes      []string `json:"scopes"`
+	Permissions string   `json:"permissions"`
+}
+
+// discordIntegrationTypesConfig is keyed by the integration type, 0 for
+// installing to a server and 1 for installing to an account. A type that is
+// turned off is missing.
+type discordIntegrationTypesConfig map[string]struct {
+	OAuth2InstallParams *discordInstallParams `json:"oauth2_install_params,omitempty"`
+}
+
+const (
+	discordGuildInstall = "0"
+	discordUserInstall  = "1"
+
+	// defaultGuildPermissions is Administrator.
+	defaultGuildPermissions = "8"
+)
+
+func (h *AppHandler) getDiscordInstallation(ctx context.Context, app *model.App) (*wire.AppInstallation, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	var res struct {
+		IntegrationTypesConfig discordIntegrationTypesConfig `json:"integration_types_config"`
+	}
+	err = client.RequestJSON(&res, "GET", api.EndpointApplications+"@me")
+	if err != nil {
+		return nil, err
+	}
+
+	return installationToWire(res.IntegrationTypesConfig), nil
+}
+
+// updateDiscordInstallation replaces the installation contexts of the app.
+// Discord turns off every context that isn't in the request.
+func (h *AppHandler) updateDiscordInstallation(ctx context.Context, app *model.App, req wire.AppInstallationUpdateRequest) (*wire.AppInstallation, error) {
+	client, err := h.getAppClient(ctx, app)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app client: %w", err)
+	}
+
+	config := discordIntegrationTypesConfig{}
+	for key, params := range map[string]*wire.AppInstallParams{
+		discordGuildInstall: req.GuildInstall,
+		discordUserInstall:  req.UserInstall,
+	} {
+		if params == nil {
+			continue
+		}
+		entry := config[key]
+		entry.OAuth2InstallParams = &discordInstallParams{
+			Scopes:      params.Scopes,
+			Permissions: params.Permissions,
+		}
+		config[key] = entry
+	}
+
+	body := struct {
+		IntegrationTypesConfig discordIntegrationTypesConfig `json:"integration_types_config"`
+	}{config}
+
+	var res struct {
+		IntegrationTypesConfig discordIntegrationTypesConfig `json:"integration_types_config"`
+	}
+	err = client.RequestJSON(&res, "PATCH", api.EndpointApplications+"@me", httputil.WithJSONBody(body))
+	if err != nil {
+		return nil, err
+	}
+
+	return installationToWire(res.IntegrationTypesConfig), nil
+}
+
+func installationToWire(config discordIntegrationTypesConfig) *wire.AppInstallation {
+	res := &wire.AppInstallation{}
+	for key, entry := range config {
+		// A context can be on without default install params. Servers are then
+		// asked for Administrator, like Kite's invite links always did.
+		permissions := "0"
+		if key == discordGuildInstall {
+			permissions = defaultGuildPermissions
+		}
+		params := &wire.AppInstallParams{Scopes: []string{}, Permissions: permissions}
+		if entry.OAuth2InstallParams != nil {
+			if entry.OAuth2InstallParams.Scopes != nil {
+				params.Scopes = entry.OAuth2InstallParams.Scopes
+			}
+			if entry.OAuth2InstallParams.Permissions != "" {
+				params.Permissions = entry.OAuth2InstallParams.Permissions
+			}
+		}
+		// New Discord apps ask servers for no permissions, which Kite never
+		// did, so no permissions count as not chosen yet.
+		if key == discordGuildInstall && params.Permissions == "0" {
+			params.Permissions = defaultGuildPermissions
+		}
+
+		switch key {
+		case discordGuildInstall:
+			res.GuildInstall = params
+		case discordUserInstall:
+			res.UserInstall = params
+		}
+	}
+	return res
+}
+
+// discordErrorMessage returns the reason Discord gave for rejecting a request.
+func discordErrorMessage(err error) string {
+	var restErr *httputil.HTTPError
+	if errors.As(err, &restErr) && restErr.Message != "" {
+		return restErr.Message
+	}
+	return err.Error()
 }
 
 func (h *AppHandler) getAppEmojis(ctx context.Context, app *model.App) ([]discord.Emoji, error) {

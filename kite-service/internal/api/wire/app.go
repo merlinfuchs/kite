@@ -2,6 +2,9 @@ package wire
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -118,6 +121,91 @@ func (req AppUpdateRequest) Validate() error {
 
 type AppUpdateResponse = App
 
+// AppInstallation is how the app can be installed in Discord. A nil context
+// is turned off. It's read from Discord on demand instead of being stored.
+type AppInstallation struct {
+	GuildInstall *AppInstallParams `json:"guild_install"`
+	UserInstall  *AppInstallParams `json:"user_install"`
+}
+
+// AppInstallParams are the scopes and bot permissions an installation context
+// asks for by default.
+type AppInstallParams struct {
+	Scopes      []string `json:"scopes"`
+	Permissions string   `json:"permissions"`
+}
+
+type AppInstallationGetResponse = AppInstallation
+
+var appPermissionsPattern = regexp.MustCompile(`^\d{1,20}$`)
+
+// AppInstallationUpdateRequest replaces how the app can be installed. At least
+// one context has to stay on.
+type AppInstallationUpdateRequest struct {
+	GuildInstall *AppInstallParams `json:"guild_install"`
+	UserInstall  *AppInstallParams `json:"user_install"`
+}
+
+func (req AppInstallationUpdateRequest) Validate() error {
+	if req.GuildInstall == nil && req.UserInstall == nil {
+		return validation.Errors{
+			"guild_install": errors.New("turn on at least one way to install your app"),
+		}
+	}
+
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.GuildInstall, validation.By(func(value interface{}) error {
+			params, _ := value.(*AppInstallParams)
+			if params == nil {
+				return nil
+			}
+			if !slices.Contains(params.Scopes, "bot") {
+				return errors.New("installing to a server always adds the bot")
+			}
+			// No permissions mean Administrator, the default, when read back.
+			if params.Permissions == "0" {
+				return errors.New("choose at least one permission")
+			}
+			return params.validate([]string{"applications.commands", "bot"})
+		})),
+		validation.Field(&req.UserInstall, validation.By(func(value interface{}) error {
+			params, _ := value.(*AppInstallParams)
+			if params == nil {
+				return nil
+			}
+			// Apps installed to an account have no bot user in the server.
+			return params.validate([]string{"applications.commands"})
+		})),
+	)
+}
+
+func (p *AppInstallParams) validate(allowedScopes []string) error {
+	seen := map[string]bool{}
+	for _, scope := range p.Scopes {
+		if !slices.Contains(allowedScopes, scope) {
+			return fmt.Errorf("unsupported scope %q", scope)
+		}
+		if seen[scope] {
+			return fmt.Errorf("scope %q is listed twice", scope)
+		}
+		seen[scope] = true
+	}
+	if !seen["applications.commands"] {
+		return errors.New("the applications.commands scope is needed for commands")
+	}
+
+	if !appPermissionsPattern.MatchString(p.Permissions) {
+		return errors.New("permissions must be a permissions integer")
+	}
+	if !seen["bot"] && p.Permissions != "0" {
+		return errors.New("permissions can only be asked for with the bot scope")
+	}
+
+	return nil
+}
+
+type AppInstallationUpdateResponse = AppInstallation
+
 type AppCreditNoticesUpdateRequest struct {
 	Enabled bool `json:"enabled"`
 }
@@ -157,6 +245,20 @@ func (req AppTokenUpdateRequest) Validate() error {
 type AppTokenUpdateResponse = App
 
 type AppDeleteResponse = Empty
+
+// AppDuplicateRequest copies the app to the Discord bot of the token, which
+// can't be the bot of the app itself.
+type AppDuplicateRequest struct {
+	DiscordToken string `json:"discord_token"`
+}
+
+func (req AppDuplicateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordToken, validation.Required),
+	)
+}
+
+type AppDuplicateResponse = App
 
 type AppListResponse = []*App
 

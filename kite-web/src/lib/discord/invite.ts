@@ -1,10 +1,30 @@
+import { AppInstallParams } from "../types/wire.gen";
+
+// Administrator, which servers are asked for until the app's installation
+// settings choose other permissions.
+export const defaultGuildPermissions = "8";
+
+// Used while the app's installation settings aren't known.
+const defaultInstallParams: Record<"guild" | "user", AppInstallParams> = {
+  guild: {
+    scopes: ["bot", "applications.commands"],
+    permissions: defaultGuildPermissions,
+  },
+  user: { scopes: ["applications.commands"], permissions: "0" },
+};
+
 export function getAppInviteUrl(
   appId: string,
-  type: "guild" | "user" = "guild"
+  type: "guild" | "user" = "guild",
+  params?: AppInstallParams | null
 ) {
-  if (type === "user") {
-    return `https://discord.com/oauth2/authorize?client_id=${appId}&integration_type=1&scope=applications.commands`;
-  }
+  const install = params ?? defaultInstallParams[type];
 
-  return `https://discord.com/oauth2/authorize?client_id=${appId}&integration_type=0&scope=bot%20applications.commands&permissions=8`;
+  const query = new URLSearchParams({ client_id: appId });
+  query.set("integration_type", type === "guild" ? "0" : "1");
+  query.set("scope", install.scopes.join(" "));
+  if (install.scopes.includes("bot")) {
+    query.set("permissions", install.permissions || "0");
+  }
+  return `https://discord.com/oauth2/authorize?${query}`;
 }
