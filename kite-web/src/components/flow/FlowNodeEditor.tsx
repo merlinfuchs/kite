@@ -40,6 +40,8 @@ import {
   integrations,
   needsCredential,
 } from "@/lib/integrations";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
+import { AppIntegrationEnableButton } from "../app/AppIntegrationList";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -389,6 +391,7 @@ export default function FlowNodeEditor({
     premiumFeature ? !!f[premiumFeature] : true
   );
   const premiumPlan = useFeaturePlan(premiumFeature);
+  const missingIntegrations = useMissingIntegrations(node?.type);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -485,6 +488,20 @@ export default function FlowNodeEditor({
                 and fails without it.
               </div>
             )}
+            {!readOnly &&
+              missingIntegrations.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="flex items-center gap-3 rounded-md border p-3 text-sm"
+                >
+                  <PlugIcon className="h-4 w-4 flex-none text-muted-foreground" />
+                  <div className="flex-1 text-muted-foreground">
+                    Uses {integration.name}, which isn&apos;t enabled in your
+                    app. This block fails until you enable it.
+                  </div>
+                  <AppIntegrationEnableButton integration={integration} />
+                </div>
+              ))}
             {values.dataFields.map((field) => {
               // Fields of a block's definition without an input of their own.
               const name = field.startsWith("field:")
