@@ -18,6 +18,9 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Left Server
 - Server Boost
 - Audit Log Entry
+- Poll Vote Add
+- Poll Vote Remove
+- Poll End
 
 ## Restrictions
 
@@ -117,6 +120,30 @@ These are the actions the Event Filter can pick, and the value `{{audit_log.acti
 | `auto_moderation_rule_delete`                 | AutoMod Rule Deleted           | ID                    |
 
 Rarer actions, like onboarding or soundboard changes, also run the event. Their `{{audit_log.action}}` is Discord's name of the action in lowercase, like `soundboard_sound_create`. Actions Discord added after Kite are given as their number.
+
+## Polls
+
+Poll Vote Add runs when a member votes for an answer of a poll, and Poll Vote Remove when they take a vote back. In a poll that allows several answers, they run once for each answer. Poll End runs when a poll ends, whether its time ran out or it was ended early, once Discord has counted the votes. They work for every poll in the server, not only the ones your bot created with the [Create poll](./blocks/actions/action_poll_create.md) block.
+
+`{{message.id}}` is the poll in all three, so an [Event Filter](./blocks/options/option_event_filter.md) on the message ID can pick one poll.
+
+| Placeholder             | Value                                                                  | Events              |
+| ----------------------- | ---------------------------------------------------------------------- | ------------------- |
+| `{{poll.question}}`     | The question of the poll                                               | All                 |
+| `{{poll.answer}}`       | The text of the answer voted for                                       | Vote Add and Remove |
+| `{{poll.answer_emoji}}` | The emoji of the answer voted for, empty without one                   | Vote Add and Remove |
+| `{{poll.answer_id}}`    | The number of the answer, `1` for the first answer                     | Vote Add and Remove |
+| `{{poll.winner}}`       | The text of the answer with the most votes, empty on a tie or no votes | End                 |
+| `{{poll.winner_emoji}}` | The emoji of the winning answer, empty without one                     | End                 |
+| `{{poll.winner_id}}`    | The number of the winning answer, `0` on a tie or no votes             | End                 |
+| `{{poll.winner_votes}}` | The votes of the answer(s) with the most votes                         | End                 |
+| `{{poll.total_votes}}`  | All votes of the poll                                                  | End                 |
+| `{{user}}`              | Who voted, or for Poll End, who created the poll                       | All                 |
+
+- Discord only sends the IDs with a vote, so Kite gets the question and answer from Discord when a flow uses them. Your bot needs to be able to read the channel's message history, or the flow fails at that placeholder. `{{poll.answer_id}}` is always known.
+- `{{user}}` only has the ID and mention of voters Kite hasn't seen in the server since your app connected. Use a Get Member block if you need more.
+- Discord has no event for polls ending. Kite detects it through the message Discord posts with the results, so your bot needs to see the poll's channel. For polls your bot didn't create, the question and results also need the "Message Content Intent".
+- That results message also runs Message Create, like any other message.
 
 ## Placeholders
 

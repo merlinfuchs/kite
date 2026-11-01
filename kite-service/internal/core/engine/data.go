@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 )
 
 type InteractionData struct {
@@ -85,6 +86,13 @@ func (d *EventData) UserID() discord.UserID {
 		if data.Message != nil {
 			return data.Message.Author.ID
 		}
+	case *pollevent.VoteAddEvent:
+		return data.UserID
+	case *pollevent.VoteRemoveEvent:
+		return data.UserID
+	case *guildevent.PollEnd:
+		// The author of the poll.
+		return data.Message.Author.ID
 	}
 	return 0
 }
@@ -115,6 +123,12 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *gateway.GuildAuditLogEntryCreateEvent:
 		return data.GuildID
+	case *pollevent.VoteAddEvent:
+		return data.GuildID
+	case *pollevent.VoteRemoveEvent:
+		return data.GuildID
+	case *guildevent.PollEnd:
+		return data.Message.GuildID
 	}
 	return 0
 }
@@ -135,6 +149,12 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.GuildAuditLogEntryCreateEvent:
 		return auditlog.ChannelID(data.AuditLogEntry)
+	case *pollevent.VoteAddEvent:
+		return data.ChannelID
+	case *pollevent.VoteRemoveEvent:
+		return data.ChannelID
+	case *guildevent.PollEnd:
+		return data.Message.ChannelID
 	}
 	return 0
 }
@@ -153,6 +173,13 @@ func (d *EventData) MessageID() discord.MessageID {
 		return data.MessageID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.MessageID
+	case *pollevent.VoteAddEvent:
+		return data.MessageID
+	case *pollevent.VoteRemoveEvent:
+		return data.MessageID
+	case *guildevent.PollEnd:
+		// The poll, not the result message.
+		return data.PollMessageID
 	}
 	return 0
 }

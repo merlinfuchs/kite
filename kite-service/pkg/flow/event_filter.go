@@ -70,6 +70,22 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeAuditLogAction, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID,
 	},
+	// The message is the poll. Discord only sends the IDs with votes, so
+	// there are no roles and no way to tell bots apart.
+	"message_poll_vote_add": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
+		EventFilterTypeMessageID,
+	},
+	"message_poll_vote_remove": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
+		EventFilterTypeMessageID,
+	},
+	// Polls ending come from the poll result message. The user is the author
+	// of the poll and the message the poll.
+	"message_poll_end": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
+		EventFilterTypeMessageID,
+	},
 }
 
 // EventFilterTargets returns what event filters can check for an event type.

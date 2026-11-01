@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 )
 
 // Every guild the bot is in arrives as a raw GUILD_CREATE on connect, so only
@@ -282,5 +283,33 @@ func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
 	data := &EventData{event: other}
 	if data.UserID() != 3 || data.GuildID() != 2 {
 		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
+	}
+}
+
+func TestPollEventData(t *testing.T) {
+	vote := pollevent.Vote{UserID: 1, GuildID: 2, ChannelID: 3, MessageID: 4, AnswerID: 1}
+	for _, e := range []ws.Event{&pollevent.VoteAddEvent{Vote: vote}, &pollevent.VoteRemoveEvent{Vote: vote}} {
+		l := &EventListener{}
+		if !l.shouldHandleEvent(e, 0) {
+			t.Errorf("ignored %s", e.EventType())
+		}
+		d := &EventData{event: e}
+		if d.UserID() != 1 || d.GuildID() != 2 || d.ChannelID() != 3 || d.MessageID() != 4 {
+			t.Errorf("%s: got user %d, guild %d, channel %d, message %d, want 1, 2, 3, 4", e.EventType(), d.UserID(), d.GuildID(), d.ChannelID(), d.MessageID())
+		}
+	}
+
+	// The user of a poll ending is the author of the poll, and the message the
+	// poll, not the result message.
+	end := &guildevent.PollEnd{
+		Message:       discord.Message{ID: 5, ChannelID: 3, GuildID: 2, Author: discord.User{ID: 1, Bot: true}},
+		PollMessageID: 4,
+	}
+	if !(&EventListener{}).shouldHandleEvent(end, 1) {
+		t.Error("ignored the end of a poll by the app")
+	}
+	d := &EventData{event: end}
+	if d.UserID() != 1 || d.GuildID() != 2 || d.ChannelID() != 3 || d.MessageID() != 4 {
+		t.Errorf("poll end: got user %d, guild %d, channel %d, message %d, want 1, 2, 3, 4", d.UserID(), d.GuildID(), d.ChannelID(), d.MessageID())
 	}
 }

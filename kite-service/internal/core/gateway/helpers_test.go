@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 )
 
 // allPrivilegedFlags is what an app looks like after following the getting
@@ -86,6 +87,28 @@ func TestIntentsForRequirements(t *testing.T) {
 				},
 			},
 			flags: GATEWAY_GUILD_MEMBERS,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
+		},
+		{
+			name: "poll vote listeners add guild message polls",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordMessagePollVoteAdd,
+					model.EventListenerTypeDiscordMessagePollVoteRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | pollevent.IntentGuildMessagePolls,
+		},
+		{
+			// A poll ending arrives as the poll result message.
+			name: "poll end listener adds guild messages",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordMessagePollEnd,
+				},
+			},
+			flags: 0,
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
 		},
 		{
@@ -230,7 +253,8 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration |
+		pollevent.IntentGuildMessagePolls
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

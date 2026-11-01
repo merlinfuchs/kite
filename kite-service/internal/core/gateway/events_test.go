@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 )
 
 // Protocol frames report an empty event type. The dispatch path can never
@@ -53,6 +54,9 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.ReadyEvent{},
 		&guildevent.MessageDelete{},
 		&gateway.GuildAuditLogEntryCreateEvent{},
+		&pollevent.VoteAddEvent{},
+		&pollevent.VoteRemoveEvent{},
+		&guildevent.PollEnd{},
 	}
 
 	for _, e := range dispatched {
@@ -78,6 +82,9 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordDirectMessageCreate,
 		model.EventListenerTypeDiscordGuildBoost,
 		model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
+		model.EventListenerTypeDiscordMessagePollVoteAdd,
+		model.EventListenerTypeDiscordMessagePollVoteRemove,
+		model.EventListenerTypeDiscordMessagePollEnd,
 	}
 
 	for _, tp := range types {
@@ -97,5 +104,33 @@ func TestDerivedEventsMatchListenerTypes(t *testing.T) {
 func TestAuditLogEventMatchesListenerType(t *testing.T) {
 	if got := model.EventTypeFromDiscordEventType((&gateway.GuildAuditLogEntryCreateEvent{}).EventType()); got != model.EventListenerTypeDiscordGuildAuditLogEntryCreate {
 		t.Errorf("audit log entry maps to %q, want %q", got, model.EventListenerTypeDiscordGuildAuditLogEntryCreate)
+	}
+}
+
+// Poll events go to the listeners of the type they're named after.
+func TestPollEventsMatchListenerTypes(t *testing.T) {
+	for e, want := range map[ws.Event]model.EventListenerType{
+		&pollevent.VoteAddEvent{}:    model.EventListenerTypeDiscordMessagePollVoteAdd,
+		&pollevent.VoteRemoveEvent{}: model.EventListenerTypeDiscordMessagePollVoteRemove,
+		&guildevent.PollEnd{}:        model.EventListenerTypeDiscordMessagePollEnd,
+	} {
+		if got := model.EventTypeFromDiscordEventType(e.EventType()); got != want {
+			t.Errorf("%T maps to %q, want %q", e, got, want)
+		}
+	}
+}
+
+// arikawa doesn't know the poll vote events, so they have to be registered
+// for the gateway to decode them.
+func TestPollVoteEventsAreRegistered(t *testing.T) {
+	for _, e := range []ws.Event{&pollevent.VoteAddEvent{}, &pollevent.VoteRemoveEvent{}} {
+		fn := gateway.OpUnmarshalers.Lookup(e.Op(), e.EventType())
+		if fn == nil {
+			t.Errorf("%s isn't registered", e.EventType())
+			continue
+		}
+		if got := fn(); got.EventType() != e.EventType() {
+			t.Errorf("%s decodes into %T", e.EventType(), got)
+		}
 	}
 }

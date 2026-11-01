@@ -55,6 +55,24 @@
       "channel_id",
       "message_id"
     ],
+    "message_poll_end": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id"
+    ],
+    "message_poll_vote_add": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id"
+    ],
+    "message_poll_vote_remove": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id"
+    ],
     "message_reaction_add": [
       "user_id",
       "guild_id",

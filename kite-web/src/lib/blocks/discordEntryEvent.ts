@@ -30,11 +30,14 @@ export const discordEntryEvent: BlockDefinition = {
           "direct_message_create",
           "guild_boost",
           "guild_audit_log_entry_create",
+          "message_poll_vote_add",
+          "message_poll_vote_remove",
+          "message_poll_end",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. message_poll_vote_add and message_poll_vote_remove run for each answer a member votes for or takes back, with {{poll.question}}, {{poll.answer}} and {{poll.answer_id}}. message_poll_end runs when a poll ends, with {{poll.question}}, {{poll.winner}}, {{poll.winner_votes}} and {{poll.total_votes}}, and {{user}} is the author of the poll. {{message.id}} is the poll for all three."
         ),
     },
     {

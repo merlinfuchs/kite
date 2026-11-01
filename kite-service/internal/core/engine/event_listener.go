@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"gopkg.in/guregu/null.v4"
 )
@@ -140,6 +141,11 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		// Ignore the app's own actions, or a flow that logs channel updates
 		// by editing a channel would trigger itself.
 		return d.UserID != botID
+	// Bots can't vote on polls.
+	case *pollevent.VoteAddEvent:
+		return true
+	case *pollevent.VoteRemoveEvent:
+		return true
 	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
 	// never gets here, see listenersForEvent.
 	case guildevent.Event:

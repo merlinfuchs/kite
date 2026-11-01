@@ -1,7 +1,8 @@
 // Package guildevent has the events Kite derives from Discord's server events,
 // for things Discord's events leave out, like what a deleted message
 // contained. They're worked out from the cache from before Discord's event
-// updated it.
+// updated it. PollEnd is derived from the message Discord posts when a poll
+// ended, as Discord has no event for it.
 //
 // They're gateway events, so they go through the same execution path as the
 // Discord events they come from. MessageEdit only decides which updates run
@@ -56,6 +57,8 @@ func New(t ws.EventType) Event {
 	switch t {
 	case MessageDeleteType:
 		return new(MessageDelete)
+	case PollEndType:
+		return new(PollEnd)
 	}
 	return nil
 }
