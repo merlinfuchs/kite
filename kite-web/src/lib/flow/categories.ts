@@ -117,6 +117,10 @@ const sections: Record<
       title: "ER:LC",
       contextTypes: null,
     },
+    {
+      title: "Top.gg",
+      contextTypes: null,
+    },
   ],
 };
 

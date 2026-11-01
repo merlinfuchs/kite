@@ -23,6 +23,11 @@ export const webhookVerifyPresets = [
     label: "Slack",
     key: "The app's signing secret, like {{secrets.SLACK_SECRET}}.",
   },
+  {
+    value: "topgg",
+    label: "Top.gg",
+    key: "The webhook secret starting with whs_, like {{secrets.TOPGG_SECRET}}.",
+  },
   // Discord signs with the app's public key, which Kite knows.
   { value: "discord", label: "Discord" },
   {

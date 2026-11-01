@@ -55,6 +55,24 @@
       "data_shared": "Its blocks send ER:LC your server key and the commands you run. To run commands, authorize Kite for your server once after enabling it.",
       "authorize_url": "https://api.erlc.gg/server-owners/server/{credential_id}/authorize/{app_id}",
       "rate_limit_headers": true
+    },
+    {
+      "id": "topgg",
+      "name": "Top.gg",
+      "description": "Check who voted for your bot or server on Top.gg, read its listing and post its server count.",
+      "base_url": "https://top.gg/api/v1",
+      "auth": {
+        "type": "header",
+        "name": "Authorization",
+        "prefix": "Bearer ",
+        "label": "API token",
+        "help_url": "https://docs.top.gg/authentication"
+      },
+      "availability": "opt_in",
+      "test_path": "/projects/@me",
+      "data_shared": "Its blocks send Top.gg your API token, the Discord IDs of the users you check votes of and the server count you post.",
+      "privacy_url": "https://top.gg/privacy",
+      "terms_url": "https://top.gg/terms"
     }
   ],
   "blocks": [
@@ -2293,6 +2311,87 @@
           "required": true,
           "fallback": "",
           "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
+    },
+    {
+      "type": "action_topgg_vote_get",
+      "title": "Check Top.gg vote",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "topgg"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_topgg_project_get",
+      "title": "Get Top.gg listing",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "topgg"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "topgg",
+        "operation": "get_project",
+        "method": "GET",
+        "path": "/projects/@me"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_topgg_metrics_update",
+      "title": "Post Top.gg server count",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "topgg"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "topgg",
+        "operation": "update_metrics",
+        "method": "PATCH",
+        "path": "/projects/@me/metrics"
+      },
+      "fields": [
+        {
+          "name": "topgg_server_count",
+          "in": "body",
+          "target": "server_count",
+          "type": "integer",
+          "required": true,
+          "fallback": "",
+          "min": 0,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "topgg_shard_count",
+          "in": "body",
+          "target": "shard_count",
+          "type": "integer",
+          "required": false,
+          "fallback": "",
+          "min": 1,
           "max": null,
           "max_length": null,
           "options": null

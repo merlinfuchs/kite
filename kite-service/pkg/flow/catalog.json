@@ -6239,6 +6239,7 @@
               "github",
               "stripe",
               "slack",
+              "topgg",
               "discord",
               "standard_webhooks",
               "custom"
@@ -7370,6 +7371,218 @@
         },
         "required": [
           "erlc_command"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_topgg_vote_get": {
+      "title": "Check Top.gg vote",
+      "description": "Check whether a user voted for your bot or server on Top.gg",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "voted": {
+            "type": "boolean",
+            "description": "Whether the user has an active vote, false if they never voted or can vote again"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "When the user last voted, as an ISO 8601 timestamp, empty without an active vote"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "When the user can vote again, as an ISO 8601 timestamp, empty without an active vote"
+          },
+          "weight": {
+            "type": "number",
+            "description": "How many votes the last vote counted for, 2 on weekends, 0 without an active vote"
+          }
+        },
+        "required": [
+          "voted",
+          "created_at",
+          "expires_at",
+          "weight"
+        ],
+        "description": "The user's vote",
+        "additionalProperties": false
+      }
+    },
+    "action_topgg_project_get": {
+      "title": "Get Top.gg listing",
+      "description": "Get the votes and reviews of your bot or server on Top.gg",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Top.gg ID of the listing"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the bot or server"
+          },
+          "headline": {
+            "type": "string",
+            "description": "Short description on the listing"
+          },
+          "type": {
+            "type": "string",
+            "description": "What is listed: bot or server"
+          },
+          "platform": {
+            "type": "string",
+            "description": "Platform of the listing, like discord"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags of the listing"
+          },
+          "votes": {
+            "type": "number",
+            "description": "Votes this month"
+          },
+          "votes_total": {
+            "type": "number",
+            "description": "Votes of all time"
+          },
+          "review_score": {
+            "type": "number",
+            "description": "Average review score"
+          },
+          "review_count": {
+            "type": "number",
+            "description": "Number of reviews"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "headline",
+          "type",
+          "platform",
+          "tags",
+          "votes",
+          "votes_total",
+          "review_score",
+          "review_count"
+        ],
+        "description": "The listing",
+        "additionalProperties": false
+      }
+    },
+    "action_topgg_metrics_update": {
+      "title": "Post Top.gg server count",
+      "description": "Show how many servers your bot is in on its Top.gg listing",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "topgg_server_count": {
+            "type": "string",
+            "description": "Number of servers the bot is in, usually {{app.guild_count}}. Post it from a scheduled event listener, e.g. every hour.",
+            "x-templated": true
+          },
+          "topgg_shard_count": {
+            "type": "string",
+            "description": "Number of shards of the bot. Leave empty if it has none.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "topgg_server_count"
         ],
         "additionalProperties": false
       },
