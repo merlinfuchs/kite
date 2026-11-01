@@ -15,6 +15,7 @@ import {
   FlagIcon,
   SatelliteDishIcon,
   ShieldAlertIcon,
+  SparklesIcon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
@@ -36,6 +37,7 @@ import TemplateCopyLinkButton from "./TemplateCopyLinkButton";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
+import { useHideAITemplates } from "@/lib/hooks/templates";
 import { templatePermissionFaq } from "@/lib/flow/templatePermissions";
 import {
   Accordion,
@@ -167,6 +169,19 @@ export function TemplateDetails({
               <span>Made by you</span>
             )}
             {category && <span>{category.label}</span>}
+            {template.aiUse && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-amber-800 dark:text-amber-300"
+                title={
+                  template.aiUse === "generated"
+                    ? "AI created at least 80% of this template's blocks, based on creator disclosure and recorded Kite Flow AI edits. External AI use can't be verified automatically."
+                    : "AI contributed to some of this template's blocks, based on creator disclosure and recorded Kite Flow AI edits. External AI use can't be verified automatically."
+                }
+              >
+                <SparklesIcon className="h-3.5 w-3.5" />
+                {`AI-${template.aiUse}`}
+              </span>
+            )}
             <TemplateContents template={template} />
             <TemplateInstallCount installs={template.installs} />
             {template.author.kind === "user" && (
@@ -320,7 +335,14 @@ function RelatedTemplates({
   href: (template: Template) => LinkProps["href"];
   categoryHref?: (category: TemplateCategory) => LinkProps["href"];
 }) {
+  const hideAI = useHideAITemplates();
   const { byCreator, similar } = relatedTemplates(template, templates);
+  const visibleByCreator = hideAI
+    ? byCreator.filter((item) => !item.aiUse)
+    : byCreator;
+  const visibleSimilar = hideAI
+    ? similar.filter((item) => !item.aiUse)
+    : similar;
   const category = templateCategory(template);
 
   const row = (title: string, list: Template[], more?: LinkProps["href"]) =>
@@ -346,16 +368,16 @@ function RelatedTemplates({
       </section>
     );
 
-  if (!byCreator.length && !similar.length) return null;
+  if (!visibleByCreator.length && !visibleSimilar.length) return null;
   return (
     <>
       <Separator className="my-10" />
       <div className="space-y-10">
         {template.author.kind === "user" &&
-          row(`More by ${template.author.name}`, byCreator)}
+          row(`More by ${template.author.name}`, visibleByCreator)}
         {row(
           `More in ${category.label}`,
-          similar,
+          visibleSimilar,
           categoryHref?.(category.value)
         )}
       </div>

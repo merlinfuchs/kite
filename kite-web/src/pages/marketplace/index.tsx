@@ -1,6 +1,7 @@
 import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateList } from "@/components/app/TemplateList";
+import { useHideAITemplates } from "@/lib/hooks/templates";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
@@ -115,11 +116,14 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
 };
 
 export default function MarketplacePage({ bundles, featuredDay }: Props) {
+  const hideAI = useHideAITemplates();
   const templates = useMemo(
     () => (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []),
     [bundles]
   );
-  const count = templates.length;
+  const count = templates.filter(
+    (template) => !hideAI || !template.aiUse
+  ).length;
 
   return (
     <HomeLayout

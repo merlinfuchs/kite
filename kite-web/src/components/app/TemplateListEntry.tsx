@@ -14,6 +14,7 @@ import {
   MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
+  SparklesIcon,
   StarIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
@@ -143,6 +144,19 @@ function TemplateEntryHead({
             </span>
           )}
         </div>
+      )}
+      {template.aiUse && (
+        <span
+          className="flex-none flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400"
+          title={
+            template.aiUse === "generated"
+              ? "AI created at least 80% of this template's blocks, based on creator disclosure and recorded Kite Flow AI edits. External AI use can't be verified automatically."
+              : "AI contributed to some of this template's blocks, based on creator disclosure and recorded Kite Flow AI edits. External AI use can't be verified automatically."
+          }
+        >
+          <SparklesIcon className="h-3.5 w-3.5" />
+          {`AI-${template.aiUse}`}
+        </span>
       )}
     </div>
   );

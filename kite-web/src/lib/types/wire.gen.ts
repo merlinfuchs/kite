@@ -476,6 +476,11 @@ export interface Bundle {
    */
   star_count: number /* int */;
   /**
+   * AIUse is the measured AI contribution to its flows, empty when none was
+   * recorded.
+   */
+  ai_use?: string;
+  /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
    */
@@ -501,6 +506,7 @@ export interface BundleOwner {
 export interface BundleListing {
   name: string;
   description: string;
+  ai_use: string;
   icon: string;
   category: string;
   about: string[];

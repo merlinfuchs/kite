@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	corebundle "github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -40,7 +41,7 @@ func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.B
 		SourceAppID:   null.StringFrom(c.App.ID),
 		Version:       1,
 		LatestVersion: 1,
-		Page:          model.BundleListing{Name: req.Name, Description: req.Description, About: []string{}, Setup: []string{}},
+		Page:          model.BundleListing{Name: req.Name, Description: req.Description, AIUse: "unknown", About: []string{}, Setup: []string{}},
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
@@ -198,6 +199,7 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 		Status:    model.BundleReviewStatusPending,
 		CreatedAt: time.Now().UTC(),
 	}
+	review.Listing.AIUse = bundleAIUse(b.Content)
 	if err := h.bundleStore.SubmitBundleReview(c.Context(), review); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, errBundleRemoved
@@ -223,13 +225,22 @@ func (h *BundleInstallHandler) HandleBundleUpdate(c *handler.Context, req wire.B
 		return nil, handler.ErrBadRequest("bundle_in_marketplace", "Kite reviews changes to templates in the marketplace, submit them for review")
 	}
 
-	if err := h.bundleStore.UpdateBundlePage(c.Context(), b.ID, wire.BundleListingFromWire(req.BundleListing)); err != nil {
+	page := wire.BundleListingFromWire(req.BundleListing)
+	page.AIUse = bundleAIUse(b.Content)
+	if err := h.bundleStore.UpdateBundlePage(c.Context(), b.ID, page); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, errBundleRemoved
 		}
 		return nil, fmt.Errorf("failed to update bundle page: %w", err)
 	}
 	return &wire.BundleUpdateResponse{}, nil
+}
+
+func bundleAIUse(content json.RawMessage) string {
+	if aiUse := corebundle.AIUse(content); aiUse != "" {
+		return aiUse
+	}
+	return "unknown"
 }
 
 // ownBundle returns the bundle of the route if the user made it. Others don't

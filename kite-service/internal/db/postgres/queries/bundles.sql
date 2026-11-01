@@ -18,6 +18,7 @@ SELECT
     bundle_listings.about AS listing_about,
     bundle_listings.faq AS listing_faq,
     bundle_listings.setup AS listing_setup,
+    bundle_listings.ai_use AS listing_ai_use,
     bundle_listings.position AS listing_position,
     bundle_listings.updated_at AS listing_updated_at
 FROM bundles
@@ -44,15 +45,17 @@ INSERT INTO bundles (
     id,
     name,
     description,
+    ai_use,
     version,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, 'none', $4, $5, $6
 )
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
+    ai_use = 'none',
     version = EXCLUDED.version,
     updated_at = EXCLUDED.updated_at
 WHERE bundles.owner_user_id IS NULL;
@@ -67,10 +70,11 @@ INSERT INTO bundle_listings (
     about,
     faq,
     setup,
+    ai_use,
     position,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 ON CONFLICT (bundle_id) DO UPDATE SET
     name = EXCLUDED.name,
@@ -80,6 +84,7 @@ ON CONFLICT (bundle_id) DO UPDATE SET
     about = EXCLUDED.about,
     faq = EXCLUDED.faq,
     setup = EXCLUDED.setup,
+    ai_use = EXCLUDED.ai_use,
     position = EXCLUDED.position,
     updated_at = EXCLUDED.updated_at;
 
@@ -154,6 +159,7 @@ RETURNING *;
 UPDATE bundles SET
     name = @name,
     description = @description,
+    ai_use = @ai_use,
     icon = @icon,
     category = @category,
     about = @about,

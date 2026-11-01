@@ -36,6 +36,7 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 			About:       row.ListingAbout,
 			Faq:         row.ListingFaq,
 			Setup:       row.ListingSetup,
+			AiUse:       row.ListingAiUse.String,
 			Position:    row.ListingPosition.Int32,
 			UpdatedAt:   row.ListingUpdatedAt,
 		}
@@ -444,6 +445,9 @@ func updateBundlePage(ctx context.Context, q *pgmodel.Queries, id string, page m
 	if err != nil {
 		return err
 	}
+	if page.AIUse == "" {
+		page.AIUse = "unknown"
+	}
 	rows, err := q.UpdateBundlePage(ctx, pgmodel.UpdateBundlePageParams{
 		ID:          id,
 		Name:        page.Name,
@@ -452,6 +456,7 @@ func updateBundlePage(ctx context.Context, q *pgmodel.Queries, id string, page m
 		Category:    page.Category,
 		About:       about,
 		Setup:       setup,
+		AiUse:       page.AIUse,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to update bundle page: %w", err)
@@ -516,6 +521,9 @@ func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID strin
 	if err != nil {
 		return err
 	}
+	if listing.AIUse == "" {
+		listing.AIUse = "none"
+	}
 
 	err = q.UpsertBundleListing(ctx, pgmodel.UpsertBundleListingParams{
 		BundleID:    bundleID,
@@ -526,6 +534,7 @@ func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID strin
 		About:       about,
 		Faq:         faq,
 		Setup:       setup,
+		AiUse:       listing.AIUse,
 		Position:    int32(listing.Position),
 		UpdatedAt:   pgtype.Timestamp{Time: listing.UpdatedAt.UTC(), Valid: true},
 	})
@@ -585,6 +594,7 @@ func rowToBundlePage(row pgmodel.Bundle) (model.BundleListing, error) {
 		Description: row.Description,
 		Icon:        row.Icon,
 		Category:    row.Category,
+		AiUse:       row.AiUse,
 		About:       row.About,
 		Faq:         []byte("[]"),
 		Setup:       row.Setup,
@@ -601,6 +611,7 @@ func rowToBundleListing(row pgmodel.BundleListing) (*model.BundleListing, error)
 		Description: row.Description,
 		Icon:        row.Icon,
 		Category:    row.Category,
+		AIUse:       row.AiUse,
 		Position:    int(row.Position),
 		UpdatedAt:   row.UpdatedAt.Time,
 	}

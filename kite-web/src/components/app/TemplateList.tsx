@@ -6,7 +6,11 @@ import {
   utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
-import { useStarredTemplateIds } from "@/lib/hooks/templates";
+import {
+  setHideAITemplates,
+  useHideAITemplates,
+  useStarredTemplateIds,
+} from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, SearchIcon, SparklesIcon } from "lucide-react";
 import Link, { LinkProps } from "next/link";
@@ -97,7 +101,15 @@ export function TemplateList({
   const setSort = (value: Sort) => setQuery({ sort: value });
   // Only the ones the user starred, of any page of the marketplace.
   const starredIds = useStarredTemplateIds();
-  const starred = templates.filter((t) => starredIds?.includes(t.id)).length;
+
+  const hideAI = useHideAITemplates();
+  const toggleHideAI = () => setHideAITemplates(!hideAI);
+  const shownTemplates = hideAI
+    ? templates.filter((template) => !template.aiUse)
+    : templates;
+  const starred = shownTemplates.filter((t) =>
+    starredIds?.includes(t.id)
+  ).length;
   // It's off without starred ones left, like after unstarring the last one,
   // since the chip to turn it off is gone then.
   const starredOnly = param("starred") === "1" && starred > 0;
@@ -126,7 +138,7 @@ export function TemplateList({
   const [addedOnly, setAddedOnly] = useState(false);
   const allRef = useRef<HTMLDivElement>(null);
 
-  const hasUsers = templates.some((t) => t.author.kind !== "kite");
+  const hasUsers = shownTemplates.some((t) => t.author.kind !== "kite");
   // Without filters it shows the rows instead of all templates.
   const browsing =
     rows &&
@@ -137,7 +149,7 @@ export function TemplateList({
     !starredOnly &&
     !param("sort");
 
-  const filtered = templates.filter(
+  const filtered = shownTemplates.filter(
     (t) =>
       (!category || t.category === category) &&
       (source === "all" ||
@@ -187,12 +199,12 @@ export function TemplateList({
                 active={category === null}
                 onClick={() => setCategory(null)}
                 label="All"
-                count={templates.length}
+                count={shownTemplates.length}
               />
               {templateCategories.map((c) => {
                 // Only categories that have a template, so no filter ends up
                 // empty.
-                const count = templates.filter(
+                const count = shownTemplates.filter(
                   (t) => t.category === c.value
                 ).length;
                 if (!count) return null;
@@ -208,7 +220,7 @@ export function TemplateList({
               })}
             </>
           )}
-          {added && templates.some(added) && (
+          {added && shownTemplates.some(added) && (
             <Chip
               active={addedOnly}
               onClick={() => setAddedOnly(!addedOnly)}
@@ -224,22 +236,33 @@ export function TemplateList({
             />
           )}
         </div>
-        {hasUsers && (
-          <div className="flex flex-none self-start rounded-lg border bg-background p-0.5">
-            {sources.map((s) => (
-              <button
-                key={s.value}
-                onClick={() => setSource(s.value)}
-                className={cn(
-                  "px-3 py-1 text-sm rounded-md text-muted-foreground transition-colors",
-                  source === s.value && "bg-muted text-foreground font-medium"
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-none items-center gap-2 self-start">
+          {hasUsers && (
+            <div className="flex rounded-lg border bg-background p-0.5">
+              {sources.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => setSource(s.value)}
+                  className={cn(
+                    "px-3 py-1 text-sm rounded-md text-muted-foreground transition-colors",
+                    source === s.value && "bg-muted text-foreground font-medium"
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button
+            size="sm"
+            variant={hideAI ? "secondary" : "ghost"}
+            className="rounded-full flex-none"
+            onClick={toggleHideAI}
+            aria-pressed={hideAI}
+          >
+            Hide AI posts
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -250,7 +273,7 @@ export function TemplateList({
 
   const content = browsing ? (
     <Rows
-      templates={templates}
+      templates={shownTemplates}
       href={href}
       added={added}
       entry={entry}

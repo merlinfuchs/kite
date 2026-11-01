@@ -40,7 +40,10 @@ export function serializeFlow(
   const selected = new Set(selectedIds);
   const lines = [`Flow type: ${context}`, "", "Blocks:"];
   for (const node of sortedNodes) {
-    const data = compact(node.data);
+    const settings = Object.fromEntries(
+      Object.entries(node.data).filter(([key]) => key !== "ai_contribution")
+    );
+    const data = compact(settings);
     const parts = [
       // The title is what the user knows the block by.
       `- ${node.id}: ${node.type} ${JSON.stringify(getNodeTitle(node))}`,

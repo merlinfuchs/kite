@@ -1,0 +1,10 @@
+[discord]
+client_id = "1554187544625815702" # Your Discord client ID used for Oauth2
+client_secret = "0N7UapzN_5Dtk4_uWjeatyDtOOA4Dztx" # Your Discord client secret used for Oauth2
+
+[app]
+public_base_url = "http://localhost:3000"
+admin_user_ids = ["ufqwaeuq8kfzlfvc"]
+
+[encryption]
+token_encryption_key = "1e9842d782876722523c24a3ea8fa0b785f484e6e4b207000f38c774f669f80c" # HEX encoded AES key for encrypting Discord tokens

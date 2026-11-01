@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -99,6 +100,7 @@ func (h *BundleReviewHandler) HandleBundleReviewReopen(c *handler.Context) (*wir
 func pendingBundleReviewToWire(r *model.PendingBundleReview) *wire.PendingBundleReview {
 	b := *r.Bundle
 	b.ShowListing(&r.Review.Listing)
+	b.AIUse = bundle.AIUseDisclosure(b.Content, r.Review.Listing.AIUse)
 	b.Listed = true
 	res := &wire.PendingBundleReview{
 		BundleReview: *wire.BundleReviewToWire(r.Review),

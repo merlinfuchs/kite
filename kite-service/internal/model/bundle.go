@@ -45,6 +45,9 @@ type Bundle struct {
 	// ItemCount is how many items the version has, set when the bundle is
 	// loaded without its content.
 	ItemCount int
+	// AIUse is the measured AI contribution to this bundle's flows, computed
+	// from its content when it is returned by the API.
+	AIUse string
 	// InstallCount is how many apps added the bundle.
 	InstallCount int
 	// StarCount is how many users starred the bundle.
@@ -118,15 +121,18 @@ type BundleVersionNotes struct {
 // Official bundles always have one, users' bundles write theirs and need a
 // review to list it. It can change without a new version.
 type BundleListing struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	Icon        string      `json:"icon"`
-	Category    string      `json:"category"`
-	About       []string    `json:"about"`
-	FAQ         []BundleFAQ `json:"faq"`
-	Setup       []string    `json:"setup"`
-	Position    int         `json:"-"`
-	UpdatedAt   time.Time   `json:"-"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// AIUse is the creator's disclosure, with Kite's recorded AI edits able to
+	// raise the displayed level.
+	AIUse     string      `json:"ai_use"`
+	Icon      string      `json:"icon"`
+	Category  string      `json:"category"`
+	About     []string    `json:"about"`
+	FAQ       []BundleFAQ `json:"faq"`
+	Setup     []string    `json:"setup"`
+	Position  int         `json:"-"`
+	UpdatedAt time.Time   `json:"-"`
 }
 
 // Complete is whether the listing has what the marketplace needs: an icon, a

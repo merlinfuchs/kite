@@ -81,10 +81,51 @@ export function editFlow(
     );
   }
 
+  const previousNodes = new Map(nodes.map((node) => [node.id, node]));
+  const changedIds = new Set(
+    res.nodes
+      .filter(
+        (node) =>
+          !previousNodes.has(node.id) ||
+          previousNodes.get(node.id)!.data !== node.data
+      )
+      .map((node) => node.id)
+  );
+  const edgesChanged =
+    edges.length !== res.edges.length ||
+    edges.some(
+      (edge) =>
+        !res.edges.some(
+          (next) =>
+            edge.source === next.source &&
+            edge.target === next.target &&
+            edge.sourceHandle === next.sourceHandle &&
+            edge.targetHandle === next.targetHandle
+        )
+    );
+  if (edgesChanged && changedIds.size === 0) {
+    const entry = res.nodes.find((node) => node.type?.startsWith("entry_"));
+    if (entry) changedIds.add(entry.id);
+  }
+  const attributedNodes = res.nodes.map((node) => {
+    if (!changedIds.has(node.id)) return node;
+    const previous = previousNodes.get(node.id);
+    const contribution =
+      previous?.data.ai_contribution === "generated"
+        ? "generated"
+        : previous
+        ? "assisted"
+        : "generated";
+    return {
+      ...node,
+      data: { ...node.data, ai_contribution: contribution },
+    };
+  });
+
   return {
     flow: {
       ...flow,
-      nodes: res.nodes as unknown as FlowData["nodes"],
+      nodes: attributedNodes as unknown as FlowData["nodes"],
       edges: res.edges as unknown as FlowData["edges"],
     },
     refs: res.refs,

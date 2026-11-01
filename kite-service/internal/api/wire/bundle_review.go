@@ -13,6 +13,8 @@ import (
 // the templates of kite-web.
 var bundleCategories = []any{"moderation", "ai", "welcome", "community", "utility", "support", "games", "other"}
 
+var bundleAIUses = []any{"unknown", "none", "assisted", "generated"}
+
 // bundleIconPattern matches the names of the icons of kite-web, which shows
 // unknown ones as a package.
 var bundleIconPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
@@ -33,6 +35,9 @@ func (req BundleListingSubmitRequest) Validate() error {
 func (l BundleListing) validate(forMarketplace bool) error {
 	return validation.ValidateStruct(&l,
 		validation.Field(&l.Name, validation.Required, validation.Length(1, 100), validation.By(validateBundleName)),
+		validation.Field(&l.AIUse,
+			validation.When(l.AIUse != "", validation.In(bundleAIUses...)),
+		),
 		// One sentence, for the cards of the marketplace.
 		validation.Field(&l.Description, validation.Length(0, 200)),
 		validation.Field(&l.Icon, validation.When(forMarketplace, validation.Required), validation.Length(0, 50), validation.Match(bundleIconPattern)),
@@ -147,6 +152,7 @@ func BundleListingToWire(listing model.BundleListing) BundleListing {
 	return BundleListing{
 		Name:        listing.Name,
 		Description: listing.Description,
+		AIUse:       listing.AIUse,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
 		About:       listing.About,
@@ -163,6 +169,7 @@ func BundleListingFromWire(listing BundleListing) model.BundleListing {
 	return model.BundleListing{
 		Name:        listing.Name,
 		Description: listing.Description,
+		AIUse:       listing.AIUse,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
 		About:       listing.About,
