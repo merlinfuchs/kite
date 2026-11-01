@@ -58,6 +58,12 @@ func executeActionChannelCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
+	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return err
+	}
+	channelData.AuditLogReason = api.AuditLogReason(auditLogReason.String())
+
 	channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
 	if err != nil {
 		return err
@@ -127,12 +133,20 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
-	err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return err
+	}
+	editData.AuditLogReason = api.AuditLogReason(auditLogReason.String())
+
+	channel, err := ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
 	if err != nil {
 		return err
 	}
 
-	// TODO: ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	if channel != nil {
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	}
 	return n.ExecuteChildren(ctx)
 }
 
@@ -156,10 +170,16 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
+	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return err
+	}
+
 	threadData := api.StartThreadData{
-		Name:      channelName.String(),
-		Type:      discord.ChannelType(n.Data.ChannelData.Type),
-		Invitable: option.Bool(n.Data.ChannelData.Invitable),
+		Name:           channelName.String(),
+		Type:           discord.ChannelType(n.Data.ChannelData.Type),
+		Invitable:      option.Bool(n.Data.ChannelData.Invitable),
+		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
 	}
 	if threadData.Type == 0 {
 		threadData.Type = discord.GuildPublicThread

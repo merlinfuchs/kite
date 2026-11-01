@@ -328,13 +328,21 @@ func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.Gui
 	return channel, nil
 }
 
-func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	err := p.session.ModifyChannel(channelID, data)
+func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+	// arikawa's ModifyChannel discards the response body.
+	var channel discord.Channel
+	err := p.session.RequestJSON(
+		&channel,
+		http.MethodPatch,
+		api.EndpointChannels+channelID.String(),
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to edit channel: %w", err)
+		return nil, fmt.Errorf("failed to edit channel: %w", err)
 	}
 
-	return nil
+	return &channel, nil
 }
 
 func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
