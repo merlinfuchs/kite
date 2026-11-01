@@ -11,6 +11,7 @@ import {
   CoinsIcon,
   MoonStarIcon,
   RefreshCwIcon,
+  ShieldAlertIcon,
   SparklesIcon,
   SunIcon,
   TriangleAlertIcon,
@@ -21,7 +22,7 @@ import {
   CommandDeployState,
   commandDeployState,
 } from "../app/CommandDeployStatus";
-import { useApp } from "@/lib/hooks/api";
+import { useApp, useAppStateGuilds } from "@/lib/hooks/api";
 import { Command } from "@/lib/types/wire.gen";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import {
@@ -29,6 +30,11 @@ import {
   formatFlowCredits,
   getFlowCredits,
 } from "@/lib/flow/credits";
+import {
+  flowPermissions,
+  formatMissingPermissions,
+  missingGuildPermissions,
+} from "@/lib/flow/templatePermissions";
 import { capitalize } from "@/lib/flow/eventTypes";
 import env from "@/lib/env/client";
 import { BundleInstallNavItem } from "../app/BundleInstallBadge";
@@ -132,6 +138,7 @@ export default function FlowNav({
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
         {history}
+        <PermissionsStatus />
         <CreditsStatus />
         <button
           className={cn(
@@ -301,6 +308,36 @@ function CreditsStatus() {
               " Loops are counted once, since how often they run is only known when the flow runs."}{" "}
             Click to learn more.
           </p>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// PermissionsStatus warns when the flow uses blocks that need Discord
+// permissions the bot doesn't have in its servers.
+function PermissionsStatus() {
+  const nodes = useStore((s) => s.nodes as Node<NodeData>[], sameNodes);
+  const guilds = useAppStateGuilds();
+
+  const missing = useMemo(() => {
+    const required = flowPermissions({ nodes, edges: [] });
+    return missingGuildPermissions(required, guilds);
+  }, [nodes, guilds]);
+
+  if (missing.permissions.length === 0) return null;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex space-x-2 items-center p-1.5 md:p-0 text-yellow-600 dark:text-yellow-500">
+          <ShieldAlertIcon className="h-5 w-5 flex-none" />
+          <span className="hidden md:inline">Missing permissions</span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm">
+        <div className="text-foreground/90">
+          {formatMissingPermissions(missing)}
         </div>
       </TooltipContent>
     </Tooltip>

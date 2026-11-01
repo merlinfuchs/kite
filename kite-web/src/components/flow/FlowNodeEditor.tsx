@@ -9,7 +9,18 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
+import {
+  useAppFeature,
+  useAppStateGuilds,
+  useFeaturePlan,
+} from "@/lib/hooks/api";
+import {
+  formatMissingPermissions,
+  missingGuildPermissions,
+  nodeNeedsRoleHierarchy,
+  nodePermissions,
+  permissionLabel,
+} from "@/lib/flow/templatePermissions";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -89,6 +100,8 @@ import {
   TrashIcon,
   XIcon,
   PlugIcon,
+  ShieldIcon,
+  ShieldAlertIcon,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -389,6 +402,17 @@ export default function FlowNodeEditor({
     premiumFeature ? !!f[premiumFeature] : true
   );
   const premiumPlan = useFeaturePlan(premiumFeature);
+  const guilds = useAppStateGuilds();
+
+  const requiredPermissions = useMemo(
+    () => (node ? nodePermissions(node) : []),
+    [node]
+  );
+  const needsRoleHierarchy = nodeNeedsRoleHierarchy(node?.type);
+  const missingPermissions = useMemo(
+    () => missingGuildPermissions(requiredPermissions, guilds),
+    [requiredPermissions, guilds]
+  );
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -468,6 +492,15 @@ export default function FlowNodeEditor({
                     {name}
                   </div>
                 ))}
+                {requiredPermissions.map((perm) => (
+                  <div
+                    key={perm}
+                    className="bg-muted rounded px-2 py-1 text-xs flex items-center gap-1"
+                  >
+                    <ShieldIcon className="h-3 w-3" />
+                    {permissionLabel(perm)}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -483,6 +516,27 @@ export default function FlowNodeEditor({
                   {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
+              </div>
+            )}
+            {!readOnly && missingPermissions.permissions.length > 0 && (
+              <div className="flex gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-500">
+                <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+                <div>
+                  <span className="font-semibold">Missing permissions: </span>
+                  {formatMissingPermissions(missingPermissions)}
+                </div>
+              </div>
+            )}
+            {needsRoleHierarchy && (
+              <div className="flex gap-2.5 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <ShieldAlertIcon className="h-4 w-4 flex-none mt-0.5 text-muted-foreground" />
+                <div>
+                  <span className="font-semibold text-foreground">
+                    Role hierarchy:{" "}
+                  </span>
+                  Put your bot&apos;s role above the roles of the members it
+                  acts on so it can manage them.
+                </div>
               </div>
             )}
             {values.dataFields.map((field) => {
