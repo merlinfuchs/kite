@@ -5,15 +5,18 @@ Product: Kite
 One-line description: A free Discord bot maker. You build commands and event listeners by connecting blocks in a visual editor, and Kite hosts the bot 24/7.
 Who it's for: Discord server owners and admins who want their own bot without writing or hosting code. Also ER:LC and Roblox communities, and people who build bots from Claude or ChatGPT.
 Reader's technical level: Mostly non-technical. They know Discord's own words, like server, channel, role, slash command, permission, embed, button, and Developer Portal. Explain or avoid API, HTTP request, webhook, JSON, expression, and bot token.
-Situations that bring people here:
-- Wanting a bot with your own name and avatar instead of a public bot like MEE6 or Dyno.
-- A moderation command set, like /ban, /kick, and /warn.
-- A welcome message, a verification button, or a rules message with buttons.
-- An AI chatbot or AI automod for the server.
-- Giveaways, tickets, modmail, or a counting channel.
-- Connecting an ER:LC private server or a Roblox group to Discord.
-- Another bot maker's free plan ran out, wants branding removed, or turns the bot off when it's unused.
-- Asking Claude or ChatGPT to build a Discord bot.
+Situations that bring people here, from Google Search Console queries and OpenPanel landing pages and referrers for 2026-10-03 to 2026-11-01, and the commands and event listeners of apps created in the 30 days to 2026-11-02. The counts include what templates add.
+- Wanting a custom Discord bot of your own for free, without coding. Most non-brand searches are "discord bot maker", "free discord bot maker", "discord bot creator", "custom discord bot", and "discord bot maker free no coding".
+- Looking for free 24/7 hosting for a bot. /discord-bot-hosting is the marketing page people land on most after the homepage, from searches like "free discord bot hosting 24/7".
+- Moderation commands. /ban, /kick, /unban, and /mute are the most created commands, in about 1,200 apps each.
+- An AI chatbot for the server. /ask is in 920 apps, and /ai-discord-bot gets the most visits of the landing pages after /discord-bot-hosting.
+- Welcoming new members. 989 apps have a listener for members joining, and 286 for members leaving.
+- Server utilities like /userinfo, /serverinfo, /avatar, and /say, in about 250 apps each.
+- Giveaways, modmail, and tickets. /giveaway is in 240 apps, /reply in 252, and ticket commands like /close and /claim in about 100.
+- Connecting an ER:LC private server. /status, /players, and /announce are in about 150 apps.
+- Fun commands like /hug, /kiss, and /coinflip, in about 50 to 65 apps each.
+- Leaving another bot maker, mostly BotGhost. /alternatives/botghost is the most visited comparison page.
+- Asking ChatGPT how to make a bot. ChatGPT is the third biggest referrer after Google and Discord, with 1,916 sessions.
 Main alternatives:
 - Public bots like MEE6, Dyno, and Carl-bot.
 - Other bot makers: BotGhost, SCNX, Bot Designer for Discord, BotWiz, inventor.bot, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked.
@@ -98,7 +101,12 @@ Exact names of things users see:
 - Pages: /pricing, /marketplace, /alternatives, /guides, /tools, /refund. Docs at docs.kite.onl. The dashboard is kite.onl/apps.
 - Discord permissions by Discord's names: Administrator, Manage Server, Manage Roles, Manage Webhooks, Ban Members.
 
-Words users use:
+Words users use, from Google Search Console queries for 2026-10-03 to 2026-11-01:
+- "discord bot maker" by far the most, then "bot creator", "bot builder", and "bot generator".
+- "custom discord bot", "make your own discord bot", and "create a discord bot".
+- "free", "no coding", "without coding", and "24/7", often together, like "free discord bot hosting 24/7 no coding".
+- "ai discord bot maker" for the AI.
+- "kite discord", "kite bot", and "kite.onl" for Kite itself.
 Words to never use:
 - "guild" for a Discord server. The dashboard page is Servers.
 - "bundle" or "bundle install". Say template.
