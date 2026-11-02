@@ -118,7 +118,7 @@ Project-specific rules:
 - Name a locked feature with the cheapest plan that has it.
 - "Online 24/7" and "always online" are fine. Don't add a credits caveat to them.
 - "template" for official and community templates alike. "Made by Kite" and "From the community" tell them apart.
-- Kite pages say "Discord bot templates". Xenon owns "server templates", a different search.
+- Kite pages say "Discord bot templates", not "server templates", which are copies of a server's channels and roles.
 - Every claim about another bot maker goes on its /alternatives page with lastChecked. Say when the other product is the better fit.
 - The free limits are typed by hand in pricing.tsx's meta description and on the /alternatives pages. Change them there when the free plan changes.
 - Legal pages are written separately and promise only what the law requires. Don't edit them in a copy pass.
