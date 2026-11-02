@@ -13,7 +13,7 @@ export default function HomeAISection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Describe it, and Flow AI builds it
+            Describe it, and Kite&apos;s Flow AI builds it
           </h2>
           <p className="text-xl text-muted-foreground mt-4">
             Flow AI is the AI assistant in Kite&apos;s editor. Tell it what your

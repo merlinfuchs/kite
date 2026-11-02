@@ -119,6 +119,7 @@ Words to never use:
 Project-specific rules:
 - "app" in the dashboard, the docs, and anything about building or managing it, because that's what Discord calls it. "bot" or "Discord bot" on the marketing site, in page titles, meta descriptions, headings, and FAQ answers, because that's what people search for and ask AI about. Where a page needs both, connect them once: "Each app is your own Discord bot."
 - The AI in the editor is Flow AI. On the marketing site, in titles and meta descriptions, and on its first mention on a page, describe it with the words people search for: "Flow AI, the AI assistant that builds your bot" or "AI Discord bot builder". Say "the Ask AI button" only for the button itself.
+- Flow.ai is an unrelated chatbot company. Never use "Flow AI" alone in page titles, meta descriptions, or headings. Pair it with Kite, like "Kite's Flow AI", or lead with the search words, like "AI Discord bot maker".
 - The free plan is Basic. Say "the free plan" in sentences and FAQ answers, and "Basic" only where plans are listed by name, like plan cards, tables, and badges. Mention both once where it isn't obvious: "Basic, the free plan".
 - Say "Kite Plus", "Kite Premium", and "Kite Ultimate" in sentences. Plain "Plus" only in badges and card headings.
 - "Plus and up" or "Premium and up" for features of more than one plan.

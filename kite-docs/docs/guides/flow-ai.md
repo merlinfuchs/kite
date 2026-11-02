@@ -2,7 +2,7 @@
 sidebar_position: 4
 ---
 
-# Building flows with Flow AI
+# Building flows with Kite's Flow AI
 
 Flow AI is the AI assistant in the flow editor. It builds and changes flows for you. Describe what the flow should do, and it adds the blocks and connects them. You can also ask it how something works.
 

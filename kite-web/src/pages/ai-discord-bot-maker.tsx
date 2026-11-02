@@ -27,7 +27,7 @@ const content: LandingPageContent = {
       body: "Flow AI works in the editor without any setup. Claude, ChatGPT, and coding agents like Claude Code, Codex, and Cursor connect through Kite's MCP server and use their own model.",
       points: [
         {
-          title: "Flow AI in the editor",
+          title: "Kite's Flow AI in the editor",
           description:
             "Open a command, click Ask AI, and describe what it should do. Flow AI adds and connects the blocks, and you check the changes before saving.",
           href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
