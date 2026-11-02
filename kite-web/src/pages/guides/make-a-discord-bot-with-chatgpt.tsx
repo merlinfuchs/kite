@@ -194,9 +194,9 @@ export default function MakeADiscordBotWithChatGPTPage() {
           <GuideProse>
             <h2>Want a bot that talks like ChatGPT?</h2>
             <p>
-              Maybe you&apos;re looking for something else. That&apos;s a bot that
-              answers questions in your server like ChatGPT does. You don&apos;t
-              need ChatGPT or an OpenAI API key for that. The{" "}
+              Maybe you&apos;re looking for something else. That&apos;s a bot
+              that answers questions in your server like ChatGPT does. You
+              don&apos;t need ChatGPT or an OpenAI API key for that. The{" "}
               <Link href="/ai-discord-bot">AI Discord bot</Link> page shows how
               to add an <code>/ask</code> command and a bot that replies when
               it&apos;s mentioned, with its own personality.
