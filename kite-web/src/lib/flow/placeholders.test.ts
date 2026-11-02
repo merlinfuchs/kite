@@ -159,6 +159,28 @@ describe("getAvailablePlaceholders", () => {
     expect(Object.fromEntries(allValues())["User"]).toContain("user.is_admin");
   });
 
+  it("lists the fields of results that are plain objects", () => {
+    const resultNodes = [
+      node("entry", "entry_command"),
+      node("presence", "action_member_presence_get"),
+      node("log", "action_log"),
+    ];
+    const resultEdges = [edge("entry", "presence"), edge("presence", "log")];
+    const results = flattenPlaceholders(
+      getAvailablePlaceholders("log", resultNodes, resultEdges, "command").find(
+        (g) => g.label === "Node Results"
+      )!.placeholders
+    ).map((p) => p.value);
+
+    expect(results).toEqual([
+      "result('presence')",
+      "result('presence').status",
+      "result('presence').custom_status",
+      "result('presence').custom_status_emoji",
+      "result('presence').activity",
+    ]);
+  });
+
   it("lists the fields of command arguments by their type", () => {
     const argNodes = [
       node("entry", "entry_command"),

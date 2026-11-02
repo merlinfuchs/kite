@@ -245,9 +245,11 @@
               "message_has_attachment",
               "message_mentions_bot",
               "user_is_bot",
-              "audit_log_action"
+              "audit_log_action",
+              "presence_status",
+              "custom_status"
             ],
-            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
+            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create. presence_status is the status of a member, online, idle, dnd or offline, and custom_status the text of their custom status, both for presence_update listeners."
           },
           "event_filter_mode": {
             "type": "string",
@@ -269,7 +271,7 @@
             "maxLength": 1000
           },
           "event_filter_ignore_case": {
-            "description": "Whether message content is compared ignoring upper and lower case.",
+            "description": "Whether message content or the custom status is compared ignoring upper and lower case.",
             "type": "boolean"
           }
         },
@@ -277,7 +279,7 @@
           "event_filter_target",
           "event_filter_mode"
         ],
-        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener.",
+        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action and presence_status only one_of or not_one_of, as the editor picks actions and statuses from a list. The targets available depend on the event type of the listener.",
         "additionalProperties": false
       },
       "result_schema": null
@@ -2818,6 +2820,96 @@
       },
       "result_schema": {
         "$ref": "#/types/member"
+      }
+    },
+    "action_member_presence_get": {
+      "title": "Get member status",
+      "description": "Get the status and custom status of a member. Needs the Presence Intent",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "online, idle, dnd or offline. Invisible members are offline"
+          },
+          "custom_status": {
+            "type": "string",
+            "description": "Text of the custom status, empty without one"
+          },
+          "custom_status_emoji": {
+            "type": "string",
+            "description": "Emoji of the custom status, a unicode emoji or a custom emoji mention"
+          },
+          "activity": {
+            "type": "string",
+            "description": "Name of what the member is doing, like the game they play, empty if nothing"
+          }
+        },
+        "required": [
+          "status",
+          "custom_status",
+          "custom_status_emoji",
+          "activity"
+        ],
+        "description": "The status of the member",
+        "additionalProperties": false
       }
     },
     "action_user_get": {
@@ -7443,10 +7535,11 @@
               "direct_message_create",
               "guild_boost",
               "guild_audit_log_entry_create",
+              "presence_update",
               "cron",
               "webhook"
             ],
-            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. presence_update runs when a member's status (online, idle, dnd, offline) or custom status changes, not for games or songs, and needs the Presence Intent. Its placeholders are {{presence.status}}, {{presence.previous_status}}, {{presence.custom_status}}, {{presence.custom_status_emoji}} and {{presence.previous_custom_status}}, filter on presence_status or custom_status with an Event Filter."
           },
           "event_schedule_cron": {
             "description": "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes.",

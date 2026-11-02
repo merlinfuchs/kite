@@ -70,6 +70,12 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeAuditLogAction, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID,
 	},
+	// Discord often only sends the ID of the user, so there are no roles and
+	// no way to tell bots apart.
+	"presence_update": {
+		EventFilterTypePresenceStatus, EventFilterTypeCustomStatus,
+		EventFilterTypeUserID, EventFilterTypeGuildID,
+	},
 }
 
 // EventFilterTargets returns what event filters can check for an event type.
@@ -90,12 +96,12 @@ func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 
 // eventFilterModes returns the modes a target can use, nil if it can use all.
 // Yes or no filters, roles and emojis are either equal or not, and audit log
-// actions are picked from a list.
+// actions and statuses are picked from a list.
 func eventFilterModes(target EventFilterTarget) []ComparsionMode {
 	switch {
 	case isBooleanEventFilterTarget(target), target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
 		return []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual}
-	case target == EventFilterTypeAuditLogAction:
+	case target == EventFilterTypeAuditLogAction, target == EventFilterTypePresenceStatus:
 		return []ComparsionMode{ComparsionModeOneOf, ComparsionModeNotOneOf}
 	}
 	return nil
@@ -143,7 +149,8 @@ func (n *CompiledFlowNode) FilterEvent(data FlowContextData, botID discord.UserI
 // role filter is a role ID, and equal means the member has the role. The value
 // of an emoji filter is a unicode emoji, or the ID, name or mention of a
 // custom emoji. Yes or no filters, like user_is_bot, have no value, equal means
-// yes and not equal no. EventFilterIgnoreCase only applies to message content.
+// yes and not equal no. EventFilterIgnoreCase only applies to message content
+// and custom statuses.
 func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discord.UserID) bool {
 	event := data.Event()
 	value := filter.EventFilterValue
@@ -176,9 +183,18 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 		if e, ok := event.(*gateway.GuildAuditLogEntryCreateEvent); ok {
 			subject = auditlog.Action(e.AuditLogEntry)
 		}
+	case EventFilterTypePresenceStatus:
+		if e, ok := event.(*guildevent.PresenceChange); ok {
+			subject = presenceStatus(e.Status)
+		}
+	case EventFilterTypeCustomStatus:
+		if e, ok := event.(*guildevent.PresenceChange); ok {
+			subject, _ = guildevent.CustomStatus(e.Presence)
+		}
 	}
 
-	if filter.EventFilterIgnoreCase && filter.EventFilterTarget == EventFilterTypeMessageContent {
+	if filter.EventFilterIgnoreCase && (filter.EventFilterTarget == EventFilterTypeMessageContent ||
+		filter.EventFilterTarget == EventFilterTypeCustomStatus) {
 		subject = strings.ToLower(subject)
 		value = strings.ToLower(value)
 	}
@@ -211,6 +227,16 @@ func isOneOf(subject string, values string) bool {
 		}
 	}
 	return false
+}
+
+// presenceStatus is the status as other members see it, invisible members
+// appear offline.
+func presenceStatus(status discord.Status) string {
+	switch status {
+	case discord.UnknownStatus, discord.InvisibleStatus:
+		return string(discord.OfflineStatus)
+	}
+	return string(status)
 }
 
 func eventMessage(event any) *discord.Message {

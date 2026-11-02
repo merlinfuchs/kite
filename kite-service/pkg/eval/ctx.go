@@ -471,6 +471,7 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+	Presence *PresenceEnv `expr:"presence" json:"presence"`
 }
 
 type ScheduleEnv struct {
@@ -541,6 +542,45 @@ func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
 
 func (e AuditLogEnv) String() string {
 	return e.Action
+}
+
+// PresenceEnv is the status of a member from a Presence Update event, and the
+// one before it changed. The status is online, idle, dnd or offline. Offline
+// members have no custom status.
+type PresenceEnv struct {
+	Status               string `expr:"status" json:"status"`
+	PreviousStatus       string `expr:"previous_status" json:"previous_status"`
+	CustomStatus         string `expr:"custom_status" json:"custom_status"`
+	CustomStatusEmoji    string `expr:"custom_status_emoji" json:"custom_status_emoji"`
+	PreviousCustomStatus string `expr:"previous_custom_status" json:"previous_custom_status"`
+}
+
+func NewPresenceEnv(e *guildevent.PresenceChange) *PresenceEnv {
+	res := &PresenceEnv{
+		Status: presenceStatus(e.Status),
+		// Discord only sends members who are online when the bot connects.
+		PreviousStatus: string(discord.OfflineStatus),
+	}
+	res.CustomStatus, res.CustomStatusEmoji = guildevent.CustomStatus(e.Presence)
+	if e.Previous != nil {
+		res.PreviousStatus = presenceStatus(e.Previous.Status)
+		res.PreviousCustomStatus, _ = guildevent.CustomStatus(*e.Previous)
+	}
+	return res
+}
+
+// presenceStatus is the status as members see it. Invisible members appear
+// offline to others, and Discord sends them as offline anyway.
+func presenceStatus(status discord.Status) string {
+	switch status {
+	case discord.UnknownStatus, discord.InvisibleStatus:
+		return string(discord.OfflineStatus)
+	}
+	return string(status)
+}
+
+func (p PresenceEnv) String() string {
+	return p.Status
 }
 
 type WebhookEnv struct {
@@ -712,6 +752,18 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
+	case *guildevent.PresenceChange:
+		if member, ok := guild(e.GuildID).member(e.User.ID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+		} else if e.User.Username != "" {
+			env.Member = NewUserEnv(e.User)
+		} else {
+			// Discord often only sends the ID of the user.
+			env.Member = NewUserIDEnv(e.User.ID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		env.Presence = NewPresenceEnv(e)
 	}
 
 	if env.Guild == nil {
@@ -784,6 +836,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"schedule":  env.Schedule,
 			"webhook":   env.Webhook,
 			"audit_log": env.AuditLog,
+			"presence":  env.Presence,
 			"app":       NewAppEnv(session),
 		},
 	}

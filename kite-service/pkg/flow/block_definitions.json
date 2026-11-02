@@ -993,6 +993,23 @@
       }
     },
     {
+      "type": "action_member_presence_get",
+      "title": "Get member status",
+      "credits": 0,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_user_get",
       "title": "Get user",
       "credits": 0,

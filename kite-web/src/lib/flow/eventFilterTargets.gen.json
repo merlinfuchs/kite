@@ -80,6 +80,12 @@
       "role_id",
       "message_has_attachment",
       "message_mentions_bot"
+    ],
+    "presence_update": [
+      "presence_status",
+      "custom_status",
+      "user_id",
+      "guild_id"
     ]
   },
   "modes": {
@@ -98,6 +104,10 @@
     "message_mentions_bot": [
       "equal",
       "not_equal"
+    ],
+    "presence_status": [
+      "one_of",
+      "not_one_of"
     ],
     "role_id": [
       "equal",

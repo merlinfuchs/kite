@@ -36,6 +36,9 @@ const (
 	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
+	// PRESENCE_UPDATE, only when the status or custom status of a member
+	// changed, see guildevent.PresenceChange.
+	EventListenerTypeDiscordPresenceUpdate EventListenerType = "presence_update"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

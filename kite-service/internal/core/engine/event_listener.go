@@ -140,6 +140,9 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		// Ignore the app's own actions, or a flow that logs channel updates
 		// by editing a channel would trigger itself.
 		return d.UserID != botID
+	case *guildevent.PresenceChange:
+		// Ignore the app's own status, which changes with every rotation.
+		return d.User.ID != botID
 	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
 	// never gets here, see listenersForEvent.
 	case guildevent.Event:

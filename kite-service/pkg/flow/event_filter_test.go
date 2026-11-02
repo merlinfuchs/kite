@@ -121,6 +121,29 @@ func TestEventFilterAuditLogAction(t *testing.T) {
 	assert.False(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_update"), timeout))
 }
 
+func TestEventFilterPresence(t *testing.T) {
+	change := func(status discord.Status, customStatus string) *guildevent.PresenceChange {
+		p := discord.Presence{Status: status}
+		if customStatus != "" {
+			p.Activities = []discord.Activity{{Type: discord.CustomActivity, State: customStatus}}
+		}
+		return &guildevent.PresenceChange{PresenceUpdateEvent: gateway.PresenceUpdateEvent{Presence: p}}
+	}
+
+	online := filter(EventFilterTypePresenceStatus, ComparsionModeOneOf, "online, idle")
+	assert.True(t, matches(online, change(discord.IdleStatus, "")))
+	assert.False(t, matches(online, change(discord.DoNotDisturbStatus, "")))
+	// Invisible members appear offline.
+	assert.True(t, matches(filter(EventFilterTypePresenceStatus, ComparsionModeOneOf, "offline"), change(discord.InvisibleStatus, "")))
+
+	vanity := filter(EventFilterTypeCustomStatus, ComparsionModeContains, "discord.gg/kite")
+	assert.True(t, matches(vanity, change(discord.OnlineStatus, "join discord.gg/kite!")))
+	assert.False(t, matches(vanity, change(discord.OnlineStatus, "Join Discord.gg/Kite!")))
+	vanity.EventFilterIgnoreCase = true
+	assert.True(t, matches(vanity, change(discord.OnlineStatus, "Join Discord.gg/Kite!")))
+	assert.False(t, matches(vanity, change(discord.OnlineStatus, "")))
+}
+
 func TestEventFilterOneOf(t *testing.T) {
 	msg := &gateway.MessageCreateEvent{Message: discord.Message{Content: "Yes"}}
 

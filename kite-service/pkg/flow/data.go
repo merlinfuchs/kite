@@ -189,6 +189,7 @@ const (
 	FlowNodeTypeActionMemberRoleAdd         FlowNodeType = "action_member_role_add"
 	FlowNodeTypeActionMemberRoleRemove      FlowNodeType = "action_member_role_remove"
 	FlowNodeTypeActionMemberGet             FlowNodeType = "action_member_get"
+	FlowNodeTypeActionMemberPresenceGet     FlowNodeType = "action_member_presence_get"
 	FlowNodeTypeActionUserGet               FlowNodeType = "action_user_get"
 	FlowNodeTypeActionChannelGet            FlowNodeType = "action_channel_get"
 	FlowNodeTypeActionChannelCreate         FlowNodeType = "action_channel_create"
@@ -852,6 +853,10 @@ const (
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
 	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+	// The status of a member, online, idle, dnd or offline.
+	EventFilterTypePresenceStatus EventFilterTarget = "presence_status"
+	// The text of a member's custom status.
+	EventFilterTypeCustomStatus EventFilterTarget = "custom_status"
 )
 
 type RandomMode string

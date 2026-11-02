@@ -13,7 +13,8 @@ import (
 )
 
 type fakeCache struct {
-	messages map[discord.MessageID]discord.Message
+	messages  map[discord.MessageID]discord.Message
+	presences map[discord.UserID]discord.Presence
 }
 
 var errNotCached = errors.New("not cached")
@@ -26,6 +27,18 @@ func (c fakeCache) Message(channelID discord.ChannelID, id discord.MessageID) (*
 	return &m, nil
 }
 
+func (c fakeCache) Presence(guildID discord.GuildID, userID discord.UserID) (*discord.Presence, error) {
+	p, ok := c.presences[userID]
+	if !ok || p.GuildID != guildID {
+		return nil, errNotCached
+	}
+	return &p, nil
+}
+
+func customStatus(text string) discord.Activity {
+	return discord.Activity{Name: "Custom Status", Type: discord.CustomActivity, State: text}
+}
+
 func TestDeriveEvents(t *testing.T) {
 	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
@@ -33,7 +46,16 @@ func TestDeriveEvents(t *testing.T) {
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
 			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
 		},
+		presences: map[discord.UserID]discord.Presence{
+			3: {User: discord.User{ID: 3}, GuildID: 2, Status: discord.OnlineStatus, Activities: []discord.Activity{customStatus("hi")}},
+		},
 	}
+	presence := func(userID discord.UserID, guildID discord.GuildID, status discord.Status, activities ...discord.Activity) *gateway.PresenceUpdateEvent {
+		return &gateway.PresenceUpdateEvent{Presence: discord.Presence{
+			User: discord.User{ID: userID}, GuildID: guildID, Status: status, Activities: activities,
+		}}
+	}
+	game := discord.Activity{Name: "Minecraft", Type: discord.GameActivity}
 
 	tests := []struct {
 		name  string
@@ -52,6 +74,15 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"status changed", presence(3, 2, discord.IdleStatus, customStatus("hi")), []ws.EventType{guildevent.PresenceUpdateType}},
+		{"custom status changed", presence(3, 2, discord.OnlineStatus, customStatus("discord.gg/kite")), []ws.EventType{guildevent.PresenceUpdateType}},
+		{"custom status removed", presence(3, 2, discord.OnlineStatus), []ws.EventType{guildevent.PresenceUpdateType}},
+		// A new game or song doesn't run Presence Update listeners.
+		{"game started", presence(3, 2, discord.OnlineStatus, customStatus("hi"), game), nil},
+		// Members who aren't cached were offline.
+		{"unknown member comes online", presence(4, 2, discord.OnlineStatus), []ws.EventType{guildevent.PresenceUpdateType}},
+		{"unknown member stays offline", presence(4, 2, discord.OfflineStatus), nil},
+		{"presence without a server", presence(3, 0, discord.IdleStatus), nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 
@@ -175,5 +206,35 @@ func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
 	}
 	if len(update(first.Add(time.Minute))) != 1 {
 		t.Fatal("second edit isn't an edit")
+	}
+}
+
+func TestTrackDerivedEventsKeepsPreviousPresence(t *testing.T) {
+	session := state.New("Bot token")
+	derived := make(chan gateway.Event, 2)
+	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	dispatch := func(e any) { session.Session.Handler.Call(e) }
+
+	p := discord.Presence{User: discord.User{ID: 5}, GuildID: 20, Status: discord.OnlineStatus, Activities: []discord.Activity{customStatus("hello")}}
+	dispatch(&gateway.PresenceUpdateEvent{Presence: p})
+	<-derived
+
+	p.Status = discord.DoNotDisturbStatus
+	dispatch(&gateway.PresenceUpdateEvent{Presence: p})
+
+	select {
+	case e := <-derived:
+		change, ok := e.(*guildevent.PresenceChange)
+		if !ok {
+			t.Fatalf("got %T, want *guildevent.PresenceChange", e)
+		}
+		if change.Status != discord.DoNotDisturbStatus {
+			t.Errorf("status = %q, want dnd", change.Status)
+		}
+		if change.Previous == nil || change.Previous.Status != discord.OnlineStatus {
+			t.Fatalf("previous = %+v, want the online presence", change.Previous)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("no event derived from the status change")
 	}
 }

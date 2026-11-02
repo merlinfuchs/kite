@@ -95,6 +95,7 @@ export const harmlessTypes = [
   "action_guild_get",
   "action_log",
   "action_member_get",
+  "action_member_presence_get",
   "action_message_create",
   "action_message_edit",
   "action_message_forward",

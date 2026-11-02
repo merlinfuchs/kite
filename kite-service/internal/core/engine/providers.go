@@ -87,6 +87,26 @@ func (p *DiscordProvider) Member(ctx context.Context, guildID discord.GuildID, u
 	return member, nil
 }
 
+// MemberPresence reads the presence from the cache, as Discord has no endpoint
+// for it. The gateway only gets presences with the Presence Intent, which apps
+// with the block request, see model.AppGatewayRequirements.UsesPresence.
+func (p *DiscordProvider) MemberPresence(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Presence, error) {
+	if !p.session.HasIntents(gateway.IntentGuildPresences) {
+		return nil, errors.New("your bot needs the Presence Intent to get the status of members, turn it on under Bot in the Discord Developer Portal")
+	}
+
+	presence, err := p.session.Cabinet.Presence(guildID, userID)
+	if err != nil {
+		if errors.Is(err, disstore.ErrNotFound) {
+			// Discord only sends the presences of members who are online.
+			return nil, provider.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get presence: %w", err)
+	}
+
+	return presence, nil
+}
+
 func (p *DiscordProvider) User(ctx context.Context, userID discord.UserID) (*discord.User, error) {
 	user, err := p.session.User(userID)
 	if err != nil {

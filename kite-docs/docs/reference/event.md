@@ -18,6 +18,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Left Server
 - Server Boost
 - Audit Log Entry
+- Presence Update
 
 ## Restrictions
 
@@ -117,6 +118,31 @@ These are the actions the Event Filter can pick, and the value `{{audit_log.acti
 | `auto_moderation_rule_delete`                 | AutoMod Rule Deleted           | ID                    |
 
 Rarer actions, like onboarding or soundboard changes, also run the event. Their `{{audit_log.action}}` is Discord's name of the action in lowercase, like `soundboard_sound_create`. Actions Discord added after Kite are given as their number.
+
+## Presence Update
+
+Presence Update runs when a member's status (online, idle, do not disturb or offline) or custom status changes. Use it for status roles, like giving members a role while they have your server's invite in their custom status. It needs the **Presence Intent**, enable it under **Bot** in the [Discord Developer Portal](https://discord.dev). Kite only requests it for apps with a Presence Update listener.
+
+Discord also sends presence updates whenever a member starts a game or the next song plays. Those don't run the event, so they don't use credits.
+
+| Placeholder                           | Value                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| `{{presence.status}}`                 | The status now: `online`, `idle`, `dnd` or `offline`                        |
+| `{{presence.previous_status}}`        | The status before it changed                                                |
+| `{{presence.custom_status}}`          | The text of the custom status, empty without one                            |
+| `{{presence.custom_status_emoji}}`    | The emoji of the custom status, a unicode emoji or the custom emoji mention |
+| `{{presence.previous_custom_status}}` | The text of the custom status before it changed                             |
+| `{{user}}`                            | The member whose status changed                                             |
+| `{{guild}}`                           | The server                                                                  |
+
+To give a role to members with your invite in their status, add a [Comparison Condition](./blocks/controls/control_condition_compare.md) on `{{presence.custom_status}}` with **Contains** your invite: add the role in the match branch and remove it in the else branch.
+
+- It runs once for each server the member shares with your bot. Add an Event Filter on the Guild ID to only run it for one server.
+- Offline members have no custom status, so a member going offline also clears `{{presence.custom_status}}`. Check `{{presence.status}}` if the flow shouldn't remove a status role then.
+- Invisible members appear offline, like they do to other members.
+- Members Kite didn't see online since your app connected count as offline before, with no custom status.
+- Your app's own status changes don't run it.
+- `{{user}}` often only has the ID and mention of the member, Discord doesn't send more. Use a Get Member block if you need more.
 
 ## Placeholders
 

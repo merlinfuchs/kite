@@ -23,6 +23,8 @@ export const eventFilterTargetLabels: Record<string, string> = {
   message_mentions_bot: "Message Mentions Bot",
   user_is_bot: "User Is Bot",
   audit_log_action: "Audit Log Action",
+  presence_status: "Status",
+  custom_status: "Custom Status",
 };
 
 // getEventFilterModes returns the modes a target can use, undefined if it can

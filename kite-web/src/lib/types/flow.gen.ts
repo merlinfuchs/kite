@@ -74,6 +74,7 @@ export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
 export const FlowNodeTypeActionMemberGet: FlowNodeType = "action_member_get";
+export const FlowNodeTypeActionMemberPresenceGet: FlowNodeType = "action_member_presence_get";
 export const FlowNodeTypeActionUserGet: FlowNodeType = "action_user_get";
 export const FlowNodeTypeActionChannelGet: FlowNodeType = "action_channel_get";
 export const FlowNodeTypeActionChannelCreate: FlowNodeType = "action_channel_create";
@@ -434,6 +435,14 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+/**
+ * The status of a member, online, idle, dnd or offline.
+ */
+export const EventFilterTypePresenceStatus: EventFilterTarget = "presence_status";
+/**
+ * The text of a member's custom status.
+ */
+export const EventFilterTypeCustomStatus: EventFilterTarget = "custom_status";
 export type RandomMode = string;
 /**
  * Empty is the number mode too, as blocks from before the item mode have
