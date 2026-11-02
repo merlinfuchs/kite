@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
@@ -245,6 +246,25 @@ function buildInteractionPlaceholders(
         },
       ],
     },
+    presence: {
+      label: `${labelPrefix}Presence`,
+      placeholders: [
+        { label: "Status", value: `${prefix}presence.status` },
+        {
+          label: "Previous Status",
+          value: `${prefix}presence.previous_status`,
+        },
+        { label: "Custom Status", value: `${prefix}presence.custom_status` },
+        {
+          label: "Custom Status Emoji",
+          value: `${prefix}presence.custom_status_emoji`,
+        },
+        {
+          label: "Previous Custom Status",
+          value: `${prefix}presence.previous_custom_status`,
+        },
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed
@@ -470,13 +490,12 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
     const label = getNodeTitle(node);
     const value = `result('${node.id}')`;
     const type = result?.thing && thingTypeName(result.thing);
-    res.push({
-      group: "Node Results",
-      ...typedPlaceholder(label, value, type, {
-        list: result?.list,
-        result: true,
-      }),
+    const placeholder = typedPlaceholder(label, value, type, {
+      list: result?.list,
+      result: true,
     });
+    if (result?.schema) placeholder.fields = schemaFields(result.schema, value);
+    res.push({ group: "Node Results", ...placeholder });
   }
 
   if (node.data.temporary_name) {
@@ -528,6 +547,20 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   }
 
   return res;
+}
+
+// schemaFields are the placeholders of the fields of a result that's a plain
+// object, like the status of a Get Member Status block, so they can be picked
+// on their own. Other results have no fields.
+function schemaFields(schema: z.ZodType, value: string): Placeholder[] {
+  if (!(schema instanceof z.ZodObject)) return [];
+  return Object.entries(schema.shape as Record<string, z.ZodType>).map(
+    ([name, field]) => ({
+      label: placeholderLabel(name),
+      value: `${value}.${name}`,
+      description: field.description,
+    })
+  );
 }
 
 // What picked() and pickedAll() return for each select and file upload, as

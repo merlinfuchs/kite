@@ -284,3 +284,38 @@ func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
 		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
 	}
 }
+
+// Presence Update listeners get the derived event, never Discord's, so a new
+// game or song doesn't run them. The app's own status changes are ignored, as
+// it changes with every rotation.
+func TestPresenceChangeReachesPresenceListeners(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("presence", model.EventSourceDiscord, model.EventListenerTypeDiscordPresenceUpdate))
+
+	if got := listenerIDs(app.listenersForEvent(&gateway.PresenceUpdateEvent{})); len(got) != 0 {
+		t.Errorf("Discord's presence update got listeners %v, want none", got)
+	}
+	change := &guildevent.PresenceChange{PresenceUpdateEvent: gateway.PresenceUpdateEvent{Presence: discord.Presence{
+		User: discord.User{ID: 3}, GuildID: 2, Status: discord.IdleStatus,
+	}}}
+	if got := listenerIDs(app.listenersForEvent(change)); len(got) != 1 || got[0] != "presence" {
+		t.Errorf("presence change got listeners %v, want [presence]", got)
+	}
+
+	l := &EventListener{}
+	const botID = discord.UserID(1)
+	if !l.shouldHandleEvent(change, botID) {
+		t.Error("ignored a member's status change")
+	}
+	own := &guildevent.PresenceChange{PresenceUpdateEvent: gateway.PresenceUpdateEvent{Presence: discord.Presence{
+		User: discord.User{ID: botID}, GuildID: 2,
+	}}}
+	if l.shouldHandleEvent(own, botID) {
+		t.Error("handled the app's own status change")
+	}
+
+	data := &EventData{event: change}
+	if data.UserID() != 3 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
+	}
+}

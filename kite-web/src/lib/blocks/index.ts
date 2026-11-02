@@ -60,6 +60,7 @@ import { discordInviteCreate } from "./discordInviteCreate";
 import { discordMemberBan } from "./discordMemberBan";
 import { discordMemberEdit } from "./discordMemberEdit";
 import { discordMemberGet } from "./discordMemberGet";
+import { discordMemberPresenceGet } from "./discordMemberPresenceGet";
 import { discordMemberKick } from "./discordMemberKick";
 import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
@@ -157,6 +158,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberTimeout,
   discordMemberEdit,
   discordMemberGet,
+  discordMemberPresenceGet,
   discordUserGet,
   discordMemberRoleAdd,
   discordMemberRoleRemove,

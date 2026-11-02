@@ -49,13 +49,53 @@ type MessageEdit struct {
 
 func (e *MessageEdit) derived() {}
 
+// PresenceUpdateType is the type of Discord's own event, as PresenceChange
+// replaces that event for event listeners.
+const PresenceUpdateType ws.EventType = "PRESENCE_UPDATE"
+
+// PresenceChange is Discord's PRESENCE_UPDATE when the status or the custom
+// status of a member changed. Discord also sends PRESENCE_UPDATE for every
+// change of a game, song or other activity, which must not run Presence Update
+// listeners and spend credits each time. It has the same fields as Discord's
+// event, so stored ones of those decode into it.
+type PresenceChange struct {
+	gateway.PresenceUpdateEvent
+	// Previous is the presence from before the change as it was cached, nil
+	// if the bot didn't know it. Discord only sends members who are online
+	// when the bot connects, so a member who isn't cached was offline.
+	Previous *discord.Presence `json:"previous,omitempty"`
+}
+
+func (e *PresenceChange) Op() ws.OpCode           { return 0 }
+func (e *PresenceChange) EventType() ws.EventType { return PresenceUpdateType }
+func (e *PresenceChange) derived()                {}
+
+// CustomStatus returns the text and emoji of the custom status of a presence,
+// empty if there is none. An offline member has no activities, so no custom
+// status either.
+func CustomStatus(p discord.Presence) (text string, emoji string) {
+	for _, a := range p.Activities {
+		if a.Type != discord.CustomActivity {
+			continue
+		}
+		if a.Emoji != nil {
+			// The mention of a custom emoji, or the unicode emoji.
+			emoji = a.Emoji.String()
+		}
+		return a.State, emoji
+	}
+	return "", ""
+}
+
 // New returns an empty event of a type of this package, nil for other types.
-// Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so
-// a stored one is always a MessageDelete.
+// Used to decode stored events. Discord's MESSAGE_DELETE and PRESENCE_UPDATE never
+// run a flow, so a stored one is always a MessageDelete or PresenceChange.
 func New(t ws.EventType) Event {
 	switch t {
 	case MessageDeleteType:
 		return new(MessageDelete)
+	case PresenceUpdateType:
+		return new(PresenceChange)
 	}
 	return nil
 }

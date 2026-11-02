@@ -416,7 +416,21 @@ SELECT
         JOIN message_instances mi ON mi.message_id = m.id
         WHERE m.app_id = $1
             AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
-    ) AS uses_voice
+    ) AS uses_voice,
+    EXISTS (
+        SELECT 1 FROM commands c
+        WHERE c.app_id = $1 AND c.enabled
+            AND c.flow_source::text LIKE '%"action_member_presence_get"%'
+        UNION ALL
+        SELECT 1 FROM event_listeners el
+        WHERE el.app_id = $1 AND el.enabled
+            AND el.flow_source::text LIKE '%"action_member_presence_get"%'
+        UNION ALL
+        SELECT 1 FROM messages m
+        JOIN message_instances mi ON mi.message_id = m.id
+        WHERE m.app_id = $1
+            AND mi.flow_sources::text LIKE '%"action_member_presence_get"%'
+    ) AS uses_presence
 `
 
 type GetAppGatewayRequirementsRow struct {
@@ -424,6 +438,7 @@ type GetAppGatewayRequirementsRow struct {
 	PluginResources     []string
 	HasMessageInstances bool
 	UsesVoice           bool
+	UsesPresence        bool
 }
 
 // Everything the gateway needs to decide which intents to identify with.
@@ -436,6 +451,9 @@ type GetAppGatewayRequirementsRow struct {
 //
 // uses_voice turns GUILD_VOICE_STATES on for apps with flows that play audio,
 // which needs the bot's own voice state updates to join voice channels.
+//
+// uses_presence turns GUILD_PRESENCES on for apps with flows that get the status
+// of members, which Discord only sends over the gateway.
 func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (GetAppGatewayRequirementsRow, error) {
 	row := q.db.QueryRow(ctx, getAppGatewayRequirements, appID)
 	var i GetAppGatewayRequirementsRow
@@ -444,6 +462,7 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 		&i.PluginResources,
 		&i.HasMessageInstances,
 		&i.UsesVoice,
+		&i.UsesPresence,
 	)
 	return i, err
 }
@@ -479,15 +498,15 @@ func (q *Queries) GetAppIDsWithDueCommandsDeploy(ctx context.Context, limit int3
 const getAppIDsWithGatewayRequirementsChangedSince = `-- name: GetAppIDsWithGatewayRequirementsChangedSince :many
 SELECT el.app_id FROM event_listeners el
 WHERE el.updated_at > $1
-    AND (el.source = 'discord' OR el.flow_source::text LIKE '%"action_voice_audio_play"%')
+    AND (el.source = 'discord' OR el.flow_source::text LIKE ANY (ARRAY['%"action_voice_audio_play"%', '%"action_member_presence_get"%']))
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 UNION
 SELECT c.app_id FROM commands c
-WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE ANY (ARRAY['%"action_voice_audio_play"%', '%"action_member_presence_get"%'])
 UNION
 SELECT m.app_id FROM message_instances mi JOIN messages m ON m.id = mi.message_id
-WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
+WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE ANY (ARRAY['%"action_voice_audio_play"%', '%"action_member_presence_get"%'])
 `
 
 // Apps whose gateway intent requirements may have changed.
@@ -498,13 +517,14 @@ WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_pl
 // the next reconnect -- wasteful, but never dropping events. Additions and
 // updates, which widen the requirements, are caught reliably.
 //
-// Flows that play audio need the voice states intent. Only commands, listeners
-// and sent messages whose flows have the block are reported, so editing other
+// Flows that play audio need the voice states intent, and flows that get the
+// status of members the presence intent. Only commands, listeners and sent
+// messages whose flows have one of the blocks are reported, so editing other
 // flows doesn't recompute intents.
 //
 // Commands are filtered on enabled so the partial commands_enabled_updated_at
-// index applies. Disabling a command that plays audio isn't noticed, which is
-// fine for the same reason as removals.
+// index applies. Disabling a command that plays audio or gets statuses isn't
+// noticed, which is fine for the same reason as removals.
 func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]string, error) {
 	rows, err := q.db.Query(ctx, getAppIDsWithGatewayRequirementsChangedSince, updatedAt)
 	if err != nil {

@@ -53,6 +53,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.ReadyEvent{},
 		&guildevent.MessageDelete{},
 		&gateway.GuildAuditLogEntryCreateEvent{},
+		&guildevent.PresenceChange{},
 	}
 
 	for _, e := range dispatched {
@@ -78,6 +79,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordDirectMessageCreate,
 		model.EventListenerTypeDiscordGuildBoost,
 		model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
+		model.EventListenerTypeDiscordPresenceUpdate,
 	}
 
 	for _, tp := range types {
@@ -91,6 +93,9 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 func TestDerivedEventsMatchListenerTypes(t *testing.T) {
 	if got := model.EventTypeFromDiscordEventType((&guildevent.MessageDelete{}).EventType()); got != model.EventListenerTypeDiscordMessageDelete {
 		t.Errorf("MessageDelete maps to %q, want %q", got, model.EventListenerTypeDiscordMessageDelete)
+	}
+	if got := model.EventTypeFromDiscordEventType((&guildevent.PresenceChange{}).EventType()); got != model.EventListenerTypeDiscordPresenceUpdate {
+		t.Errorf("PresenceChange maps to %q, want %q", got, model.EventListenerTypeDiscordPresenceUpdate)
 	}
 }
 

@@ -85,6 +85,8 @@ func (d *EventData) UserID() discord.UserID {
 		if data.Message != nil {
 			return data.Message.Author.ID
 		}
+	case *guildevent.PresenceChange:
+		return data.User.ID
 	}
 	return 0
 }
@@ -114,6 +116,8 @@ func (d *EventData) GuildID() discord.GuildID {
 	case *guildevent.MessageDelete:
 		return data.GuildID
 	case *gateway.GuildAuditLogEntryCreateEvent:
+		return data.GuildID
+	case *guildevent.PresenceChange:
 		return data.GuildID
 	}
 	return 0

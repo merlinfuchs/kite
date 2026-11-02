@@ -1,4 +1,5 @@
 import {
+  CircleDotIcon,
   ClockIcon,
   GemIcon,
   LogInIcon,
@@ -32,7 +33,8 @@ export type EventGroup =
   | "message"
   | "message_id"
   | "emoji"
-  | "audit_log";
+  | "audit_log"
+  | "presence";
 
 export interface DiscordEventType {
   value: string;
@@ -50,6 +52,8 @@ export interface DiscordEventType {
 }
 
 const membersIntent = "Needs the Server Members Intent.";
+const presenceIntent =
+  "Needs the Presence Intent. Runs when a member's status or custom status changes, not for games or songs. Offline members have no custom status.";
 
 // discordEventTypes lists the Discord events an event listener can run for,
 // grouped by category in the order of the event picker.
@@ -137,6 +141,18 @@ export const discordEventTypes: DiscordEventType[] = [
     category: "Members",
     placeholders: ["user", "server", "channel", "message_id"],
     note: "Boosts are detected from the message Discord posts when someone boosts the server. The server needs a system messages channel with boost messages enabled, and your bot needs to see it.",
+  },
+  {
+    value: "presence_update",
+    label: "Presence Update",
+    description: "A member's status or custom status changes",
+    icon: CircleDotIcon,
+    category: "Members",
+    // Discord often only sends the ID of the user, the rest is known if the
+    // member is cached.
+    placeholders: ["presence", "user", "server"],
+    note: presenceIntent,
+    frequent: "status change",
   },
   {
     value: "guild_audit_log_entry_create",

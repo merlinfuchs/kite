@@ -55,6 +55,7 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 // cache is the part of the state cache deriving events reads.
 type cache interface {
 	Message(discord.ChannelID, discord.MessageID) (*discord.Message, error)
+	Presence(discord.GuildID, discord.UserID) (*discord.Presence, error)
 }
 
 // deriveEvents returns the events Kite derives from a Discord event. c is the
@@ -80,8 +81,36 @@ func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event
 			return nil
 		}
 		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
+	case *gateway.PresenceUpdateEvent:
+		// Presence Update listeners only run for servers.
+		if !e.GuildID.IsValid() {
+			return nil
+		}
+		change := &guildevent.PresenceChange{PresenceUpdateEvent: *e}
+		if old, err := c.Presence(e.GuildID, e.User.ID); err == nil {
+			change.Previous = old
+		}
+		if !isStatusChange(change.Previous, e.Presence) {
+			return nil
+		}
+		return []guildevent.Event{change}
 	}
 	return nil
+}
+
+// isStatusChange reports whether the status or the custom status of a member
+// changed. Games, songs and other activities change far more often and don't
+// count. A member who isn't cached was offline, see guildevent.PresenceChange.
+func isStatusChange(old *discord.Presence, p discord.Presence) bool {
+	if old == nil {
+		old = &discord.Presence{Status: discord.OfflineStatus}
+	}
+	if old.Status != p.Status {
+		return true
+	}
+	oldText, oldEmoji := guildevent.CustomStatus(*old)
+	text, emoji := guildevent.CustomStatus(p)
+	return oldText != text || oldEmoji != emoji
 }
 
 // isEdit reports whether a MESSAGE_UPDATE is an edit, by the time of the last

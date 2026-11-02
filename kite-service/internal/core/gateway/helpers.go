@@ -12,6 +12,8 @@ import (
 )
 
 const (
+	GATEWAY_PRESENCE                = 1 << 12
+	GATEWAY_PRESENCE_LIMITED        = 1 << 13
 	GATEWAY_GUILD_MEMBERS           = 1 << 14
 	GATEWAY_GUILD_MEMBERS_LIMITED   = 1 << 15
 	GATEWAY_MESSAGE_CONTENT         = 1 << 18
@@ -71,6 +73,12 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 
 	if reqs.NeedsGuildModeration() {
 		res |= gateway.IntentGuildModeration
+	}
+
+	if reqs.NeedsGuildPresences() {
+		if flags&GATEWAY_PRESENCE != 0 || flags&GATEWAY_PRESENCE_LIMITED != 0 {
+			res |= gateway.IntentGuildPresences
+		}
 	}
 
 	if reqs.NeedsGuildVoiceStates() {

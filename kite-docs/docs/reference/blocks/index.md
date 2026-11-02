@@ -46,6 +46,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get user](./actions/action_user_get.md) - Retrieve user information
 - [Get member](./actions/action_member_get.md) - Get server member information
+- [Get member status](./actions/action_member_presence_get.md) - Get the status and custom status of a member
 - [Ban member](./actions/action_member_ban.md) - Ban members from servers
 - [Unban member](./actions/action_member_unban.md) - Unban members from servers
 - [Kick member](./actions/action_member_kick.md) - Kick members from servers

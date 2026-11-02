@@ -1133,7 +1133,8 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
         const isPicked = (t: string) =>
           booleanEventFilterTargets.includes(t) ||
           t === "emoji" ||
-          t === "audit_log_action";
+          t === "audit_log_action" ||
+          t === "presence_status";
 
         const modes = getEventFilterModes(v);
         const mode =
@@ -1148,8 +1149,9 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
             isPicked(v) || isPicked(target)
               ? undefined
               : data.event_filter_value,
-          event_filter_ignore_case:
-            v === "message_content" ? data.event_filter_ignore_case : undefined,
+          event_filter_ignore_case: ignoreCaseTargets.includes(v)
+            ? data.event_filter_ignore_case
+            : undefined,
         });
       }}
       errors={targetErrors}
@@ -1181,7 +1183,7 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
         { value: "equal", label: "Is" },
         { value: "not_equal", label: "Is Not" },
       ]
-    : target === "audit_log_action"
+    : target === "audit_log_action" || target === "presence_status"
     ? oneOfModes
     : [
         { value: "equal", label: "Equal" },
@@ -1239,6 +1241,26 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
     );
   }
 
+  if (target === "presence_status") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Statuses"
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
+        options={presenceStatuses}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
+      />
+    );
+  }
+
   if (target === "emoji") {
     return (
       <BaseEmojiPicker
@@ -1289,8 +1311,20 @@ function emojiFilterData(value?: string): EmojiData | undefined {
   return id ? { id } : { name: value };
 }
 
+// The statuses a presence_status filter picks from, as the service compares
+// them. Invisible members appear offline.
+const presenceStatuses = [
+  { value: "online", label: "Online" },
+  { value: "idle", label: "Idle" },
+  { value: "dnd", label: "Do Not Disturb" },
+  { value: "offline", label: "Offline" },
+];
+
+// The text targets ignore case can apply to.
+const ignoreCaseTargets = ["message_content", "custom_status"];
+
 function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
-  if (data.event_filter_target !== "message_content") return null;
+  if (!ignoreCaseTargets.includes(data.event_filter_target || "")) return null;
 
   return (
     <BaseCheckbox

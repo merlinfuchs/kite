@@ -16,6 +16,9 @@ type DiscordProvider interface {
 	User(ctx context.Context, userID discord.UserID) (*discord.User, error)
 	Role(ctx context.Context, guildID discord.GuildID, roleID discord.RoleID) (*discord.Role, error)
 	Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error)
+	// MemberPresence returns the status of a member, which Discord only sends
+	// over the gateway. ErrNotFound means the member is offline.
+	MemberPresence(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Presence, error)
 	Message(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
 
 	CreateInteractionResponse(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse) (*InteractionResponseResource, error)
@@ -162,6 +165,10 @@ func (p *MockDiscordProvider) Role(ctx context.Context, guildID discord.GuildID,
 }
 
 func (p *MockDiscordProvider) Member(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Member, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) MemberPresence(ctx context.Context, guildID discord.GuildID, userID discord.UserID) (*discord.Presence, error) {
 	return nil, nil
 }
 

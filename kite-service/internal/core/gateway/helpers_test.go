@@ -15,7 +15,7 @@ import (
 // which is why intents have to be driven by what the app uses rather than by
 // what it is permitted to have.
 const allPrivilegedFlags = discord.ApplicationFlags(
-	GATEWAY_MESSAGE_CONTENT | GATEWAY_GUILD_MEMBERS,
+	GATEWAY_MESSAGE_CONTENT | GATEWAY_GUILD_MEMBERS | GATEWAY_PRESENCE,
 )
 
 func TestIntentsForRequirements(t *testing.T) {
@@ -143,6 +143,36 @@ func TestIntentsForRequirements(t *testing.T) {
 			},
 			flags: allPrivilegedFlags,
 			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
+		},
+		{
+			name: "presence listeners add presences",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordPresenceUpdate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildPresences,
+		},
+		{
+			name: "flows that get statuses add presences",
+			reqs: model.AppGatewayRequirements{
+				UsesPresence: true,
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildPresences,
+		},
+		{
+			// Identifying with a privileged intent the app isn't approved
+			// for would be rejected by Discord.
+			name: "presence listeners without the presence intent",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordPresenceUpdate,
+				},
+			},
+			flags: GATEWAY_MESSAGE_CONTENT | GATEWAY_GUILD_MEMBERS,
+			want:  gateway.IntentGuilds,
 		},
 		{
 			name: "flows that play audio add voice states",

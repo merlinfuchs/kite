@@ -109,6 +109,9 @@ type AppGatewayRequirements struct {
 	// UsesVoice reports whether the app has flows that play audio. Joining a
 	// voice channel for that needs the bot's own voice state updates.
 	UsesVoice bool
+	// UsesPresence reports whether the app has flows that get the status of
+	// members, which Discord only sends with the Presence Intent.
+	UsesPresence bool
 }
 
 // NeedsGuildMessages reports whether the app consumes guild message events.
@@ -193,6 +196,14 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 // NeedsGuildModeration reports whether the app consumes audit log events.
 func (r AppGatewayRequirements) NeedsGuildModeration() bool {
 	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
+}
+
+// NeedsGuildPresences reports whether the app consumes presence events or
+// gets the status of members. The intent is privileged, and the state caches
+// the presence of every member who is online, so it's only requested by apps
+// that use it.
+func (r AppGatewayRequirements) NeedsGuildPresences() bool {
+	return r.UsesPresence || slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordPresenceUpdate)
 }
 
 // NeedsGuildVoiceStates reports whether the app consumes voice state events.

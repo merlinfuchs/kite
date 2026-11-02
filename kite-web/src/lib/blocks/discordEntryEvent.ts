@@ -30,11 +30,12 @@ export const discordEntryEvent: BlockDefinition = {
           "direct_message_create",
           "guild_boost",
           "guild_audit_log_entry_create",
+          "presence_update",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. presence_update runs when a member's status (online, idle, dnd, offline) or custom status changes, not for games or songs, and needs the Presence Intent. Its placeholders are {{presence.status}}, {{presence.previous_status}}, {{presence.custom_status}}, {{presence.custom_status_emoji}} and {{presence.previous_custom_status}}, filter on presence_status or custom_status with an Event Filter."
         ),
     },
     {

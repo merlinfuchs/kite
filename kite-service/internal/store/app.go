@@ -43,6 +43,7 @@ type AppGatewayRequirementsRow struct {
 	PluginResources     []string
 	HasMessageInstances bool
 	UsesVoice           bool
+	UsesPresence        bool
 }
 
 type AppStore interface {
