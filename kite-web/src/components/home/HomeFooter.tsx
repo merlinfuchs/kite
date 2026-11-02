@@ -49,7 +49,7 @@ export default function HomeFooter() {
               target="_blank"
               className="opacity-60 hover:opacity-100"
             >
-              Github
+              GitHub
             </a>
           </div>
 
