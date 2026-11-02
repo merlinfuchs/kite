@@ -11,6 +11,7 @@ import {
   getNodeValues,
   getOwnedChildTypes,
   getOwnerTypes,
+  isAutocompleteOutput,
   isKnownNodeType,
   normalizeHandle,
   withOwnedNodes,
@@ -219,8 +220,12 @@ export function applyFlowEdits(
               ? getSource(edit.after, edit.handle, "after")
               : [undefined, edit.handle];
           // Options aren't part of the chain of blocks, so a block added
-          // after one runs after the entry.
-          if (after?.type!.startsWith("option_")) {
+          // after one runs after the entry, unless it's added to the
+          // autocomplete output of an argument.
+          if (
+            after?.type!.startsWith("option_") &&
+            !isAutocompleteOutput(after.type, handle)
+          ) {
             after = nodes.find((n) => n.type!.startsWith("entry_"));
             if (!after) throw new Error("The flow has no entry block.");
           }

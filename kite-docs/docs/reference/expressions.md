@@ -137,6 +137,8 @@ The ID of a block is shown in its settings. New blocks get a short ID that says 
 
 `app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.user_install_count` is updated about once a day, and is `0` until Discord first reports it after your app is created. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
+In the blocks after the [autocomplete](./blocks/options/option_command_argument.md#autocomplete) output of a command argument, `autocomplete.value` is what the user typed in the argument so far and `autocomplete.name` is the argument's name.
+
 In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`. Outside of sub-flows they are the current interaction or event, so `origin.user.id` is the same as `user.id`.
 
 ## Examples

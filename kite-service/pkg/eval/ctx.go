@@ -79,8 +79,11 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 		e.Guild = guild.guildEnv()
 	}
 
-	if i.Data.InteractionType() == discord.CommandInteractionType {
+	switch i.Data.InteractionType() {
+	case discord.CommandInteractionType:
 		e.Command = newCommandEnv(i, guild)
+	case discord.AutocompleteInteractionType:
+		e.Command = newAutocompleteCommandEnv(i)
 	}
 
 	if values, ok := selectedValues(i.Data); ok {
@@ -122,7 +125,7 @@ func stringValues[T fmt.Stringer](values []T) []string {
 func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {
 	interactionEnv := NewInteractionEnv(i, session)
 
-	return Context{
+	return addAutocompleteEnv(Context{
 		Env: Env{
 			"interaction": interactionEnv,
 			"channel":     interactionEnv.Channel,
@@ -179,6 +182,67 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 				return nil
 			},
 		},
+	}, i)
+}
+
+// addAutocompleteEnv adds what the user is typing in to the context of an
+// autocomplete interaction, as autocomplete.name and autocomplete.value.
+func addAutocompleteEnv(c Context, i *discord.InteractionEvent) Context {
+	data, ok := i.Data.(*discord.AutocompleteInteraction)
+	if !ok {
+		return c
+	}
+
+	focused := FocusedOption(data.Options)
+	c.Env["autocomplete"] = map[string]any{
+		"name":  focused.Name,
+		"value": focused.String(),
+	}
+	return c
+}
+
+// FocusedOption returns the argument the user is typing in, also when it's
+// one of a subcommand.
+func FocusedOption(options discord.AutocompleteOptions) discord.AutocompleteOption {
+	for _, o := range options {
+		if o.Focused {
+			return o
+		}
+		if focused := FocusedOption(o.Options); focused.Focused {
+			return focused
+		}
+	}
+	return discord.AutocompleteOption{}
+}
+
+// newAutocompleteCommandEnv has the arguments the user filled in so far, as
+// they were typed. Users, roles and channels are their IDs, as Discord doesn't
+// send more while the user types.
+func newAutocompleteCommandEnv(i *discord.InteractionEvent) *CommandEnv {
+	data, _ := i.Data.(*discord.AutocompleteInteraction)
+
+	args := make(map[string]any)
+	var addArgs func(options discord.AutocompleteOptions)
+	addArgs = func(options discord.AutocompleteOptions) {
+		for _, o := range options {
+			switch o.Type {
+			case discord.SubcommandOptionType, discord.SubcommandGroupOptionType:
+				addArgs(o.Options)
+			default:
+				var value any
+				if err := json.Unmarshal(o.Value, &value); err != nil {
+					value = o.String()
+				}
+				args[o.Name] = value
+			}
+		}
+	}
+	addArgs(data.Options)
+
+	return &CommandEnv{
+		interaction: i,
+		ID:          data.CommandID.String(),
+		Args:        args,
 	}
 }
 

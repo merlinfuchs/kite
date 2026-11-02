@@ -230,6 +230,24 @@ func (s Env) executeFlowEvent(
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
 
+// executeFlowAutocomplete runs the blocks connected to the autocomplete output
+// of the argument block arg, to show the choices for what the user typed.
+func (s Env) executeFlowAutocomplete(
+	ctx context.Context,
+	appID string,
+	arg *flow.CompiledFlowNode,
+	session *state.State,
+	event gateway.Event,
+	links entityLinks,
+) {
+	defer s.recoverPanic(appID, links)
+
+	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, nil, arg)
+	defer fCtx.Cancel()
+
+	s.finishFlowRun(appID, links, fCtx, arg.ExecuteAutocomplete(fCtx), "Failed to execute autocomplete flow")
+}
+
 // executeFlowAfterSleep continues a flow after the durable sleep in node. event
 // is the interaction or event the flow ran with before it suspended.
 func (s Env) executeFlowAfterSleep(

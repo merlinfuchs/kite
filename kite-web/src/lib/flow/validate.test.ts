@@ -728,4 +728,84 @@ describe("validateFlow", () => {
       "Unknown block type 'toString'.",
     ]);
   });
+
+  describe("autocomplete", () => {
+    const fruit = (autocomplete = true) =>
+      node("fruit", "option_command_argument", {
+        name: "fruit",
+        description: "Fruit",
+        command_argument_type: "string",
+        command_argument_autocomplete: autocomplete || undefined,
+      });
+    const show = node("show", "action_response_autocomplete", {
+      autocomplete_choices: [{ name: "{{autocomplete.value}}" }],
+      autocomplete_filter: true,
+    });
+
+    it("runs the blocks after the autocomplete output", () => {
+      expect(
+        validateFlow(
+          [entry, fruit(), show],
+          [edge("fruit", "entry"), edge("fruit", "show", "autocomplete")],
+          "command"
+        )
+      ).toEqual([]);
+    });
+
+    it("needs autocomplete on the argument", () => {
+      expect(
+        errors(
+          [entry, fruit(false), show],
+          [edge("fruit", "entry"), edge("fruit", "show", "autocomplete")]
+        )
+      ).toContain(
+        "'Command Argument' has no autocomplete output, as autocomplete is off or the argument isn't text or a number."
+      );
+    });
+
+    it("only shows choices after the autocomplete output", () => {
+      expect(
+        errors(
+          [entry, fruit(), show],
+          [edge("fruit", "entry"), edge("entry", "show")]
+        )
+      ).toContain(
+        "'Show autocomplete choices' only works after the autocomplete output of a command argument."
+      );
+
+      const reply = node("reply", "action_response_create", {
+        message_data: { content: "Hi" },
+      });
+      expect(
+        errors(
+          [entry, fruit(), reply],
+          [edge("fruit", "entry"), edge("fruit", "reply", "autocomplete")]
+        )
+      ).toContain(
+        "'Create response message' can't be used after the autocomplete output of an argument, which can only show choices."
+      );
+    });
+
+    it("allows more than 25 choices only with autocomplete", () => {
+      const choices = Array.from({ length: 30 }, (_, i) => ({
+        name: `Choice ${i}`,
+        value: `${i}`,
+      }));
+      const withChoices = (autocomplete: boolean) => ({
+        ...fruit(autocomplete),
+        data: {
+          ...fruit(autocomplete).data,
+          command_argument_choices: choices,
+        },
+      });
+      expect(
+        errors([entry, withChoices(true)], [edge("fruit", "entry")])
+      ).toEqual([]);
+      expect(
+        errors([entry, withChoices(false)], [edge("fruit", "entry")])
+      ).toContain(
+        "'Command Argument' setting 'command_argument_choices': Discord allows up to 25 choices. Turn on autocomplete for more."
+      );
+    });
+  });
 });

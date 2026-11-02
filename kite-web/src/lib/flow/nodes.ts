@@ -115,7 +115,36 @@ export function getNodeOutputs(node: { type?: string; data: NodeData }) {
   return [
     ...(getNodeValues(node.type!).outputs ?? ["default"]),
     ...getComponentHandleIds(node.data.message_data?.components ?? []),
+    ...(hasAutocompleteOutput(node) ? [autocompleteHandle] : []),
   ];
+}
+
+// The output of an argument with autocomplete. Its blocks run while the user
+// types in the argument, to show the choices for what was typed.
+export const autocompleteHandle = "autocomplete";
+
+const autocompleteArgumentTypes = ["string", "integer", "number"];
+
+// Whether the block is an argument with autocomplete, which has an output for
+// the blocks that show its choices.
+export function hasAutocompleteOutput(node: { type?: string; data: NodeData }) {
+  return (
+    node.type === "option_command_argument" &&
+    !!node.data.command_argument_autocomplete &&
+    autocompleteArgumentTypes.includes(node.data.command_argument_type ?? "")
+  );
+}
+
+// Whether a connection starts at the autocomplete output of an argument. It
+// runs blocks like the outputs of other blocks, unlike the connection from
+// the argument into the entry.
+export function isAutocompleteOutput(
+  sourceType: string | undefined,
+  handle?: string | null
+) {
+  return (
+    sourceType === "option_command_argument" && handle === autocompleteHandle
+  );
 }
 
 export function getNodeTitle(node: { type?: string; data: NodeData }) {
@@ -215,9 +244,17 @@ export function createEdge(
 }
 
 // Options connect into the entry of commands and event listeners, nothing else
-// connects into an entry, and nothing connects into an option.
-export function canConnect(sourceType: string, targetType: string) {
-  if (sourceType.startsWith("option_")) {
+// connects into an entry, and nothing connects into an option. The
+// autocomplete output of an argument connects to blocks like other outputs.
+export function canConnect(
+  sourceType: string,
+  targetType: string,
+  sourceHandle?: string | null
+) {
+  if (
+    sourceType.startsWith("option_") &&
+    !isAutocompleteOutput(sourceType, sourceHandle)
+  ) {
     return targetType === "entry_command" || targetType === "entry_event";
   }
   return !targetType.startsWith("entry_") && !targetType.startsWith("option_");

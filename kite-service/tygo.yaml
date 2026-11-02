@@ -43,6 +43,7 @@ packages:
       Base64: "string"
       message.MessageData: "MessageData"
     exclude_files:
+      - "autocomplete.go"
       - "compile.go"
       - "context.go"
       - "discord_api.go"

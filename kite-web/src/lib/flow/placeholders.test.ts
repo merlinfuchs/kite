@@ -394,3 +394,33 @@ describe("getAvailablePlaceholders", () => {
     expect(labels).toEqual(["User", "Server", "Channel", "Message", "Emoji"]);
   });
 });
+
+describe("autocomplete placeholders", () => {
+  const nodes = [
+    node("entry", "entry_command"),
+    node("arg", "option_command_argument", {
+      name: "fruit",
+      command_argument_type: "string",
+      command_argument_autocomplete: true,
+    }),
+    node("get", "action_variable_get"),
+    node("show", "action_response_autocomplete"),
+    node("log", "action_log"),
+  ];
+  const edges = [
+    edge("arg", "entry"),
+    edge("arg", "get", "autocomplete"),
+    edge("get", "show"),
+    edge("entry", "log"),
+  ];
+  const labels = (nodeId: string) =>
+    getAvailablePlaceholders(nodeId, nodes, edges, "command").map(
+      (g) => g.label
+    );
+
+  it("are only available after the autocomplete output", () => {
+    expect(labels("show")).toContain("Autocomplete");
+    expect(labels("get")).toContain("Autocomplete");
+    expect(labels("log")).not.toContain("Autocomplete");
+  });
+});

@@ -35,6 +35,15 @@ describe("canInsertIntoEdge", () => {
       false
     );
   });
+
+  it("allows the autocomplete output of an argument", () => {
+    expect(
+      canInsertIntoEdge(
+        { type: "delete_button", sourceHandle: "autocomplete" },
+        "option_command_argument"
+      )
+    ).toBe(true);
+  });
 });
 
 describe("insertIntoEdge", () => {

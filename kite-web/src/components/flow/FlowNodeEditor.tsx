@@ -29,6 +29,7 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
+import { autocompleteMaxChoices } from "@/lib/blocks/discordResponseAutocomplete";
 import {
   lookupMaxRows,
   lookupModes,
@@ -203,7 +204,11 @@ export const settingInputs: Record<string, any> = {
   command_argument_min_value: CommandArgumentMinValueInput,
   command_argument_max_value: CommandArgumentMaxValueInput,
   command_argument_max_length: CommandArgumentMaxLengthInput,
+  command_argument_autocomplete: CommandArgumentAutocompleteInput,
   command_argument_choices: CommandArgumentChoicesInput,
+  autocomplete_choices: AutocompleteChoicesInput,
+  autocomplete_choices_list: AutocompleteChoicesListInput,
+  autocomplete_filter: AutocompleteFilterInput,
   command_disabled_contexts: CommandContextsInput,
   command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
@@ -774,7 +779,309 @@ function CommandArgumentMaxLengthInput({
   );
 }
 
-function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+function CommandArgumentAutocompleteInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (
+    data.command_argument_type !== "string" &&
+    data.command_argument_type !== "integer" &&
+    data.command_argument_type !== "number"
+  )
+    return null;
+
+  return (
+    <BaseCheckbox
+      field="command_argument_autocomplete"
+      title="Autocomplete"
+      description="Suggest choices while the user types. Without blocks after the argument's autocomplete output, the choices below that contain what was typed are shown, up to 500 of them. Connect blocks to the output to show other choices with a Show autocomplete choices block, which run on every key press. The user can still enter any value."
+      value={!!data.command_argument_autocomplete}
+      updateValue={(v) =>
+        updateData({ command_argument_autocomplete: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function CommandArgumentChoicesInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  if (
+    data.command_argument_autocomplete &&
+    (data.command_argument_type === "string" ||
+      data.command_argument_type === "integer" ||
+      data.command_argument_type === "number")
+  ) {
+    return (
+      <ChoiceListInput
+        field="command_argument_choices"
+        title="Choices"
+        description="Shown while the user types, the ones that contain what was typed. Discord shows up to 25 at once."
+        choices={data.command_argument_choices || []}
+        setChoices={(choices) =>
+          updateData({
+            command_argument_choices: choices.length ? choices : undefined,
+          })
+        }
+        errors={errors}
+      />
+    );
+  }
+
+  return <CommandArgumentFixedChoicesInput {...props} />;
+}
+
+function AutocompleteChoicesInput({ data, updateData, errors }: InputProps) {
+  return (
+    <ChoiceListInput
+      field="autocomplete_choices"
+      title="Choices"
+      description="The choices to show. Names and values can use placeholders, like {{autocomplete.value}}, and a choice without a value uses its name."
+      choices={data.autocomplete_choices || []}
+      setChoices={(choices) =>
+        updateData({
+          autocomplete_choices: choices.length ? choices : undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AutocompleteChoicesListInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="autocomplete_choices_list"
+      title="Choices From List"
+      description="A list to add choices from, like a stored variable or the result of an API request: texts, or objects with a name and value. In text, each line is a choice."
+      value={data.autocomplete_choices_list || ""}
+      updateValue={(v) =>
+        updateData({ autocomplete_choices_list: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AutocompleteFilterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="autocomplete_filter"
+      title="Only Matching Choices"
+      description="Only show the choices that contain what the user typed, those that start with it first. Discord shows up to 25."
+      value={!!data.autocomplete_filter}
+      updateValue={(v) => updateData({ autocomplete_filter: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+// A list of choices with a name and value, edited in a dialog as they can be
+// many. Choices can be pasted as lines of "name = value", or just a name.
+function ChoiceListInput({
+  field,
+  title,
+  description,
+  choices,
+  setChoices,
+  errors,
+  placeholders,
+}: {
+  field: string;
+  title: string;
+  description: string;
+  choices: CommandArgumentChoiceData[];
+  setChoices: (choices: CommandArgumentChoiceData[]) => void;
+  errors: Record<string, string>;
+  placeholders?: boolean;
+}) {
+  const [pasted, setPasted] = useState("");
+  const [pasteError, setPasteError] = useState("");
+
+  // Rows are memoized with stable callbacks, so typing in a cell only
+  // re-renders its row, which matters with hundreds of them.
+  const latest = useRef({ choices, setChoices });
+  latest.current = { choices, setChoices };
+  const updateChoice = useCallback(
+    (index: number, newData: Partial<LookupRow>) => {
+      const { choices, setChoices } = latest.current;
+      setChoices(
+        choices.map((c, i) =>
+          i === index
+            ? {
+                name: newData.key ?? c.name,
+                value: newData.value ?? c.value,
+              }
+            : c
+        )
+      );
+    },
+    []
+  );
+  const removeChoice = useCallback((index: number) => {
+    const { choices, setChoices } = latest.current;
+    setChoices(choices.filter((_, i) => i !== index));
+  }, []);
+
+  function addPasted(replace: boolean) {
+    const pastedChoices = parseLookupLines(pasted).map((row) => ({
+      name: row.key,
+      value: row.value || row.key,
+    }));
+    if (!pastedChoices.length) return;
+    const newChoices = replace ? pastedChoices : [...choices, ...pastedChoices];
+    if (newChoices.length > autocompleteMaxChoices) {
+      setPasteError(
+        `There can be up to ${autocompleteMaxChoices} choices, this would make it ${newChoices.length}.`
+      );
+      return;
+    }
+    setChoices(newChoices);
+    setPasted("");
+    setPasteError("");
+  }
+
+  const choiceError = (i: number) =>
+    errors[`${field}.${i}.name`] || errors[`${field}.${i}.value`];
+  const choiceErrors = choices.filter((_, i) => choiceError(i)).length;
+  const error =
+    errors[field] ||
+    (choiceErrors > 0 &&
+      `${choiceErrors} ${
+        choiceErrors === 1 ? "choice has" : "choices have"
+      } an error`);
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">{title}</div>
+      <div className="text-muted-foreground text-sm mb-2">{description}</div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Edit {title} ({choices.length}{" "}
+            {choices.length === 1 ? "choice" : "choices"})
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit {title}</DialogTitle>
+            <DialogDescription>
+              Up to {autocompleteMaxChoices} choices.
+              {placeholders &&
+                " Names and values can use placeholders, like {{autocomplete.value}}."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              {choices.length > 0 && (
+                <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <div>Name</div>
+                    <div>Value</div>
+                  </div>
+                  {/* Room for the remove buttons. */}
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {choices.map((choice, i) => (
+                  <LookupRowInput
+                    key={i}
+                    index={i}
+                    row={{ key: choice.name ?? "", value: choice.value ?? "" }}
+                    error={choiceError(i)}
+                    onChange={updateChoice}
+                    onRemove={removeChoice}
+                    keyPlaceholder="Name"
+                    removeLabel="Remove choice"
+                  />
+                ))}
+                <EditOnly>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add choice"
+                      onClick={() =>
+                        setChoices([...choices, { name: "", value: "" }])
+                      }
+                      disabled={choices.length >= autocompleteMaxChoices}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </EditOnly>
+              </div>
+            </div>
+            <EditOnly>
+              <div>
+                <div className="font-medium text-foreground mb-1">
+                  Paste Choices
+                </div>
+                <div className="text-muted-foreground text-sm mb-2">
+                  One choice per line, as name = value, or just a name to use it
+                  as the value too.
+                </div>
+                <Textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder={"Apple\nBanana\nDragon Fruit = dragonfruit"}
+                  className="min-h-24"
+                />
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => addPasted(false)}
+                    disabled={!pasted.trim()}
+                  >
+                    Add Choices
+                  </Button>
+                  <ConfirmDialog
+                    title="Replace all choices?"
+                    description="This removes the choices and adds the pasted ones instead."
+                    onConfirm={() => addPasted(true)}
+                  >
+                    <Button variant="outline" disabled={!pasted.trim()}>
+                      Replace All Choices
+                    </Button>
+                  </ConfirmDialog>
+                </div>
+                {pasteError && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{pasteError}</div>
+                  </div>
+                )}
+              </div>
+            </EditOnly>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommandArgumentFixedChoicesInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   const readOnly = useContext(FlowReadOnlyContext);
   const addChoice = useCallback(() => {
     updateData({
@@ -2746,12 +3053,16 @@ const LookupRowInput = memo(function LookupRowInput({
   error,
   onChange,
   onRemove,
+  keyPlaceholder = "Key",
+  removeLabel = "Remove row",
 }: {
   index: number;
   row: LookupRow;
   error?: string;
   onChange: (index: number, newData: Partial<LookupRow>) => void;
   onRemove: (index: number) => void;
+  keyPlaceholder?: string;
+  removeLabel?: string;
 }) {
   const readOnly = useContext(FlowReadOnlyContext);
 
@@ -2761,7 +3072,7 @@ const LookupRowInput = memo(function LookupRowInput({
         <div className="grid grid-cols-2 gap-2 flex-auto">
           <Input
             type="text"
-            placeholder="Key"
+            placeholder={keyPlaceholder}
             value={row.key}
             onChange={(e) => onChange(index, { key: e.target.value })}
             readOnly={readOnly}
@@ -2779,7 +3090,7 @@ const LookupRowInput = memo(function LookupRowInput({
             variant="outline"
             size="icon"
             className="flex-none"
-            aria-label="Remove row"
+            aria-label={removeLabel}
             onClick={() => onRemove(index)}
           >
             <MinusIcon className="h-5 w-5" />

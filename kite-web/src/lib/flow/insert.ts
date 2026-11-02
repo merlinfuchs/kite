@@ -2,17 +2,26 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
 import { nodeSize, rowGap } from "./layout";
 import { getBlockDefinition } from "../blocks";
-import { canConnect, createEdge, createNode, getNodeOutputs } from "./nodes";
+import {
+  canConnect,
+  createEdge,
+  createNode,
+  getNodeOutputs,
+  isAutocompleteOutput,
+} from "./nodes";
 import { walkDownstream } from "./placeholders";
 
 // Blocks can be inserted into any connection except the fixed ones to the
 // blocks a block owns and the ones from options into the entry.
 export function canInsertIntoEdge(
-  edge: Pick<Edge, "type">,
+  edge: Pick<Edge, "type"> & { sourceHandle?: string | null },
   sourceType: string | undefined
 ) {
   return (
-    edge.type !== "fixed" && !!sourceType && !sourceType.startsWith("option_")
+    edge.type !== "fixed" &&
+    !!sourceType &&
+    (!sourceType.startsWith("option_") ||
+      isAutocompleteOutput(sourceType, edge.sourceHandle))
   );
 }
 
@@ -50,7 +59,7 @@ export function insertIntoEdge(
     !source ||
     !target ||
     !canInsertIntoEdge(edge, source.type) ||
-    !canConnect(source.type!, type) ||
+    !canConnect(source.type!, type, edge.sourceHandle) ||
     !canConnect(type, target.type!)
   ) {
     return null;

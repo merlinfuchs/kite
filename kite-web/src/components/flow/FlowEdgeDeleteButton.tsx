@@ -19,6 +19,7 @@ export default function FlowEdgeDeleteButton({
   type,
   source,
   target,
+  sourceHandleId,
   sourceX,
   sourceY,
   targetX,
@@ -32,7 +33,9 @@ export default function FlowEdgeDeleteButton({
   const { setEdges } = useReactFlow();
   const insertIntoEdge = useContext(InsertIntoEdgeContext);
   const sourceType = useStore((s) => s.nodeLookup.get(source)?.type);
-  const canInsert = !!insertIntoEdge && canInsertIntoEdge({ type }, sourceType);
+  const canInsert =
+    !!insertIntoEdge &&
+    canInsertIntoEdge({ type, sourceHandle: sourceHandleId }, sourceType);
   // Only self-loops need the node bounds. Other edges select null, which never
   // changes, so they don't re-render when the source node does.
   const nodeRight = useStore((s) => {

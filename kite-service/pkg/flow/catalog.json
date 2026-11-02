@@ -65,8 +65,13 @@
             "minimum": 0,
             "maximum": 6000
           },
+          "command_argument_autocomplete": {
+            "description": "Suggest choices while the user types, for string, integer and number arguments. Without blocks after the argument's autocomplete output, the choices that contain what was typed are shown. Blocks after the autocomplete output run on every key press instead, and show choices with a Show autocomplete choices block. The user can still enter any value.",
+            "type": "boolean"
+          },
           "command_argument_choices": {
-            "description": "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored.",
+            "description": "Fixed choices the user picks from, for string, integer and number arguments. Choices with an empty name or value are ignored. Up to 25, or 500 with autocomplete.",
+            "maxItems": 500,
             "type": "array",
             "items": {
               "type": "object",
@@ -587,6 +592,65 @@
           },
           "message_ephemeral": {
             "description": "Whether only the user who triggered the flow can see the response that follows.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_response_autocomplete": {
+      "title": "Show autocomplete choices",
+      "description": "Shows the choices for what the user typed in an argument with autocomplete",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "autocomplete_choices": {
+            "description": "Choices to show. Choices with an empty name, and values that don't fit an integer or number argument, are left out.",
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "description": "Name of the choice shown to the user.",
+                  "x-templated": true
+                },
+                "value": {
+                  "description": "Value the command receives when the choice is picked. The name when empty.",
+                  "x-templated": true,
+                  "type": "string",
+                  "maxLength": 100
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "autocomplete_choices_list": {
+            "description": "A list to show more choices from, like {{var('fruits')}}: texts, or objects with a name and value. Text has a choice on each line.",
+            "x-templated": true,
+            "type": "string",
+            "maxLength": 2000
+          },
+          "autocomplete_filter": {
+            "description": "Only show the choices that contain what the user typed, those that start with it first.",
             "type": "boolean"
           }
         },
