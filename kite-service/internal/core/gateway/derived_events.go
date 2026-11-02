@@ -61,6 +61,13 @@ type cache interface {
 // cache from before the event updated it.
 func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event {
 	switch e := e.(type) {
+	case *gateway.MessageCreateEvent:
+		// Discord has no event for polls ending, it posts a poll result
+		// message instead.
+		if end := guildevent.NewPollEnd(e); end != nil {
+			return []guildevent.Event{end}
+		}
+		return nil
 	case *gateway.MessageDeleteEvent:
 		// Message Delete listeners only run for servers.
 		if !e.GuildID.IsValid() {

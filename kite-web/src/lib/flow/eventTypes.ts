@@ -1,6 +1,8 @@
 import {
+  ChartBarIcon,
   ClockIcon,
   GemIcon,
+  ListXIcon,
   LogInIcon,
   LogOutIcon,
   LucideIcon,
@@ -15,6 +17,7 @@ import {
   SmileIcon,
   SatelliteDishIcon,
   TimerIcon,
+  VoteIcon,
   WebhookIcon,
 } from "lucide-react";
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
@@ -32,7 +35,9 @@ export type EventGroup =
   | "message"
   | "message_id"
   | "emoji"
-  | "audit_log";
+  | "audit_log"
+  | "poll_vote"
+  | "poll_end";
 
 export interface DiscordEventType {
   value: string;
@@ -110,6 +115,37 @@ export const discordEventTypes: DiscordEventType[] = [
     // Discord only sends the ID of the user who removed the reaction.
     placeholders: ["user_id", "server", "channel", "message_id", "emoji"],
     frequent: "removed reaction",
+  },
+  {
+    value: "message_poll_vote_add",
+    label: "Poll Vote Add",
+    description: "A member votes on a poll",
+    icon: VoteIcon,
+    category: "Polls",
+    // The message is the poll. Discord only sends the IDs, the question and
+    // answer are fetched when a flow uses them.
+    placeholders: ["poll_vote", "user", "server", "channel", "message_id"],
+    note: "Runs once for each answer a member votes for.",
+    frequent: "vote",
+  },
+  {
+    value: "message_poll_vote_remove",
+    label: "Poll Vote Remove",
+    description: "A member removes their vote on a poll",
+    icon: ListXIcon,
+    category: "Polls",
+    placeholders: ["poll_vote", "user", "server", "channel", "message_id"],
+    frequent: "removed vote",
+  },
+  {
+    value: "message_poll_end",
+    label: "Poll End",
+    description: "A poll ends and its results are in",
+    icon: ChartBarIcon,
+    category: "Polls",
+    // The user is the author of the poll.
+    placeholders: ["poll_end", "user", "server", "channel", "message_id"],
+    note: "Polls ending are detected from the results message Discord posts, so your bot needs to see the channel. For polls your bot didn't create, the question and results need the Message Content Intent.",
   },
   {
     value: "guild_member_add",

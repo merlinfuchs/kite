@@ -382,6 +382,25 @@ describe("getAvailablePlaceholders", () => {
         ?.placeholders.map((p) => p.value)
     ).toEqual(["user.id", "user.mention"]);
 
+    expect(groups("message_poll_vote_add").map((g) => g.label)).toEqual([
+      "Poll",
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "App",
+    ]);
+    expect(
+      groups("message_poll_vote_remove")
+        .find((g) => g.label === "Poll")
+        ?.placeholders.map((p) => p.value)
+    ).toContain("poll.answer");
+    expect(
+      groups("message_poll_end")
+        .find((g) => g.label === "Poll")
+        ?.placeholders.map((p) => p.value)
+    ).toContain("poll.winner");
+
     const left = groups("guild_member_remove")
       .find((g) => g.label === "User")
       ?.placeholders.map((p) => p.value);

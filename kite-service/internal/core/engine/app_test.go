@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -257,6 +258,36 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
 		{"direct message edit", &guildevent.MessageEdit{}, nil},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// The poll result message runs Message Create listeners like before, Poll End
+// listeners get the derived event.
+func TestListenersForEventRoutesPollEvents(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("vote_add", model.EventSourceDiscord, model.EventListenerTypeDiscordMessagePollVoteAdd))
+	app.AddEventListener(testListener("vote_remove", model.EventSourceDiscord, model.EventListenerTypeDiscordMessagePollVoteRemove))
+	app.AddEventListener(testListener("end", model.EventSourceDiscord, model.EventListenerTypeDiscordMessagePollEnd))
+
+	result := discord.Message{GuildID: 1, Type: guildevent.PollResultMessage}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"vote added", &pollevent.VoteAddEvent{Vote: pollevent.Vote{GuildID: 1}}, []string{"vote_add"}},
+		{"vote removed", &pollevent.VoteRemoveEvent{Vote: pollevent.Vote{GuildID: 1}}, []string{"vote_remove"}},
+		{"poll result message", &gateway.MessageCreateEvent{Message: result}, []string{"create"}},
+		{"poll ended", &guildevent.PollEnd{Message: result}, []string{"end"}},
 	}
 
 	for _, tt := range tests {

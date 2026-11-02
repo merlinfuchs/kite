@@ -36,6 +36,11 @@ const (
 	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
+	EventListenerTypeDiscordMessagePollVoteAdd       EventListenerType = "message_poll_vote_add"
+	EventListenerTypeDiscordMessagePollVoteRemove    EventListenerType = "message_poll_vote_remove"
+	// Discord has no gateway event for polls ending. This type is derived
+	// from the MESSAGE_CREATE of the poll result message Discord posts.
+	EventListenerTypeDiscordMessagePollEnd EventListenerType = "message_poll_end"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

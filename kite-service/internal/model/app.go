@@ -123,7 +123,9 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 			EventListenerTypeDiscordMessageUpdate,
 			EventListenerTypeDiscordMessageDelete,
 			// Boosts are detected from the boost system message.
-			EventListenerTypeDiscordGuildBoost:
+			EventListenerTypeDiscordGuildBoost,
+			// And polls ending from the poll result message.
+			EventListenerTypeDiscordMessagePollEnd:
 			return true
 		}
 	}
@@ -183,6 +185,19 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	for _, t := range r.PluginEventTypes {
 		switch t {
 		case "MESSAGE_REACTION_ADD", "MESSAGE_REACTION_REMOVE":
+			return true
+		}
+	}
+
+	return false
+}
+
+// NeedsGuildMessagePolls reports whether the app consumes poll vote events.
+func (r AppGatewayRequirements) NeedsGuildMessagePolls() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordMessagePollVoteAdd,
+			EventListenerTypeDiscordMessagePollVoteRemove:
 			return true
 		}
 	}

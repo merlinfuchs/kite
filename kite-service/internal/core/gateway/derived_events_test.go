@@ -52,6 +52,8 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"poll ended", &gateway.MessageCreateEvent{Message: discord.Message{ID: 10, ChannelID: 5, GuildID: 2, Type: guildevent.PollResultMessage}}, []ws.EventType{guildevent.PollEndType}},
+		{"poll ended in DM", &gateway.MessageCreateEvent{Message: discord.Message{ID: 10, ChannelID: 5, Type: guildevent.PollResultMessage}}, nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 

@@ -18,6 +18,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
+	"github.com/kitecloud/kite/kite-service/pkg/pollevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -471,6 +472,7 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+	Poll     *PollEnv     `expr:"poll" json:"poll"`
 }
 
 type ScheduleEnv struct {
@@ -712,6 +714,26 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
+	case *pollevent.VoteAddEvent:
+		env.setPollVote(session, e.Vote)
+	case *pollevent.VoteRemoveEvent:
+		env.setPollVote(session, e.Vote)
+	case *guildevent.PollEnd:
+		// The user is the author of the poll, the message the poll.
+		msg := e.Message
+		if e.Member != nil {
+			member := *e.Member
+			member.User = msg.Author
+			env.Member = guild(msg.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserEnv(msg.Author)
+			env.Member = env.User
+		}
+		env.Channel = currentChannelEnv(session, msg.ChannelID, nil)
+		env.Guild = guild(msg.GuildID).guildEnv()
+		env.Message = NewMessageEnv(discord.Message{ID: e.PollMessageID, ChannelID: msg.ChannelID})
+		env.Poll = NewPollEndEnv(e.Result)
 	}
 
 	if env.Guild == nil {
@@ -721,6 +743,26 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	}
 
 	return env
+}
+
+// setPollVote fills in a vote on a poll. Discord only sends the IDs, the member
+// comes from the cache.
+func (env *EventEnv) setPollVote(session *state.State, v pollevent.Vote) {
+	guild := guildLookup{session: session, guildID: v.GuildID}
+	if member, ok := guild.member(v.UserID); ok {
+		env.Member = guild.memberEnv(member)
+	} else {
+		env.Member = NewUserIDEnv(v.UserID)
+	}
+	env.User = env.Member
+	env.Channel = currentChannelEnv(session, v.ChannelID, nil)
+	if v.GuildID != 0 {
+		env.Guild = guild.guildEnv()
+	}
+	env.Message = NewMessageEnv(discord.Message{ID: v.MessageID, ChannelID: v.ChannelID})
+	env.Poll = NewPollVoteEnv(v.AnswerID, func() (*pollData, error) {
+		return fetchPoll(session, v.ChannelID, v.MessageID)
+	})
 }
 
 // SetResumeContext makes the interactions or events from before a resume point
@@ -784,6 +826,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"schedule":  env.Schedule,
 			"webhook":   env.Webhook,
 			"audit_log": env.AuditLog,
+			"poll":      env.Poll,
 			"app":       NewAppEnv(session),
 		},
 	}

@@ -245,6 +245,26 @@ function buildInteractionPlaceholders(
         },
       ],
     },
+    poll_vote: {
+      label: `${labelPrefix}Poll`,
+      placeholders: [
+        { label: "Question", value: `${prefix}poll.question` },
+        { label: "Answer", value: `${prefix}poll.answer` },
+        { label: "Answer Emoji", value: `${prefix}poll.answer_emoji` },
+        { label: "Answer ID", value: `${prefix}poll.answer_id` },
+      ],
+    },
+    poll_end: {
+      label: `${labelPrefix}Poll`,
+      placeholders: [
+        { label: "Question", value: `${prefix}poll.question` },
+        { label: "Winning Answer", value: `${prefix}poll.winner` },
+        { label: "Winning Answer Emoji", value: `${prefix}poll.winner_emoji` },
+        { label: "Winning Answer ID", value: `${prefix}poll.winner_id` },
+        { label: "Winning Answer Votes", value: `${prefix}poll.winner_votes` },
+        { label: "Total Votes", value: `${prefix}poll.total_votes` },
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed
