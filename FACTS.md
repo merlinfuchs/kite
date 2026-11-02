@@ -88,10 +88,10 @@ Stats (number | what it counts | source | date checked):
 - 2024 | year Kite started | first commit 2024-01-10 | 2026-11-02
 - Most added templates: Moderation 482, Ask AI 432, Server Info 260, Welcomer 257, Giveaways 235 | install_count from /v1/bundles | 2026-11-02
 
-Main page action: "Get Started for Free", to /apps. Marketplace pages lead with adding a template. /pricing leads with the plan cards.
+Main page action: "Get started for free", to /apps. Marketplace pages lead with adding a template. /pricing leads with the plan cards.
 
 Exact names of things users see:
-- Dashboard sidebar: Dashboard, Upgrade (Plan on a paid plan), Settings, Logs, Servers, Emojis, Commands, Event Listeners, Scheduled Tasks, Webhooks, Message Templates, Marketplace, Your Templates, Stored Variables, Secrets, Integrations.
+- Dashboard sidebar: Dashboard, Upgrade (Plan on a paid plan), Settings, Logs, Servers, Emojis, Commands, Event listeners, Scheduled tasks, Webhooks, Message templates, Marketplace, Your templates, Stored variables, Secrets, Integrations.
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
 - Integrations: Discord, ER:LC, Roblox, Cookie API.
@@ -119,11 +119,14 @@ Words to never use:
 Project-specific rules:
 - "app" in the dashboard, the docs, and anything about building or managing it, because that's what Discord calls it. "bot" or "Discord bot" on the marketing site, in page titles, meta descriptions, headings, and FAQ answers, because that's what people search for and ask AI about. Where a page needs both, connect them once: "Each app is your own Discord bot."
 - The AI in the editor is Flow AI. On the marketing site, in titles and meta descriptions, and on its first mention on a page, describe it with the words people search for: "Flow AI, the AI assistant that builds your bot" or "AI Discord bot builder". Say "the Ask AI button" only for the button itself.
+- Flow.ai is an unrelated chatbot company. Never use "Flow AI" alone in page titles, meta descriptions, or headings. Pair it with Kite, like "Kite's Flow AI", or lead with the search words, like "AI Discord bot maker".
 - The free plan is Basic. Say "the free plan" in sentences and FAQ answers, and "Basic" only where plans are listed by name, like plan cards, tables, and badges. Mention both once where it isn't obvious: "Basic, the free plan".
 - Say "Kite Plus", "Kite Premium", and "Kite Ultimate" in sentences. Plain "Plus" only in badges and card headings.
 - "Plus and up" or "Premium and up" for features of more than one plan.
 - Name a locked feature with the cheapest plan that has it.
 - "Online 24/7" and "always online" are fine. Don't add a credits caveat to them.
+- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
+- A UI label is written as it appears, in sentence case, and marked as something to click: backticks in the docs, bold on the site. "Open **Stored variables** in the sidebar." Block names work the same way: "add a Send message block".
 - "template" for official and community templates alike. "Made by Kite" and "From the community" tell them apart.
 - Kite pages say "Discord bot templates", not "server templates", which are copies of a server's channels and roles.
 - Every claim about another bot maker goes on its /alternatives page with lastChecked. Say when the other product is the better fit.

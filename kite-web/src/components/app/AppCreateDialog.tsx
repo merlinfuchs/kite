@@ -168,7 +168,7 @@ export default function AppCreateDialog({
 
           if (res.success) {
             track("app_created", { skipped_guide: skippedGuide });
-            toast.success("App created!");
+            toast.success("App created.");
             onOpenChange(false);
             if (onCreated) {
               onCreated(res.data);
@@ -205,7 +205,7 @@ export default function AppCreateDialog({
         <DialogHeader>
           <DialogTitle>
             <div className="flex items-center space-x-2">
-              <div>Create App</div>
+              <div>Create app</div>
               <a
                 href={env.NEXT_PUBLIC_DOCS_LINK + "/guides/getting-started"}
                 target="_blank"
@@ -315,7 +315,7 @@ export default function AppCreateDialog({
                 name="discord_token"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bot Token</FormLabel>
+                    <FormLabel>Bot token</FormLabel>
                     <FormControl>
                       <Input
                         type="password"

@@ -17,7 +17,7 @@ export default function MessageControls() {
         <MessageJSONDialog>
           <MessageControlsButton
             icon={CodeIcon}
-            label="JSON Code"
+            label="JSON code"
             onClick={() => {}}
           />
         </MessageJSONDialog>
@@ -28,7 +28,7 @@ export default function MessageControls() {
         >
           <MessageControlsButton
             icon={PaintbrushIcon}
-            label="Clear Message"
+            label="Clear message"
             onClick={() => {}}
           />
         </ConfirmDialog>

@@ -79,7 +79,7 @@ export default function EventListenerDuplicateDialog({
               type: listener.type,
               source: "duplicate",
             });
-            toast.success(`${capitalize(name.singular)} duplicated!`);
+            toast.success(`${capitalize(name.singular)} duplicated.`);
             setOpen(false);
 
             setTimeout(

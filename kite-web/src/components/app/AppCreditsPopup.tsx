@@ -31,15 +31,15 @@ export default function AppCreditsPopup() {
         <CardTitle className="text-base flex items-center gap-2 pr-6">
           <TriangleAlertIcon className="w-5 h-5 text-yellow-500" />
           {left > 0
-            ? "Your App Is Running Low on Credits"
-            : "Your App Is Out of Credits"}
+            ? "Your app is running low on credits"
+            : "Your app is out of credits"}
         </CardTitle>
         <CardDescription className="text-sm">
           {left > 0
             ? `${formatNumber(left)} of ${formatNumber(
                 creditsPerMonth
-              )} credits are left this month. When they run out, your bot's commands and events pause until ${formatMonthlyResetDate()}.`
-            : `Your bot used all of its credits for this month. In a few minutes its commands and events pause until ${formatMonthlyResetDate()}.`}
+              )} credits are left this month. When they run out, your app's commands and events pause until ${formatMonthlyResetDate()}.`
+            : `Your app used all of its credits for this month. In a few minutes its commands and events pause until ${formatMonthlyResetDate()}.`}
         </CardDescription>
         <Button
           variant="ghost"

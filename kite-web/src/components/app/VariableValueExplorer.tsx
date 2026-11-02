@@ -83,7 +83,7 @@ export default function VariableValueExplorer() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{scoped ? "Stored Values" : "Stored Value"}</CardTitle>
+        <CardTitle>{scoped ? "Stored values" : "Stored value"}</CardTitle>
         <CardDescription>
           {scoped
             ? "View and edit the values your flows have stored in this variable, one for each scope."
@@ -218,7 +218,7 @@ function VariableValueRow({
     deleteMutation.mutate(value.scope, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Value deleted!");
+          toast.success("Value deleted.");
         } else {
           toast.error(
             `Failed to delete value: ${res.error.message} (${res.error.code})`

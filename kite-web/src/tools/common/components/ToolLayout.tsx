@@ -58,7 +58,7 @@ export default function ToolLayout({
         {article && <div className="max-w-3xl">{article}</div>}
 
         <section className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">More Discord Tools</h2>
+          <h2 className="text-2xl font-bold mb-6">More Discord tools</h2>
           <div className="grid md:grid-cols-3 gap-4">
             {otherTools.map((t) => (
               <ToolCard key={t.id} tool={t} />

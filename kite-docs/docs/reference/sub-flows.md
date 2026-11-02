@@ -6,7 +6,7 @@ sidebar_position: 6
 
 Some flow blocks can be used to create sub-flows. These blocks act as a boundary between the main flow and the sub-flow and are highlighted in pink in the flow editor.
 
-## Who Is `user` in a Sub-Flow?
+## Who is `user` in a sub-flow?
 
 The blocks attached to a button run when someone clicks that button, which can be minutes or days after the command was used. By then, `user` means the person who clicked, not the person who ran the command. On a public message those can be different people.
 
@@ -44,7 +44,7 @@ Modals are a special type of sub-flow. They are used to create interactive exper
 
 Modals can be used to create interactive experiences like forms, quizzes, etc.
 
-## Interactive Messages
+## Interactive messages
 
 ![Interactive Message Node](./img/example-node-message-buttons.webp)
 

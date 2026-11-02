@@ -43,7 +43,7 @@ export default function MessageListEntry({ message }: { message: Message }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Message template deleted!");
+          toast.success("Message template deleted.");
         } else {
           toast.error(
             `Failed to delete message template: ${res.error.message} (${res.error.code})`
@@ -104,17 +104,17 @@ export default function MessageListEntry({ message }: { message: Message }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Delete Message
+                  Delete message
                 </DropdownMenuItem>
               </ConfirmDialog>
               <MessageDuplicateDialog message={message}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Duplicate Message
+                  Duplicate message
                 </DropdownMenuItem>
               </MessageDuplicateDialog>
               <FlowExportDialog
-                title="Export Message Template"
+                title="Export message template"
                 type="message"
                 shareData={{ message: messageToShared(message) }}
                 flows={Object.values(message.flow_sources ?? {})}
@@ -122,7 +122,7 @@ export default function MessageListEntry({ message }: { message: Message }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Export Message
+                  Export message
                 </DropdownMenuItem>
               </FlowExportDialog>
             </DropdownMenuGroup>

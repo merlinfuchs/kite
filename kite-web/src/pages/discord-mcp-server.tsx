@@ -55,17 +55,17 @@ const clients = [
 
 const steps = [
   {
-    title: "Add Kite to Your Client",
+    title: "Add Kite to your client",
     description:
-      "Paste Kite's URL into Claude, ChatGPT, Claude Code or Codex. Cursor and a few others use an API token instead.",
+      "Paste Kite's URL into Claude, ChatGPT, Claude Code, or Codex. Cursor and a few others use an API token instead.",
   },
   {
-    title: "Sign In and Pick Its Access",
+    title: "Sign in and pick its access",
     description:
       "Choose which apps the client can use, and whether it can change them or only read them.",
   },
   {
-    title: "Describe Your Bot",
+    title: "Describe your bot",
     description:
       "Ask for a command or an event in plain words. The client builds the flow, Kite checks it, and it goes live in your server.",
   },
@@ -85,7 +85,7 @@ const examples: {
     prompt:
       "Add a /poll command with a question and up to four options, and buttons to vote.",
     description:
-      "Creates the command, the message with its buttons and a flow for each button.",
+      "Creates the command, the message with its buttons, and a flow for each button.",
   },
   {
     icon: WrenchIcon,
@@ -93,7 +93,7 @@ const examples: {
     color: "bg-rose-500/10 text-rose-500",
     prompt: "Why does my /ticket command fail? Check the logs and fix it.",
     description:
-      "Reads your app's logs, finds the block that failed and fixes its settings.",
+      "Reads your app's logs, finds the block that failed, and fixes its settings.",
   },
   {
     icon: PencilLineIcon,
@@ -125,7 +125,7 @@ const comparison = [
     kite: "Ask the client, or edit the flow yourself",
   },
   {
-    feature: "Buttons, modals and variables",
+    feature: "Buttons, modals, and variables",
     code: "Code the client writes and you debug",
     kite: "Built-in blocks that Kite checks",
   },
@@ -139,19 +139,19 @@ const comparison = [
 const extras = [
   {
     icon: LayoutTemplateIcon,
-    title: "Templates to Start From",
+    title: "Templates to start from",
     description:
-      "Add verification, modmail or giveaways from the Marketplace and ask the client to change it for your server.",
+      "Add verification, modmail, or giveaways from the Marketplace and ask the client to change it for your server.",
   },
   {
     icon: UserRoundIcon,
-    title: "Your Own Bot",
+    title: "Your own bot",
     description:
-      "The bot is your own Discord application, with your name, avatar and status, not Kite's.",
+      "The bot is your own Discord application with your name and avatar. You can replace Kite's default status with your own for free.",
   },
   {
     icon: CodeIcon,
-    title: "Open Source",
+    title: "Open source",
     description:
       "Kite's code is on GitHub. You can see how your bot runs, or host Kite yourself.",
   },
@@ -184,12 +184,12 @@ const faqs: FAQProps[] = [
   {
     question: "Which AI clients work with Kite?",
     answer:
-      "Claude, ChatGPT, Claude Code, Codex and VS Code connect by signing in to Kite. Cursor, OpenCode, Antigravity, Gemini CLI, Devin Desktop and other clients that connect to remote MCP servers use an API token instead.",
+      "Claude, ChatGPT, Claude Code, Codex, and VS Code connect by signing in to Kite. Cursor, OpenCode, Antigravity, Gemini CLI, Devin Desktop and other clients that connect to remote MCP servers use an API token instead.",
   },
   {
     question: "Does it cost anything?",
     answer:
-      "No. Kite hosts your bot 24/7 for free, and the MCP server works on every plan without using credits or flow AI prompts. The flows it builds use credits when they run, like any other flow, and the free plan has 10,000 a month.",
+      "No. Kite hosts your bot 24/7 for free, and the MCP server works on every plan without using credits or Flow AI prompts. The flows it builds use credits when they run, like any other flow, and the free plan has 10,000 a month.",
   },
   {
     question: "Why not have Claude Code or Codex write a discord.js bot?",
@@ -218,14 +218,14 @@ function copy(text: string) {
 export default function DiscordMCPServerPage() {
   return (
     <HomeLayout
-      title="Discord MCP Server for Claude, ChatGPT, Claude Code and Codex"
-      description="Connect Claude, ChatGPT, Claude Code or Codex to Kite's MCP server and let AI build the commands and events of your Discord bot. Kite hosts the bot for you."
+      title="Discord MCP server for Claude, ChatGPT, Claude Code, and Codex"
+      description="Connect Claude, ChatGPT, Claude Code, or Codex to Kite's MCP server and let AI build the commands and events of your Discord bot. Kite hosts the bot for you."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <section className="relative container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
         <div className="z-10 text-center lg:text-start">
           <h1 className="text-4xl md:text-6xl font-bold">
-            Build Your Discord Bot From{" "}
+            Build your Discord bot from{" "}
             <span className="bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
               Claude
             </span>{" "}
@@ -236,16 +236,16 @@ export default function DiscordMCPServerPage() {
           </h1>
           <p className="text-xl text-muted-foreground mt-6">
             Connect your AI client to Kite, describe what your bot should do,
-            and it builds the commands, event listeners and messages. Kite runs
+            and it builds the commands, event listeners, and messages. Kite runs
             the bot 24/7 for free, so there&apos;s nothing to deploy or host.
           </p>
           <div className="mt-8 flex flex-col md:flex-row justify-center lg:justify-start gap-4">
             <Button className="md:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
+              <Link href="/apps">Get started for free</Link>
             </Button>
             <Button variant="outline" className="md:w-48" asChild>
               <a href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/mcp`}>
-                Read the MCP Guide
+                Read the MCP guide
               </a>
             </Button>
           </div>
@@ -288,7 +288,7 @@ export default function DiscordMCPServerPage() {
       >
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Set It Up in Two Minutes
+            Set it up in two minutes
           </h2>
           <ol className="relative mt-8 space-y-8">
             {/* Connects the numbers of the steps. */}
@@ -341,10 +341,10 @@ export default function DiscordMCPServerPage() {
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Ask for Anything Your Bot Should Do
+            Ask for anything your bot should do
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
-            The client sees your commands, logs, channels and roles, and looks
+            The client sees your commands, logs, channels, and roles, and looks
             up how each block works before it uses it.
           </p>
         </div>
@@ -379,7 +379,7 @@ export default function DiscordMCPServerPage() {
           </div>
           <div className="flex items-center gap-2">
             <SparklesIcon className="size-5 flex-none text-primary" />
-            Uses your client&apos;s model, not Kite&apos;s AI prompts.
+            Uses your client&apos;s model, not your Flow AI prompts.
           </div>
         </div>
       </section>
@@ -387,7 +387,7 @@ export default function DiscordMCPServerPage() {
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Why Not Have It Write Code?
+            Why not have it write code?
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             Claude Code and Codex can write a discord.js or discord.py bot too.
@@ -456,7 +456,7 @@ export default function DiscordMCPServerPage() {
       <section className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            You Decide What It Can Touch
+            You decide what it can touch
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             Each client has its own access, so it only gets what you give it.

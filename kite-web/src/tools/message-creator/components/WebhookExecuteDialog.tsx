@@ -73,7 +73,7 @@ export default function WebhookExecuteDialog() {
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Send Message</DialogTitle>
+        <DialogTitle>Send message</DialogTitle>
         <DialogDescription>
           Send your message to a Discord or Guilded webhook.
         </DialogDescription>
@@ -107,7 +107,7 @@ export default function WebhookExecuteDialog() {
             onClick={() => sendMessage(true)}
             disabled={!webhookUrl}
           >
-            Edit Message
+            Edit message
           </Button>
         )}
         <Button
@@ -116,7 +116,7 @@ export default function WebhookExecuteDialog() {
           disabled={!webhookUrl}
         >
           <SendIcon className="w-5 h-5" />
-          <div>Send Message</div>
+          <div>Send message</div>
         </Button>
       </DialogFooter>
     </DialogContent>

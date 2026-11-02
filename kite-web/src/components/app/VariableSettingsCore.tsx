@@ -64,7 +64,7 @@ export default function VariableSettingsCore() {
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Settings saved!");
+            toast.success("Settings saved.");
           } else {
             if (res.error.code === "validation_failed") {
               setValidationErrors(form, res.error.data);
@@ -82,7 +82,7 @@ export default function VariableSettingsCore() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Variable Settings</CardTitle>
+        <CardTitle>Variable settings</CardTitle>
         <CardDescription>
           Configure how your app appears to users in Discord and Kite.
         </CardDescription>

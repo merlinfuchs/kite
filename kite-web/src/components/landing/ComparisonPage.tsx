@@ -56,7 +56,7 @@ export default function ComparisonPage({
           </h1>
           <p className="text-xl text-muted-foreground mt-6">{content.intro}</p>
           <Button className="mt-8 md:w-48" asChild>
-            <Link href="/apps">Get Started for Free</Link>
+            <Link href="/apps">Get started for free</Link>
           </Button>
         </div>
 
@@ -75,7 +75,7 @@ export default function ComparisonPage({
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">
-          Kite and {competitor} Compared
+          Kite and {competitor} compared
         </h2>
         <div className="max-w-4xl mx-auto">
           <Table>
@@ -105,7 +105,7 @@ export default function ComparisonPage({
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          Why Use Kite Instead of {competitor}
+          Why use Kite instead of {competitor}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mt-10 max-w-5xl mx-auto">
           {content.reasons.map((reason) => (
@@ -125,12 +125,12 @@ export default function ComparisonPage({
       <section className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-12 md:py-16">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Build Commands by Connecting Blocks
+            Build commands by connecting blocks
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             This is the /ban command from the moderation template. Each block is
-            one step, and the lines between them set the order. You can import
-            it with one click and change it however you like.
+            one step, and the lines between them set the order. You can add it
+            with one click and change it however you like.
           </p>
         </div>
         <ShowcaseVisual
@@ -144,27 +144,27 @@ export default function ComparisonPage({
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          How to Switch From {competitor}
+          How to switch from {competitor}
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-          You keep your Discord application, so your bot keeps its name, avatar
+          You keep your Discord application, so your bot keeps its name, avatar,
           and servers.
         </p>
         <ol className="grid md:grid-cols-3 gap-8 mt-10 max-w-5xl mx-auto">
           {[
             {
-              title: "Stop Your Bot",
+              title: "Stop your bot",
               description: `Turn your bot off in ${competitor}, so the two don't answer at the same time.`,
             },
             {
-              title: "Add It to Kite",
+              title: "Add it to Kite",
               description:
-                "Copy the bot token from the Discord Developer Portal, sign in to Kite and click on Create app.",
+                "Copy the bot token from the Discord Developer Portal, sign in to Kite, and click Create app.",
             },
             {
-              title: "Build Your Commands",
+              title: "Build your commands",
               description:
-                "Import a template, build commands from blocks or describe them to Kite's AI. They show up in Discord when you save them.",
+                "Add a template, build commands from blocks, or describe them to Flow AI. They show up in Discord when you save them.",
             },
           ].map((step, i) => (
             <li key={step.title} className="text-center">

@@ -116,7 +116,7 @@ function PageCard({ bundle }: { bundle: UserBundle }) {
       <div className="font-semibold mb-1">Page</div>
       <p className="text-sm text-muted-foreground mb-4">
         {inMarketplace(bundle)
-          ? "Its name, description and how it works. Kite reviews your changes before the marketplace shows them."
+          ? "Its name, description and how it works. Kite reviews your changes before the Marketplace shows them."
           : "Its name, description and how it works, which anyone with its link sees."}
       </p>
       <BundlePageDialog bundle={bundle}>
@@ -167,7 +167,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
     }
     toast.success(
       listed
-        ? `Removed ${bundle.name} from the marketplace`
+        ? `Removed ${bundle.name} from the Marketplace`
         : `New versions of ${bundle.name} won't be submitted anymore`
     );
   }
@@ -189,20 +189,20 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
       <div className="flex flex-col gap-2">
         {!listed && (
           <BundlePageDialog bundle={bundle} submit>
-            <Button className="w-full">List in marketplace</Button>
+            <Button className="w-full">List in Marketplace</Button>
           </BundlePageDialog>
         )}
         {newVersionsReviewed(bundle) && (
           <ConfirmDialog
             title={
               listed
-                ? `Remove ${bundle.name} from the marketplace?`
+                ? `Remove ${bundle.name} from the Marketplace?`
                 : `Stop submitting ${bundle.name}?`
             }
             description={
               listed
                 ? "Apps that added it stay on the last version Kite approved. Listing it again needs a new review."
-                : "New versions you publish won't be submitted for the marketplace again. You can still list it later."
+                : "New versions you publish won't be submitted for the Marketplace again. You can still list it later."
             }
             onConfirm={unlist}
           >
@@ -211,7 +211,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
               className="w-full"
               disabled={unlistMutation.isPending}
             >
-              {listed ? "Remove from marketplace" : "Stop submitting updates"}
+              {listed ? "Remove from Marketplace" : "Stop submitting updates"}
             </Button>
           </ConfirmDialog>
         )}
@@ -240,7 +240,7 @@ function DeleteCard({ bundle }: { bundle: UserBundle }) {
   return (
     <ConfirmDialog
       title={`Delete ${bundle.name}?`}
-      description="Its link stops working and it leaves the marketplace. Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
+      description="Its link stops working and it leaves the Marketplace. Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
       onConfirm={remove}
     >
       <Button
@@ -301,29 +301,29 @@ export function ListingStatus({ bundle }: { bundle: UserBundle }) {
   const listed = bundle.listed_version;
 
   // A review of the listed version is a change of its page.
-  let status: ReactNode = "Not in the marketplace.";
+  let status: ReactNode = "Not in the Marketplace.";
   if (review?.status === "pending") {
     status =
       listed === null
-        ? "In review for the marketplace."
+        ? "In review for the Marketplace."
         : review.version === listed
-        ? "Listed in the marketplace, your changes to its page are in review."
-        : `Listed in the marketplace, version ${review.version} is in review and apps get version ${listed} until then.`;
+        ? "Listed in the Marketplace, your changes to its page are in review."
+        : `Listed in the Marketplace, version ${review.version} is in review and apps get version ${listed} until then.`;
   } else if (review?.status === "rejected") {
     status = (
       <span className="text-destructive">
         {listed === null
-          ? "Not approved for the marketplace: "
+          ? "Not approved for the Marketplace: "
           : review.version === listed
-          ? "Listed in the marketplace, but your changes to its page weren't approved: "
+          ? "Listed in the Marketplace, but your changes to its page weren't approved: "
           : `Version ${review.version} wasn't approved, apps keep version ${listed}: `}
         {review.reason}
       </span>
     );
   } else if (listed !== null) {
-    status = "Listed in the marketplace.";
+    status = "Listed in the Marketplace.";
   } else if (bundle.approved_version !== null) {
-    status = `Not in the marketplace. Apps get version ${bundle.approved_version}, the last one Kite approved, until it's listed again.`;
+    status = `Not in the Marketplace. Apps get version ${bundle.approved_version}, the last one Kite approved, until it's listed again.`;
   }
   return <>{status}</>;
 }

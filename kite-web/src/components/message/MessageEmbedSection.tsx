@@ -41,13 +41,13 @@ export default function MessageEmbedSection() {
           }
           disabled={embedIds.length >= 10}
         >
-          Add Embed
+          Add embed
         </Button>
         <Button
           onClick={() => removeChildren(rootId, "embeds")}
           variant="outline"
         >
-          Clear Embeds
+          Clear embeds
         </Button>
       </div>
     </CollapsibleSection>

@@ -19,7 +19,7 @@ export default function PlanCompareSection({ initial }: { initial: Plans }) {
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold">
-              Compare the Plans
+              Compare the plans
             </h2>
             <p className="text-muted-foreground mt-2">
               Every limit of every plan. All plans keep your bot online 24/7

@@ -111,7 +111,7 @@ export default function AppSidebarMainNav() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>My App</SidebarGroupLabel>
+      <SidebarGroupLabel>My app</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) =>
           item.items ? (

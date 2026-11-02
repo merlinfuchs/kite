@@ -6,14 +6,14 @@ import { helloFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
-  title: "Free 24/7 Discord Bot Hosting",
+  title: "Free 24/7 Discord bot hosting",
   description:
     "Host your Discord bot 24/7 for free with Kite. Build the bot in a visual editor and Kite runs it for you. No server, no code and no credit card needed.",
-  heading: "Free 24/7 Discord Bot Hosting",
+  heading: "Free 24/7 Discord bot hosting",
   intro:
     "Kite runs your Discord bot on its servers 24/7, for free. You build the bot in Kite's editor and add your bot token. You don't need a VPS or a computer that stays on.",
   secondaryAction: {
-    label: "Read the Guide",
+    label: "Read the guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`,
   },
   showcase: {
@@ -23,55 +23,55 @@ const content: LandingPageContent = {
   },
   sections: [
     {
-      heading: "What the Free Plan Includes",
+      heading: "What the free plan includes",
       points: [
         {
-          title: "24/7 Uptime",
+          title: "24/7 uptime",
           description:
             "Your bot stays connected to Discord at all times. If the connection drops, Kite reconnects it for you.",
         },
         {
-          title: "10,000 Credits per Month",
+          title: "10,000 credits per month",
           description:
             "Most actions, like sending a message, cost 1 credit. Conditions and loops are free. This is enough for most servers.",
         },
         {
-          title: "Up to 100 Servers",
+          title: "Up to 100 servers",
           description:
-            "You can add your bot to up to 100 servers. Premium plans raise this limit if you need more.",
+            "You can add your bot to up to 100 servers. Paid plans raise this limit if you need more.",
         },
         {
-          title: "Your Own Name and Avatar",
+          title: "Your own name and avatar",
           description:
-            "Your bot is your own Discord application. It shows your name, avatar and status, not Kite's.",
+            "Your bot is your own Discord application with your name and avatar. You can replace Kite's default status with your own for free.",
         },
         {
-          title: "No Credit Card",
+          title: "No credit card",
           description:
-            "You sign in with your Discord account. There is no trial that runs out.",
+            "You sign in with your Discord account. The free plan has no time limit.",
         },
         openSourcePoint,
       ],
     },
     {
-      heading: "Can Kite Host My discord.js or discord.py Bot?",
+      heading: "Can Kite host my discord.js or discord.py bot?",
       body: "No. Kite only runs bots that are built in Kite. If your bot is written in JavaScript or Python, you need a server or a hosting service that runs your code. If your bot mostly responds to commands and events, building it again in Kite is often faster than keeping a server running.",
     },
     {
-      heading: "How It Works",
+      heading: "How it works",
       points: [
         {
-          title: "1. Create a Discord App",
+          title: "1. Create a Discord app",
           description:
             "Create an application in the Discord Developer Portal and copy its bot token.",
         },
         {
-          title: "2. Add It to Kite",
+          title: "2. Add it to Kite",
           description:
-            "Sign in to Kite with Discord, click on Create app and paste the token.",
+            "Sign in to Kite with Discord, click Create app, and paste the token.",
         },
         {
-          title: "3. Build Your Commands",
+          title: "3. Build your commands",
           description:
             "Create commands and event listeners in the editor. They go live as soon as you save them.",
         },
@@ -82,7 +82,7 @@ const content: LandingPageContent = {
     {
       question: "Is the hosting really free?",
       answer:
-        "Yes. Every bot gets free 24/7 hosting with 10,000 credits per month. Premium plans give you more credits and higher limits, but you don't need one to keep your bot online.",
+        "Yes. Every bot gets free 24/7 hosting with 10,000 credits per month. Paid plans give you more credits and higher limits, but you don't need one to keep your bot online.",
     },
     {
       question: "Will my bot stay online when I close my computer?",
@@ -92,7 +92,7 @@ const content: LandingPageContent = {
     {
       question: "Can I host a bot that I wrote in code?",
       answer:
-        "No. Kite runs bots built with its visual editor. It can't run discord.js, discord.py or other code.",
+        "No. Kite runs bots built with its visual editor. It can't run discord.js, discord.py, or other code.",
     },
     {
       question: "What happens when my bot runs out of credits?",

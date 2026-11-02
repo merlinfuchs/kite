@@ -47,7 +47,7 @@ export function LogEntryListDrawer({
         <DrawerFooter>
           <DrawerClose asChild>
             <Button variant="outline" className="w-full">
-              Close Logs
+              Close logs
             </Button>
           </DrawerClose>
         </DrawerFooter>

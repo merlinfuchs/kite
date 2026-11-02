@@ -114,7 +114,7 @@ export default function EventListenerCreateDialog({
         onSuccess(res) {
           if (res.success) {
             track("event_listener_created", { type, source: "blank" });
-            toast.success(`${capitalize(name.singular)} created!`);
+            toast.success(`${capitalize(name.singular)} created.`);
             setOpen(false);
             form.reset();
 

@@ -198,7 +198,7 @@ function BundleForm({
           {bundle
             ? `Apps that added the template can update to it. Items you leave out stay in those apps without updates.${
                 newVersionsReviewed(bundle)
-                  ? " Kite reviews it for the marketplace."
+                  ? " Kite reviews it for the Marketplace."
                   : ""
               }`
             : "Choose what's part of it. The message templates and stored variables they use are added. Apps that add it get your new versions as updates."}

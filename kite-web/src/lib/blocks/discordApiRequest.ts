@@ -10,7 +10,7 @@ export const discordApiRequest: BlockDefinition = {
   description:
     "Send a request to any endpoint of the Discord API, for things no other block does",
   icon: "braces",
-  category: "API Requests",
+  category: "API requests",
   requires: ["discord"],
   credits: 1,
   fields: [

@@ -113,7 +113,7 @@ func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarRe
 		return nil, err
 	}
 	if !b.Listed {
-		return nil, handler.ErrBadRequest("bundle_not_starrable", "only templates in the marketplace can be starred")
+		return nil, handler.ErrBadRequest("bundle_not_starrable", "only templates in the Marketplace can be starred")
 	}
 	if b.OwnedBy(c.Session.UserID) {
 		return nil, handler.ErrBadRequest("bundle_not_starrable", "you can't star your own templates")

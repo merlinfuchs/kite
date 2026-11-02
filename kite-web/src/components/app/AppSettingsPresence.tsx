@@ -166,7 +166,7 @@ export default function AppSettingsPresence() {
           onSuccess(res) {
             if (res.success) {
               toast.success(
-                "Status updated! It may take a few minutes to take effect."
+                "Status updated. It may take a few minutes to take effect."
               );
             } else {
               if (res.error.code === "validation_failed") {
@@ -208,7 +208,7 @@ export default function AppSettingsPresence() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Custom Status</CardTitle>
+        <CardTitle>Custom status</CardTitle>
         <CardDescription>
           Configure the status and activity of your app in Discord.
         </CardDescription>
@@ -460,7 +460,7 @@ function StatusFields({
           name={`statuses.${index}.activity_type`}
           render={({ field }) => (
             <FormItem className="sm:min-w-48">
-              <FormLabel>Activity Type</FormLabel>
+              <FormLabel>Activity type</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -486,7 +486,7 @@ function StatusFields({
         name={`statuses.${index}.activity_name`}
         render={({ field }) => (
           <FormItem className="w-full">
-            <FormLabel>Activity Name</FormLabel>
+            <FormLabel>Activity name</FormLabel>
             <FormControl>
               <Input type="text" className="w-full" {...field} />
             </FormControl>
@@ -502,7 +502,7 @@ function StatusFields({
           rules={{ maxLength: { value: 128, message: "Max 128 characters" } }}
           render={({ field }) => (
             <FormItem className="w-full">
-              <FormLabel>Second Line</FormLabel>
+              <FormLabel>Second line</FormLabel>
               <FormControl>
                 <Input type="text" className="w-full" {...field} />
               </FormControl>

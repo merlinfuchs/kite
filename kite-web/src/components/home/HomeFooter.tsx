@@ -3,14 +3,14 @@ import Link from "next/link";
 import env from "@/lib/env/client";
 
 const botLinks = [
-  { label: "Bot Hosting", href: "/discord-bot-hosting" },
-  { label: "Moderation Bot", href: "/discord-moderation-bot" },
-  { label: "Welcome Bot", href: "/discord-welcome-bot" },
-  { label: "AI Bot", href: "/ai-discord-bot" },
-  { label: "AI Bot Maker", href: "/ai-discord-bot-maker" },
-  { label: "ER:LC Bot", href: "/erlc-discord-bot" },
-  { label: "MCP Server", href: "/discord-mcp-server" },
-  { label: "Cookie API Bot", href: "/cookie-api" },
+  { label: "Bot hosting", href: "/discord-bot-hosting" },
+  { label: "Moderation bot", href: "/discord-moderation-bot" },
+  { label: "Welcome bot", href: "/discord-welcome-bot" },
+  { label: "AI bot", href: "/ai-discord-bot" },
+  { label: "AI bot maker", href: "/ai-discord-bot-maker" },
+  { label: "ER:LC bot", href: "/erlc-discord-bot" },
+  { label: "MCP server", href: "/discord-mcp-server" },
+  { label: "Cookie API bot", href: "/cookie-api" },
 ];
 
 const compareLinks = [
@@ -18,7 +18,7 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
-  { label: "All Comparisons", href: "/alternatives" },
+  { label: "All comparisons", href: "/alternatives" },
 ];
 
 export default function HomeFooter() {
@@ -77,7 +77,7 @@ export default function HomeFooter() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <h3 className="font-bold text-lg">Discord Bots</h3>
+          <h3 className="font-bold text-lg">Discord bots</h3>
           {botLinks.map((link) => (
             <div key={link.href}>
               <Link href={link.href} className="opacity-60 hover:opacity-100">
@@ -116,12 +116,12 @@ export default function HomeFooter() {
           </div>
           <div>
             <Link href="/tools" className="opacity-60 hover:opacity-100">
-              Discord Tools
+              Discord tools
             </Link>
           </div>
           <div>
             <Link href="/marketplace" className="opacity-60 hover:opacity-100">
-              Bot Templates
+              Bot templates
             </Link>
           </div>
         </div>

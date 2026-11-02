@@ -84,7 +84,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
 
   return (
     <HomeLayout
-      title={`Discord Bot Templates by ${owner.display_name}`}
+      title={`Discord bot templates by ${owner.display_name}`}
       description={`Free templates for Discord bots that ${
         owner.display_name
       } made with Kite: ${templates.map((t) => t.name).join(", ")}.`}

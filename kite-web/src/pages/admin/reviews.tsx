@@ -36,7 +36,7 @@ export default function AdminReviewsPage() {
   return (
     <AdminPage
       title="Reviews"
-      description="Templates waiting to be listed in the marketplace, and new versions of listed ones, oldest first."
+      description="Templates waiting to be listed in the Marketplace, and new versions of listed ones, oldest first."
     >
       <div className="space-y-16">
         <ReviewList />
@@ -323,7 +323,7 @@ function Review({ id }: { id: string }) {
     toast.success(
       `Rejected ${
         template?.name ?? "the template"
-      } and banned its owner from the marketplace`
+      } and banned its owner from the Marketplace`
     );
   }
 

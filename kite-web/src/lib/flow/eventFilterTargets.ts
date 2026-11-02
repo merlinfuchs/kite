@@ -12,17 +12,17 @@ export const booleanEventFilterTargets: string[] = generated.boolean;
 const eventFilterModes: Record<string, string[]> = generated.modes;
 
 export const eventFilterTargetLabels: Record<string, string> = {
-  message_content: "Message Content",
+  message_content: "Message content",
   user_id: "User ID",
-  guild_id: "Guild ID",
+  guild_id: "Server ID",
   channel_id: "Channel ID",
   message_id: "Message ID",
-  role_id: "Member Role",
-  emoji: "Reaction Emoji",
-  message_has_attachment: "Message Has Attachment",
-  message_mentions_bot: "Message Mentions Bot",
-  user_is_bot: "User Is Bot",
-  audit_log_action: "Audit Log Action",
+  role_id: "Member role",
+  emoji: "Reaction emoji",
+  message_has_attachment: "Message has attachment",
+  message_mentions_bot: "Message mentions bot",
+  user_is_bot: "User is bot",
+  audit_log_action: "Audit log action",
 };
 
 // getEventFilterModes returns the modes a target can use, undefined if it can

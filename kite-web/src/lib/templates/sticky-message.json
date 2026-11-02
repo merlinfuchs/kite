@@ -5,12 +5,12 @@
   "description": "Keeps a message at the bottom of a channel by posting it again when the channel goes quiet.",
   "about": [
     "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-    "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
+    "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Message templates any time without opening the flow. It shows up after the next message in the channel."
   ],
   "faq": [
     {
       "question": "How do I change the sticky message?",
-      "answer": "Edit the Sticky message under Messages in your app. The next time the bot posts it, it uses the new version."
+      "answer": "Edit the Sticky message under Message templates in your app. The next time the bot posts it, it uses the new version."
     },
     {
       "question": "How many credits does it use?",
@@ -31,7 +31,7 @@
   "parameters": [
     {
       "key": "sticky_channel",
-      "label": "Sticky Channel",
+      "label": "Sticky channel",
       "description": "The channel the message stays at the bottom of.",
       "type": "channel",
       "required": true

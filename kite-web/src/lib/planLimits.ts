@@ -24,7 +24,7 @@ export const planLimits: {
   },
   {
     // 0 means no limit, like every other limit.
-    label: "Schedules",
+    label: "Scheduled tasks",
     value: (p) =>
       `${p.feature_max_scheduled_event_listeners || "Unlimited"}, ${every(
         p.feature_min_schedule_interval_seconds
@@ -40,7 +40,7 @@ export const planLimits: {
   },
   {
     // 0 means the plan doesn't include the flow AI.
-    label: "AI builder prompts / month",
+    label: "Flow AI prompts / month",
     value: (p) =>
       p.feature_max_ai_prompts_per_month > 0 &&
       formatNumber(p.feature_max_ai_prompts_per_month),
@@ -103,7 +103,7 @@ const highlights: {
   {
     shown: more((p) => p.feature_max_ai_prompts_per_month),
     text: (p) =>
-      `${formatNumber(p.feature_max_ai_prompts_per_month)} AI builder prompts`,
+      `${formatNumber(p.feature_max_ai_prompts_per_month)} Flow AI prompts`,
   },
   {
     shown: more((p) => p.feature_max_variables + p.feature_max_messages),

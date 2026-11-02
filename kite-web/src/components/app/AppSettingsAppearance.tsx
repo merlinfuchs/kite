@@ -83,7 +83,7 @@ export default function AppSettingsAppearance() {
         {
           onSuccess(res) {
             if (res.success) {
-              toast.success("Settings saved!");
+              toast.success("Settings saved.");
             } else {
               if (res.error.code === "validation_failed") {
                 setValidationErrors(form, res.error.data);
@@ -202,7 +202,7 @@ function BotImages() {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium">Avatar & Banner</div>
+      <div className="text-sm font-medium">Avatar & banner</div>
       <div className="flex flex-wrap gap-2">
         <ImageButton
           label="Change avatar"

@@ -28,7 +28,7 @@ export default function AppSettingsDelete() {
       onSuccess(res) {
         if (res.success) {
           track("app_deleted");
-          toast.success("App deleted!");
+          toast.success("App deleted.");
           router.push("/apps");
         } else {
           toast.error(
@@ -43,7 +43,7 @@ export default function AppSettingsDelete() {
     leaveMutation.mutate(userId, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Left app!");
+          toast.success("Left app.");
           router.push("/apps");
         } else {
           toast.error(
@@ -60,7 +60,7 @@ export default function AppSettingsDelete() {
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">
-              {isOwner ? "Delete App" : "Leave App"}
+              {isOwner ? "Delete app" : "Leave app"}
             </div>
             <div className="text-muted-foreground">
               {isOwner

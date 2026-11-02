@@ -20,10 +20,10 @@ const FlowExample = dynamic(() => import("@/components/flow/FlowExample"), {
 });
 
 const steps = [
-  "Create a Discord Application",
-  "Add Your Bot to Kite",
-  "Build Your First Command",
-  "Try It in Discord",
+  "Create a Discord application",
+  "Add your bot to Kite",
+  "Build your first command",
+  "Try it in Discord",
 ];
 
 const faqs = [
@@ -66,8 +66,8 @@ const videoJsonLd = {
 export default function HowToMakeADiscordBotPage() {
   return (
     <HomeLayout
-      title="How to Make a Discord Bot Without Coding"
-      description="Learn how to make your own Discord bot for free without coding. Create a Discord application, add it to Kite and build your first slash command in about 10 minutes."
+      title="How to make a Discord bot without coding"
+      description="Learn how to make your own Discord bot for free without coding. Create a Discord application, add it to Kite, and build your first slash command in about 10 minutes."
       jsonLd={[faqJsonLd(faqs), videoJsonLd]}
     >
       <section className="container max-w-5xl pt-16 md:pt-24 pb-8">
@@ -77,11 +77,11 @@ export default function HowToMakeADiscordBotPage() {
           </Link>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold mt-3 max-w-3xl">
-          How to Make a Discord Bot Without Coding
+          How to make a Discord bot without coding
         </h1>
         <p className="text-xl text-muted-foreground mt-6 max-w-3xl">
           You can make your own Discord bot for free without writing any code.
-          This guide shows you how to create the bot in Discord, add it to Kite
+          This guide shows you how to create the bot in Discord, add it to Kite,
           and build your first slash command.
         </p>
         <div className="flex flex-wrap gap-2 mt-6">
@@ -100,7 +100,7 @@ export default function HowToMakeADiscordBotPage() {
           ))}
         </div>
         <Button className="mt-8 md:w-48" asChild>
-          <Link href="/apps">Get Started for Free</Link>
+          <Link href="/apps">Get started for free</Link>
         </Button>
 
         <GuideContents steps={steps} />
@@ -125,8 +125,8 @@ export default function HowToMakeADiscordBotPage() {
               and sign in.
             </li>
             <li>
-              Click on <strong>New Application</strong>, give your bot a name
-              and upload an avatar.
+              Click <strong>New Application</strong>, give your bot a name, and
+              upload an avatar.
             </li>
             <li>
               Open the <strong>Bot</strong> page and turn on the three{" "}
@@ -134,7 +134,7 @@ export default function HowToMakeADiscordBotPage() {
               can&apos;t see new members or read messages.
             </li>
             <li>
-              Click on <strong>Reset Token</strong> and copy the token.
+              Click <strong>Reset Token</strong> and copy the token.
             </li>
           </ol>
           <p>
@@ -150,12 +150,11 @@ export default function HowToMakeADiscordBotPage() {
           <ol>
             <li>Open Kite and sign in with Discord.</li>
             <li>
-              Click on <strong>Create app</strong>, paste your token and
-              confirm.
+              Click <strong>Create app</strong>, paste your token, and confirm.
             </li>
             <li>
-              Click on <strong>Invite app</strong> at the top right and choose
-              your server.
+              Click <strong>Invite app</strong> at the top right and choose your
+              server.
             </li>
           </ol>
           <p>
@@ -183,7 +182,7 @@ export default function HowToMakeADiscordBotPage() {
           </p>
           <ol>
             <li>
-              Open <strong>Commands</strong> in the sidebar and click on{" "}
+              Open <strong>Commands</strong> in the sidebar and click{" "}
               <strong>Create command</strong>. Name it <code>hello</code>.
             </li>
             <li>
@@ -191,17 +190,17 @@ export default function HowToMakeADiscordBotPage() {
               editor and connect it to the command block.
             </li>
             <li>
-              Click on the new block and enter a message, like{" "}
+              Click the new block and enter a message, like{" "}
               <code>Hello {"{{user.mention}}"}!</code>
             </li>
             <li>
-              Click on <strong>Save Changes</strong>. Kite updates the command
-              in Discord a few seconds later.
+              Click <strong>Save changes</strong>. Kite updates the command in
+              Discord a few seconds later.
             </li>
           </ol>
           <p>
-            Stuck? Click on <strong>Ask AI</strong> in the editor and describe
-            what the command should do.
+            Stuck? Click <strong>Ask AI</strong> in the editor and describe what
+            the command should do. Flow AI builds it for you.
           </p>
         </GuideStep>
 
@@ -224,7 +223,7 @@ export default function HowToMakeADiscordBotPage() {
 
       <section className="container max-w-5xl pb-12 md:pb-16">
         <h2 className="text-3xl md:text-4xl font-bold">
-          Watch the Video Tutorial
+          Watch the video tutorial
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl">
           Prefer to follow along? TroubleChute shows how to create a bot with
@@ -240,7 +239,7 @@ export default function HowToMakeADiscordBotPage() {
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          What to Build Next
+          What to build next
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
           Templates add finished commands to your app in a few clicks. You can
@@ -264,7 +263,7 @@ export default function HowToMakeADiscordBotPage() {
 
       <section className="container py-12 md:py-16">
         <div className="prose dark:prose-invert text-foreground max-w-3xl mx-auto">
-          <h2>Making a Discord Bot With Code</h2>
+          <h2>Making a Discord bot with code</h2>
           <p>
             You can also write a bot yourself with a library like discord.js for
             JavaScript or discord.py for Python. This gives you full control,
@@ -291,17 +290,17 @@ export default function HowToMakeADiscordBotPage() {
 
 const nextSteps = [
   {
-    title: "Moderation Bot",
+    title: "Moderation bot",
     description: "Add /ban, /kick and /mute commands from a template.",
     href: "/discord-moderation-bot",
   },
   {
-    title: "Welcome Bot",
+    title: "Welcome bot",
     description: "Greet new members and give them a role.",
     href: "/discord-welcome-bot",
   },
   {
-    title: "AI Bot",
+    title: "AI bot",
     description: "Answer questions with an /ask command.",
     href: "/ai-discord-bot",
   },

@@ -66,7 +66,7 @@ export const columns: ColumnDef<Guild>[] = [
   },
   {
     accessorKey: "created_at",
-    header: () => <div>Created At</div>,
+    header: () => <div>Created at</div>,
     cell: ({ row }) => (
       <div>{new Date(row.getValue("created_at")).toLocaleString()}</div>
     ),

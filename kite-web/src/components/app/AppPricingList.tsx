@@ -167,12 +167,12 @@ function PricingButton({
       onClick={canSwitch ? undefined : onCheckout}
     >
       {canSwitch
-        ? "Switch Plan"
+        ? "Switch plan"
         : pricing.current
-        ? "Current Plan"
+        ? "Current plan"
         : blockedByOtherOwner
         ? "Managed by another user"
-        : "Get Started"}
+        : "Get started"}
     </Button>
   );
 

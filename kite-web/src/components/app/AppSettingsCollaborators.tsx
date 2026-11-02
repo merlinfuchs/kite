@@ -122,7 +122,7 @@ export default function AppSettingsCollaborators() {
             variant="outline"
             disabled={currentCollaborators >= maxCollaborators}
           >
-            Add Collaborator
+            Add collaborator
           </Button>
         </AppCollaboratorAddDialog>
       </CardContent>
@@ -133,7 +133,7 @@ export default function AppSettingsCollaborators() {
 function RemoveCollaboratorButton({ onConfirm }: { onConfirm: () => void }) {
   return (
     <ConfirmDialog
-      title="Remove Collaborator"
+      title="Remove collaborator"
       description="Are you sure you want to remove this collaborator?"
       onConfirm={onConfirm}
     >

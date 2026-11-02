@@ -70,7 +70,7 @@ export default function AppCollaboratorAddDialog({
                 `@${res.data.invite.discord_username} will be added when they log in to Kite.`
               );
             } else {
-              toast.success("Collaborator added!");
+              toast.success("Collaborator added.");
             }
             form.reset();
             setOpen(false);
@@ -93,7 +93,7 @@ export default function AppCollaboratorAddDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Collaborator</DialogTitle>
+          <DialogTitle>Add collaborator</DialogTitle>
           <DialogDescription>
             Add a new collaborator to your app to allow them to manage it.
           </DialogDescription>

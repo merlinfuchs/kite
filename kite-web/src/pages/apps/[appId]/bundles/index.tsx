@@ -30,7 +30,7 @@ import Link from "next/link";
 
 const breadcrumbs = [
   {
-    label: "Your Templates",
+    label: "Your templates",
   },
 ];
 
@@ -48,11 +48,11 @@ export default function AppBundlesPage() {
     );
 
   return (
-    <AppLayout title="Your Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Your templates" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
-            Your Templates
+            Your templates
           </h1>
           <p className="text-muted-foreground text-sm">
             The templates this app added, and the ones you made from its
@@ -63,7 +63,7 @@ export default function AppBundlesPage() {
               target="_blank"
               className="text-primary hover:underline"
             >
-              Learn More
+              Learn more
             </a>
           </p>
         </div>
@@ -221,7 +221,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             size="sm"
             className="col-span-2 row-start-2 justify-self-start ml-[3.25rem] sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ml-0"
           >
-            List in marketplace
+            List in Marketplace
           </Button>
         </BundlePageDialog>
       )}

@@ -5,13 +5,13 @@ sidebar_position: 4.5
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
-# Building with AI Clients (MCP)
+# Building with AI clients (MCP)
 
 Kite is an MCP server, so AI clients like Claude, ChatGPT, Claude Code and Codex can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
 
-The client uses its own AI model, so this doesn't use [flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
+The client uses its own AI model, so this doesn't use [Flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
 
-## Connect Your Client
+## Connect your client
 
 The server is at `https://kite.onl/api/mcp`. Most clients connect by signing in: you add the URL, the client opens Kite, and you pick what it can do. Clients that can't sign in, like Cursor, use an [API token](#api-tokens) instead.
 
@@ -145,7 +145,7 @@ Add a remote MCP server with Streamable HTTP and the URL above. If the client ca
 </TabItem>
 </Tabs>
 
-## Signing In
+## Signing in
 
 When a client signs in, Kite shows which client it is and the domain it comes from, like claude.ai. Kite marks the clients it knows, like Claude and ChatGPT, as verified. Only connect a client you just added yourself.
 
@@ -158,7 +158,7 @@ Clients that sign in can't send requests to Discord as your bot. For that, conne
 
 Connected clients are listed under [API tokens](https://kite.onl/apps?api-tokens), where you can disconnect them. A client stays connected as long as you use it. After 30 days without using it, it has to sign in again.
 
-## API Tokens
+## API tokens
 
 Clients that can't sign in connect with an API token, and so do clients that need the [Discord API](#discord-api). Open [API tokens](https://kite.onl/apps?api-tokens) in the dashboard and pick what the token can do, like when [signing in](#signing-in), and whether it can send requests to Discord.
 
@@ -168,7 +168,7 @@ The token is only shown once, right after you create it. The dialog also shows h
 
 ![Creating a token for Claude Code that can change two apps and read from Discord, and the command to add it to Claude Code](./img/mcp-token.webp)
 
-## What You Can Ask For
+## What you can ask for
 
 Start by telling the client which app to work on, or ask it to list your apps. Some examples:
 
@@ -201,6 +201,6 @@ The bot can only do what its roles allow in a server. A few endpoints can't be u
 
 Every change is logged in your app's [logs](./troubleshooting.md#logs) with the name of the token. Changes that show up in the server's audit log have the token's name as the reason. Clients can send up to 30 requests per minute.
 
-## Self-Hosting
+## Self-hosting
 
 The MCP server runs in the Kite website's server. If you self-host Kite with the static export of the website, it isn't available.

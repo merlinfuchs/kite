@@ -26,25 +26,24 @@ const categoryInfo: Record<
   { title: string; tab: string; description: string }
 > = {
   action: {
-    title: "Action Blocks",
+    title: "Action blocks",
     tab: "Action",
-    description: "With Action Blocks you can perform actions with your app.",
+    description: "Action blocks do things in Discord, like sending a message.",
   },
   control_flow: {
-    title: "Control Flow Blocks",
+    title: "Control flow blocks",
     tab: "Control",
-    description: "With Control Flow Blocks you define how your app behaves.",
+    description: "Control flow blocks decide which steps run, and how often.",
   },
   option: {
-    title: "Option Blocks",
+    title: "Option blocks",
     tab: "Option",
-    description: "With Option Blocks you add option to other blocks.",
+    description: "Option blocks add options to other blocks.",
   },
   integration: {
-    title: "Integration Blocks",
+    title: "Integration blocks",
     tab: "Integrations",
-    description:
-      "With Integration Blocks you can use other services in your app.",
+    description: "Integration blocks use other services, like Roblox or ER:LC.",
   },
 };
 
@@ -302,7 +301,7 @@ function PlanBadge({ feature }: { feature: keyof Features }) {
 
   return (
     <div className="bg-primary/15 text-primary rounded px-1.5 text-xs font-medium flex-none">
-      {plan?.title ?? "Premium"}
+      {plan?.title ?? "Paid"}
     </div>
   );
 }

@@ -82,8 +82,8 @@ export default function ImportItems({
     track("bundle_imported", { count: res.data.items.length });
     toast.success(
       res.data.items.length === 1
-        ? "Imported 1 item!"
-        : `Imported ${res.data.items.length} items!`
+        ? "Imported 1 item."
+        : `Imported ${res.data.items.length} items.`
     );
     if (missingSecrets.length) {
       toast.warning(

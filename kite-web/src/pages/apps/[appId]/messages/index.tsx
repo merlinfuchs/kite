@@ -6,16 +6,16 @@ import env from "@/lib/env/client";
 
 const breadcrumbs = [
   {
-    label: "Message Templates",
+    label: "Message templates",
   },
 ];
 
 export default function AppMessagesPage() {
   return (
-    <AppLayout title="Message Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Message templates" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Message Templates
+          Message templates
         </h1>
         <p className="text-muted-foreground text-sm">
           Create message templates that can be used as responses to commands and
@@ -25,7 +25,7 @@ export default function AppMessagesPage() {
             target="_blank"
             className="text-primary hover:underline"
           >
-            Learn More
+            Learn more
           </a>
         </p>
       </div>

@@ -100,35 +100,35 @@ function fixedCredits(block: BlockDefinition) {
 const profileFeatures = [
   {
     plan: "Free",
-    title: "Custom Status",
+    title: "Custom status",
     description:
       "On every plan, your bot can show your own status and activity instead of the default one, like Watching #support.",
     mockup: <StatusMockup statuses={[customStatus]} />,
   },
   {
     plan: "Plus and up",
-    title: "Rotating Status",
+    title: "Rotating status",
     description:
       "Your bot rotates through up to 10 statuses every minute, and flows can change its status with the Set status block.",
     mockup: <StatusMockup statuses={rotatingStatuses} />,
   },
   {
     plan: "Plus and up",
-    title: "Animated Avatar & Banner",
+    title: "Animated avatar and banner",
     description:
       "Your bot's avatar and banner can be animated GIFs or WebPs. Change them in the settings of your bot.",
     mockup: <ProfileMockup />,
   },
   {
     plan: "Premium and up",
-    title: "Profile per Server",
+    title: "Profile per server",
     description:
       "Your bot can have another nickname, avatar, banner and About Me in each server. Set them on the Servers page or from a flow with the Edit server profile block.",
     mockup: <ServerProfileMockup />,
   },
   {
     plan: "Premium and up",
-    title: "Send Message As",
+    title: "Send message as",
     description:
       "The Send message as block sends a single message with another name and avatar, like the user who ran a command or a character in a roleplay. Your bot keeps its own name and avatar everywhere else.",
     mockup: <PersonaMockup />,
@@ -144,12 +144,12 @@ export default function PricingPage({
     {
       question: "Is Kite free?",
       answer:
-        "Yes. Every bot starts on the free plan, with 24/7 hosting, 10,000 credits per month and up to 100 servers. You don't need a credit card, and it isn't a trial that runs out. Premium plans raise the limits, but you don't need one to run a bot.",
+        "Yes. Every bot starts on the free plan, with 24/7 hosting, 10,000 credits per month, and up to 100 servers. You don't need a credit card, and the free plan has no time limit. Paid plans raise the limits, but you don't need one to run a bot.",
     },
     {
       question: "Do I pay per bot or per account?",
       answer:
-        "Per bot. A Premium subscription belongs to one bot, and the prices are per bot and month. Your other bots stay on the free plan.",
+        "Per bot. A paid plan belongs to one bot, and the prices are per bot and month. Your other bots stay on the free plan.",
     },
     {
       question: "How many bots can I create?",
@@ -163,30 +163,30 @@ export default function PricingPage({
     },
     {
       question: "Does Kite have AI features?",
-      answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 2 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
+      answer: `Yes. Flow AI, the AI assistant in the editor, builds and changes flows from a description. The free plan includes 2 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
     },
     {
       question: "Can my bot send messages with a different name and avatar?",
       answer:
-        "Every bot has its own name, avatar and banner on every plan. Premium plans add the Send message as block, which sends a single message with another name and avatar, like the name and avatar of the user who ran a command or of a character in a roleplay. Your bot's own profile doesn't change. The message goes through a webhook your bot creates in the channel, so it needs the Manage Webhooks permission there.",
+        "Every bot has its own name, avatar, and banner on every plan. Kite Premium and Kite Ultimate add the Send message as block, which sends a single message with another name and avatar, like the name and avatar of the user who ran a command or of a character in a roleplay. Your bot's own profile doesn't change. The message goes through a webhook your bot creates in the channel, so it needs the Manage Webhooks permission there.",
     },
     {
       question: "Can I cancel or get a refund?",
-      answer: `You can cancel any time, and Premium keeps working until the end of the period you paid for. You can ask for a refund within 14 days of a payment by writing to ${env.NEXT_PUBLIC_CONTACT_EMAIL}.`,
+      answer: `You can cancel any time, and your bot keeps its plan until the end of the period you paid for. You can get a full refund of the first payment of a subscription within 14 days, once per bot, by writing to ${env.NEXT_PUBLIC_CONTACT_EMAIL}. Renewals and plan changes aren't refunded.`,
     },
   ];
 
   return (
     <HomeLayout
-      title="Pricing: Free Discord Bot Maker Plans"
-      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 15 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
+      title="Pricing: free Discord bot maker plans"
+      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 15 commands per bot. No credit card. Compare the free and paid plans and the credit costs."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <HomePricingSection
         initial={plans}
         header={
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold">Kite Pricing</h1>
+            <h1 className="text-4xl md:text-5xl font-bold">Kite pricing</h1>
             <p className="text-xl text-muted-foreground mt-6 max-w-3xl mx-auto">
               Kite is a free Discord bot maker. Every bot starts on the free
               plan and is hosted 24/7 with your own name, avatar and status.
@@ -200,14 +200,14 @@ export default function PricingPage({
 
       <section className="container max-w-3xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          How Credits Work
+          How credits work
         </h2>
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Every time a block in a command or event listener runs, your bot uses
           the credits below. When a bot has used all of its credits, its
-          commands and events pause until the next month begins. Prompts to the
-          AI builder don&apos;t use credits, each plan includes a number of them
-          per month.
+          commands and events pause until the next month begins. Prompts to Flow
+          AI don&apos;t use credits. Each plan includes a number of them per
+          month.
         </p>
         <table className="w-full mt-10 text-left">
           <thead>
@@ -238,7 +238,7 @@ export default function PricingPage({
 
       <section className="container max-w-3xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          Estimate Your Usage
+          Estimate your usage
         </h2>
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Pick what your bot will do and how big your server is to see if the
@@ -260,7 +260,7 @@ function ProfileFeaturesSection() {
   return (
     <section className="container py-12 md:py-16">
       <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Status & Profile Features
+        Status and profile features
       </h2>
       <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
         Every bot has its own name, avatar, banner and status on every plan.

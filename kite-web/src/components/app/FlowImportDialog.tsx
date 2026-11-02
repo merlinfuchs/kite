@@ -439,7 +439,7 @@ function ImportForm({
           previewShareData(data as ShareData, "json");
         } else if (type === "bundle") {
           toast.error(
-            "This share code has several items, import it under Templates"
+            "This share code has several items. Import it on the Your templates page."
           );
         } else if (type !== kind) {
           toast.error(`This share code is not for a ${label}`);
