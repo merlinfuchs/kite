@@ -27,7 +27,7 @@ export default function KiteBanDialog() {
             {error?.message}
           </AlertDialogDescription>
           <AlertDialogDescription>
-            Your bots were stopped. To appeal, ask on our Discord server.
+            Your apps were stopped. To appeal, ask on our Discord server.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

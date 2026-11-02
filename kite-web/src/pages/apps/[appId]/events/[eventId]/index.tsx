@@ -74,7 +74,7 @@ export default function AppEventListenerPage() {
         toast.success(
           `${capitalize(
             name.singular
-          )} saved! It may take up to a minute for all changes to take effect.`
+          )} saved. It may take up to a minute for all changes to take effect.`
         );
         base.current = res.data.version;
         if (changeCount.current === savedChangeCount) {

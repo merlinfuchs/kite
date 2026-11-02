@@ -57,7 +57,7 @@ For user, role, mentionable and channel selects, `picked(...)` returns the picke
 | `{{picked('reported')}}`                          | A mention of the picked member        |
 | `{{join(map(pickedAll('roles'), #.name), ', ')}}` | The names of the picked roles         |
 
-## File Uploads
+## File uploads
 
 A file upload lets the user upload files, like images or screenshots, when submitting the modal. It allows one file unless you raise Max Files, up to 10. `input(...)` returns the ID of the first file, and `picked(...)` the file itself, with its `url`, `proxy_url`, `filename`, `content_type` and `size` in bytes. On its own it shows as its URL. `pickedAll(...)` returns all files as a list:
 

@@ -2,7 +2,7 @@
 sidebar_position: 2.6
 ---
 
-# Cookie API Discord Bot
+# Cookie API Discord bot
 
 Kite can connect your Discord bot to [Cookie API](https://cookie-api.com). Your bot can save ticket transcripts, make welcome cards, check new members with a captcha, link Minecraft accounts and make QR codes, all with blocks in the flow editor.
 
@@ -23,7 +23,7 @@ The Cookie API blocks are in the `Cookie API` section of the action blocks. Each
 
 In the examples below, `result('id')` stands for the result of the block with that ID. The placeholder explorer fills it in for you when you click on a field like the transcript's URL.
 
-## Ticket Transcripts
+## Ticket transcripts
 
 A `/close` command that saves the ticket channel before deleting it:
 
@@ -36,7 +36,7 @@ A `/close` command that saves the ticket channel before deleting it:
 
 A transcript has up to the last 500 messages of the channel. Anyone with its link can open it, and the links are easy to guess, so set a password for tickets. The bot needs to see the channel. If it can't, Cookie API answers with `Invalid Channel ID`.
 
-## Welcome Cards
+## Welcome cards
 
 Design the card in the [Card Builder](https://trolensdesign.github.io/CardBuilder-cookie-api/) and copy its JSON. Placeholders work inside it, so `"text": "Welcome {{ user.display_name }}"` greets each member by name and `"user_id": "{{ user.id }}"` shows their avatar in a Discord profile element.
 
@@ -44,7 +44,7 @@ The [Welcomer template](https://kite.onl/marketplace/welcomer) is a good start. 
 
 Cookie API deletes cards after 7 days, which is fine for a welcome message but not for an image you want to keep.
 
-## Captcha Verification
+## Captcha verification
 
 A captcha keeps bots out better than the plain button of the [Verification template](https://kite.onl/marketplace/verification):
 
@@ -53,12 +53,12 @@ A captcha keeps bots out better than the plain button of the [Verification templ
 
 A captcha expires after an hour.
 
-## Linking Minecraft Accounts
+## Linking Minecraft accounts
 
 Players join `verify.cookie-api.com` in Minecraft, Java or Bedrock, and get a code. A `/link` command with a `code` [argument](../reference/blocks/options/option_command_argument.md) runs [Verify Minecraft player](../reference/blocks/actions/action_cookie_api_minecraft_user_get.md) with `{{arg('code')}}`. Its result has the player's name, `{{ result('id').player_name }}`, their UUID and their edition.
 
 Store the name in a variable for the member, or set it as their nickname with [Edit member nickname](../reference/blocks/actions/action_member_edit.md). A wrong code makes the block fail, so add an [error handler](../reference/blocks/controls/control_error_handler.md) that tells the member to try again.
 
-## QR Codes
+## QR codes
 
 [Generate QR code](../reference/blocks/actions/action_cookie_api_qr_code_create.md) turns a link or text into an image, with squares or dots and an optional logo in the middle. Use `{{ result('id').url }}` as the image of an embed, for example for a link to your website or a giveaway.

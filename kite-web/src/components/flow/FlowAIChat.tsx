@@ -488,7 +488,7 @@ export default memo(function FlowAIChat({
               }}
               placeholder={
                 limit === 0
-                  ? "Your plan doesn't include the flow AI."
+                  ? "Your plan doesn't include Flow AI."
                   : "Ask a question or for a change..."
               }
               maxLength={4000}

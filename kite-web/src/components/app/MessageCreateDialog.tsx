@@ -40,7 +40,7 @@ const createDefaultMessage = (name: string) => ({
         "You can use message templates to create Discord messages that contain embeds and interactive components. They can be used to create standalone messages or as a response to commands or other events.",
       color: 16735232,
       author: {
-        name: "About Message Templates",
+        name: "About message templates",
       },
       thumbnail: {
         url: "https://kite.onl/logo.png",
@@ -85,7 +85,7 @@ export default function MessageCreateDialog({
         onSuccess(res) {
           if (res.success) {
             track("message_created", { source: "blank" });
-            toast.success("Message created!");
+            toast.success("Message created.");
             setOpen(false);
 
             if (onMessageCreated) {

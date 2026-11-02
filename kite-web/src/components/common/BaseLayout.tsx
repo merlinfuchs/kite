@@ -30,7 +30,7 @@ export default function BaseLayout({
 }) {
   const router = useRouter();
 
-  const pageTitle = title ?? "Free Discord Bot Maker, No Coding Required";
+  const pageTitle = title ?? "Free Discord bot maker, no coding required";
   const fullTitle = `Kite | ${pageTitle}`;
   const fullDescription =
     description ||

@@ -15,7 +15,7 @@ This block uses AI to process and summarize web search results, providing you wi
 
 The prompt can be up to 64,000 bytes, after placeholders are filled in, or 8,000 bytes with Smartest. That's 64,000 characters of English text, and fewer in other scripts or with emoji, which take up to 4 bytes each.
 
-The answer can be up to 500 tokens long, about 2,000 characters of English. Set `Max Answer Length` to allow up to 1,000.
+The answer can be up to 500 tokens long, about 2,000 characters of English. Set `Max answer length` to allow up to 1,000.
 
 Prompts over 8,000 bytes and answers over 500 tokens cost more, see the [credit costs](../../credit-system.md#cost-breakdown).
 

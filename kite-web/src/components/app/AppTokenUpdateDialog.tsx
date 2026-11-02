@@ -56,8 +56,8 @@ export default function AppTokenUpdateDialog({
             track("token_updated", { from });
             toast.success(
               app.no_credits
-                ? "Token updated! Your bot is starting again, its commands and events run once it has credits."
-                : "Token updated! Your bot is starting again."
+                ? "Token updated. Your bot is starting again, and its commands and events run once it has credits."
+                : "Token updated. Your bot is starting again."
             );
             onOpenChange(false);
           } else {
@@ -77,10 +77,10 @@ export default function AppTokenUpdateDialog({
       <DialogContent>
         <form onSubmit={onSubmit} className="space-y-5">
           <DialogHeader>
-            <DialogTitle>Update Token</DialogTitle>
+            <DialogTitle>Update token</DialogTitle>
             <DialogDescription>
               Open your bot in the Discord Developer Portal, click on{" "}
-              <strong>Reset Token</strong> under <strong>Bot</strong> and copy
+              <strong>Reset token</strong> under <strong>Bot</strong> and copy
               the new token.
             </DialogDescription>
           </DialogHeader>
@@ -95,7 +95,7 @@ export default function AppTokenUpdateDialog({
             </a>
           </Button>
           <div className="space-y-2">
-            <Label htmlFor="discord-token">Bot Token</Label>
+            <Label htmlFor="discord-token">Bot token</Label>
             <Input
               id="discord-token"
               type="password"

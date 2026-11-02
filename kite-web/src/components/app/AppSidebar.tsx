@@ -74,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {appId && (
         <nav
-          aria-label="Mobile Navigation"
+          aria-label="Mobile navigation"
           className="z-40 block md:hidden select-none fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border shadow-lg pb-[env(safe-area-inset-bottom)]"
         >
           <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
@@ -159,7 +159,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           )}
         >
           <DrawerHeader className="sr-only">
-            <DrawerTitle>Navigation Menu</DrawerTitle>
+            <DrawerTitle>Navigation menu</DrawerTitle>
             <DrawerDescription>
               Mobile navigation options for Kite
             </DrawerDescription>

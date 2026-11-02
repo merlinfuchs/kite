@@ -11,7 +11,7 @@ export default function AppListPage() {
       <LegalUpdateDialog />
       <AccountPageLayout>
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl mb-1">Your Apps</h1>
+          <h1 className="text-lg font-semibold md:text-2xl mb-1">Your apps</h1>
           <p className="text-muted-foreground text-sm">
             Apps are where you build commands, manage integrations and settings.
             Create an app or ask your team to invite you. Need help?{" "}

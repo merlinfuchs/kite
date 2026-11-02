@@ -33,7 +33,7 @@ export default function AppMarketplacePage() {
               target="_blank"
               className="text-primary hover:underline"
             >
-              Learn More
+              Learn more
             </a>
           </p>
         </div>

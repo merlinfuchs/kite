@@ -38,7 +38,7 @@ export default function AppPage() {
               }}
             />
             <AppResourceCard
-              title="Event Listeners"
+              title="Event listeners"
               count={entityCounts?.event_listener || 0}
               actionTitle="Manage events"
               actionHref={{

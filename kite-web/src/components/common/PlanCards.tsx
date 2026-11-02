@@ -55,7 +55,7 @@ export default function PlanCards<P extends BillingPlan>({
                 {badge?.(plan)}
                 {plan.popular && (
                   <Badge variant="secondary" className="text-primary">
-                    Best Value
+                    Best value
                   </Badge>
                 )}
               </div>

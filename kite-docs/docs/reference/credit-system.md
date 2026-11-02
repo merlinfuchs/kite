@@ -2,11 +2,11 @@
 sidebar_position: 5
 ---
 
-# Credit System
+# Credit system
 
-Kite is free to use, but we do have a credit system in place to prevent abuse. Most actions taken by your app in flows will consume [a set amount](#cost-breakdown) of credits.
+Kite is free to use, and credits keep that sustainable. Most actions your app takes in flows use [a set number](#cost-breakdown) of credits.
 
-By default, your app has **10,000 credits available per month**. This is usually more than enough for most apps. You can always subscribe to one of the **Premium** plans to get more credits.
+On the free plan, your app has **10,000 credits per month**, which is enough for most apps. [Paid plans](./premium.md) include more: 30,000 with Kite Plus, 100,000 with Kite Premium, and 1,000,000 with Kite Ultimate.
 
 To see if that's enough before you build anything, use the calculator on the [pricing page](https://kite.onl/pricing). Pick the templates your bot would use and the size of your server, and it estimates the credits for a month.
 
@@ -15,9 +15,9 @@ You can track your credit usage on the dashboard in the Monthly Usage section. A
 
 Once your app has used 80% of its credits, the dashboard warns you and your bot sends you a direct message. When it has used all of them, its commands and event listeners pause and your bot sends you another one. It stays online, and anyone who uses a command, button or form gets a reply that says it's paused and until when, and that it's made with Kite. It runs again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits.
 
-If your bot can't send you a direct message, because you share no server with it or don't allow its messages, the Kite bot sends it if you're in the Kite Discord server. You can turn these messages off under `Credit Messages` on the `Settings` page of your app.
+If your bot can't send you a direct message, because you share no server with it or don't allow its messages, the Kite bot sends it if you're in the Kite Discord server. You can turn these messages off under `Credit messages` on the `Settings` page of your app.
 
-## Cost Breakdown
+## Cost breakdown
 
 Credits pay for what your flows do, not for what they look up. Most actions in flows will consume **1 credit per execution** with a few exceptions:
 
@@ -25,11 +25,11 @@ Credits pay for what your flows do, not for what they look up. Most actions in f
   - Fast (default): 5 credits per execution
   - Balanced: 20 credits per execution
   - Smartest: 100 credits per execution
-- **`Search The Web` block**:
+- **`Search the Web` block**:
   - Fast (default): 25 credits per execution
   - Balanced: 100 credits per execution
   - Smartest: 500 credits per execution
-- **`Send API request` block**: 3 credits per execution
+- **`Send API Request` block**: 3 credits per execution
 - **`AI Translate` block**: 1 credit for every 1,000 characters of text
 - **Blocks that only read**: free. That's `Get stored variable` and the blocks that get a server, channel, role, member, user or message, or list messages. Reading from other services, like `Get ER:LC server`, still costs 1 credit.
 
@@ -37,7 +37,7 @@ The costs of `Ask AI` and `Search the Web` cover 8,000 bytes of prompt and 500 t
 
 Control flow blocks, like conditions and loops, will not consume any credits, except `AI Choice` and `AI Check`, which cost 1 credit like `AI Score`.
 
-## Estimating Usage
+## Estimating usage
 
 The flow editor shows the most credits one run of the flow can cost at the top, next to `Ask AI`. It counts AI blocks at what they cost with up to 8,000 bytes of prompt and 500 tokens of answer. It counts one branch of each condition and leaves out what buttons run, since they run when they're clicked. Templates show the same for each of their commands and event listeners, and what that adds up to at 100, 500 and 2,000 runs a month.
 

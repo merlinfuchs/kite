@@ -15,7 +15,7 @@ The `Create forum post` block is used to create a post in a forum or media chann
 
 > `Channel` The forum or media channel to create the post in.
 >
-> `Post Title` The title of the post, up to 100 characters.
+> `Post title` The title of the post, up to 100 characters.
 >
 > `Tags` Names of up to 5 of the forum's tags, separated by commas. Leave empty for a post without tags. The block fails if the forum has no tag with one of the names, or if the forum requires a tag and none is set.
 

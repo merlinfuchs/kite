@@ -9,12 +9,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free BotGhost Alternative",
+  title: "Free BotGhost alternative",
   description:
     "Looking for a BotGhost alternative? Kite is a free, open source Discord bot maker with a free custom status, up to 100 servers and no inactivity rule.",
   competitor: "BotGhost",
   lastChecked: "October 2026",
-  heading: "A Free BotGhost Alternative",
+  heading: "A free BotGhost alternative",
   intro:
     "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you replace Kite's status with your own for free and keeps your bot online even on quiet days. Kite is also open source.",
   chooseKite: [
@@ -60,7 +60,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "50+ templates in the marketplace",
+      kite: "80+ templates in the Marketplace",
       competitor: "Many",
     },
     {
@@ -71,17 +71,17 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "Your Own Status for Free",
+      title: "Your own status for free",
       description:
         'On BotGhost\'s free plan, your bot\'s status says "Made with BotGhost" and changing it needs Premium. Kite shows "Powered by Kite.onl" until you set your own status, and that\'s free.',
     },
     {
-      title: "Higher Free Limits",
+      title: "Higher free limits",
       description:
         "BotGhost's free plan allows 5 servers, 3 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 15 commands and 10 event listeners.",
     },
     {
-      title: "No Inactivity Rule",
+      title: "No inactivity rule",
       description:
         "Free BotGhost bots only stay online if a command is used at least every 48 hours. Kite keeps your bot online whether it's used or not.",
     },

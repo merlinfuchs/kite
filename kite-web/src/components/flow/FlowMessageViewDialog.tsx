@@ -35,7 +35,7 @@ export default function FlowMessageViewDialog({
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full">
-          View Message
+          View message
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">

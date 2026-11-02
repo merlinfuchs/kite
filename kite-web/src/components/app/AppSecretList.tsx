@@ -65,7 +65,7 @@ function AppSecretListEntry({ secret }: { secret: AppSecret }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Secret deleted!");
+          toast.success("Secret deleted.");
         } else {
           toast.error(
             `Failed to delete secret: ${res.error.message} (${res.error.code})`

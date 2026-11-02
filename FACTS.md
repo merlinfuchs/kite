@@ -88,10 +88,10 @@ Stats (number | what it counts | source | date checked):
 - 2024 | year Kite started | first commit 2024-01-10 | 2026-11-02
 - Most added templates: Moderation 482, Ask AI 432, Server Info 260, Welcomer 257, Giveaways 235 | install_count from /v1/bundles | 2026-11-02
 
-Main page action: "Get Started for Free", to /apps. Marketplace pages lead with adding a template. /pricing leads with the plan cards.
+Main page action: "Get started for free", to /apps. Marketplace pages lead with adding a template. /pricing leads with the plan cards.
 
 Exact names of things users see:
-- Dashboard sidebar: Dashboard, Upgrade (Plan on a paid plan), Settings, Logs, Servers, Emojis, Commands, Event Listeners, Scheduled Tasks, Webhooks, Message Templates, Marketplace, Your Templates, Stored Variables, Secrets, Integrations.
+- Dashboard sidebar: Dashboard, Upgrade (Plan on a paid plan), Settings, Logs, Servers, Emojis, Commands, Event listeners, Scheduled tasks, Webhooks, Message templates, Marketplace, Your templates, Stored variables, Secrets, Integrations.
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
 - Integrations: Discord, ER:LC, Roblox, Cookie API.

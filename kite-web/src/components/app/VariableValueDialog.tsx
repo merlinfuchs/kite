@@ -101,7 +101,7 @@ export default function VariableValueDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Value saved!");
+            toast.success("Value saved.");
             setOpen(false);
           } else if (res.error.code === "validation_failed") {
             setValidationErrors(form, res.error.data);
@@ -128,7 +128,7 @@ export default function VariableValueDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {readOnly ? "View Value" : value ? "Edit Value" : "Add Value"}
+            {readOnly ? "View value" : value ? "Edit value" : "Add value"}
           </DialogTitle>
           <DialogDescription>
             {readOnly

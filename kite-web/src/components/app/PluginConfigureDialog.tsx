@@ -200,7 +200,7 @@ export function PluginConfigureDialog({
           {!!plugin.events.length && (
             <div>
               <div className="mb-3">
-                <div className="font-medium mb-0.5">Event Listeners</div>
+                <div className="font-medium mb-0.5">Event listeners</div>
                 <div className="text-sm text-muted-foreground">
                   Select the event listeners you want to import.
                 </div>

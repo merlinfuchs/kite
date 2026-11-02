@@ -40,7 +40,7 @@ import {
 
 const chartConfig = {
   credits_used: {
-    label: "Credits Used",
+    label: "Credits used",
     color: "hsl(var(--primary))",
   },
   projected: {
@@ -99,7 +99,7 @@ export default function UsageCreditsByDayChart() {
     <Card>
       <CardHeader>
         <CardDescription className="flex items-center gap-2">
-          <div>Monthly Usage</div>
+          <div>Monthly usage</div>
           <Link
             href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system`}
             target="_blank"

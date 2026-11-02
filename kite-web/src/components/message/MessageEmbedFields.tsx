@@ -31,14 +31,14 @@ export default function MessageEmbedFields({ embedId }: { embedId: NodeId }) {
           size="sm"
           disabled={fieldIds.length >= 25}
         >
-          Add Field
+          Add field
         </Button>
         <Button
           onClick={() => removeChildren(embedId, "fields")}
           variant="destructive"
           size="sm"
         >
-          Clear Fields
+          Clear fields
         </Button>
       </div>
     </CollapsibleSection>

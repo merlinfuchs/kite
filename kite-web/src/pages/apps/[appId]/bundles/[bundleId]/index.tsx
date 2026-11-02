@@ -33,14 +33,14 @@ export default function AppBundlePage() {
 
   return (
     <AppLayout
-      title={template ? `${template.name} Template` : "Template"}
+      title={template ? `${template.name} template` : "Template"}
       breadcrumbs={[
-        { label: "Your Templates", href: "/apps/[appId]/bundles" },
+        { label: "Your templates", href: "/apps/[appId]/bundles" },
         {
           label:
             template?.name ??
             install?.name ??
-            (template === null ? "Unknown Template" : "Template"),
+            (template === null ? "Unknown template" : "Template"),
         },
       ]}
     >

@@ -30,7 +30,7 @@ export default function PlanDetails({
               <h3 className="font-semibold">{plan.title}</h3>
               {plan.popular && (
                 <Badge variant="secondary" className="text-primary">
-                  Best Value
+                  Best value
                 </Badge>
               )}
             </div>

@@ -599,9 +599,7 @@ function BuildYourOwnCard({ href }: { href: LinkProps["href"] }) {
         </div>
         <div>
           <div className="font-semibold">Build your own</div>
-          <div className="text-xs text-muted-foreground">
-            With Kite&apos;s AI
-          </div>
+          <div className="text-xs text-muted-foreground">With Flow AI</div>
         </div>
       </div>
       <div className="text-sm text-muted-foreground line-clamp-2">
@@ -637,8 +635,8 @@ function NoMatches({
           : "No templates match"}
       </div>
       <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-        Describe what you need and Kite&apos;s AI builds it for you, or connect
-        the blocks yourself in the editor.
+        Describe what you need and Flow AI builds it for you, or connect the
+        blocks yourself in the editor.
       </p>
       <Button className="mt-5" asChild>
         <Link href={href}>Build it with AI</Link>

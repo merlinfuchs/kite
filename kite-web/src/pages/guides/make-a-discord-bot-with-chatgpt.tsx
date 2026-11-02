@@ -11,10 +11,10 @@ export default function MakeADiscordBotWithChatGPTPage() {
     <AIClientGuide
       content={{
         client: "ChatGPT",
-        title: "How to Make a Discord Bot With ChatGPT (No Code)",
+        title: "How to make a Discord bot with ChatGPT (no code)",
         description:
           "Use ChatGPT to make a Discord bot without coding. Add Kite as an MCP server, ask ChatGPT for the commands you want, and Kite keeps the bot online for free.",
-        heading: "How to Make a Discord Bot With ChatGPT",
+        heading: "How to make a Discord bot with ChatGPT",
         intro:
           "You can ask ChatGPT for a Discord bot and get one that actually runs. Add Kite to ChatGPT, say which commands and events you want, and ChatGPT builds them in Kite. Kite hosts the bot for free, so there's no code to paste into a file and no server to keep running.",
         steps: [
@@ -42,7 +42,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
                     >
                       chatgpt.com/plugins
                     </a>
-                    , click on <strong>+</strong> and choose{" "}
+                    , click <strong>+</strong>, and choose{" "}
                     <strong>Add custom MCP server</strong>.
                   </li>
                   <li>
@@ -51,7 +51,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
                   </li>
                   <li>
                     Choose OAuth to sign in, confirm the warning about custom
-                    servers and create it.
+                    servers, and create it.
                   </li>
                 </ol>
                 <p>
@@ -63,7 +63,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
             ),
           },
           {
-            title: "Sign In and Choose What It Can Do",
+            title: "Sign in and choose what it can do",
             visual: <ConnectionMockup client="ChatGPT" origin="chatgpt.com" />,
             body: (
               <>
@@ -82,11 +82,11 @@ export default function MakeADiscordBotWithChatGPTPage() {
                   </li>
                 </ul>
                 <p>
-                  Click on <strong>Connect</strong> to finish. To cut ChatGPT
-                  off later, remove it under API tokens in Kite.
+                  Click <strong>Connect</strong> to finish. To cut ChatGPT off
+                  later, remove it under API tokens in Kite.
                 </p>
                 <p>
-                  ChatGPT works on your bot&apos;s commands, events and
+                  ChatGPT works on your bot&apos;s commands, events, and
                   messages. It can&apos;t send requests to Discord directly,
                   like reading the members of a server. That needs a client that{" "}
                   <a
@@ -100,7 +100,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
             ),
           },
           {
-            title: "Describe Your Bot",
+            title: "Describe your bot",
             visual: (
               <MCPSessionMockup
                 title="chatgpt · my-bot"
@@ -135,7 +135,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
             ),
           },
           {
-            title: "Try It in Discord",
+            title: "Try it in Discord",
             visual: (
               <DiscordReplyMockup
                 command="suggest"
@@ -177,7 +177,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
           {
             question: "Can I make a bot that answers with ChatGPT?",
             answer:
-              "Yes, but that's a different thing: a bot that uses AI to answer your members. Kite's Ask AI block does that without an OpenAI API key. Start with the Ask AI template from the AI Discord bot page.",
+              "Yes, but that's a different thing. It's a bot that uses AI to answer your members. Kite's Ask AI block does that without an OpenAI API key. Start with the Ask AI template from the AI Discord bot page.",
           },
           {
             question: "Does my bot stay online when I close ChatGPT?",
@@ -192,16 +192,16 @@ export default function MakeADiscordBotWithChatGPTPage() {
         ],
         children: (
           <GuideProse>
-            <h2>Want a Bot That Talks Like ChatGPT?</h2>
+            <h2>Want a bot that talks like ChatGPT?</h2>
             <p>
-              Maybe you&apos;re looking for something else: a bot that answers
-              questions in your server like ChatGPT does. You don&apos;t need
-              ChatGPT or an OpenAI API key for that. The{" "}
+              Maybe you&apos;re looking for something else. That&apos;s a bot that
+              answers questions in your server like ChatGPT does. You don&apos;t
+              need ChatGPT or an OpenAI API key for that. The{" "}
               <Link href="/ai-discord-bot">AI Discord bot</Link> page shows how
               to add an <code>/ask</code> command and a bot that replies when
               it&apos;s mentioned, with its own personality.
             </p>
-            <h2>Using Codex Instead</h2>
+            <h2>Using Codex instead</h2>
             <p>
               Codex can build your bot from the terminal too. Add Kite with this
               command. If Codex doesn&apos;t open Kite to sign in, run{" "}
@@ -210,7 +210,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
             <pre>
               <code>codex mcp add kite --url https://kite.onl/api/mcp</code>
             </pre>
-            <h2>Why Not Copy Code From ChatGPT?</h2>
+            <h2>Why not copy code from ChatGPT?</h2>
             <p>
               ChatGPT can write a bot with discord.js or discord.py. Then you
               need a server that keeps it running, and every change means asking

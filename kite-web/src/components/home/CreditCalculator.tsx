@@ -191,8 +191,8 @@ export default function CreditCalculator({
         <p className="text-sm mt-3">
           {level === "over" ? (
             <>
-              <span className="font-medium">More than the free plan.</span>{" "}
-              Premium plans include more credits, see the{" "}
+              <span className="font-medium">More than the free plan.</span> Paid
+              plans include more credits. See the{" "}
               <a href="#pricing" className="underline">
                 plans above
               </a>

@@ -65,12 +65,12 @@ const alternatives = [
 export default function AlternativesPage() {
   return (
     <HomeLayout
-      title="Free Alternatives to Other Discord Bot Makers"
-      description="Compare Kite to BotGhost, SCNX, FromFlow, VibeBot and other Discord bot makers. See the free limits, features and when each one is the better choice."
+      title="Free alternatives to other Discord bot makers"
+      description="Compare Kite to BotGhost, SCNX, FromFlow, VibeBot, and other Discord bot makers. See the free limits, the features, and when each one is the better choice."
     >
       <section className="container py-16 md:py-24 text-center max-w-3xl">
         <h1 className="text-4xl md:text-5xl font-bold">
-          Kite Compared to Other Discord Bot Makers
+          Kite compared to other Discord bot makers
         </h1>
         <p className="text-xl text-muted-foreground mt-6">
           Kite is a free, open source Discord bot maker. Here is how it compares

@@ -9,12 +9,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free SCNX Alternative",
+  title: "Free SCNX alternative",
   description:
     "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and a free custom status.",
   competitor: "SCNX",
   lastChecked: "October 2026",
-  heading: "A Free SCNX Alternative",
+  heading: "A free SCNX alternative",
   intro:
     "Kite and SCNX both give you your own Discord bot without code. SCNX is built around ready-made modules, while in Kite you build your own commands from blocks. On Kite's free plan, one bot can join up to 100 servers and you never need to watch an ad to keep it online.",
   chooseKite: [
@@ -31,7 +31,7 @@ const content: ComparisonPageContent = {
   rows: [
     {
       feature: "Servers per bot",
-      kite: "100 free, more with Premium",
+      kite: "100 free, more on paid plans",
       competitor: "1, extra servers cost extra on paid plans",
     },
     {
@@ -56,7 +56,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "50+ templates in the marketplace",
+      kite: "80+ templates in the Marketplace",
       competitor: "Many",
     },
     {
@@ -67,17 +67,17 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "One Bot for Many Servers",
+      title: "One bot for many servers",
       description:
         "An SCNX bot only works on the server it was made for, even on paid plans, where each extra server costs extra. A Kite bot can join up to 100 servers on the free plan.",
     },
     {
-      title: "No Ad Check-Ins",
+      title: "No ad check-ins",
       description:
         "To keep a free SCNX bot online, you watch a short ad that adds 7 days, for at most 14 days ahead. Kite keeps your bot online without any check-ins.",
     },
     {
-      title: "Remove Branding for Free",
+      title: "Remove branding for free",
       description:
         'SCNX adds "Powered by scnx.xyz" to your bot\'s embeds, and removing all SCNX branding needs the Professional plan. Kite only shows "Powered by Kite.onl" as your bot\'s status until you set your own, which is free.',
     },

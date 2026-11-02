@@ -63,7 +63,7 @@ export default function CommandCreateDialog({
         onSuccess(res) {
           if (res.success) {
             track("command_created", { source: "blank" });
-            toast.success("Command created!");
+            toast.success("Command created.");
             setOpen(false);
 
             setTimeout(
@@ -96,7 +96,7 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>Create command</DialogTitle>
           <DialogDescription>
             Create a new command with a name and description.
           </DialogDescription>
