@@ -18,9 +18,8 @@ Situations that bring people here, from Google Search Console queries and OpenPa
 - Leaving another bot maker, mostly BotGhost. /alternatives/botghost is the most visited comparison page.
 - Asking ChatGPT how to make a bot. ChatGPT is the third biggest referrer after Google and Discord, with 1,916 sessions.
 Main alternatives:
-- Public bots like MEE6, Dyno, and Carl-bot.
-- Other bot makers: BotGhost, SCNX, Bot Designer for Discord, BotWiz, inventor.bot, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked.
-- Writing and hosting a bot yourself with discord.js or discord.py.
+- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked.
+- Writing a bot in code and hosting it yourself. Some searches for free hosting ask for Python, like "free discord bot hosting python".
 Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 servers, and you can replace Kite's status with your own for free. Kite is open source under AGPL-3.0. Don't claim it's the only or first bot maker to do anything.
 
 Features (feature | what it means for the user | free or paid):
