@@ -221,7 +221,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             size="sm"
             className="col-span-2 row-start-2 justify-self-start ml-[3.25rem] sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ml-0"
           >
-            List in marketplace
+            List in Marketplace
           </Button>
         </BundlePageDialog>
       )}

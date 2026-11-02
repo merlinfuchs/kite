@@ -4,7 +4,7 @@ sidebar_position: 4.2
 
 # Publishing a template
 
-A template in the marketplace is added by servers you've never seen, with their own channels, roles and API keys. This guide is about building one that works for them, and getting it approved. How to create, update and share templates is in [Templates and Sharing](../reference/templates.md#your-own-templates).
+A template in the Marketplace is added by servers you've never seen, with their own channels, roles and API keys. This guide is about building one that works for them, and getting it approved. How to create, update and share templates is in [Templates and sharing](../reference/templates.md#your-own-templates).
 
 ## Make it work in any server
 
@@ -54,10 +54,10 @@ Kite approves templates that work, are useful to other servers and follow the [t
 - Its name, description or `How it works` are hard to follow.
 - Its name and description don't tell it apart from similar templates.
 
-An automatic check looks at every submission first. It rejects what's clearly not meant for the marketplace, like tests, templates that do nothing and scams, and a person decides on everything else. A rejection says what to change. Fix it and submit it again, or publish an update, which submits it again too. If you think a rejection is wrong, ask on the [Kite Discord server](https://discord.gg/rNd9jWHnXh).
+An automatic check looks at every submission first. It rejects what's clearly not meant for the Marketplace, like tests, templates that do nothing and scams, and a person decides on everything else. A rejection says what to change. Fix it and submit it again, or publish an update, which submits it again too. If you think a rejection is wrong, ask on the [Kite Discord server](https://discord.gg/rNd9jWHnXh).
 
 ## After it's listed
 
-New versions and changes to the page are reviewed too. Until they're approved, apps keep the last approved version and the marketplace shows the last approved page. Say what changed when you publish an update, apps that added your template see it.
+New versions and changes to the page are reviewed too. Until they're approved, apps keep the last approved version and the Marketplace shows the last approved page. Say what changed when you publish an update, apps that added your template see it.
 
 Your listed templates are on your creator page, which your name on their pages links to.

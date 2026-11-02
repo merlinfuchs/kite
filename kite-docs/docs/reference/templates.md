@@ -10,7 +10,7 @@ Templates add ready-made commands and event listeners to your app. You can chang
 
 Find them under `Marketplace` in the sidebar, or on [kite.onl/marketplace](https://kite.onl/marketplace). The marketplace has Kite's templates and [templates users made](#your-own-templates), which Kite reviews before listing them.
 
-Click on `Star` on a template's page to find it again later under `Starred` in the marketplace. The marketplace can sort by `Most starred`, and shows how many users starred a template once it's 5 or more. You can't star your own templates.
+Click on `Star` on a template's page to find it again later under `Starred` in the Marketplace. The marketplace can sort by `Most starred`, and shows how many users starred a template once it's 5 or more. You can't star your own templates.
 
 Kite's templates:
 
@@ -64,7 +64,7 @@ Messages already posted in Discord keep their blocks, but use the parameter valu
 
 Click on `Create template` on the `Your templates` page, give it a name and choose its commands, event listeners and message templates. A template can have up to 50 items. The message templates and stored variables they use are added too.
 
-Names can't have emojis or other symbols. In the marketplace, the icon you pick is shown next to the name.
+Names can't have emojis or other symbols. In the Marketplace, the icon you pick is shown next to the name.
 
 The [parameters](./parameters.md) of their flows become the template's, without their values. Under `Default values` you can share the value of a text or yes/no parameter, like the instructions of an AI block. Apps that add the template start with that value and can change it. Don't share anything private.
 
@@ -80,7 +80,7 @@ Items you leave out of the new version stay in those apps, but don't get updates
 
 ### Editing its page
 
-Click on `Edit page` on the page of your template to change its name, description, icon and category, and to write `How it works` and `Before you start`. The page isn't part of a version, so apps that added the template don't get an update for it. Its link shows the changes right away, unless it's in the marketplace.
+Click on `Edit page` on the page of your template to change its name, description, icon and category, and to write `How it works` and `Before you start`. The page isn't part of a version, so apps that added the template don't get an update for it. Its link shows the changes right away, unless it's in the Marketplace.
 
 ### Sharing a link
 
@@ -92,19 +92,19 @@ The page also lists what the blocks can do, like banning members, deleting messa
 
 ### Listing in the Marketplace
 
-Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Read [Publishing a Template](../guides/publishing-templates.md) first. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
+Click on `List in Marketplace` on its page, choose an icon and category, and write `How it works`. Read [Publishing a template](../guides/publishing-templates.md) first. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
 
-Once it's listed, its link leads to its page in the marketplace. New versions and changes to its page are reviewed too. Until they're approved, apps keep getting the last approved version and the marketplace shows the last approved page.
+Once it's listed, its link leads to its page in the Marketplace. New versions and changes to its page are reviewed too. Until they're approved, apps keep getting the last approved version and the Marketplace shows the last approved page.
 
 If it wasn't approved, publishing an update submits it again with its page. You can also change the page and submit it again.
 
 Your name on the page of a listed template leads to your creator page. It shows your Discord name and avatar and all your listed templates.
 
-`Remove from marketplace` takes it out again. Apps that added it stay on the last approved version, and listing it again needs a new review.
+`Remove from Marketplace` takes it out again. Apps that added it stay on the last approved version, and listing it again needs a new review.
 
 ### What Kite Approves
 
-Kite approves templates that work, are useful to other servers and follow the [template rules](https://kite.onl/terms#moderation). [Publishing a Template](../guides/publishing-templates.md#what-kite-approves) explains what gets rejected, and how to build a template that works in any server.
+Kite approves templates that work, are useful to other servers and follow the [template rules](https://kite.onl/terms#moderation). [Publishing a template](../guides/publishing-templates.md#what-kite-approves) explains what gets rejected, and how to build a template that works in any server.
 
 ### Templates made by others
 

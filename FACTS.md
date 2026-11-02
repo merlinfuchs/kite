@@ -125,6 +125,8 @@ Project-specific rules:
 - "Plus and up" or "Premium and up" for features of more than one plan.
 - Name a locked feature with the cheapest plan that has it.
 - "Online 24/7" and "always online" are fine. Don't add a credits caveat to them.
+- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
+- A UI label is written as it appears, in sentence case, and marked as something to click: backticks in the docs, bold on the site. "Open **Stored variables** in the sidebar." Block names work the same way: "add a Send message block".
 - "template" for official and community templates alike. "Made by Kite" and "From the community" tell them apart.
 - Kite pages say "Discord bot templates", not "server templates", which are copies of a server's channels and roles.
 - Every claim about another bot maker goes on its /alternatives page with lastChecked. Say when the other product is the better fit.

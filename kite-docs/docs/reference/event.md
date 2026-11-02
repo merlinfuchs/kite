@@ -42,7 +42,7 @@ With event listeners you can listen for events inside the Discord servers that y
 
 Audit log entry runs when something is added to a server's audit log, like a ban, a kick, a timeout, a role change or a channel change. Use it for moderation and server logs. Your bot needs the **View Audit Log** permission in the server, or Discord doesn't send it the entries.
 
-It runs for every kind of action, so add an [Event Filter](./blocks/options/option_event_filter.md) with the target **Audit Log Action** and pick the actions the flow is for. Entries that are filtered out don't use credits.
+It runs for every kind of action, so add an [Event Filter](./blocks/options/option_event_filter.md) with the target **Audit log action** and pick the actions the flow is for. Entries that are filtered out don't use credits.
 
 | Placeholder                                                   | Value                                                                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
