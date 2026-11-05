@@ -2,20 +2,22 @@ package flowtest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/internal/core/testrun"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"gopkg.in/guregu/null.v4"
 )
 
 type Runner interface {
-	Run(ctx context.Context, appID string, test engine.FlowTest) (*engine.FlowTestResult, error)
+	Run(ctx context.Context, appID string, test testrun.Test) (*testrun.Result, error)
 }
 
 type FlowTestHandler struct {
@@ -35,7 +37,7 @@ func (h *FlowTestHandler) HandleCommandTest(c *handler.Context, req wire.FlowTes
 	if req.FlowSource != nil {
 		source = *req.FlowSource
 	}
-	return h.run(c, req, engine.FlowTest{Kind: engine.FlowTestKindCommand, Flow: source})
+	return h.run(c, req, testrun.Test{Kind: testrun.KindCommand, Flow: source})
 }
 
 func (h *FlowTestHandler) HandleEventListenerTest(c *handler.Context, req wire.FlowTestRequest) (*wire.FlowTestResponse, error) {
@@ -43,7 +45,7 @@ func (h *FlowTestHandler) HandleEventListenerTest(c *handler.Context, req wire.F
 	if req.FlowSource != nil {
 		source = *req.FlowSource
 	}
-	return h.run(c, req, engine.FlowTest{Kind: engine.FlowTestKindEventListener, Flow: source})
+	return h.run(c, req, testrun.Test{Kind: testrun.KindEventListener, Flow: source})
 }
 
 func (h *FlowTestHandler) HandleMessageTest(c *handler.Context, req wire.FlowTestRequest) (*wire.FlowTestResponse, error) {
@@ -53,14 +55,14 @@ func (h *FlowTestHandler) HandleMessageTest(c *handler.Context, req wire.FlowTes
 	if req.FlowSourceID == "" {
 		return nil, handler.ErrBadRequest("invalid_test", "flow_source_id of the button or select menu to test is required")
 	}
-	return h.run(c, req, engine.FlowTest{
-		Kind:         engine.FlowTestKindMessage,
+	return h.run(c, req, testrun.Test{
+		Kind:         testrun.KindMessage,
 		Message:      c.Message,
 		FlowSourceID: req.FlowSourceID,
 	})
 }
 
-func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test engine.FlowTest) (*wire.FlowTestResponse, error) {
+func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test testrun.Test) (*wire.FlowTestResponse, error) {
 	// Tests change nothing, but read the app's servers through the bot.
 	if c.APIToken != nil {
 		if err := handler.RequireAPITokenAccess(c.APIToken, model.APITokenResourceKite, model.APITokenAccessRead); err != nil {
@@ -87,7 +89,7 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 	test.Values = req.Values
 	test.Event = req.Event
 	if req.Webhook != nil {
-		test.Webhook = &engine.FlowTestWebhook{
+		test.Webhook = &testrun.Webhook{
 			Body:    req.Webhook.Body,
 			Headers: req.Webhook.Headers,
 			Query:   req.Webhook.Query,
@@ -101,8 +103,21 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 		}
 		test.Mocks[id] = flow.TestMock{Result: mock.Result, Error: mock.Error}
 	}
+	for _, v := range req.Variables {
+		var value any
+		if len(v.Value) > 0 {
+			if err := json.Unmarshal(v.Value, &value); err != nil {
+				return nil, handler.ErrBadRequest("invalid_test", fmt.Sprintf("Value of variable %s isn't valid JSON", v.VariableID))
+			}
+		}
+		test.Variables = append(test.Variables, testrun.Variable{
+			VariableID: v.VariableID,
+			Scope:      null.StringFromPtr(v.Scope),
+			Value:      thing.NewFromJSONValue(value),
+		})
+	}
 	for _, action := range req.Then {
-		test.Then = append(test.Then, engine.FlowTestAction{
+		test.Then = append(test.Then, testrun.Action{
 			Click:  action.Click,
 			Select: action.Select,
 			Values: action.Values,
@@ -113,11 +128,11 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 
 	res, err := h.runner.Run(c.Context(), c.App.ID, test)
 	if err != nil {
-		var testErr *engine.FlowTestError
+		var testErr *testrun.TestError
 		switch {
 		case errors.As(err, &testErr):
 			return nil, handler.ErrBadRequest("invalid_test", testErr.Message)
-		case errors.Is(err, engine.ErrTestAppOffline):
+		case errors.Is(err, testrun.ErrAppOffline):
 			return nil, handler.ErrBadRequest("app_not_running", "The app isn't running, enable it first")
 		}
 		return nil, fmt.Errorf("failed to run test: %w", err)
@@ -126,7 +141,7 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 	return flowTestResponse(res), nil
 }
 
-func flowTestResponse(res *engine.FlowTestResult) *wire.FlowTestResponse {
+func flowTestResponse(res *testrun.Result) *wire.FlowTestResponse {
 	resp := &wire.FlowTestResponse{
 		Executions:  make([]wire.FlowTestExecution, len(res.Executions)),
 		Credits:     res.Credits,
