@@ -142,11 +142,46 @@ export function llmsTxt(data: LlmsTxtData) {
       .slice(0, 10)) {
       const description = b.listing?.description ?? b.description;
       lines.push(
-        `- [${b.listing?.name ?? b.name}](${site}${templatePath(b.id)}): ${
-          /[.!?]$/.test(description) ? description : `${description}.`
-        } ${b.official ? "Made by Kite" : "From the community"}, added ${number(
-          b.install_count
-        )} times.`
+        `- [${b.listing?.name ?? b.name}](${site}${templatePath(
+          b.id
+        )}): ${sentence(description)} ${
+          b.official ? "Made by Kite" : "From the community"
+        }, added ${number(b.install_count)} times.`
+      );
+    }
+  }
+
+  // The cheapest plan with a block's feature, as the features page shows it.
+  const planFor = (feature: string) => {
+    const key = `feature_${feature}` as keyof BillingPlan;
+    const plan = paid.find((p) => p[key] === true);
+    if (!plan) return null;
+    return plan === paid[paid.length - 1]
+      ? `Kite ${plan.title}`
+      : `Kite ${plan.title} and up`;
+  };
+
+  lines.push(
+    "",
+    "## Blocks",
+    "",
+    `Every block of the editor, in the groups of its block list. Each one has a page in the [documentation](${docsUrl}/reference/blocks).`
+  );
+  const categories = new Map<string, typeof blocks>();
+  for (const block of blocks) {
+    categories.set(block.category!, [
+      ...(categories.get(block.category!) ?? []),
+      block,
+    ]);
+  }
+  for (const [category, categoryBlocks] of categories) {
+    lines.push("", `### ${category}`, "");
+    for (const block of categoryBlocks) {
+      const plan = block.premium_feature && planFor(block.premium_feature);
+      lines.push(
+        `- ${block.title}: ${sentence(block.description)}${
+          plan ? ` ${plan}.` : ""
+        }`
       );
     }
   }
@@ -168,6 +203,10 @@ export function llmsTxt(data: LlmsTxtData) {
   );
 
   return lines.join("\n");
+}
+
+function sentence(text: string) {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
 function capitalize(text: string) {
