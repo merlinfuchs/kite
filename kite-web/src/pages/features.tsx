@@ -1,0 +1,480 @@
+import HomeCTASection from "@/components/home/HomeCTASection";
+import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
+import HomeFooter from "@/components/home/HomeFooter";
+import HomeLayout from "@/components/home/HomeLayout";
+import { openSourcePoint } from "@/components/landing/copy";
+import { Button } from "@/components/ui/button";
+import { blockDefinitions } from "@/lib/blocks";
+import { BlockDefinition } from "@/lib/blocks/types";
+import env from "@/lib/env/client";
+import { discordEventTypes } from "@/lib/flow/eventTypes";
+import { faqJsonLd } from "@/lib/seo";
+import { BillingPlan } from "@/lib/types/wire.gen";
+import {
+  fetchBundles,
+  fetchPlans,
+  fetchStats,
+  withApiData,
+} from "@/lib/apiData";
+import { ArrowRightIcon } from "lucide-react";
+import { GetStaticProps } from "next";
+import Link from "next/link";
+
+interface Block {
+  title: string;
+  description: string;
+  href: string;
+  // The cheapest plan that has the block, or null for every plan.
+  plan: string | null;
+}
+
+interface Props {
+  blockCount: number;
+  eventCount: number;
+  categories: { title: string; blocks: Block[] }[];
+  paidBlocks: string[];
+  templates: {
+    count: number;
+    official: number;
+    top: {
+      id: string;
+      name: string;
+      description: string;
+      installs: number;
+      official: boolean;
+    }[];
+  } | null;
+  bots: number | null;
+}
+
+// The blocks come from their definitions, so the page lists every block the
+// editor has without adding them to the page's bundle.
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [bundles, plans, stats] = await Promise.all([
+    fetchBundles(),
+    fetchPlans(),
+    fetchStats(),
+  ]);
+
+  const paidPlans = (plans ?? [])
+    .flatMap((p) => (p && !p.hidden ? [p] : []))
+    .sort((a, b) => a.price - b.price);
+  const planFor = (block: BlockDefinition) => {
+    if (!block.premium_feature) return null;
+    const key = `feature_${block.premium_feature}` as keyof BillingPlan;
+    const plan = paidPlans.find((p) => p[key] === true);
+    if (!plan) return null;
+    return plan === paidPlans[paidPlans.length - 1]
+      ? plan.title
+      : `${plan.title} and up`;
+  };
+
+  // Blocks without a category are only created with other blocks, like the
+  // branches of a condition, and aren't in the block list of the editor.
+  const listed = blockDefinitions.filter((b) => b.category);
+  const categories: Props["categories"] = [];
+  for (const block of listed) {
+    let category = categories.find((c) => c.title === block.category);
+    if (!category) {
+      category = { title: block.category!, blocks: [] };
+      categories.push(category);
+    }
+    category.blocks.push({
+      title: block.title,
+      description: sentence(block.description),
+      href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/${docsFolder(
+        block.type
+      )}/${block.type}`,
+      plan: planFor(block),
+    });
+  }
+
+  const templates = bundles && {
+    count: bundles.length,
+    official: bundles.filter((b) => b.official).length,
+    top: [...bundles]
+      .sort((a, b) => b.install_count - a.install_count)
+      .slice(0, 6)
+      .map((b) => ({
+        id: b.id,
+        name: b.listing?.name ?? b.name,
+        description: b.listing?.description ?? b.description,
+        installs: b.install_count,
+        official: b.official,
+      })),
+  };
+
+  return withApiData({
+    blockCount: listed.length,
+    eventCount: discordEventTypes.length,
+    categories,
+    paidBlocks: listed.filter((b) => b.premium_feature).map((b) => b.title),
+    templates,
+    bots: stats?.apps ?? null,
+  });
+};
+
+// The folders of the block reference in kite-docs.
+function docsFolder(type: string) {
+  if (type.startsWith("control_")) return "controls";
+  if (type.startsWith("entry_")) return "entries";
+  if (type.startsWith("option_")) return "options";
+  return "actions";
+}
+
+function sentence(text: string) {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+function list(items: string[]) {
+  if (items.length < 3) return items.join(" and ");
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+// Rounds down like the homepage, so the number never claims more than is true.
+function floorThousands(value: number) {
+  return `${(Math.floor(value / 1000) * 1000).toLocaleString("en-US")}+`;
+}
+
+export default function FeaturesPage({
+  blockCount,
+  eventCount,
+  categories,
+  paidBlocks,
+  templates,
+  bots,
+}: Props) {
+  const sections: {
+    heading: string;
+    body?: string;
+    points: { title: string; description: string; href?: string }[];
+  }[] = [
+    {
+      heading: "Start a flow from a command, a button, or an event",
+      body: "Each command and event listener is a flow of blocks. It starts when one of these happens.",
+      points: [
+        {
+          title: "Slash commands",
+          description:
+            "Commands take arguments, like a user, role, channel, number, text, or file. You decide who can use each command, where it works, and how long the cooldown is.",
+        },
+        {
+          title: "Buttons, select menus, and modals",
+          description:
+            "Add them to a message and run a flow when a member uses one. Modals ask members to fill in a form.",
+        },
+        {
+          title: `${eventCount} Discord events`,
+          description:
+            "Run a flow without a command when messages are sent, edited, or deleted, when members join or leave, on reactions, boosts, direct messages, and audit log entries, and when your bot joins or leaves a server.",
+        },
+        {
+          title: "Scheduled tasks",
+          description:
+            "Run a flow on a schedule, like a daily reminder. The free plan runs them every 5 minutes at most, and Kite Premium every minute.",
+        },
+        {
+          title: "Webhooks",
+          description:
+            "Start a flow from another website or service, like a store that tells your bot about a new order.",
+        },
+      ],
+    },
+    {
+      heading: "Conditions, loops, and stored variables for the logic",
+      body: "Conditions and loops cost no credits, and neither does getting servers, channels, members, messages, or stored variables.",
+      points: [
+        {
+          title: "Conditions",
+          description:
+            "If, comparison, role, user, and channel conditions run other blocks depending on who used the command and what they entered.",
+        },
+        {
+          title: "Loops",
+          description:
+            "Run a set of blocks a number of times, and exit the loop early once you're done.",
+        },
+        {
+          title: "Stored variables",
+          description:
+            "Keep points, counts, and settings for each member or server between runs. One block sets a value, adds to it, or subtracts from it.",
+        },
+        {
+          title: "Math, random values, and tables",
+          description:
+            "Calculate Value does math, Generate Random Value picks a number or an item from a list, and Lookup Value finds a value in a table.",
+        },
+      ],
+    },
+    {
+      heading: "AI that builds your bot, and AI your bot can use",
+      points: [
+        {
+          title: "Flow AI",
+          description:
+            "Describe a command and Flow AI, the AI assistant in the editor, adds and connects the blocks. The free plan includes 2 prompts a month.",
+          href: "/ai-discord-bot-maker",
+        },
+        {
+          title: "AI blocks",
+          description:
+            "Ask AI answers questions, Search the Web looks things up, and AI Translate translates messages. AI Check, AI Choice, and AI Score sort messages, like spam or questions for your staff. They cost credits.",
+          href: "/ai-discord-bot",
+        },
+        {
+          title: "MCP server",
+          description:
+            "Build and change your bot from Claude, ChatGPT, Codex, Cursor, or VS Code.",
+          href: "/discord-mcp-server",
+        },
+      ],
+    },
+    {
+      heading: "Blocks for ER:LC, Roblox, and other services",
+      points: [
+        {
+          title: "ER:LC",
+          description:
+            "Get the players and status of your private server and run commands on it, with your server key.",
+          href: "/erlc-discord-bot",
+        },
+        {
+          title: "Roblox",
+          description: "Look up a Roblox user by name or ID.",
+        },
+        {
+          title: "Cookie API",
+          description:
+            "Make transcripts of channels, captchas, cards, and QR codes, and check Minecraft players.",
+          href: "/cookie-api",
+        },
+        {
+          title: "Any other website",
+          description:
+            "Send API Request gets data from another website or sends it there. Discord API Request does anything Discord allows that has no block yet.",
+        },
+      ],
+    },
+    {
+      heading: "Hosted 24/7 with your bot's own name and status",
+      points: [
+        {
+          title: "Always online",
+          description:
+            "Kite hosts your bot 24/7, whether it's used or not. On the free plan, it can be in up to 100 servers.",
+          href: "/discord-bot-hosting",
+        },
+        {
+          title: "Your own status",
+          description:
+            'Replace the default "Powered by Kite.onl" status with your own on every plan.',
+        },
+        {
+          title: "Profile and voice on paid plans",
+          description:
+            "Kite Plus adds a rotating status, an animated avatar and banner, and audio in voice channels. Kite Premium adds a profile per server and the Send message as block.",
+          href: "/pricing",
+        },
+        {
+          title: "Collaborators",
+          description:
+            "Three people including you can edit the same bot on the free plan.",
+        },
+        openSourcePoint,
+      ],
+    },
+  ];
+
+  const faqs: FAQProps[] = [
+    {
+      question: "How many blocks does Kite have?",
+      answer: `${blockCount}. They're all listed on this page, grouped like in the editor, and each one has a page in the docs.`,
+    },
+    {
+      question: "Does Kite have variables, conditions, and loops?",
+      answer:
+        "Yes. Stored variables keep data for each member or server between runs. Conditions and loops are blocks like any other, and they cost no credits.",
+    },
+    {
+      question: "Can I make a leveling or economy bot with Kite?",
+      answer:
+        "Yes. Keep XP or coins for each member in a stored variable and add to it with a Set stored variable block. A Comparison Condition checks the value, for example to give a role at level 10. The Marketplace has no leveling or economy template right now, so you build it yourself or ask Flow AI to.",
+    },
+    {
+      question: "Can I make a ticket bot with Kite?",
+      answer:
+        "Yes. The Marketplace has ticket templates from the community. The Modmail template by Kite lets members DM your bot to reach your staff.",
+    },
+    {
+      question: "Which features are free?",
+      answer: `Every block works on the free plan except ${list(
+        paidBlocks
+      )}. Most actions cost 1 credit, and the free plan has 10,000 credits a month.`,
+    },
+    {
+      question: "Is Kite open source?",
+      answer:
+        "Yes. Kite's code is on GitHub under the AGPL-3.0 license, so you can see how your bot runs or host Kite yourself.",
+    },
+  ];
+
+  const proof = [
+    { value: blockCount.toString(), label: "blocks" },
+    { value: eventCount.toString(), label: "Discord events" },
+    templates && { value: templates.count.toString(), label: "templates" },
+    bots && { value: floorThousands(bots), label: "bots built" },
+  ].filter((p) => !!p);
+
+  return (
+    <HomeLayout
+      title="Kite features: every block of the free Discord bot maker"
+      description={`Kite has ${blockCount} blocks for Discord bot commands and events, with conditions, loops, stored variables, AI, and ${
+        templates ? `${templates.count} ` : ""
+      }templates. See what's free and what each plan adds.`}
+      jsonLd={[faqJsonLd(faqs)]}
+    >
+      <section className="container max-w-4xl py-16 md:py-24 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold">
+          What your Discord bot can do with Kite
+        </h1>
+        <p className="text-xl text-muted-foreground mt-6">
+          Kite has {blockCount} blocks that you connect into commands and event
+          listeners. They send messages, manage members and roles, use AI, and
+          keep data between runs. Your bot is online 24/7 on the free plan.
+        </p>
+        <div className="mt-8 flex flex-col md:flex-row justify-center gap-4">
+          <Button className="md:w-48" asChild>
+            <Link href="/apps">Get started for free</Link>
+          </Button>
+          <Button variant="outline" className="md:w-48" asChild>
+            <a href="#blocks">See all blocks</a>
+          </Button>
+        </div>
+      </section>
+
+      <section className="border-y bg-muted/30">
+        <div className="container grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 py-10">
+          {proof.map((item) => (
+            <div key={item.label} className="text-center">
+              <div
+                className="text-2xl sm:text-3xl md:text-4xl font-bold"
+                data-indexnow-ignore
+              >
+                {item.value}
+              </div>
+              <div className="text-sm md:text-base text-muted-foreground mt-1">
+                {item.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {sections.slice(0, 2).map((section) => (
+        <PointsSection key={section.heading} {...section} />
+      ))}
+
+      {templates && (
+        <PointsSection
+          heading="Templates to start from instead of an empty bot"
+          body={`The Marketplace has ${templates.count} templates, ${
+            templates.official
+          } made by Kite and ${
+            templates.count - templates.official
+          } from the community. Adding one gives you normal commands and event listeners that you can change. These are added the most.`}
+          points={templates.top.map((t) => ({
+            title: t.name,
+            description: `${sentence(t.description)} ${
+              t.official ? "Made by Kite" : "From the community"
+            }, added ${t.installs.toLocaleString("en-US")} times.`,
+            href: `/marketplace/${t.id}`,
+          }))}
+        />
+      )}
+
+      {sections.slice(2).map((section) => (
+        <PointsSection key={section.heading} {...section} />
+      ))}
+
+      <section id="blocks" className="container py-12 md:py-16 scroll-mt-20">
+        <h2 className="text-3xl md:text-4xl font-bold">All blocks</h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-2xl">
+          These are the {blockCount} blocks of the editor, in the groups of its
+          block list. Each one links to its page in the docs.
+        </p>
+        <div className="mt-10 columns-1 md:columns-2 lg:columns-3 gap-x-10">
+          {categories.map((category) => (
+            <div key={category.title} className="break-inside-avoid pb-10">
+              <h3 className="font-semibold text-lg border-b pb-2">
+                {category.title}
+              </h3>
+              <ul className="mt-3 space-y-3">
+                {category.blocks.map((block) => (
+                  <li key={block.title}>
+                    <a
+                      href={block.href}
+                      className="font-medium hover:text-primary transition-colors"
+                    >
+                      {block.title}
+                    </a>
+                    {block.plan && (
+                      <span className="ml-2 text-xs font-medium text-primary">
+                        {block.plan}
+                      </span>
+                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {block.description}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <HomeFAQSection faqs={faqs} />
+      <HomeCTASection />
+      <HomeFooter />
+    </HomeLayout>
+  );
+}
+
+function PointsSection({
+  heading,
+  body,
+  points,
+}: {
+  heading: string;
+  body?: string;
+  points: { title: string; description: string; href?: string }[];
+}) {
+  return (
+    <section className="container py-12 md:py-16">
+      <h2 className="text-3xl md:text-4xl font-bold">{heading}</h2>
+      {body && (
+        <p className="text-lg text-muted-foreground mt-4 max-w-2xl">{body}</p>
+      )}
+      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 mt-10">
+        {points.map((point) => (
+          <li key={point.title} className="border-t py-5">
+            <h3 className="font-semibold text-lg">
+              {point.href ? (
+                <Link
+                  href={point.href}
+                  className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                >
+                  {point.title}
+                  <ArrowRightIcon className="w-4 h-4" />
+                </Link>
+              ) : (
+                point.title
+              )}
+            </h3>
+            <p className="text-muted-foreground mt-2">{point.description}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

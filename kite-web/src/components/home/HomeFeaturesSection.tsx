@@ -232,6 +232,14 @@ export default function HomeFeaturesSection() {
           </div>
         ))}
       </div>
+
+      <Link
+        href="/features"
+        className="mt-10 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+      >
+        See every feature and block
+        <ArrowRightIcon className="w-4 h-4" />
+      </Link>
     </section>
   );
 }
