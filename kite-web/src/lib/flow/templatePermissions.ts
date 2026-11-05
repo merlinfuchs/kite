@@ -28,8 +28,12 @@ export interface TemplatePermissions {
   needsRoleHierarchy: boolean;
 }
 
+export function nodeNeedsRoleHierarchy(nodeType?: string): boolean {
+  return !!nodeType && roleHierarchyTypes.has(nodeType);
+}
+
 // nodePermissions returns the Discord permissions required by a single flow node.
-function nodePermissions(node: FlowNode): PermissionFlag[] {
+export function nodePermissions(node: FlowNode): PermissionFlag[] {
   if (!node.type || isNoteNode(node)) return [];
   const def = getBlockDefinition(node.type);
   if (!def?.permissions) return [];
@@ -46,7 +50,9 @@ export function flowPermissions(flow: FlowData): PermissionFlag[] {
       permissions.add(perm);
     }
   }
-  return Array.from(permissions);
+  return permissionBits
+    .map((p) => p.flag)
+    .filter((flag) => permissions.has(flag));
 }
 
 // templatePermissions derives the Discord permissions and setup requirements
@@ -60,7 +66,7 @@ export function templatePermissions(
 
   const checkNodes = (nodes: FlowNode[]) => {
     for (const node of nodes) {
-      if (node.type && roleHierarchyTypes.has(node.type)) {
+      if (nodeNeedsRoleHierarchy(node.type)) {
         needsRoleHierarchy = true;
       }
       for (const perm of nodePermissions(node)) {
@@ -123,6 +129,58 @@ export function missingPermissions(
   }
   const botSet = new Set(botPerms.map((p) => p.flag));
   return required.filter((p) => !botSet.has(p));
+}
+
+// missingGuildPermissions checks which required permissions the bot is missing
+// across its connected servers (or a specific server when guildId is given).
+export function missingGuildPermissions(
+  required: PermissionFlag[],
+  guilds?:
+    | (
+        | { id?: string; name: string; bot_permissions?: string | null }
+        | null
+        | undefined
+      )[]
+    | null,
+  guildId?: string | null
+) {
+  if (required.length === 0) {
+    return { permissions: [] as PermissionFlag[], guildNames: [] as string[] };
+  }
+  const checked = (guilds ?? []).filter(
+    (g): g is { id?: string; name: string; bot_permissions?: string | null } =>
+      !!g && (!guildId || g.id === guildId)
+  );
+  const permissions = new Set<PermissionFlag>();
+  const guildNames: string[] = [];
+  for (const guild of checked) {
+    const perms = missingPermissions(required, guild.bot_permissions);
+    if (perms.length === 0) continue;
+    perms.forEach((p) => permissions.add(p));
+    guildNames.push(guild.name);
+  }
+  return {
+    permissions: permissionBits
+      .map((p) => p.flag)
+      .filter((flag) => permissions.has(flag)),
+    guildNames,
+  };
+}
+
+// formatMissingPermissions formats a human-readable warning sentence listing
+// the missing permissions and the servers where the bot lacks them.
+export function formatMissingPermissions(missing: {
+  permissions: PermissionFlag[];
+  guildNames: string[];
+}): string {
+  const list = new Intl.ListFormat("en");
+  const perms = list.format(missing.permissions.map(permissionLabel));
+  const noun = missing.permissions.length === 1 ? "permission" : "permissions";
+  const where =
+    missing.guildNames.length > 3
+      ? `in ${missing.guildNames.length} of your servers`
+      : `in ${list.format(missing.guildNames)}`;
+  return `Your bot needs the ${perms} ${noun} ${where}.`;
 }
 
 // templatePermissionFaq generates the FAQ question & answer for a template's
