@@ -1,12 +1,14 @@
 package engine
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -189,6 +191,20 @@ func (p *testDiscordProvider) CreateMessage(ctx context.Context, channelID disco
 	return &msg, nil
 }
 
+func (p *testDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona provider.Persona, data api.SendMessageData) (*discord.Message, error) {
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionManageWebhooks)
+	p.record("create_message", map[string]any{"channel_id": channelID, "message": data, "name": persona.Name, "avatar_url": persona.AvatarURL}, warnings...)
+	msg := p.s.addMessage(discord.Message{
+		ChannelID:  channelID,
+		GuildID:    p.s.guildOfChannel(channelID),
+		Content:    data.Content,
+		Embeds:     data.Embeds,
+		Components: data.Components,
+		Flags:      data.Flags,
+	})
+	return &msg, nil
+}
+
 func (p *testDiscordProvider) EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.EditMessageData) (*discord.Message, error) {
 	p.record("edit_message", map[string]any{"channel_id": channelID, "message_id": messageID, "message": data}, p.s.checkOwnMessage(channelID, messageID)...)
 
@@ -330,6 +346,21 @@ func (p *testDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 	return nil
 }
 
+func (p *testDiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudioOpts) error {
+	p.record("play_audio", opts)
+	return nil
+}
+
+func (p *testDiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	p.record("stop_audio", map[string]any{"guild_id": guildID})
+	return nil
+}
+
+func (p *testDiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data provider.ServerProfileData) error {
+	p.record("edit_server_profile", map[string]any{"guild_id": guildID, "profile": data}, p.s.checkGuild(guildID, discord.PermissionChangeNickname)...)
+	return nil
+}
+
 func (p *testDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
 	p.record("update_status", map[string]any{"status": status, "activity": activity})
 	return nil
@@ -436,6 +467,9 @@ func (p *testVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
 			return thing.Null, err
 		}
+		if errors.Is(err, provider.ErrNotFound) && operation == provider.VariableOperationDecrement {
+			newValue = thing.NewInt(0).Sub(value)
+		}
 		if err == nil {
 			switch operation {
 			case provider.VariableOperationAppend:
@@ -456,6 +490,89 @@ func (p *testVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 		Data:   map[string]any{"variable_id": id, "scope": scope, "operation": operation, "value": newValue.Value},
 	})
 	return newValue, nil
+}
+
+// VariableValues lists the app's values with the changes of the test run in
+// place of the stored ones.
+func (p *testVariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	changes := p.s.variableChanges(id)
+	if len(changes) == 0 {
+		return p.real.VariableValues(ctx, id, opts)
+	}
+
+	stored, err := p.real.VariableValues(ctx, id, provider.VariableListOptions{
+		ScopePrefix: opts.ScopePrefix,
+		Sort:        opts.Sort,
+		Limit:       opts.Skip + opts.Limit + len(changes),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([]provider.VariableValue, 0, len(stored)+len(changes))
+	for _, v := range stored {
+		if _, ok := changes[v.Scope]; !ok {
+			values = append(values, v)
+		}
+	}
+	for scope, v := range changes {
+		if !v.deleted && strings.HasPrefix(scope.String, opts.ScopePrefix) {
+			values = append(values, provider.VariableValue{Scope: scope, Value: v.value, UpdatedAt: v.updatedAt})
+		}
+	}
+	sortTestVariableValues(values, opts.Sort)
+
+	if opts.Skip >= len(values) {
+		return []provider.VariableValue{}, nil
+	}
+	values = values[opts.Skip:]
+	if len(values) > opts.Limit {
+		values = values[:opts.Limit]
+	}
+	return values, nil
+}
+
+var testNumericText = regexp.MustCompile(`^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$`)
+
+// sortTestVariableValues sorts like ListVariableValues: numbers and text of a
+// number by value with the rest last, otherwise by when they changed.
+func sortTestVariableValues(values []provider.VariableValue, sort provider.VariableListSort) {
+	number := func(v provider.VariableValue) (float64, bool) {
+		switch v.Value.Type {
+		case thing.TypeInt, thing.TypeFloat:
+			return v.Value.Float(), true
+		case thing.TypeString:
+			if testNumericText.MatchString(v.Value.String()) {
+				return v.Value.Float(), true
+			}
+		}
+		return 0, false
+	}
+
+	slices.SortStableFunc(values, func(a, b provider.VariableValue) int {
+		switch sort {
+		case provider.VariableListSortValueDesc, provider.VariableListSortValueAsc:
+			an, aok := number(a)
+			bn, bok := number(b)
+			if aok != bok {
+				if aok {
+					return -1
+				}
+				return 1
+			}
+			if c := cmp.Compare(an, bn); c != 0 {
+				if sort == provider.VariableListSortValueDesc {
+					return -c
+				}
+				return c
+			}
+			return b.UpdatedAt.Compare(a.UpdatedAt)
+		case provider.VariableListSortUpdatedAsc:
+			return a.UpdatedAt.Compare(b.UpdatedAt)
+		default:
+			return b.UpdatedAt.Compare(a.UpdatedAt)
+		}
+	})
 }
 
 func (p *testVariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
@@ -531,14 +648,18 @@ func (testHTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *ht
 
 type testAIProvider struct{}
 
-func (testAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
-	return "", errNotInTestRuns
+func (testAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
+	return provider.AIResponse{}, errNotInTestRuns
 }
 
 type testRobloxProvider struct{}
 
 func (testRobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxUserValue, error) {
 	return nil, errNotInTestRuns
+}
+
+func (testRobloxProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	return "", errNotInTestRuns
 }
 
 func (testRobloxProvider) UsersByUsername(ctx context.Context, username string) ([]thing.RobloxUserValue, error) {

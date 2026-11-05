@@ -279,8 +279,9 @@ type testVariableKey struct {
 }
 
 type testVariableValue struct {
-	value   thing.Thing
-	deleted bool
+	value     thing.Thing
+	deleted   bool
+	updatedAt time.Time
 }
 
 func newTestSession(env Env, appID string, session *state.State, mocks map[string]flow.TestMock) *testSession {
@@ -1657,5 +1658,19 @@ func (s *testSession) variable(id string, scope null.String) (thing.Thing, bool,
 func (s *testSession) setVariable(id string, scope null.String, value thing.Thing, deleted bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.variables[testVariableKey{id: id, scope: scope}] = testVariableValue{value: value, deleted: deleted}
+	s.variables[testVariableKey{id: id, scope: scope}] = testVariableValue{value: value, deleted: deleted, updatedAt: time.Now()}
+}
+
+// variableChanges returns the values of a variable the test run changed, by
+// scope.
+func (s *testSession) variableChanges(id string) map[null.String]testVariableValue {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	res := map[null.String]testVariableValue{}
+	for key, v := range s.variables {
+		if key.id == id {
+			res[key.scope] = v
+		}
+	}
+	return res
 }
