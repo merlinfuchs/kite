@@ -2769,6 +2769,515 @@
     "changelog": []
   },
   {
+    "id": "leveling",
+    "version": 1,
+    "name": "Leveling",
+    "description": "Members earn XP for chatting and level up, with /rank, /leaderboard, and an optional reward role.",
+    "icon": "trophy",
+    "category": "community",
+    "about": [
+      "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in.",
+      "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept in a stored variable, so it stays when the bot restarts."
+    ],
+    "faq": [
+      {
+        "question": "How many credits does it use?",
+        "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
+      },
+      {
+        "question": "Does the bot need the Message Content Intent?",
+        "answer": "No. It counts messages without reading them."
+      },
+      {
+        "question": "Can I change how much XP a message gives?",
+        "answer": "Yes. Open the event listener and find the Add 15 to 25 XP block. Its value is 15 plus a random number from 0 to 10, so change the 15 to give more or less XP. Levels follow from the XP, so level N always needs 100 × N² XP."
+      },
+      {
+        "question": "Why didn't a member get the reward role?",
+        "answer": "The bot needs the Manage Roles permission, and its own role has to be above the reward role. Members who were already past the reward level when you added the role get it the next time they level up."
+      },
+      {
+        "question": "Is XP shared between servers?",
+        "answer": "No. Each server has its own XP and its own leaderboard."
+      }
+    ],
+    "setup": [],
+    "parameters": [
+      {
+        "key": "level_up_channel",
+        "label": "Level-up channel",
+        "description": "Where level-up messages go. Leave it empty to post them in the channel the member chatted in.",
+        "type": "channel",
+        "required": false
+      },
+      {
+        "key": "reward_role",
+        "label": "Reward role",
+        "description": "A role members get when they reach the reward level. Leave it empty for no reward.",
+        "type": "role",
+        "required": false
+      },
+      {
+        "key": "reward_level",
+        "label": "Reward level",
+        "description": "The level that gives the reward role, like 5.",
+        "type": "text",
+        "required": false,
+        "default": "5"
+      }
+    ],
+    "commands": [
+      {
+        "id": "rank",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_k1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to show, yourself if empty.",
+                "command_argument_type": "user",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "contexts_k2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_k3r",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "rank",
+                "description": "Show your level and XP, or another member's."
+              }
+            },
+            {
+              "id": "variable_k4g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Their XP",
+                "variable_id": "xp",
+                "variable_scope": "{{interaction.guild.id}}:{{(arg('user') ?? user).id}}"
+              }
+            },
+            {
+              "id": "response_k5s",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "{{(arg('user') ?? user).display_name}}",
+                      "description": "{{let xp = int(result('variable_k4g') ?? 0); let level = int((xp / 100) ** 0.5); \"Level **\" + string(level) + \"** with **\" + string(xp) + \" XP**.\\n\" + string(100 * (level + 1) * (level + 1) - xp) + \" XP to level \" + string(level + 1) + \".\"}}",
+                      "thumbnail": {
+                        "url": "{{(arg('user') ?? user).avatar_url}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300079190",
+              "source": "arg_k1u",
+              "target": "command_k3r"
+            },
+            {
+              "id": "300087109",
+              "source": "contexts_k2c",
+              "target": "command_k3r"
+            },
+            {
+              "id": "300095028",
+              "source": "command_k3r",
+              "target": "variable_k4g"
+            },
+            {
+              "id": "300102947",
+              "source": "variable_k4g",
+              "target": "response_k5s"
+            }
+          ]
+        }
+      },
+      {
+        "id": "leaderboard",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_b1p",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "page",
+                "description": "Which page to show, 10 members each. Defaults to 1.",
+                "command_argument_type": "integer",
+                "command_argument_required": false,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000
+              }
+            },
+            {
+              "id": "contexts_b2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_b3l",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "leaderboard",
+                "description": "Show the members with the most XP."
+              }
+            },
+            {
+              "id": "values_b4t",
+              "type": "action_variable_list",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "10 members with the most XP",
+                "variable_id": "xp",
+                "variable_sort": "value_desc",
+                "variable_scope_prefix": "{{interaction.guild.id}}:",
+                "variable_limit": "10",
+                "variable_skip": "{{(int(arg('page') ?? 1) - 1) * 10}}"
+              }
+            },
+            {
+              "id": "response_b5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "Leaderboard",
+                      "description": "{{let page = int(arg('page') ?? 1); let rows = result('values_b4t'); len(rows) == 0 ? (page == 1 ? \"No one has XP yet. Members earn it by chatting.\" : \"There's no one on page \" + string(page) + \".\") : join(map(rows, { \"**\" + string((page - 1) * 10 + #index + 1) + \".** <@\" + split(#.scope, \":\")[1] + \"> · Level \" + string(int((int(#.value) / 100) ** 0.5)) + \" · \" + string(int(#.value)) + \" XP\" }), \"\\n\")}}",
+                      "footer": {
+                        "text": "Page {{int(arg('page') ?? 1)}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300110866",
+              "source": "arg_b1p",
+              "target": "command_b3l"
+            },
+            {
+              "id": "300118785",
+              "source": "contexts_b2c",
+              "target": "command_b3l"
+            },
+            {
+              "id": "300126704",
+              "source": "command_b3l",
+              "target": "values_b4t"
+            },
+            {
+              "id": "300134623",
+              "source": "values_b4t",
+              "target": "response_b5r"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [
+      {
+        "id": "leveling-xp",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_l7x",
+              "type": "entry_event",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Give members XP for chatting, at most once a minute."
+              }
+            },
+            {
+              "id": "variable_c6k",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "custom_label": "Time of the last XP",
+                "variable_id": "xp-cooldown",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}"
+              }
+            },
+            {
+              "id": "if_c7w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "A minute since the last XP?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_c6k') ?? 0) >= 60}}"
+              }
+            },
+            {
+              "id": "variable_s2t",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Save the time of this XP",
+                "variable_id": "xp-cooldown",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{now().Unix()}}"
+              }
+            },
+            {
+              "id": "variable_o2d",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "XP before",
+                "variable_id": "xp",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}"
+              }
+            },
+            {
+              "id": "variable_n4w",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Add 15 to 25 XP",
+                "variable_id": "xp",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{15 + now().UnixMilli() % 11}}"
+              }
+            },
+            {
+              "id": "if_u5p",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Reached a new level?",
+                "condition_base_value": "{{int((int(result('variable_n4w')) / 100) ** 0.5) > int((int(result('variable_o2d') ?? 0) / 100) ** 0.5)}}"
+              }
+            },
+            {
+              "id": "message_l8v",
+              "type": "action_message_create",
+              "position": {
+                "x": -250,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Level-up message",
+                "channel_target": "{{(params.level_up_channel ?? \"\") != \"\" ? params.level_up_channel : event.channel.id}}",
+                "message_data": {
+                  "content": "🎉 {{event.user.mention}} reached level **{{int((int(result('variable_n4w')) / 100) ** 0.5)}}**!",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": "if_r2w",
+              "type": "control_if",
+              "position": {
+                "x": 250,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Reward role due?",
+                "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
+              }
+            },
+            {
+              "id": "error_r5h",
+              "type": "control_error_handler",
+              "position": {
+                "x": 250,
+                "y": 1680
+              },
+              "data": {
+                "custom_label": "Skip if the role can't be given"
+              }
+            },
+            {
+              "id": "member_r6a",
+              "type": "action_member_role_add",
+              "position": {
+                "x": 250,
+                "y": 1890
+              },
+              "data": {
+                "custom_label": "Give the reward role",
+                "user_target": "{{event.user.id}}",
+                "role_target": "{{params.reward_role}}"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300000000",
+              "source": "event_l7x",
+              "target": "variable_c6k"
+            },
+            {
+              "id": "300007919",
+              "source": "variable_c6k",
+              "target": "if_c7w"
+            },
+            {
+              "id": "300015838",
+              "source": "if_c7w",
+              "target": "variable_s2t",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300023757",
+              "source": "variable_s2t",
+              "target": "variable_o2d"
+            },
+            {
+              "id": "300031676",
+              "source": "variable_o2d",
+              "target": "variable_n4w"
+            },
+            {
+              "id": "300039595",
+              "source": "variable_n4w",
+              "target": "if_u5p"
+            },
+            {
+              "id": "300047514",
+              "source": "if_u5p",
+              "target": "if_r2w",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300055433",
+              "source": "if_u5p",
+              "target": "message_l8v",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300063352",
+              "source": "if_r2w",
+              "target": "error_r5h",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300071271",
+              "source": "error_r5h",
+              "target": "member_r6a",
+              "sourceHandle": "default"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [],
+    "variables": [
+      {
+        "id": "xp",
+        "name": "xp",
+        "scoped": true
+      },
+      {
+        "id": "xp-cooldown",
+        "name": "xp_cooldown",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
     "id": "server-info",
     "version": 1,
     "name": "Server Info",

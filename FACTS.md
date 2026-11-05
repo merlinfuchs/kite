@@ -83,7 +83,7 @@ Stats (number | what it counts | source | date checked):
 - 79,314 | users | same endpoint | 2026-11-02
 - 198,504 | commands and event listeners | same endpoint | 2026-11-02
 - 23,098,351 | flow runs last month | same endpoint | 2026-11-02
-- 106 | Marketplace templates, 17 by Kite and 89 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-05
+- 107 | Marketplace templates, 18 by Kite and 89 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-05
 - 334 | GitHub stars | github.com/merlinfuchs/kite | 2026-11-02
 - 2024 | year Kite started | first commit 2024-01-10 | 2026-11-02
 - Most added templates: Moderation 482, Ask AI 432, Server Info 260, Welcomer 257, Giveaways 235 | install_count from /v1/bundles | 2026-11-02

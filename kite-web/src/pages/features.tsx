@@ -501,7 +501,7 @@ export default function FeaturesPage({
     {
       question: "Can I make a leveling or economy bot with Kite?",
       answer:
-        "Yes. Keep XP or coins for each member in a stored variable and add to it with a Set stored variable block. A Comparison Condition checks the value, for example to give a role at level 10. The Marketplace has no leveling or economy template right now, so you build it yourself or ask Flow AI to.",
+        "Yes. The Leveling template in the Marketplace gives members XP for chatting, with level-up messages, a reward role, /rank, and /leaderboard. For an economy, keep coins for each member in a stored variable and add to it with a Set stored variable block. The Marketplace has no economy template right now.",
     },
     {
       question: "Can I make a ticket bot with Kite?",
