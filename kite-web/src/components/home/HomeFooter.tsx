@@ -110,6 +110,11 @@ export default function HomeFooter() {
             </a>
           </div>
           <div>
+            <Link href="/changelog" className="opacity-60 hover:opacity-100">
+              What&apos;s new
+            </Link>
+          </div>
+          <div>
             <Link href="/guides" className="opacity-60 hover:opacity-100">
               Guides
             </Link>
