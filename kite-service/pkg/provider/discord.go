@@ -34,7 +34,7 @@ type DiscordProvider interface {
 	ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
-	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
+	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error)
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
@@ -225,8 +225,8 @@ func (p *MockDiscordProvider) CreateChannel(ctx context.Context, guildID discord
 	return nil, nil
 }
 
-func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	return nil
+func (p *MockDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+	return nil, nil
 }
 
 func (p *MockDiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {

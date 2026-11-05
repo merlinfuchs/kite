@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
@@ -65,7 +64,7 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		}
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
@@ -80,7 +79,7 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		Method: op.Method,
 		Path:   path,
 		Body:   body,
-		Reason: api.AuditLogReason(auditLogReason.String()),
+		Reason: auditLogReason,
 	})
 	if err != nil {
 		return err
