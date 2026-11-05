@@ -14,6 +14,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"gopkg.in/guregu/null.v4"
 )
 
 const (
@@ -399,6 +401,64 @@ func TestFlowTestVariables(t *testing.T) {
 	findEffect(t, exec, "set_variable")
 	if got := responseContent(t, findEffect(t, exec, "respond")); got != "5" {
 		t.Errorf("response = %q", got)
+	}
+}
+
+func TestFlowTestSetVariables(t *testing.T) {
+	e := NewEngine(Env{
+		Config: EngineConfig{ClusterCount: 1},
+		VariableStore: &fakeVariableStore{variables: []*model.Variable{
+			{ID: "xp", Scoped: true},
+			{ID: "total"},
+		}},
+	})
+	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
+	test := FlowTest{
+		Kind:   FlowTestKindCommand,
+		UserID: testRunUser.String(),
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "xp", "description": "XP"}},
+				{"id": "add", "type": "action_variable_set", "data": {"variable_id": "xp", "variable_scope": "{{user.id}}", "variable_operation": "increment", "variable_value": "10"}},
+				{"id": "total", "type": "action_variable_set", "data": {"variable_id": "total", "variable_operation": "decrement", "variable_value": "3"}},
+				{"id": "reply", "type": "action_response_create", "data": {"message_data": {"content": "{{result('add')}} {{result('total')}}"}}}
+			],
+			"edges": [
+				{"id": "1", "source": "entry", "target": "add"},
+				{"id": "2", "source": "add", "target": "total"},
+				{"id": "3", "source": "total", "target": "reply"}
+			]
+		}`),
+		Variables: []FlowTestVariable{
+			{VariableID: "xp", Scope: null.StringFrom(testRunUser.String()), Value: thing.NewInt(95)},
+			// No value, even if one is stored.
+			{VariableID: "total", Value: thing.Null},
+		},
+	}
+
+	res, err := r.Run(context.Background(), "app", test)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exec := res.Executions[0]
+	if exec.Error != "" {
+		t.Fatalf("execution failed: %s", exec.Error)
+	}
+	if got := responseContent(t, findEffect(t, exec, "respond")); got != "105 -3" {
+		t.Errorf("response = %q", got)
+	}
+
+	for _, v := range []FlowTestVariable{
+		{VariableID: "unknown", Value: thing.NewInt(1)},
+		{VariableID: "xp", Value: thing.NewInt(1)},
+		{VariableID: "total", Scope: null.StringFrom("1"), Value: thing.NewInt(1)},
+	} {
+		test.Variables = []FlowTestVariable{v}
+		_, err := r.Run(context.Background(), "app", test)
+		var testErr *FlowTestError
+		if !errors.As(err, &testErr) {
+			t.Errorf("%s (scope %v): got %v, want a test error", v.VariableID, v.Scope.Valid, err)
+		}
 	}
 }
 

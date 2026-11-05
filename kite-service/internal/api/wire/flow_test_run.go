@@ -34,6 +34,9 @@ type FlowTestRequest struct {
 
 	// What blocks do instead of running, by block ID.
 	Mocks map[string]FlowTestMock `json:"mocks,omitempty"`
+	// Values of stored variables when the test starts, in place of the stored
+	// ones.
+	Variables []FlowTestVariable `json:"variables,omitempty"`
 	// What the user does after the flow ran, in order.
 	Then []FlowTestAction `json:"then,omitempty"`
 }
@@ -43,6 +46,7 @@ func (req FlowTestRequest) Validate() error {
 		// Drafts are checked like the flows that are saved.
 		validation.Field(&req.FlowSource),
 		validation.Field(&req.Mocks, validation.Length(0, 100)),
+		validation.Field(&req.Variables, validation.Length(0, 100)),
 		validation.Field(&req.Values, validation.Length(0, 25)),
 		validation.Field(&req.Options, validation.Length(0, 25)),
 		validation.Field(&req.Then),
@@ -60,6 +64,21 @@ type FlowTestMock struct {
 	Result json.RawMessage `json:"result,omitempty" tstype:"any"`
 	// Makes the block fail with this error.
 	Error string `json:"error,omitempty"`
+}
+
+type FlowTestVariable struct {
+	VariableID string `json:"variable_id"`
+	// The scope, for variables with a value per scope, as the block
+	// evaluates it, like "<server ID>:<user ID>".
+	Scope *string `json:"scope,omitempty"`
+	// The value, or null for no value.
+	Value json.RawMessage `json:"value,omitempty" tstype:"any"`
+}
+
+func (v FlowTestVariable) Validate() error {
+	return validation.ValidateStruct(&v,
+		validation.Field(&v.VariableID, validation.Required),
+	)
 }
 
 type FlowTestAction struct {

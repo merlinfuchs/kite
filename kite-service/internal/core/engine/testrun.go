@@ -91,7 +91,19 @@ type FlowTest struct {
 	Webhook *FlowTestWebhook
 
 	Mocks map[string]flow.TestMock
-	Then  []FlowTestAction
+	// Values of stored variables before the test, in place of the stored
+	// ones.
+	Variables []FlowTestVariable
+	Then      []FlowTestAction
+}
+
+// FlowTestVariable is the value of a stored variable when the test starts.
+type FlowTestVariable struct {
+	VariableID string
+	// The scope, for variables with a value per scope.
+	Scope null.String
+	// The value, or thing.Null for no value.
+	Value thing.Thing
 }
 
 type FlowTestWebhook struct {
@@ -180,6 +192,9 @@ func (r *FlowTestRunner) Run(ctx context.Context, appID string, test FlowTest) (
 	}
 
 	s := newTestSession(r.engine.env, appID, session, test.Mocks)
+	if err := s.setVariables(ctx, test.Variables); err != nil {
+		return nil, err
+	}
 	if err := s.setLocation(test, root); err != nil {
 		return nil, err
 	}
@@ -1659,6 +1674,36 @@ func (s *testSession) setVariable(id string, scope null.String, value thing.Thin
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.variables[testVariableKey{id: id, scope: scope}] = testVariableValue{value: value, deleted: deleted, updatedAt: time.Now()}
+}
+
+// setVariables sets the values of stored variables the test starts with.
+func (s *testSession) setVariables(ctx context.Context, variables []FlowTestVariable) error {
+	if len(variables) == 0 {
+		return nil
+	}
+
+	existing, err := s.env.VariableStore.VariablesByAppWithoutTotals(ctx, s.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get variables: %w", err)
+	}
+	scoped := make(map[string]bool, len(existing))
+	for _, v := range existing {
+		scoped[v.ID] = v.Scoped
+	}
+
+	for _, v := range variables {
+		isScoped, ok := scoped[v.VariableID]
+		switch {
+		case !ok:
+			return testErrorf("the app has no stored variable with the ID %q", v.VariableID)
+		case isScoped && !v.Scope.Valid:
+			return testErrorf("variable %s has a value per scope, it needs the scope", v.VariableID)
+		case !isScoped && v.Scope.Valid:
+			return testErrorf("variable %s has one value for the app, it has no scope", v.VariableID)
+		}
+		s.setVariable(v.VariableID, v.Scope, v.Value, v.Value.IsNil())
+	}
+	return nil
 }
 
 // variableChanges returns the values of a variable the test run changed, by

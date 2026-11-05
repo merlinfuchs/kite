@@ -1235,6 +1235,11 @@ export interface FlowTestRequest {
    */
   mocks?: { [key: string]: FlowTestMock};
   /**
+   * Values of stored variables when the test starts, in place of the stored
+   * ones.
+   */
+  variables?: FlowTestVariable[];
+  /**
    * What the user does after the flow ran, in order.
    */
   then?: FlowTestAction[];
@@ -1253,6 +1258,18 @@ export interface FlowTestMock {
    * Makes the block fail with this error.
    */
   error?: string;
+}
+export interface FlowTestVariable {
+  variable_id: string;
+  /**
+   * The scope, for variables with a value per scope, as the block
+   * evaluates it, like "<server ID>:<user ID>".
+   */
+  scope?: string;
+  /**
+   * The value, or null for no value.
+   */
+  value?: any;
 }
 export interface FlowTestAction {
   /**
