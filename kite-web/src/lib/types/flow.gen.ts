@@ -100,6 +100,15 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionTableInsert: FlowNodeType = "action_table_insert";
+export const FlowNodeTypeActionTableGet: FlowNodeType = "action_table_get";
+export const FlowNodeTypeActionTableFind: FlowNodeType = "action_table_find";
+export const FlowNodeTypeActionTableUpdate: FlowNodeType = "action_table_update";
+export const FlowNodeTypeActionTableDelete: FlowNodeType = "action_table_delete";
+export const FlowNodeTypeActionTableColumns: FlowNodeType = "action_table_columns";
+export const FlowNodeTypeActionTableColumnAdd: FlowNodeType = "action_table_column_add";
+export const FlowNodeTypeActionTableColumnUpdate: FlowNodeType = "action_table_column_update";
+export const FlowNodeTypeActionTableColumnDelete: FlowNodeType = "action_table_column_delete";
 export const FlowNodeTypeActionVariableList: FlowNodeType = "action_variable_list";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
@@ -275,6 +284,15 @@ export interface FlowNodeData {
   variable_scope?: string;
   variable_value?: string;
   variable_operation?: any /* provider.VariableOperation */;
+  table_id?: string;
+  table_row_id?: string;
+  table_data?: string;
+  table_filters?: string;
+  table_limit?: string;
+  table_column_id?: string;
+  table_column_name?: string;
+  table_column_type?: string;
+  table_column_options?: string;
   /**
    * Variable List
    */

@@ -92,6 +92,16 @@ import {
   VariableValueDeleteResponse,
   VariableValueSetRequest,
   VariableValueSetResponse,
+  TableCreateRequest,
+  TableCreateResponse,
+  TableUpdateRequest,
+  TableUpdateResponse,
+  TableDeleteResponse,
+  TableRowRequest,
+  TableRowCreateResponse,
+  TableRowUpdateResponse,
+  TableRowDeleteResponse,
+  TableAuditUndoResponse,
   BundleInstallCreateRequest,
   BundleExportRequest,
   BundleCreateRequest,
@@ -1272,6 +1282,123 @@ export function useVariableValueDeleteMutation(
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useTableCreateMutation(appId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (req: TableCreateRequest) =>
+      apiRequest<TableCreateResponse>(`/v1/apps/${appId}/tables`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: ["apps", appId, "tables"] }),
+  });
+}
+
+export function useTableDeleteMutation(appId: string, tableId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<TableDeleteResponse>(`/v1/apps/${appId}/tables/${tableId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () =>
+      client.invalidateQueries({ queryKey: ["apps", appId, "tables"] }),
+  });
+}
+
+export function useTableUpdateMutation(appId: string, tableId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (req: TableUpdateRequest) =>
+      apiRequest<TableUpdateResponse>(`/v1/apps/${appId}/tables/${tableId}`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "tables", tableId],
+      });
+      client.invalidateQueries({ queryKey: ["apps", appId, "tables"] });
+    },
+  });
+}
+
+export function useTableRowCreateMutation(appId: string, tableId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (req: TableRowRequest) =>
+      apiRequest<TableRowCreateResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/rows`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: { "Content-Type": "application/json" },
+        }
+      ),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "tables", tableId, "rows"],
+      }),
+  });
+}
+
+export function useTableRowUpdateMutation(
+  appId: string,
+  tableId: string,
+  rowId: string
+) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (req: TableRowRequest) =>
+      apiRequest<TableRowUpdateResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/rows/${rowId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: { "Content-Type": "application/json" },
+        }
+      ),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "tables", tableId, "rows"],
+      }),
+  });
+}
+
+export function useTableRowDeleteMutation(appId: string, tableId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (rowId: string) =>
+      apiRequest<TableRowDeleteResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/rows/${rowId}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () =>
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "tables", tableId, "rows"],
+      }),
+  });
+}
+
+export function useTableAuditUndoMutation(appId: string, tableId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (auditId: string) =>
+      apiRequest<TableAuditUndoResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/history/${auditId}/undo`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "tables", tableId],
       });
     },
   });

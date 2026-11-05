@@ -83,6 +83,15 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Set stored variable](./actions/action_variable_set.md) - Set persistent variables
 - [Get stored variable](./actions/action_variable_get.md) - Retrieve stored variables
 - [Delete stored variable](./actions/action_variable_delete.md) - Remove stored variables
+- [Insert table row](./actions/action_table_insert.md) - Create a table row
+- [Get table row](./actions/action_table_get.md) - Retrieve a table row
+- [Find table rows](./actions/action_table_find.md) - Search table rows
+- [Update table row](./actions/action_table_update.md) - Update a table row
+- [Delete table row](./actions/action_table_delete.md) - Remove a table row
+- [List table columns](./actions/action_table_columns.md) - List table columns
+- [Add table column](./actions/action_table_column_add.md) - Add a table column
+- [Update table column](./actions/action_table_column_update.md) - Update a table column
+- [Delete table column](./actions/action_table_column_delete.md) - Remove a table column
 - [List stored variable values](./actions/action_variable_list.md) - List the values of a variable in order, like a leaderboard
 
 ## AI blocks

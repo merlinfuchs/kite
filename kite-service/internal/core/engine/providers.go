@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,236 @@ import (
 	"github.com/openai/openai-go/v2/shared"
 	"gopkg.in/guregu/null.v4"
 )
+
+type TableProvider struct {
+	appID string
+	store store.TableStore
+}
+
+func NewTableProvider(appID string, tableStore store.TableStore) *TableProvider {
+	return &TableProvider{appID: appID, store: tableStore}
+}
+
+func (p *TableProvider) InsertRow(ctx context.Context, tableID string, data map[string]any) (*provider.TableRow, error) {
+	if _, err := p.store.Table(ctx, p.appID, tableID); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	row, err := p.store.CreateTableRow(ctx, &model.TableRow{
+		ID: util.UniqueID(), TableID: tableID, Data: data, CreatedAt: now, UpdatedAt: now,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := p.recordAudit(ctx, tableID, "row_create", row.ID, nil, row); err != nil {
+		return nil, err
+	}
+	return &provider.TableRow{ID: row.ID, Data: row.Data}, nil
+}
+
+func (p *TableProvider) GetRow(ctx context.Context, tableID, rowID string) (*provider.TableRow, error) {
+	rows, err := p.store.TableRows(ctx, p.appID, tableID)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if row.ID == rowID {
+			return &provider.TableRow{ID: row.ID, Data: row.Data}, nil
+		}
+	}
+	return nil, provider.ErrNotFound
+}
+
+func (p *TableProvider) FindRows(ctx context.Context, tableID string, filters []provider.TableFilter, limit int) ([]*provider.TableRow, error) {
+	rows, err := p.store.TableRows(ctx, p.appID, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*provider.TableRow, 0, min(limit, len(rows)))
+	for _, row := range rows {
+		matches := true
+		for _, filter := range filters {
+			value, ok := row.Data[filter.Column]
+			if !ok || !tableFilterMatches(value, filter.Operator, filter.Value) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			result = append(result, &provider.TableRow{ID: row.ID, Data: row.Data})
+			if len(result) == limit {
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
+func (p *TableProvider) UpdateRow(ctx context.Context, tableID, rowID string, data map[string]any) (*provider.TableRow, error) {
+	before, err := p.GetRow(ctx, tableID, rowID)
+	if err != nil {
+		return nil, err
+	}
+	row, err := p.store.UpdateTableRow(ctx, &model.TableRow{
+		ID: rowID, TableID: tableID, Data: data, UpdatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := p.recordAudit(ctx, tableID, "row_update", row.ID, before, row); err != nil {
+		return nil, err
+	}
+	return &provider.TableRow{ID: row.ID, Data: row.Data}, nil
+}
+
+func (p *TableProvider) DeleteRow(ctx context.Context, tableID, rowID string) error {
+	before, err := p.GetRow(ctx, tableID, rowID)
+	if err != nil {
+		return err
+	}
+	if err := p.store.DeleteTableRow(ctx, tableID, rowID); err != nil {
+		return err
+	}
+	return p.recordAudit(ctx, tableID, "row_delete", rowID, before, nil)
+}
+
+func toProviderColumn(column model.TableColumn) provider.TableColumn {
+	return provider.TableColumn{ID: column.ID, Name: column.Name, Type: column.Type, Required: column.Required, Default: column.Default, ReferenceTableID: column.ReferenceTableID}
+}
+
+func toModelColumn(column provider.TableColumn) model.TableColumn {
+	return model.TableColumn{ID: column.ID, Name: column.Name, Type: column.Type, Required: column.Required, Default: column.Default, ReferenceTableID: column.ReferenceTableID}
+}
+
+func (p *TableProvider) ListColumns(ctx context.Context, tableID string) ([]provider.TableColumn, error) {
+	table, err := p.store.Table(ctx, p.appID, tableID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]provider.TableColumn, len(table.Columns))
+	for i, column := range table.Columns {
+		result[i] = toProviderColumn(column)
+	}
+	return result, nil
+}
+
+func (p *TableProvider) AddColumn(ctx context.Context, tableID string, column provider.TableColumn) (provider.TableColumn, error) {
+	table, err := p.store.Table(ctx, p.appID, tableID)
+	if err != nil {
+		return provider.TableColumn{}, err
+	}
+	for _, existing := range table.Columns {
+		if existing.ID == column.ID {
+			return provider.TableColumn{}, fmt.Errorf("column %q already exists", column.ID)
+		}
+	}
+	before := cloneTable(table)
+	table.Columns = append(table.Columns, toModelColumn(column))
+	table.UpdatedAt = time.Now().UTC()
+	updated, err := p.store.UpdateTable(ctx, table)
+	if err != nil {
+		return provider.TableColumn{}, err
+	}
+	if err := p.recordAudit(ctx, tableID, "table_update", "", before, updated); err != nil {
+		return provider.TableColumn{}, err
+	}
+	return column, nil
+}
+
+func (p *TableProvider) UpdateColumn(ctx context.Context, tableID, columnID string, column provider.TableColumn) (provider.TableColumn, error) {
+	table, err := p.store.Table(ctx, p.appID, tableID)
+	if err != nil {
+		return provider.TableColumn{}, err
+	}
+	found := false
+	for i := range table.Columns {
+		if table.Columns[i].ID == columnID {
+			before := cloneTable(table)
+			table.Columns[i] = toModelColumn(column)
+			found = true
+			table.UpdatedAt = time.Now().UTC()
+			updated, updateErr := p.store.UpdateTable(ctx, table)
+			if updateErr != nil {
+				return provider.TableColumn{}, updateErr
+			}
+			if auditErr := p.recordAudit(ctx, tableID, "table_update", "", before, updated); auditErr != nil {
+				return provider.TableColumn{}, auditErr
+			}
+			break
+		}
+	}
+	if !found {
+		return provider.TableColumn{}, provider.ErrNotFound
+	}
+	return column, nil
+}
+
+func (p *TableProvider) DeleteColumn(ctx context.Context, tableID, columnID string) error {
+	table, err := p.store.Table(ctx, p.appID, tableID)
+	if err != nil {
+		return err
+	}
+	for i, column := range table.Columns {
+		if column.ID == columnID {
+			before := cloneTable(table)
+			table.Columns = append(table.Columns[:i], table.Columns[i+1:]...)
+			table.UpdatedAt = time.Now().UTC()
+			updated, err := p.store.UpdateTable(ctx, table)
+			if err != nil {
+				return err
+			}
+			return p.recordAudit(ctx, tableID, "table_update", "", before, updated)
+		}
+	}
+	return provider.ErrNotFound
+}
+
+func cloneTable(table *model.Table) *model.Table {
+	copy := *table
+	copy.Columns = append([]model.TableColumn(nil), table.Columns...)
+	return &copy
+}
+
+func (p *TableProvider) recordAudit(ctx context.Context, tableID, action, rowID string, before, after any) error {
+	beforeData, err := json.Marshal(before)
+	if err != nil {
+		return err
+	}
+	afterData, err := json.Marshal(after)
+	if err != nil {
+		return err
+	}
+	return p.store.CreateTableAudit(ctx, &model.TableAudit{
+		ID: util.UniqueID(), AppID: p.appID, TableID: tableID, ActorUserID: "flow",
+		Action: action, RowID: rowID, BeforeData: beforeData, AfterData: afterData, CreatedAt: time.Now().UTC(),
+	})
+}
+
+func tableFilterMatches(value any, operator string, expected any) bool {
+	switch operator {
+	case "equals", "eq":
+		return reflect.DeepEqual(value, expected)
+	case "not_equals", "neq":
+		return !reflect.DeepEqual(value, expected)
+	case "contains":
+		actual, ok := value.(string)
+		target, targetOK := expected.(string)
+		return ok && targetOK && strings.Contains(actual, target)
+	case "greater_than", "gt", "less_than", "lt":
+		actual, ok := value.(float64)
+		target, targetOK := expected.(float64)
+		if !ok || !targetOK {
+			return false
+		}
+		if operator == "greater_than" || operator == "gt" {
+			return actual > target
+		}
+		return actual < target
+	default:
+		return false
+	}
+}
 
 // FeatureProvider resolves the premium features an app has access to.
 type FeatureProvider interface {

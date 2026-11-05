@@ -118,6 +118,15 @@ import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
+import { tableDelete } from "./tableDelete";
+import { tableFind } from "./tableFind";
+import { tableGet } from "./tableGet";
+import { tableInsert } from "./tableInsert";
+import { tableUpdate } from "./tableUpdate";
+import { tableColumns } from "./tableColumns";
+import { tableColumnAdd } from "./tableColumnAdd";
+import { tableColumnUpdate } from "./tableColumnUpdate";
+import { tableColumnDelete } from "./tableColumnDelete";
 import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
@@ -185,6 +194,15 @@ export const blockDefinitions: BlockDefinition[] = [
   variableSet,
   variableDelete,
   variableGet,
+  tableInsert,
+  tableGet,
+  tableFind,
+  tableUpdate,
+  tableDelete,
+  tableColumns,
+  tableColumnAdd,
+  tableColumnUpdate,
+  tableColumnDelete,
   variableList,
   robloxUserGet,
   cookieApiTranscriptCreate,

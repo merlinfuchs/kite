@@ -52,6 +52,10 @@ import {
   VariableGetResponse,
   VariableListResponse,
   VariableValueListResponse,
+  TableListResponse,
+  TableGetResponse,
+  TableRowListResponse,
+  TableAuditListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
   ItemVersionGetResponse,
@@ -499,6 +503,45 @@ export function useVariableValuesQuery(
     enabled: !!appId && !!variableId,
     // Keeps the current page visible while the next one or a search loads.
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useTablesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "tables"],
+    queryFn: () => apiRequest<TableListResponse>(`/v1/apps/${appId}/tables`),
+    enabled: !!appId,
+  });
+}
+
+export function useTableQuery(appId: string, tableId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "tables", tableId],
+    queryFn: () =>
+      apiRequest<TableGetResponse>(`/v1/apps/${appId}/tables/${tableId}`),
+    enabled: !!appId && !!tableId,
+  });
+}
+
+export function useTableRowsQuery(appId: string, tableId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "tables", tableId, "rows"],
+    queryFn: () =>
+      apiRequest<TableRowListResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/rows`
+      ),
+    enabled: !!appId && !!tableId,
+  });
+}
+
+export function useTableAuditQuery(appId: string, tableId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "tables", tableId, "history"],
+    queryFn: () =>
+      apiRequest<TableAuditListResponse>(
+        `/v1/apps/${appId}/tables/${tableId}/history`
+      ),
+    enabled: !!appId && !!tableId,
   });
 }
 
