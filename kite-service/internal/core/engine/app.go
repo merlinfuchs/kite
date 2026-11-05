@@ -563,12 +563,12 @@ func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, f
 			return nil, resumePoint.FlowState, fmt.Errorf("failed to decrypt interaction token: %w", err)
 		}
 	}
-	return resumeTriggerEvent(resumePoint.FlowState, token)
+	return ResumeTriggerEvent(resumePoint.FlowState, token)
 }
 
-// resumeTriggerEvent returns the interaction or event a flow continues with
+// ResumeTriggerEvent returns the interaction or event a flow continues with
 // after a durable sleep, and the state without it.
-func resumeTriggerEvent(state flow.FlowContextState, token string) (gateway.Event, flow.FlowContextState, error) {
+func ResumeTriggerEvent(state flow.FlowContextState, token string) (gateway.Event, flow.FlowContextState, error) {
 	trigger := state.ResumeTrigger
 	if trigger == nil {
 		return nil, state, errors.New("resume point has no trigger")

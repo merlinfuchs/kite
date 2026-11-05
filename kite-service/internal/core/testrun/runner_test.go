@@ -1,4 +1,4 @@
-package engine
+package testrun
 
 import (
 	"context"
@@ -11,7 +11,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -87,11 +89,10 @@ func (s testRunSessions) AppSession(ctx context.Context, appID string) (*state.S
 	return s.session, nil
 }
 
-func runTest(t *testing.T, test FlowTest) *FlowTestResult {
+func runTest(t *testing.T, test Test) *Result {
 	t.Helper()
 
-	e := NewEngine(Env{Config: EngineConfig{ClusterCount: 1}})
-	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
+	r := NewRunner(engine.Env{}, testRunSessions{session: testRunState(t)})
 
 	if test.UserID == "" {
 		test.UserID = testRunUser.String()
@@ -113,7 +114,7 @@ func testFlow(t *testing.T, s string) flow.FlowData {
 	return data
 }
 
-func findEffect(t *testing.T, exec FlowTestExecution, action string) flow.TestEffect {
+func findEffect(t *testing.T, exec Execution, action string) flow.TestEffect {
 	t.Helper()
 
 	for _, step := range exec.Steps {
@@ -151,8 +152,8 @@ const greetFlow = `{
 }`
 
 func TestFlowTestCommand(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind:    FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind:    KindCommand,
 		Flow:    testFlow(t, greetFlow),
 		Options: map[string]json.RawMessage{"text": json.RawMessage(`"hello"`)},
 	})
@@ -173,23 +174,22 @@ func TestFlowTestCommand(t *testing.T) {
 }
 
 func TestFlowTestCommandArguments(t *testing.T) {
-	e := NewEngine(Env{Config: EngineConfig{ClusterCount: 1}})
-	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
+	r := NewRunner(engine.Env{}, testRunSessions{session: testRunState(t)})
 
 	for name, options := range map[string]map[string]json.RawMessage{
 		"missing": {},
 		"unknown": {"text": json.RawMessage(`"hi"`), "other": json.RawMessage(`1`)},
 		"wrong":   {"text": json.RawMessage(`5`)},
 	} {
-		_, err := r.Run(context.Background(), "app", FlowTest{
-			Kind:    FlowTestKindCommand,
+		_, err := r.Run(context.Background(), "app", Test{
+			Kind:    KindCommand,
 			Flow:    testFlow(t, greetFlow),
 			UserID:  testRunUser.String(),
 			Options: options,
 		})
-		var testErr *FlowTestError
+		var testErr *TestError
 		if !errors.As(err, &testErr) {
-			t.Errorf("%s: got %v, want a FlowTestError", name, err)
+			t.Errorf("%s: got %v, want a TestError", name, err)
 		}
 	}
 }
@@ -197,8 +197,8 @@ func TestFlowTestCommandArguments(t *testing.T) {
 // A click on a button the flow sent continues the flow, and a role the bot
 // can't assign is warned about.
 func TestFlowTestClickButton(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "verify", "description": "Verify"}},
@@ -214,7 +214,7 @@ func TestFlowTestClickButton(t *testing.T) {
 				{"id": "3", "source": "low", "target": "high"}
 			]
 		}`),
-		Then: []FlowTestAction{{Click: "Yes"}},
+		Then: []Action{{Click: "Yes"}},
 	})
 
 	if len(res.Executions) != 2 {
@@ -246,13 +246,13 @@ func TestFlowTestClickButton(t *testing.T) {
 }
 
 func TestFlowTestUnknownButton(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, greetFlow),
 		Options: map[string]json.RawMessage{
 			"text": json.RawMessage(`"hi"`),
 		},
-		Then: []FlowTestAction{{Click: "Yes"}},
+		Then: []Action{{Click: "Yes"}},
 	})
 
 	last := res.Executions[len(res.Executions)-1]
@@ -278,7 +278,7 @@ const weatherFlow = `{
 }`
 
 func TestFlowTestExternalRequests(t *testing.T) {
-	res := runTest(t, FlowTest{Kind: FlowTestKindCommand, Flow: testFlow(t, weatherFlow)})
+	res := runTest(t, Test{Kind: KindCommand, Flow: testFlow(t, weatherFlow)})
 	exec := res.Executions[0]
 	for _, step := range exec.Steps {
 		if step.NodeID == "http" && (len(step.Notes) == 0 || !strings.HasPrefix(step.Notes[0], "Not run")) {
@@ -286,8 +286,8 @@ func TestFlowTestExternalRequests(t *testing.T) {
 		}
 	}
 
-	res = runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res = runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, weatherFlow),
 		Mocks: map[string]flow.TestMock{
 			"http": {Result: json.RawMessage(`{"status_code": 200, "body": {"temp": 21}}`)},
@@ -297,8 +297,8 @@ func TestFlowTestExternalRequests(t *testing.T) {
 		t.Errorf("response with mocked result = %q", got)
 	}
 
-	res = runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res = runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, weatherFlow),
 		Mocks: map[string]flow.TestMock{
 			"http":    {Error: "connection refused"},
@@ -314,8 +314,8 @@ func TestFlowTestExternalRequests(t *testing.T) {
 }
 
 func TestFlowTestPermissionWarning(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "announce", "description": "Announce"}},
@@ -336,8 +336,8 @@ func TestFlowTestPermissionWarning(t *testing.T) {
 }
 
 func TestFlowTestModal(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "report", "description": "Report"}},
@@ -351,7 +351,7 @@ func TestFlowTestModal(t *testing.T) {
 				{"id": "2", "source": "modal", "target": "reply"}
 			]
 		}`),
-		Then: []FlowTestAction{{Submit: map[string]json.RawMessage{"Reason": json.RawMessage(`"spam"`)}}},
+		Then: []Action{{Submit: map[string]json.RawMessage{"Reason": json.RawMessage(`"spam"`)}}},
 	})
 
 	if len(res.Executions) != 2 {
@@ -367,14 +367,12 @@ func TestFlowTestModal(t *testing.T) {
 
 // Variables changed by a test can be read by later blocks, but aren't saved.
 func TestFlowTestVariables(t *testing.T) {
-	e := NewEngine(Env{
-		Config:        EngineConfig{ClusterCount: 1},
+	r := NewRunner(engine.Env{
 		VariableStore: &fakeVariableStore{variables: []*model.Variable{{ID: "count"}}},
-	})
-	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
+	}, testRunSessions{session: testRunState(t)})
 
-	res, err := r.Run(context.Background(), "app", FlowTest{
-		Kind:   FlowTestKindCommand,
+	res, err := r.Run(context.Background(), "app", Test{
+		Kind:   KindCommand,
 		UserID: testRunUser.String(),
 		Flow: testFlow(t, `{
 			"nodes": [
@@ -405,16 +403,14 @@ func TestFlowTestVariables(t *testing.T) {
 }
 
 func TestFlowTestSetVariables(t *testing.T) {
-	e := NewEngine(Env{
-		Config: EngineConfig{ClusterCount: 1},
+	r := NewRunner(engine.Env{
 		VariableStore: &fakeVariableStore{variables: []*model.Variable{
 			{ID: "xp", Scoped: true},
 			{ID: "total"},
 		}},
-	})
-	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
-	test := FlowTest{
-		Kind:   FlowTestKindCommand,
+	}, testRunSessions{session: testRunState(t)})
+	test := Test{
+		Kind:   KindCommand,
 		UserID: testRunUser.String(),
 		Flow: testFlow(t, `{
 			"nodes": [
@@ -429,7 +425,7 @@ func TestFlowTestSetVariables(t *testing.T) {
 				{"id": "3", "source": "total", "target": "reply"}
 			]
 		}`),
-		Variables: []FlowTestVariable{
+		Variables: []Variable{
 			{VariableID: "xp", Scope: null.StringFrom(testRunUser.String()), Value: thing.NewInt(95)},
 			// No value, even if one is stored.
 			{VariableID: "total", Value: thing.Null},
@@ -448,14 +444,14 @@ func TestFlowTestSetVariables(t *testing.T) {
 		t.Errorf("response = %q", got)
 	}
 
-	for _, v := range []FlowTestVariable{
+	for _, v := range []Variable{
 		{VariableID: "unknown", Value: thing.NewInt(1)},
 		{VariableID: "xp", Value: thing.NewInt(1)},
 		{VariableID: "total", Scope: null.StringFrom("1"), Value: thing.NewInt(1)},
 	} {
-		test.Variables = []FlowTestVariable{v}
+		test.Variables = []Variable{v}
 		_, err := r.Run(context.Background(), "app", test)
-		var testErr *FlowTestError
+		var testErr *TestError
 		if !errors.As(err, &testErr) {
 			t.Errorf("%s (scope %v): got %v, want a test error", v.VariableID, v.Scope.Valid, err)
 		}
@@ -463,8 +459,8 @@ func TestFlowTestSetVariables(t *testing.T) {
 }
 
 func TestFlowTestEventFilter(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindEventListener,
+	res := runTest(t, Test{
+		Kind: KindEventListener,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_event", "data": {"event_type": "message_create", "description": "Messages"}},
@@ -492,8 +488,8 @@ func TestFlowTestEventFilter(t *testing.T) {
 // Long waits are skipped, the flow continues in a second execution like it
 // would after the wait.
 func TestFlowTestDurableSleep(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "remind", "description": "Remind"}},
@@ -520,8 +516,8 @@ func TestFlowTestDurableSleep(t *testing.T) {
 }
 
 func TestFlowTestWebhook(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindEventListener,
+	res := runTest(t, Test{
+		Kind: KindEventListener,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_event", "data": {"event_type": "webhook", "description": "Webhook"}},
@@ -535,7 +531,7 @@ func TestFlowTestWebhook(t *testing.T) {
 				{"id": "3", "source": "verify", "target": "denied", "sourceHandle": "invalid"}
 			]
 		}`),
-		Webhook: &FlowTestWebhook{Body: `{"action": "opened"}`},
+		Webhook: &Webhook{Body: `{"action": "opened"}`},
 	})
 
 	effect := findEffect(t, res.Executions[0], "respond_webhook")
@@ -547,8 +543,8 @@ func TestFlowTestWebhook(t *testing.T) {
 // The request is answered when the flow waits, so responding after a long
 // wait fails like it would.
 func TestFlowTestWebhookResponseAfterWait(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindEventListener,
+	res := runTest(t, Test{
+		Kind: KindEventListener,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_event", "data": {"event_type": "webhook", "description": "Webhook"}},
@@ -560,7 +556,7 @@ func TestFlowTestWebhookResponseAfterWait(t *testing.T) {
 				{"id": "2", "source": "wait", "target": "ok"}
 			]
 		}`),
-		Webhook: &FlowTestWebhook{Body: "{}"},
+		Webhook: &Webhook{Body: "{}"},
 	})
 
 	if len(res.Executions) != 2 {
@@ -578,8 +574,8 @@ func TestFlowTestWebhookResponseAfterWait(t *testing.T) {
 // Endpoints only flows can use, like the webhooks of a server with their
 // tokens, aren't read in test runs, whose token may not read them.
 func TestFlowTestFlowOnlyRead(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "hooks", "description": "Hooks"}},
@@ -600,8 +596,8 @@ func TestFlowTestFlowOnlyRead(t *testing.T) {
 }
 
 func TestFlowTestDeletedMessage(t *testing.T) {
-	res := runTest(t, FlowTest{
-		Kind: FlowTestKindCommand,
+	res := runTest(t, Test{
+		Kind: KindCommand,
 		Flow: testFlow(t, `{
 			"nodes": [
 				{"id": "entry", "type": "entry_command", "data": {"name": "confirm", "description": "Confirm"}},
@@ -615,7 +611,7 @@ func TestFlowTestDeletedMessage(t *testing.T) {
 				{"id": "2", "source": "ask", "target": "delete", "sourceHandle": "component_1"}
 			]
 		}`),
-		Then: []FlowTestAction{{Click: "Yes"}, {Click: "Yes"}},
+		Then: []Action{{Click: "Yes"}, {Click: "Yes"}},
 	})
 
 	last := res.Executions[len(res.Executions)-1]
@@ -643,8 +639,8 @@ func TestFlowTestMessageButton(t *testing.T) {
 			}`)},
 	}
 
-	res := runTest(t, FlowTest{
-		Kind:         FlowTestKindMessage,
+	res := runTest(t, Test{
+		Kind:         KindMessage,
 		Message:      panel,
 		FlowSourceID: "ping",
 	})
@@ -668,13 +664,13 @@ func TestFlowTestAICheck(t *testing.T) {
 		]
 	}`)
 
-	res := runTest(t, FlowTest{Kind: FlowTestKindCommand, Flow: flowData})
+	res := runTest(t, Test{Kind: KindCommand, Flow: flowData})
 	if got := responseContent(t, findEffect(t, res.Executions[0], "respond")); got != "fine" {
 		t.Errorf("response without a mock = %q", got)
 	}
 
-	res = runTest(t, FlowTest{
-		Kind:  FlowTestKindCommand,
+	res = runTest(t, Test{
+		Kind:  KindCommand,
 		Flow:  flowData,
 		Mocks: map[string]flow.TestMock{"ai": {Result: json.RawMessage(`"yes"`)}},
 	})
@@ -697,4 +693,13 @@ func TestRoleAbove(t *testing.T) {
 	if roleAbove(older, older) {
 		t.Error("a role isn't above itself")
 	}
+}
+
+type fakeVariableStore struct {
+	store.VariableStore
+	variables []*model.Variable
+}
+
+func (f *fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
+	return f.variables, nil
 }

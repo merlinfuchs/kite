@@ -19,6 +19,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
+	"github.com/kitecloud/kite/kite-service/internal/core/testrun"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -216,7 +217,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, engine.WebhookRunner(gateway), engine.FlowTestRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, gateway, engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,
 	)
