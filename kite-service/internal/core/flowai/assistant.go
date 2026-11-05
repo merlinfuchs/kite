@@ -450,14 +450,14 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 
 	if e.DataJSON != nil {
 		var data map[string]any
-		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
+		if err := unmarshalModelJSON(*e.DataJSON, &data); err != nil || data == nil {
 			return nil, jsonError("data_json isn't a JSON object", *e.DataJSON, err)
 		}
 		edit["data"] = data
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
-		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
+		if err := unmarshalModelJSON(*e.ItemsJSON, &items); err != nil || items == nil {
 			return nil, jsonError("items_json isn't a JSON array of objects", *e.ItemsJSON, err)
 		}
 		edit["items"] = items
