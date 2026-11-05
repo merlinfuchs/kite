@@ -310,7 +310,7 @@ describe("applyFlowEdits", () => {
     ]);
   });
 
-  it("disconnects blocks by another handle or the other way round", () => {
+  it("disconnects blocks by any handle if none is given", () => {
     const check = node("check", "control_if", {});
     const res = apply(
       [entry, check, log("a"), log("b"), log("c")],
@@ -319,11 +319,12 @@ describe("applyFlowEdits", () => {
         edge("check", "a", "yes"),
         edge("check", "b", "yes"),
         edge("check", "b", "no"),
+        edge("check", "c", "yes"),
       ],
       [
         { op: "disconnect", source: "check", target: "a" },
         { op: "disconnect", source: "check", target: "entry" },
-        { op: "disconnect", source: "check", target: "c" },
+        { op: "disconnect", source: "check", target: "c", handle: "no" },
         { op: "disconnect", source: "check", target: "b" },
       ]
     );
@@ -335,7 +336,12 @@ describe("applyFlowEdits", () => {
           "Edit 4 (disconnect): 'check' is connected to 'b' by several outputs: 'yes', 'no'. Set the handle to one of them.",
       },
     ]);
-    expect(res.connections).toEqual(["check[yes]->b", "check[no]->b"]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      "check[yes]->b",
+      "check[no]->b",
+      "check[yes]->c",
+    ]);
   });
 
   it("reports what the validator finds", () => {

@@ -128,28 +128,26 @@ export function applyFlowEdits(
         e.target === target &&
         normalizeHandle(e.sourceHandle) === normalizeHandle(handle)
     );
-  // The AI often leaves out the handle of an existing connection or gets it
-  // wrong, so without a match, the connections between the blocks by any
-  // handle are used. If there are several, it has to pick one.
+  // The AI often leaves out the handle of an existing connection, e.g. the
+  // "yes" of an If, so without one, the connection by any handle is used. If
+  // there are several, it has to pick one.
   const findEdgesByAnyHandle = (
     source: string,
     target: string,
     handle: string | null | undefined,
-    eitherWay: boolean
+    names: [string, string]
   ) => {
     const exact = findEdges(source, target, handle);
-    if (exact.length > 0) return exact;
+    if (exact.length > 0 || normalizeHandle(handle)) return exact;
     const between = edges.filter(
-      (e) =>
-        (e.source === source && e.target === target) ||
-        (eitherWay && e.source === target && e.target === source)
+      (e) => e.source === source && e.target === target
     );
     if (between.length > 1) {
       const handles = between
         .map((e) => `'${normalizeHandle(e.sourceHandle) ?? "default"}'`)
         .join(", ");
       throw new Error(
-        `'${source}' is connected to '${target}' by several outputs: ${handles}. Set the handle to one of them.`
+        `'${names[0]}' is connected to '${names[1]}' by several outputs: ${handles}. Set the handle to one of them.`
       );
     }
     return between;
@@ -266,7 +264,10 @@ export function applyFlowEdits(
           }
           const split =
             after && before
-              ? findEdgesByAnyHandle(after.id, before.id, handle, false)
+              ? findEdgesByAnyHandle(after.id, before.id, handle, [
+                  edit.after!,
+                  edit.before!,
+                ])
               : [];
           if (after && before) {
             if (split.length === 0) {
@@ -440,12 +441,10 @@ export function applyFlowEdits(
             );
           }
           // Blocks that aren't connected are left as the AI wants them.
-          const matching = findEdgesByAnyHandle(
-            source.id,
-            target.id,
-            handle,
-            true
-          );
+          const matching = findEdgesByAnyHandle(source.id, target.id, handle, [
+            edit.source!,
+            edit.target!,
+          ]);
           edges = edges.filter((e) => !matching.includes(e));
           break;
         }
