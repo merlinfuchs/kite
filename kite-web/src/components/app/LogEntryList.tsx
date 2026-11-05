@@ -17,8 +17,8 @@ import {
   MailPlusIcon,
   RefreshCwIcon,
   SatelliteDishIcon,
-  SquareSlash,
   SquareSlashIcon,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,16 +47,11 @@ import LogLevelBadge from "./LogLevelBadge";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
-const entityPaths: Record<string, string> = {
-  command: "commands",
-  event_listener: "events",
-  message: "messages",
+const entityKinds: Record<string, { path: string; icon: LucideIcon }> = {
+  command: { path: "commands", icon: SquareSlashIcon },
+  event_listener: { path: "events", icon: SatelliteDishIcon },
+  message: { path: "messages", icon: MailPlusIcon },
 };
-
-function entityHref(appId: string, type: string, id: string) {
-  const path = entityPaths[type];
-  return appId && path ? `/apps/${appId}/${path}/${id}` : null;
-}
 
 // Leaves more room for the message on phones.
 const hiddenOnMobile = (columnId: string) =>
@@ -99,36 +94,16 @@ export const columns: ColumnDef<{
 
       if (!entity) return null;
 
-      const href = entityHref(appId, entity.type, entity.id);
-      const content = (
-        <>
-          {entity.type === "command" ? (
-            <SquareSlashIcon className="h-4 w-4 flex-none" />
-          ) : entity.type === "event_listener" ? (
-            <SatelliteDishIcon className="h-4 w-4 flex-none" />
-          ) : entity.type === "message" ? (
-            <MailPlusIcon className="h-4 w-4 flex-none" />
-          ) : (
-            <SquareSlash className="h-4 w-4 flex-none" />
-          )}
-          <div>{entity?.name ?? sourceID}</div>
-        </>
-      );
-
-      if (!href) {
-        return (
-          <div className="flex items-center gap-1.5 text-foreground/80">
-            {content}
-          </div>
-        );
-      }
+      const kind = entityKinds[entity.type];
+      if (!kind) return null;
 
       return (
         <Link
-          href={href}
+          href={`/apps/${appId}/${kind.path}/${entity.id}`}
           className="inline-flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:underline"
         >
-          {content}
+          <kind.icon className="h-4 w-4 flex-none" />
+          <div>{entity.name}</div>
         </Link>
       );
     },
