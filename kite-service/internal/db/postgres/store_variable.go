@@ -294,6 +294,7 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			// Current transaction is rolled back, we set the value outside of the transaction
+			value.Data = firstVariableValue(operation, value.Data)
 			return c.setVariableValueWithTx(ctx, nil, appID, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
@@ -427,4 +428,14 @@ func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) 
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 	}, nil
+}
+
+// firstVariableValue is the value an operation stores when the variable has no
+// value yet. A missing value counts as 0 for decrement, so taking 50 from it
+// stores -50 instead of 50. The other operations store the value as it is.
+func firstVariableValue(operation model.VariableValueOperation, data thing.Thing) thing.Thing {
+	if operation == provider.VariableOperationDecrement {
+		return thing.NewInt(0).Sub(data)
+	}
+	return data
 }
