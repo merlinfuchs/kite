@@ -107,10 +107,6 @@ type Response struct {
 	// they are numbered the same.
 	Edits []map[string]any
 	Usage model.AssistantUsage
-
-	// outline is the edits as the model wrote them without their settings,
-	// for the logs.
-	outline []string
 }
 
 // ErrResponse is an error with a message that can be shown to the user.
@@ -195,14 +191,14 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	if err != nil {
 		return &Response{Usage: usage}, err
 	}
-	if len(res.outline) > 0 {
-		// The issues of the next round are logged by the editor's numbering,
-		// which matches these edits.
+	if len(res.Edits) > 0 {
+		// Matches the issues logged with the next round, which are numbered
+		// by these edits.
 		slog.Info(
 			"Flow AI edits",
 			slog.String("app_id", req.AppID),
 			slog.String("prompt_id", req.PromptID),
-			slog.String("edits", strings.Join(res.outline, "; ")),
+			slog.String("edits", outlineEdits(res.Edits)),
 		)
 	}
 	res.checkVariables(req.Variables)
@@ -393,7 +389,6 @@ func parseOutput(text string) (*Response, error) {
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 	}
 	for _, e := range out.Edits {
-		res.outline = append(res.outline, e.outline())
 		edit, err := e.toEdit()
 		if err != nil {
 			edit = map[string]any{"op": e.Op, "error": err.Error()}
@@ -421,28 +416,25 @@ func parseOutput(text string) (*Response, error) {
 	return res, nil
 }
 
-// outline describes the edit by the fields that place blocks, like
-// "add_node ref=$ban type=action_member_ban after=$check handle=yes".
-func (e outputEdit) outline() string {
-	parts := []string{e.Op}
-	for _, f := range []struct {
-		name  string
-		value *string
-	}{
-		{"ref", e.Ref}, {"type", e.Type}, {"id", e.ID}, {"after", e.After},
-		{"before", e.Before}, {"handle", e.Handle}, {"source", e.Source}, {"target", e.Target},
-	} {
-		if f.value != nil {
-			parts = append(parts, f.name+"="+truncate(*f.value, 60))
+// outlineEdits describes edits without their settings, like
+// "add_node ref=$ban type=action_member_ban after=$check handle=yes data".
+func outlineEdits(edits []map[string]any) string {
+	outlines := make([]string, len(edits))
+	for i, edit := range edits {
+		parts := []string{fmt.Sprint(edit["op"])}
+		for _, key := range []string{"ref", "type", "id", "after", "before", "handle", "source", "target"} {
+			if value, ok := edit[key].(string); ok {
+				parts = append(parts, key+"="+truncate(value, 60))
+			}
 		}
+		for _, key := range []string{"data", "items", "error"} {
+			if _, ok := edit[key]; ok {
+				parts = append(parts, key)
+			}
+		}
+		outlines[i] = strings.Join(parts, " ")
 	}
-	if e.DataJSON != nil {
-		parts = append(parts, "data")
-	}
-	if e.ItemsJSON != nil {
-		parts = append(parts, "items")
-	}
-	return strings.Join(parts, " ")
+	return strings.Join(outlines, "; ")
 }
 
 // toEdit converts the edit into the form the editor applies, leaving out the

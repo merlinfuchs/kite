@@ -128,6 +128,32 @@ export function applyFlowEdits(
         e.target === target &&
         normalizeHandle(e.sourceHandle) === normalizeHandle(handle)
     );
+  // The AI often leaves out the handle of an existing connection or gets it
+  // wrong, so without a match, the connections between the blocks by any
+  // handle are used. If there are several, it has to pick one.
+  const findEdgesByAnyHandle = (
+    source: string,
+    target: string,
+    handle: string | null | undefined,
+    eitherWay: boolean
+  ) => {
+    const exact = findEdges(source, target, handle);
+    if (exact.length > 0) return exact;
+    const between = edges.filter(
+      (e) =>
+        (e.source === source && e.target === target) ||
+        (eitherWay && e.source === target && e.target === source)
+    );
+    if (between.length > 1) {
+      const handles = between
+        .map((e) => `'${normalizeHandle(e.sourceHandle) ?? "default"}'`)
+        .join(", ");
+      throw new Error(
+        `'${source}' is connected to '${target}' by several outputs: ${handles}. Set the handle to one of them.`
+      );
+    }
+    return between;
+  };
   const connect = (
     source: Node<NodeData>,
     target: Node<NodeData>,
@@ -238,6 +264,18 @@ export function applyFlowEdits(
               `'${edit.type}' has no outputs, so nothing can come after it. Connect '${edit.before}' to one of its branches instead.`
             );
           }
+          const split =
+            after && before
+              ? findEdgesByAnyHandle(after.id, before.id, handle, false)
+              : [];
+          if (after && before) {
+            if (split.length === 0) {
+              throw new Error(
+                `'${edit.after}' isn't connected to '${edit.before}'.`
+              );
+            }
+            handle = split[0].sourceHandle ?? undefined;
+          }
           if (after) {
             // Checked against a stand-in, so a failed edit adds nothing.
             const issue = getConnectionIssue(
@@ -253,13 +291,6 @@ export function applyFlowEdits(
               edges
             );
             if (issue) throw new Error(issue);
-          }
-          const split =
-            after && before ? findEdges(after.id, before.id, handle) : [];
-          if (after && before && split.length === 0) {
-            throw new Error(
-              `'${edit.after}' isn't connected to '${edit.before}'.`
-            );
           }
 
           const [owner, ...owned] = addNodes(
@@ -408,28 +439,13 @@ export function applyFlowEdits(
               `'${edit.target}' belongs to '${edit.source}' and can't be disconnected. Remove it instead.`
             );
           }
-          let matching = findEdges(source.id, target.id, handle);
-          // The AI sometimes gets the handle or the direction wrong, or
-          // disconnects blocks that aren't connected, which leaves them as it
-          // wants them.
-          if (matching.length === 0) {
-            matching = edges.filter(
-              (e) =>
-                (e.source === source.id && e.target === target.id) ||
-                (e.source === target.id && e.target === source.id)
-            );
-            if (matching.length > 1) {
-              throw new Error(
-                `'${edit.source}' is connected to '${
-                  edit.target
-                }' by several outputs: ${matching
-                  .map(
-                    (e) => `'${normalizeHandle(e.sourceHandle) ?? "default"}'`
-                  )
-                  .join(", ")}. Set the handle to the one to disconnect.`
-              );
-            }
-          }
+          // Blocks that aren't connected are left as the AI wants them.
+          const matching = findEdgesByAnyHandle(
+            source.id,
+            target.id,
+            handle,
+            true
+          );
           edges = edges.filter((e) => !matching.includes(e));
           break;
         }

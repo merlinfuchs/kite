@@ -294,6 +294,22 @@ describe("applyFlowEdits", () => {
     expect(res.connections).toEqual(["entry->a", `a->${res.refs.$c}`]);
   });
 
+  it("inserts blocks into a connection by its handle", () => {
+    const check = node("check", "control_if", {});
+    const res = apply(
+      [entry, check, log("a")],
+      [edge("entry", "check"), edge("check", "a", "yes")],
+      [addLog("$b", "check", "a")]
+    );
+
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      `check[yes]->${res.refs.$b}`,
+      `${res.refs.$b}->a`,
+    ]);
+  });
+
   it("disconnects blocks by another handle or the other way round", () => {
     const check = node("check", "control_if", {});
     const res = apply(
@@ -316,7 +332,7 @@ describe("applyFlowEdits", () => {
       {
         severity: "error",
         message:
-          "Edit 4 (disconnect): 'check' is connected to 'b' by several outputs: 'yes', 'no'. Set the handle to the one to disconnect.",
+          "Edit 4 (disconnect): 'check' is connected to 'b' by several outputs: 'yes', 'no'. Set the handle to one of them.",
       },
     ]);
     expect(res.connections).toEqual(["check[yes]->b", "check[no]->b"]);
