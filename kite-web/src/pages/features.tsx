@@ -285,6 +285,7 @@ export default function FeaturesPage({
     body?: string;
     points: Point[];
     visual?: ReactNode;
+    more?: { label: string; href: string };
   }[] = [
     {
       heading: "Start a flow from a command, a button, or an event",
@@ -450,6 +451,7 @@ export default function FeaturesPage({
     },
     {
       heading: "Hosted 24/7 with your bot's own name and status",
+      more: { label: "Compare every plan", href: "/pricing" },
       visual: (
         <div className="max-w-xs mx-auto">
           <ProfileMockup statuses={rotatingStatuses} />
@@ -635,6 +637,10 @@ export default function FeaturesPage({
           } made by Kite and ${
             templates.count - templates.official
           } from the community. Adding one gives you normal commands and event listeners that you can change. These templates by Kite are added the most.`}
+          more={{
+            label: `Browse all ${templates.count} templates`,
+            href: "/marketplace",
+          }}
           points={templates.top.map((t) => ({
             title: t.name,
             description: `${sentence(
@@ -709,12 +715,24 @@ function PointsSection({
   body,
   points,
   visual,
+  more,
 }: {
   heading: string;
   body?: string;
   points: Point[];
   visual?: ReactNode;
+  // A page that tells more, linked below the points.
+  more?: { label: string; href: string };
 }) {
+  const moreLink = more && (
+    <Link
+      href={more.href}
+      className="mt-6 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+    >
+      {more.label}
+      <ArrowRightIcon className="w-4 h-4" />
+    </Link>
+  );
   const header = (
     <>
       <h2 className="text-3xl md:text-4xl font-bold">{heading}</h2>
@@ -729,6 +747,7 @@ function PointsSection({
         <div>
           {header}
           <PointList points={points} className="sm:grid-cols-2" />
+          {moreLink}
         </div>
         <div className="w-full max-w-lg mx-auto">{visual}</div>
       </section>
@@ -738,6 +757,7 @@ function PointsSection({
     <section className="container py-12 md:py-16">
       {header}
       <PointList points={points} className="md:grid-cols-2 lg:grid-cols-3" />
+      {moreLink}
     </section>
   );
 }
