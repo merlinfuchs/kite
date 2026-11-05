@@ -134,19 +134,19 @@ export function llmsTxt(data: LlmsTxtData) {
         bundles.length
       } templates, ${official} made by Kite and ${
         bundles.length - official
-      } from the community. These are added the most:`,
+      } from the community. These are the templates by Kite, the most added first. The community's are in the [Marketplace](${site}/marketplace).`,
       ""
     );
-    for (const b of [...bundles]
-      .sort((a, b) => b.install_count - a.install_count)
-      .slice(0, 10)) {
+    // Only Kite's own templates, since the text of the others is up to their
+    // authors.
+    for (const b of bundles
+      .filter((b) => b.official)
+      .sort((a, b) => b.install_count - a.install_count)) {
       const description = b.listing?.description ?? b.description;
       lines.push(
         `- [${b.listing?.name ?? b.name}](${site}${templatePath(
           b.id
-        )}): ${sentence(description)} ${
-          b.official ? "Made by Kite" : "From the community"
-        }, added ${number(b.install_count)} times.`
+        )}): ${sentence(description)} Added ${number(b.install_count)} times.`
       );
     }
   }
