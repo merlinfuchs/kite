@@ -338,12 +338,3 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 	}
 	return tags, nil
 }
-
-// evalAuditLogReason evaluates the audit log reason setting of a block.
-func evalAuditLogReason(n *CompiledFlowNode, ctx *FlowContext) (api.AuditLogReason, error) {
-	reason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
-	if err != nil {
-		return "", err
-	}
-	return api.AuditLogReason(reason.String()), nil
-}

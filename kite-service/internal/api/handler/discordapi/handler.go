@@ -8,11 +8,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
@@ -55,10 +55,11 @@ func (h *DiscordAPIHandler) HandleDiscordAPIRequest(c *handler.Context, req wire
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
-	apiReq.Reason = api.AuditLogReason(req.Reason)
-	if apiReq.Reason == "" {
-		apiReq.Reason = api.AuditLogReason(fmt.Sprintf("Kite API token %q", c.APIToken.Name))
+	reason := req.Reason
+	if reason == "" {
+		reason = fmt.Sprintf("Kite API token %q", c.APIToken.Name)
 	}
+	apiReq.Reason = util.AuditLogReason(reason)
 
 	res, err := state.AppDiscordAPIRequest(c.Context(), apiReq)
 	if access == model.APITokenAccessWrite {

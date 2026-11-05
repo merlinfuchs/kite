@@ -235,14 +235,14 @@ func TestChannelAuditLogReason(t *testing.T) {
 	p := &channelTestProvider{}
 	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelCreate, `{"channel_data": {"name": "ticket"}, "audit_log_reason": "opened {{1 + 1}}"}`)
 	require.NoError(t, err)
-	assert.Equal(t, api.AuditLogReason("opened 2"), p.create.AuditLogReason)
+	assert.Equal(t, api.AuditLogReason("opened%202"), p.create.AuditLogReason)
 
 	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": {"name": "closed"}, "audit_log_reason": "closed {{2 + 2}}"}`)
 	require.NoError(t, err)
-	assert.Equal(t, api.AuditLogReason("closed 4"), p.edit.AuditLogReason)
+	assert.Equal(t, api.AuditLogReason("closed%204"), p.edit.AuditLogReason)
 
 	tp := &threadTestProvider{}
 	_, err = executeChannelBlock(t, tp, FlowNodeTypeActionThreadCreate, `{"channel_data": {"name": "thread", "parent": "3"}, "audit_log_reason": "started {{3 + 3}}"}`)
 	require.NoError(t, err)
-	assert.Equal(t, api.AuditLogReason("started 6"), tp.thread.AuditLogReason)
+	assert.Equal(t, api.AuditLogReason("started%206"), tp.thread.AuditLogReason)
 }
