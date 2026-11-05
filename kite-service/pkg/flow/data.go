@@ -215,6 +215,7 @@ const (
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
+	FlowNodeTypeActionVariableList          FlowNodeType = "action_variable_list"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionVoiceAudioPlay        FlowNodeType = "action_voice_audio_play"
@@ -392,6 +393,12 @@ type FlowNodeData struct {
 	VariableScope     string                     `json:"variable_scope,omitempty"`
 	VariableValue     string                     `json:"variable_value,omitempty"`
 	VariableOperation provider.VariableOperation `json:"variable_operation,omitempty"`
+
+	// Variable List
+	VariableSort        provider.VariableListSort `json:"variable_sort,omitempty"`
+	VariableScopePrefix string                    `json:"variable_scope_prefix,omitempty"`
+	VariableLimit       string                    `json:"variable_limit,omitempty"`
+	VariableSkip        string                    `json:"variable_skip,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
@@ -716,6 +723,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.LookupRows, validation.Length(0, maxLookupRows)),
 		validation.Field(&d.LookupDefault, validation.Length(0, maxLookupTextLength)),
+
+		// Variable List
+		// An empty sort means VariableListSortValueDesc, the default the
+		// editor shows.
+		validation.Field(&d.VariableSort, validation.When(nodeType == FlowNodeTypeActionVariableList,
+			validation.In(
+				provider.VariableListSortValueDesc,
+				provider.VariableListSortValueAsc,
+				provider.VariableListSortUpdatedDesc,
+				provider.VariableListSortUpdatedAsc,
+			),
+		)),
 
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.

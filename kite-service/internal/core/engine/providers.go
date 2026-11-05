@@ -884,6 +884,23 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 	return row.Data, nil
 }
 
+func (p *VariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	rows, err := p.variableValueStore.ListVariableValues(ctx, p.appID, id, opts.ScopePrefix, string(opts.Sort), opts.Limit, opts.Skip)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list variable values: %w", err)
+	}
+
+	values := make([]provider.VariableValue, len(rows))
+	for i, row := range rows {
+		values[i] = provider.VariableValue{
+			Scope:     row.Scope,
+			Value:     row.Data,
+			UpdatedAt: row.UpdatedAt,
+		}
+	}
+	return values, nil
+}
+
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
 	err := p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
 	if err != nil {

@@ -4981,6 +4981,116 @@
         "description": "The value of the variable."
       }
     },
+    "action_variable_list": {
+      "title": "List stored variable values",
+      "description": "Get the values of a stored variable in order, like a leaderboard of the highest ones",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "variable_id": {
+            "type": "string",
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
+          },
+          "variable_sort": {
+            "description": "Order of the values. value_desc and value_asc sort numbers, and text of a number like 42, from highest or lowest, with other values last. updated_desc and updated_asc sort by when each value last changed. Defaults to value_desc.",
+            "type": "string",
+            "enum": [
+              "value_desc",
+              "value_asc",
+              "updated_desc",
+              "updated_asc"
+            ]
+          },
+          "variable_scope_prefix": {
+            "description": "Only values whose scope starts with this, like {{guild.id}}: for the members of one server when the scope is {{guild.id}}:{{user.id}}. All values if empty, and ignored for variables without a scope.",
+            "x-templated": true,
+            "type": "string"
+          },
+          "variable_limit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(100|[1-9][0-9]?)$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many values to get, from 1 to 100. Defaults to 10."
+          },
+          "variable_skip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(10000|[1-9]?[0-9]{1,3})$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many values to skip first, from 0 to 10000, like 10 for the second page of 10. Defaults to 0."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "variable_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "description": "The scope of the value, null for unscoped variables.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The stored value."
+            },
+            "updated_at": {
+              "type": "number",
+              "description": "When the value last changed, as a Unix timestamp in seconds."
+            }
+          },
+          "required": [
+            "scope",
+            "value",
+            "updated_at"
+          ],
+          "additionalProperties": false
+        },
+        "description": "The values in the chosen order."
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
