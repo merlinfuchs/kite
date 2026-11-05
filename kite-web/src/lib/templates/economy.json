@@ -14,7 +14,7 @@
     },
     {
       "question": "Can members spend their coins?",
-      "answer": "Only on each other with /pay. The template has no shop. You can build one with a command that checks the balance with a Comparison Condition, takes the coins with a Set stored variable block, and gives a role."
+      "answer": "Only on each other with /pay. The template has no shop. You can build one with a command that checks the balance with an If block, takes the coins with a Set stored variable block, and gives a role."
     },
     {
       "question": "Can a balance go below zero?",
@@ -185,70 +185,36 @@
               "y": 420
             },
             "data": {
-              "custom_label": "Last daily and work",
-              "variable_id": "economy-cooldowns",
+              "custom_label": "Time of the last daily",
+              "variable_id": "daily-cooldown",
               "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
             }
           },
           {
-            "id": "variable_d4b",
-            "type": "action_variable_get",
+            "id": "if_d5w",
+            "type": "control_if",
             "position": {
               "x": 0,
               "y": 630
             },
             "data": {
-              "custom_label": "Balance before",
-              "variable_id": "coins",
-              "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
-            }
-          },
-          {
-            "id": "condition_d5w",
-            "type": "control_condition_compare",
-            "position": {
-              "x": 0,
-              "y": 840
-            },
-            "data": {
               "custom_label": "A day since the last daily?",
-              "condition_base_value": "{{now().Unix() - int(result('variable_d3c')?.daily ?? 0) >= 86400}}"
+              "condition_base_value": "{{now().Unix() - int(result('variable_d3c') ?? 0) >= 86400}}"
             }
-          },
-          {
-            "id": "condition_d6y",
-            "type": "control_condition_item_compare",
-            "position": {
-              "x": 0,
-              "y": 1050
-            },
-            "data": {
-              "condition_item_mode": "equal",
-              "condition_item_value": "{{true}}"
-            }
-          },
-          {
-            "id": "condition_d7e",
-            "type": "control_condition_item_else",
-            "position": {
-              "x": 400,
-              "y": 1050
-            },
-            "data": {}
           },
           {
             "id": "variable_d8s",
             "type": "action_variable_set",
             "position": {
               "x": 0,
-              "y": 1260
+              "y": 840
             },
             "data": {
               "custom_label": "Save the time",
-              "variable_id": "economy-cooldowns",
+              "variable_id": "daily-cooldown",
               "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
               "variable_operation": "overwrite",
-              "variable_value": "{{ {\"daily\": now().Unix(), \"work\": result('variable_d3c')?.work ?? 0} }}"
+              "variable_value": "{{now().Unix()}}"
             }
           },
           {
@@ -256,7 +222,7 @@
             "type": "action_variable_set",
             "position": {
               "x": 0,
-              "y": 1470
+              "y": 1050
             },
             "data": {
               "custom_label": "Add the coins",
@@ -271,7 +237,7 @@
             "type": "action_response_create",
             "position": {
               "x": 0,
-              "y": 1680
+              "y": 1260
             },
             "data": {
               "message_data": {
@@ -287,11 +253,11 @@
             "type": "action_response_create",
             "position": {
               "x": 400,
-              "y": 1260
+              "y": 840
             },
             "data": {
               "message_data": {
-                "content": "You already got your daily {{params.currency}}. You can get more <t:{{int(result('variable_d3c').daily) + 86400}}:R>.",
+                "content": "You already got your daily {{params.currency}}. You can get more <t:{{int(result('variable_d3c')) + 86400}}:R>.",
                 "allowed_mentions": {
                   "parse": []
                 }
@@ -314,42 +280,29 @@
           {
             "id": "400047514",
             "source": "variable_d3c",
-            "target": "variable_d4b"
+            "target": "if_d5w"
           },
           {
             "id": "400055433",
-            "source": "variable_d4b",
-            "target": "condition_d5w"
+            "source": "if_d5w",
+            "target": "variable_d8s",
+            "sourceHandle": "yes"
           },
           {
             "id": "400063352",
-            "source": "condition_d5w",
-            "target": "condition_d6y"
+            "source": "if_d5w",
+            "target": "response_d0w",
+            "sourceHandle": "no"
           },
           {
             "id": "400071271",
-            "source": "condition_d5w",
-            "target": "condition_d7e"
-          },
-          {
-            "id": "400079190",
-            "source": "condition_d6y",
-            "target": "variable_d8s"
-          },
-          {
-            "id": "400087109",
-            "source": "variable_d8s",
-            "target": "variable_d9a"
-          },
-          {
-            "id": "400095028",
             "source": "variable_d9a",
             "target": "response_d0r"
           },
           {
-            "id": "400102947",
-            "source": "condition_d7e",
-            "target": "response_d0w"
+            "id": "400079190",
+            "source": "variable_d8s",
+            "target": "variable_d9a"
           }
         ]
       }
@@ -389,9 +342,36 @@
               "y": 420
             },
             "data": {
-              "custom_label": "Last daily and work",
-              "variable_id": "economy-cooldowns",
+              "custom_label": "Time of the last work",
+              "variable_id": "work-cooldown",
               "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+            }
+          },
+          {
+            "id": "if_w5w",
+            "type": "control_if",
+            "position": {
+              "x": 0,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "An hour since the last work?",
+              "condition_base_value": "{{now().Unix() - int(result('variable_w3c') ?? 0) >= 3600}}"
+            }
+          },
+          {
+            "id": "variable_w8s",
+            "type": "action_variable_set",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Save the time",
+              "variable_id": "work-cooldown",
+              "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{now().Unix()}}"
             }
           },
           {
@@ -399,7 +379,7 @@
             "type": "action_variable_get",
             "position": {
               "x": 0,
-              "y": 630
+              "y": 1050
             },
             "data": {
               "custom_label": "Balance before",
@@ -408,59 +388,11 @@
             }
           },
           {
-            "id": "condition_w5w",
-            "type": "control_condition_compare",
-            "position": {
-              "x": 0,
-              "y": 840
-            },
-            "data": {
-              "custom_label": "An hour since the last work?",
-              "condition_base_value": "{{now().Unix() - int(result('variable_w3c')?.work ?? 0) >= 3600}}"
-            }
-          },
-          {
-            "id": "condition_w6y",
-            "type": "control_condition_item_compare",
-            "position": {
-              "x": 0,
-              "y": 1050
-            },
-            "data": {
-              "condition_item_mode": "equal",
-              "condition_item_value": "{{true}}"
-            }
-          },
-          {
-            "id": "condition_w7e",
-            "type": "control_condition_item_else",
-            "position": {
-              "x": 400,
-              "y": 1050
-            },
-            "data": {}
-          },
-          {
-            "id": "variable_w8s",
-            "type": "action_variable_set",
-            "position": {
-              "x": 0,
-              "y": 1260
-            },
-            "data": {
-              "custom_label": "Save the time",
-              "variable_id": "economy-cooldowns",
-              "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
-              "variable_operation": "overwrite",
-              "variable_value": "{{ {\"daily\": result('variable_w3c')?.daily ?? 0, \"work\": now().Unix()} }}"
-            }
-          },
-          {
             "id": "variable_w9a",
             "type": "action_variable_set",
             "position": {
               "x": 0,
-              "y": 1470
+              "y": 1260
             },
             "data": {
               "custom_label": "Add the coins",
@@ -475,7 +407,7 @@
             "type": "action_response_create",
             "position": {
               "x": 0,
-              "y": 1680
+              "y": 1470
             },
             "data": {
               "message_data": {
@@ -491,11 +423,11 @@
             "type": "action_response_create",
             "position": {
               "x": 400,
-              "y": 1260
+              "y": 840
             },
             "data": {
               "message_data": {
-                "content": "You can work again <t:{{int(result('variable_w3c').work) + 3600}}:R>.",
+                "content": "You can work again <t:{{int(result('variable_w3c')) + 3600}}:R>.",
                 "allowed_mentions": {
                   "parse": []
                 }
@@ -506,54 +438,46 @@
         ],
         "edges": [
           {
-            "id": "400110866",
+            "id": "400087109",
             "source": "contexts_w1c",
             "target": "command_w2m"
           },
           {
-            "id": "400118785",
+            "id": "400095028",
             "source": "command_w2m",
             "target": "variable_w3c"
           },
           {
-            "id": "400126704",
+            "id": "400102947",
             "source": "variable_w3c",
-            "target": "variable_w4b"
+            "target": "if_w5w"
           },
           {
-            "id": "400134623",
-            "source": "variable_w4b",
-            "target": "condition_w5w"
+            "id": "400110866",
+            "source": "if_w5w",
+            "target": "variable_w8s",
+            "sourceHandle": "yes"
           },
           {
-            "id": "400142542",
-            "source": "condition_w5w",
-            "target": "condition_w6y"
+            "id": "400118785",
+            "source": "if_w5w",
+            "target": "response_w0w",
+            "sourceHandle": "no"
           },
           {
-            "id": "400150461",
-            "source": "condition_w5w",
-            "target": "condition_w7e"
-          },
-          {
-            "id": "400158380",
-            "source": "condition_w6y",
-            "target": "variable_w8s"
-          },
-          {
-            "id": "400166299",
-            "source": "variable_w8s",
-            "target": "variable_w9a"
-          },
-          {
-            "id": "400174218",
+            "id": "400126704",
             "source": "variable_w9a",
             "target": "response_w0r"
           },
           {
-            "id": "400182137",
-            "source": "condition_w7e",
-            "target": "response_w0w"
+            "id": "400134623",
+            "source": "variable_w8s",
+            "target": "variable_w4b"
+          },
+          {
+            "id": "400142542",
+            "source": "variable_w4b",
+            "target": "variable_w9a"
           }
         ]
       }
@@ -616,8 +540,8 @@
             }
           },
           {
-            "id": "condition_p4w",
-            "type": "control_condition_compare",
+            "id": "if_p4w",
+            "type": "control_if",
             "position": {
               "x": 0,
               "y": 420
@@ -628,32 +552,11 @@
             }
           },
           {
-            "id": "condition_p5y",
-            "type": "control_condition_item_compare",
-            "position": {
-              "x": 0,
-              "y": 630
-            },
-            "data": {
-              "condition_item_mode": "equal",
-              "condition_item_value": "{{true}}"
-            }
-          },
-          {
-            "id": "condition_p5e",
-            "type": "control_condition_item_else",
-            "position": {
-              "x": 450,
-              "y": 630
-            },
-            "data": {}
-          },
-          {
             "id": "response_p5r",
             "type": "action_response_create",
             "position": {
               "x": 450,
-              "y": 840
+              "y": 630
             },
             "data": {
               "message_data": {
@@ -670,7 +573,7 @@
             "type": "action_variable_get",
             "position": {
               "x": 0,
-              "y": 840
+              "y": 630
             },
             "data": {
               "custom_label": "Your balance",
@@ -679,11 +582,11 @@
             }
           },
           {
-            "id": "condition_p7w",
-            "type": "control_condition_compare",
+            "id": "if_p7w",
+            "type": "control_if",
             "position": {
               "x": 0,
-              "y": 1050
+              "y": 840
             },
             "data": {
               "custom_label": "Enough coins?",
@@ -691,32 +594,11 @@
             }
           },
           {
-            "id": "condition_p8y",
-            "type": "control_condition_item_compare",
-            "position": {
-              "x": 0,
-              "y": 1260
-            },
-            "data": {
-              "condition_item_mode": "equal",
-              "condition_item_value": "{{true}}"
-            }
-          },
-          {
-            "id": "condition_p8e",
-            "type": "control_condition_item_else",
-            "position": {
-              "x": 450,
-              "y": 1260
-            },
-            "data": {}
-          },
-          {
             "id": "response_p8r",
             "type": "action_response_create",
             "position": {
               "x": 450,
-              "y": 1470
+              "y": 1050
             },
             "data": {
               "message_data": {
@@ -733,7 +615,7 @@
             "type": "action_variable_set",
             "position": {
               "x": 0,
-              "y": 1470
+              "y": 1050
             },
             "data": {
               "custom_label": "Take your coins",
@@ -744,11 +626,11 @@
             }
           },
           {
-            "id": "condition_q1w",
-            "type": "control_condition_compare",
+            "id": "if_q1w",
+            "type": "control_if",
             "position": {
               "x": 0,
-              "y": 1680
+              "y": 1260
             },
             "data": {
               "custom_label": "Still not below zero?",
@@ -756,32 +638,11 @@
             }
           },
           {
-            "id": "condition_q2y",
-            "type": "control_condition_item_compare",
-            "position": {
-              "x": 0,
-              "y": 1890
-            },
-            "data": {
-              "condition_item_mode": "equal",
-              "condition_item_value": "{{true}}"
-            }
-          },
-          {
-            "id": "condition_q2e",
-            "type": "control_condition_item_else",
-            "position": {
-              "x": 450,
-              "y": 1890
-            },
-            "data": {}
-          },
-          {
             "id": "variable_q3a",
             "type": "action_variable_set",
             "position": {
               "x": 0,
-              "y": 2100
+              "y": 1470
             },
             "data": {
               "custom_label": "Give them the coins",
@@ -796,7 +657,7 @@
             "type": "action_response_create",
             "position": {
               "x": 0,
-              "y": 2310
+              "y": 1680
             },
             "data": {
               "message_data": {
@@ -812,7 +673,7 @@
             "type": "action_variable_set",
             "position": {
               "x": 450,
-              "y": 2100
+              "y": 1470
             },
             "data": {
               "custom_label": "Give your coins back",
@@ -827,7 +688,7 @@
             "type": "action_response_create",
             "position": {
               "x": 450,
-              "y": 2310
+              "y": 1680
             },
             "data": {
               "message_data": {
@@ -842,102 +703,78 @@
         ],
         "edges": [
           {
-            "id": "400190056",
+            "id": "400150461",
             "source": "arg_p1u",
             "target": "command_p3p"
           },
           {
-            "id": "400197975",
+            "id": "400158380",
             "source": "arg_p1a",
             "target": "command_p3p"
           },
           {
-            "id": "400205894",
+            "id": "400166299",
             "source": "contexts_p2c",
             "target": "command_p3p"
           },
           {
-            "id": "400213813",
+            "id": "400174218",
             "source": "command_p3p",
-            "target": "condition_p4w"
+            "target": "if_p4w"
+          },
+          {
+            "id": "400182137",
+            "source": "if_p4w",
+            "target": "response_p5r",
+            "sourceHandle": "no"
+          },
+          {
+            "id": "400190056",
+            "source": "if_p4w",
+            "target": "variable_p6g",
+            "sourceHandle": "yes"
+          },
+          {
+            "id": "400197975",
+            "source": "variable_p6g",
+            "target": "if_p7w"
+          },
+          {
+            "id": "400205894",
+            "source": "if_p7w",
+            "target": "response_p8r",
+            "sourceHandle": "no"
+          },
+          {
+            "id": "400213813",
+            "source": "if_p7w",
+            "target": "variable_p9d",
+            "sourceHandle": "yes"
           },
           {
             "id": "400221732",
-            "source": "condition_p4w",
-            "target": "condition_p5y"
+            "source": "variable_p9d",
+            "target": "if_q1w"
           },
           {
             "id": "400229651",
-            "source": "condition_p4w",
-            "target": "condition_p5e"
+            "source": "if_q1w",
+            "target": "variable_q3a",
+            "sourceHandle": "yes"
           },
           {
             "id": "400237570",
-            "source": "condition_p5e",
-            "target": "response_p5r"
-          },
-          {
-            "id": "400245489",
-            "source": "condition_p5y",
-            "target": "variable_p6g"
-          },
-          {
-            "id": "400253408",
-            "source": "variable_p6g",
-            "target": "condition_p7w"
-          },
-          {
-            "id": "400261327",
-            "source": "condition_p7w",
-            "target": "condition_p8y"
-          },
-          {
-            "id": "400269246",
-            "source": "condition_p7w",
-            "target": "condition_p8e"
-          },
-          {
-            "id": "400277165",
-            "source": "condition_p8e",
-            "target": "response_p8r"
-          },
-          {
-            "id": "400285084",
-            "source": "condition_p8y",
-            "target": "variable_p9d"
-          },
-          {
-            "id": "400293003",
-            "source": "variable_p9d",
-            "target": "condition_q1w"
-          },
-          {
-            "id": "400300922",
-            "source": "condition_q1w",
-            "target": "condition_q2y"
-          },
-          {
-            "id": "400308841",
-            "source": "condition_q1w",
-            "target": "condition_q2e"
-          },
-          {
-            "id": "400316760",
-            "source": "condition_q2y",
-            "target": "variable_q3a"
-          },
-          {
-            "id": "400324679",
             "source": "variable_q3a",
             "target": "response_q4r"
           },
           {
-            "id": "400332598",
-            "source": "condition_q2e",
-            "target": "variable_q5f"
+            "id": "400245489",
+            "source": "if_q1w",
+            "target": "variable_q5f",
+            "sourceHandle": "no"
           },
           {
-            "id": "400340517",
+            "id": "400253408",
             "source": "variable_q5f",
             "target": "response_q6r"
           }
@@ -1031,22 +868,22 @@
         ],
         "edges": [
           {
-            "id": "400348436",
+            "id": "400261327",
             "source": "arg_r1p",
             "target": "command_r3r"
           },
           {
-            "id": "400356355",
+            "id": "400269246",
             "source": "contexts_r2c",
             "target": "command_r3r"
           },
           {
-            "id": "400364274",
+            "id": "400277165",
             "source": "command_r3r",
             "target": "values_r4t"
           },
           {
-            "id": "400372193",
+            "id": "400285084",
             "source": "values_r4t",
             "target": "response_r5r"
           }
@@ -1156,32 +993,32 @@
         ],
         "edges": [
           {
-            "id": "400380112",
+            "id": "400293003",
             "source": "arg_c1u",
             "target": "command_c3a"
           },
           {
-            "id": "400388031",
+            "id": "400300922",
             "source": "arg_c1a",
             "target": "command_c3a"
           },
           {
-            "id": "400395950",
+            "id": "400308841",
             "source": "permissions_c2p",
             "target": "command_c3a"
           },
           {
-            "id": "400403869",
+            "id": "400316760",
             "source": "contexts_c2c",
             "target": "command_c3a"
           },
           {
-            "id": "400411788",
+            "id": "400324679",
             "source": "command_c3a",
             "target": "variable_c4s"
           },
           {
-            "id": "400419707",
+            "id": "400332598",
             "source": "variable_c4s",
             "target": "response_c5r"
           }
@@ -1197,8 +1034,13 @@
       "scoped": true
     },
     {
-      "id": "economy-cooldowns",
-      "name": "economy_cooldowns",
+      "id": "daily-cooldown",
+      "name": "daily_cooldown",
+      "scoped": true
+    },
+    {
+      "id": "work-cooldown",
+      "name": "work_cooldown",
       "scoped": true
     }
   ]
