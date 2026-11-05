@@ -53,6 +53,11 @@ func TestUnmarshalModelJSONRepairs(t *testing.T) {
 			`{"content":"[{ok}"`,
 			map[string]any{"content": "[{ok}"},
 		},
+		{
+			"invalid unicode escape",
+			`{"content":"C:\users\me \u00e9"}`,
+			map[string]any{"content": `C:\users\me é`},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -68,6 +73,11 @@ func TestUnmarshalModelJSONKeepsOriginalError(t *testing.T) {
 	err := unmarshalModelJSON(`{"content":"say "hi""}`, &got)
 	assert.EqualError(t, err, "invalid character 'h' after object key:value pair")
 	assert.Nil(t, got)
+}
+
+func TestRepairJSONLeavesUnclosedStrings(t *testing.T) {
+	unclosed := `{"content":"Hello}}`
+	assert.Equal(t, unclosed, repairJSON(unclosed))
 }
 
 func TestRepairJSONLeavesValidJSON(t *testing.T) {

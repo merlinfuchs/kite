@@ -26,7 +26,7 @@ func unmarshalModelJSON(value string, v any) error {
 // repairJSON fixes the mistakes the model makes most when writing JSON:
 // raw line breaks and tabs in strings, \' and other invalid escapes,
 // closing brackets that don't match the open ones, and missing closing
-// brackets at the end.
+// brackets at the end. Strings that aren't closed are left as they are.
 func repairJSON(s string) string {
 	var b strings.Builder
 	b.Grow(len(s) + 8)
@@ -48,9 +48,15 @@ func repairJSON(s string) string {
 				}
 				next := s[i+1]
 				switch next {
-				case '"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u':
+				case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
 					b.WriteByte(c)
 					b.WriteByte(next)
+				case 'u':
+					if i+5 < len(s) && isHex(s[i+2:i+6]) {
+						b.WriteString(`\u`)
+					} else {
+						b.WriteString(`\\u`)
+					}
 				case '\'':
 					b.WriteByte(next)
 				default:
@@ -98,14 +104,26 @@ func repairJSON(s string) string {
 		b.WriteByte(c)
 	}
 
+	// Where a string that isn't closed should end can't be told, e.g. in
+	// {"content":"Hello}}, so it's left for the model to fix.
 	if inString {
-		b.WriteByte('"')
+		return s
 	}
 	for j := len(open) - 1; j >= 0; j-- {
 		b.WriteByte(closer(open[j]))
 	}
 
 	return b.String()
+}
+
+func isHex(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i] | 0x20
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func closer(opener byte) byte {
