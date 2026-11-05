@@ -254,9 +254,20 @@ func (p *testDiscordProvider) CreateChannel(ctx context.Context, guildID discord
 	return &channel, nil
 }
 
-func (p *testDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+func (p *testDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
 	p.record("edit_channel", map[string]any{"channel_id": channelID, "changes": data}, p.s.checkChannelManage(channelID)...)
-	return nil
+
+	channel, err := p.Channel(ctx, channelID)
+	if err != nil {
+		return nil, err
+	}
+	if data.Name != "" {
+		channel.Name = data.Name
+	}
+	if data.Topic != nil {
+		channel.Topic = data.Topic.Val
+	}
+	return channel, nil
 }
 
 func (p *testDiscordProvider) CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error) {
