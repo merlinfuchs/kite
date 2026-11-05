@@ -6,11 +6,7 @@ import {
   MessageMockup,
   VariableMockup,
 } from "@/components/home/HomeFeaturesSection";
-import {
-  ProfileMockup,
-  rotatingStatuses,
-} from "@/components/home/ProfileMockups";
-import { openSourcePoint } from "@/components/landing/copy";
+import { ProfileMockup, customStatus } from "@/components/home/ProfileMockups";
 import { Button } from "@/components/ui/button";
 import { blockDefinitions } from "@/lib/blocks";
 import { BlockDefinition } from "@/lib/blocks/types";
@@ -32,7 +28,6 @@ import {
   CalculatorIcon,
   CircleDotIcon,
   ClockIcon,
-  CodeIcon,
   CookieIcon,
   DatabaseIcon,
   Gamepad2Icon,
@@ -453,8 +448,8 @@ export default function FeaturesPage({
       heading: "Hosted 24/7 with your bot's own name and status",
       more: { label: "Compare every plan", href: "/pricing" },
       visual: (
-        <div className="max-w-xs mx-auto">
-          <ProfileMockup statuses={rotatingStatuses} />
+        <div className="max-w-sm mx-auto">
+          <ProfileMockup statuses={[customStatus]} />
         </div>
       ),
       points: [
@@ -477,11 +472,10 @@ export default function FeaturesPage({
             'Replace the default "Powered by Kite.onl" status with your own on every plan.',
         },
         {
-          title: "Profile and voice on paid plans",
+          title: "More on paid plans",
           icon: UserRoundIcon,
           description:
-            "Kite Plus adds a rotating status, an animated avatar and banner, and audio in voice channels. Kite Premium adds a profile per server and the Send message as block.",
-          href: "/pricing",
+            "Kite Plus adds a rotating status, an animated avatar, and voice audio. Kite Premium adds a profile per server.",
         },
         {
           title: "Collaborators",
@@ -490,7 +484,6 @@ export default function FeaturesPage({
             ? `Up to ${free.collaborators} people, including you, can edit the same bot on the free plan.`
             : "Invite others to edit the same bot with you.",
         },
-        { ...openSourcePoint, icon: CodeIcon },
       ],
     },
   ];
@@ -743,7 +736,7 @@ function PointsSection({
   );
   if (visual) {
     return (
-      <section className="container py-12 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <section className="container py-12 md:py-16 grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-10 lg:gap-16 items-center">
         <div>
           {header}
           <PointList points={points} className="sm:grid-cols-2" />
