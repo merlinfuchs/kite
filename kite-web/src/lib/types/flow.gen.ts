@@ -100,6 +100,7 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionVariableList: FlowNodeType = "action_variable_list";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
@@ -274,6 +275,12 @@ export interface FlowNodeData {
   variable_scope?: string;
   variable_value?: string;
   variable_operation?: any /* provider.VariableOperation */;
+  /**
+   * Variable List
+   */
+  variable_sort?: any /* provider.VariableListSort */;
+  variable_scope_prefix?: string;
+  variable_limit?: string;
   /**
    * HTTP Request
    */

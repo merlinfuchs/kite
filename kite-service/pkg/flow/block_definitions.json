@@ -1821,6 +1821,21 @@
       }
     },
     {
+      "type": "action_variable_list",
+      "title": "List stored variable values",
+      "credits": 0,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_roblox_user_get",
       "title": "Get Roblox User",
       "credits": 1,

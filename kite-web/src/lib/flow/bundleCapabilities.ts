@@ -120,6 +120,7 @@ export const harmlessTypes = [
   "action_value_lookup",
   "action_variable_delete",
   "action_variable_get",
+  "action_variable_list",
   "action_variable_set",
   "action_voice_audio_play",
   "action_voice_audio_stop",

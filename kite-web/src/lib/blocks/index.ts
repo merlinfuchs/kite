@@ -116,6 +116,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
+import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
 import { webhookResponseCreate } from "./webhookResponseCreate";
 
@@ -184,6 +185,7 @@ export const blockDefinitions: BlockDefinition[] = [
   variableSet,
   variableDelete,
   variableGet,
+  variableList,
   robloxUserGet,
   cookieApiTranscriptCreate,
   cookieApiCardCreate,

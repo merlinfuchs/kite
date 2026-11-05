@@ -227,6 +227,30 @@ func (c *Client) SearchVariableValues(ctx context.Context, appID string, variabl
 	return values, int(total), nil
 }
 
+func (c *Client) ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int) ([]*model.VariableValue, error) {
+	rows, err := c.Q.ListVariableValues(ctx, pgmodel.ListVariableValuesParams{
+		VariableID:  variableID,
+		AppID:       appID,
+		ScopePrefix: scopePrefix,
+		Sort:        sort,
+		RowLimit:    int32(limit),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([]*model.VariableValue, 0, len(rows))
+	for _, row := range rows {
+		v, err := rowToVariableValue(row)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, &v)
+	}
+
+	return values, nil
+}
+
 func (c *Client) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {
 	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
 		VariableID: variableID,

@@ -29,6 +29,7 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
+import { variableListSorts } from "@/lib/blocks/variableList";
 import {
   lookupMaxRows,
   lookupModes,
@@ -246,6 +247,7 @@ export const settingInputs: Record<string, any> = {
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
   variable_operation: VariableOperationInput,
+  variable_list: VariableListInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
@@ -4513,6 +4515,49 @@ function VariableOperationInput({ data, updateData, errors }: InputProps) {
       ]}
       errors={errors}
     />
+  );
+}
+
+function VariableListInput({ data, updateData, errors }: InputProps) {
+  const variables = useFlowVariables();
+  const scoped = variables?.find((v) => v?.id === data.variable_id)?.scoped;
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="variable_sort"
+        title="Order"
+        options={[...variableListSorts]}
+        value={data.variable_sort || "value_desc"}
+        updateValue={(v) => updateData({ variable_sort: v || undefined })}
+        errors={errors}
+      />
+      {/* Unscoped variables have one value, so there's nothing to filter.
+          Shown while a prefix is left, so it can be cleared. */}
+      {(scoped || data.variable_scope_prefix) && (
+        <BaseInput
+          field="variable_scope_prefix"
+          title="Scope starts with"
+          description="Only values whose scope starts with this, like {{guild.id}}: for one server. All values if empty."
+          value={data.variable_scope_prefix || ""}
+          updateValue={(v) =>
+            updateData({ variable_scope_prefix: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      <BaseInput
+        field="variable_limit"
+        title="Number of values"
+        description="From 1 to 100. Defaults to 10."
+        value={data.variable_limit || ""}
+        updateValue={(v) => updateData({ variable_limit: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+    </>
   );
 }
 
