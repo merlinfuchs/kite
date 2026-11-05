@@ -2912,22 +2912,22 @@
           ],
           "edges": [
             {
-              "id": "300150461",
+              "id": "300079190",
               "source": "arg_k1u",
               "target": "command_k3r"
             },
             {
-              "id": "300158380",
+              "id": "300087109",
               "source": "contexts_k2c",
               "target": "command_k3r"
             },
             {
-              "id": "300166299",
+              "id": "300095028",
               "source": "command_k3r",
               "target": "variable_k4g"
             },
             {
-              "id": "300174218",
+              "id": "300102947",
               "source": "variable_k4g",
               "target": "response_k5s"
             }
@@ -3024,22 +3024,22 @@
           ],
           "edges": [
             {
-              "id": "300182137",
+              "id": "300110866",
               "source": "arg_b1p",
               "target": "command_b3l"
             },
             {
-              "id": "300190056",
+              "id": "300118785",
               "source": "contexts_b2c",
               "target": "command_b3l"
             },
             {
-              "id": "300197975",
+              "id": "300126704",
               "source": "command_b3l",
               "target": "values_b4t"
             },
             {
-              "id": "300205894",
+              "id": "300134623",
               "source": "values_b4t",
               "target": "response_b5r"
             }
@@ -3066,44 +3066,11 @@
               }
             },
             {
-              "id": "condition_m3q",
-              "type": "control_condition_compare",
-              "position": {
-                "x": 0,
-                "y": 210
-              },
-              "data": {
-                "custom_label": "A member, not a bot",
-                "condition_base_value": "{{!event.user.is_bot && event.guild.id != \"\"}}"
-              }
-            },
-            {
-              "id": "condition_m4t",
-              "type": "control_condition_item_compare",
-              "position": {
-                "x": 0,
-                "y": 420
-              },
-              "data": {
-                "condition_item_mode": "equal",
-                "condition_item_value": "{{true}}"
-              }
-            },
-            {
-              "id": "condition_m5e",
-              "type": "control_condition_item_else",
-              "position": {
-                "x": 400,
-                "y": 420
-              },
-              "data": {}
-            },
-            {
               "id": "variable_c6k",
               "type": "action_variable_get",
               "position": {
                 "x": 0,
-                "y": 630
+                "y": 210
               },
               "data": {
                 "custom_label": "Time of the last XP",
@@ -3112,44 +3079,23 @@
               }
             },
             {
-              "id": "condition_c7w",
-              "type": "control_condition_compare",
+              "id": "if_c7w",
+              "type": "control_if",
               "position": {
                 "x": 0,
-                "y": 840
+                "y": 420
               },
               "data": {
-                "custom_label": "A minute since the last XP",
+                "custom_label": "A minute since the last XP?",
                 "condition_base_value": "{{now().Unix() - int(result('variable_c6k') ?? 0) >= 60}}"
               }
-            },
-            {
-              "id": "condition_c8y",
-              "type": "control_condition_item_compare",
-              "position": {
-                "x": 0,
-                "y": 1050
-              },
-              "data": {
-                "condition_item_mode": "equal",
-                "condition_item_value": "{{true}}"
-              }
-            },
-            {
-              "id": "condition_c9e",
-              "type": "control_condition_item_else",
-              "position": {
-                "x": 400,
-                "y": 1050
-              },
-              "data": {}
             },
             {
               "id": "variable_s2t",
               "type": "action_variable_set",
               "position": {
                 "x": 0,
-                "y": 1260
+                "y": 630
               },
               "data": {
                 "custom_label": "Save the time of this XP",
@@ -3164,7 +3110,7 @@
               "type": "action_variable_get",
               "position": {
                 "x": 0,
-                "y": 1470
+                "y": 840
               },
               "data": {
                 "custom_label": "XP before",
@@ -3177,7 +3123,7 @@
               "type": "action_variable_set",
               "position": {
                 "x": 0,
-                "y": 1680
+                "y": 1050
               },
               "data": {
                 "custom_label": "Add 15 to 25 XP",
@@ -3188,11 +3134,11 @@
               }
             },
             {
-              "id": "condition_u5p",
-              "type": "control_condition_compare",
+              "id": "if_u5p",
+              "type": "control_if",
               "position": {
                 "x": 0,
-                "y": 1890
+                "y": 1260
               },
               "data": {
                 "custom_label": "Reached a new level?",
@@ -3200,32 +3146,11 @@
               }
             },
             {
-              "id": "condition_u6y",
-              "type": "control_condition_item_compare",
-              "position": {
-                "x": 0,
-                "y": 2100
-              },
-              "data": {
-                "condition_item_mode": "equal",
-                "condition_item_value": "{{true}}"
-              }
-            },
-            {
-              "id": "condition_u7e",
-              "type": "control_condition_item_else",
-              "position": {
-                "x": 400,
-                "y": 2100
-              },
-              "data": {}
-            },
-            {
               "id": "message_l8v",
               "type": "action_message_create",
               "position": {
                 "x": -250,
-                "y": 2310
+                "y": 1470
               },
               "data": {
                 "custom_label": "Level-up message",
@@ -3241,11 +3166,11 @@
               }
             },
             {
-              "id": "condition_r2w",
-              "type": "control_condition_compare",
+              "id": "if_r2w",
+              "type": "control_if",
               "position": {
                 "x": 250,
-                "y": 2310
+                "y": 1470
               },
               "data": {
                 "custom_label": "Reward role due?",
@@ -3253,32 +3178,11 @@
               }
             },
             {
-              "id": "condition_r3y",
-              "type": "control_condition_item_compare",
-              "position": {
-                "x": 250,
-                "y": 2520
-              },
-              "data": {
-                "condition_item_mode": "equal",
-                "condition_item_value": "{{true}}"
-              }
-            },
-            {
-              "id": "condition_r4e",
-              "type": "control_condition_item_else",
-              "position": {
-                "x": 650,
-                "y": 2520
-              },
-              "data": {}
-            },
-            {
               "id": "error_r5h",
               "type": "control_error_handler",
               "position": {
                 "x": 250,
-                "y": 2730
+                "y": 1680
               },
               "data": {
                 "custom_label": "Skip if the role can't be given"
@@ -3289,7 +3193,7 @@
               "type": "action_member_role_add",
               "position": {
                 "x": 250,
-                "y": 2940
+                "y": 1890
               },
               "data": {
                 "custom_label": "Give the reward role",
@@ -3302,95 +3206,54 @@
             {
               "id": "300000000",
               "source": "event_l7x",
-              "target": "condition_m3q"
-            },
-            {
-              "id": "300007919",
-              "source": "condition_m3q",
-              "target": "condition_m4t"
-            },
-            {
-              "id": "300015838",
-              "source": "condition_m3q",
-              "target": "condition_m5e"
-            },
-            {
-              "id": "300023757",
-              "source": "condition_m4t",
               "target": "variable_c6k"
             },
             {
-              "id": "300031676",
+              "id": "300007919",
               "source": "variable_c6k",
-              "target": "condition_c7w"
+              "target": "if_c7w"
             },
             {
-              "id": "300039595",
-              "source": "condition_c7w",
-              "target": "condition_c8y"
+              "id": "300015838",
+              "source": "if_c7w",
+              "target": "variable_s2t",
+              "sourceHandle": "yes"
             },
             {
-              "id": "300047514",
-              "source": "condition_c7w",
-              "target": "condition_c9e"
-            },
-            {
-              "id": "300055433",
-              "source": "condition_c8y",
-              "target": "variable_s2t"
-            },
-            {
-              "id": "300063352",
+              "id": "300023757",
               "source": "variable_s2t",
               "target": "variable_o2d"
             },
             {
-              "id": "300071271",
+              "id": "300031676",
               "source": "variable_o2d",
               "target": "variable_n4w"
             },
             {
-              "id": "300079190",
+              "id": "300039595",
               "source": "variable_n4w",
-              "target": "condition_u5p"
+              "target": "if_u5p"
             },
             {
-              "id": "300087109",
-              "source": "condition_u5p",
-              "target": "condition_u6y"
+              "id": "300047514",
+              "source": "if_u5p",
+              "target": "message_l8v",
+              "sourceHandle": "yes"
             },
             {
-              "id": "300095028",
-              "source": "condition_u5p",
-              "target": "condition_u7e"
+              "id": "300055433",
+              "source": "if_u5p",
+              "target": "if_r2w",
+              "sourceHandle": "yes"
             },
             {
-              "id": "300102947",
-              "source": "condition_u6y",
-              "target": "message_l8v"
+              "id": "300063352",
+              "source": "if_r2w",
+              "target": "error_r5h",
+              "sourceHandle": "yes"
             },
             {
-              "id": "300110866",
-              "source": "condition_u6y",
-              "target": "condition_r2w"
-            },
-            {
-              "id": "300118785",
-              "source": "condition_r2w",
-              "target": "condition_r3y"
-            },
-            {
-              "id": "300126704",
-              "source": "condition_r2w",
-              "target": "condition_r4e"
-            },
-            {
-              "id": "300134623",
-              "source": "condition_r3y",
-              "target": "error_r5h"
-            },
-            {
-              "id": "300142542",
+              "id": "300071271",
               "source": "error_r5h",
               "target": "member_r6a",
               "sourceHandle": "default"
