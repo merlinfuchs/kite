@@ -545,6 +545,8 @@ export function getConnectionIssue(
       .join(", ")}.${
       handle === "error"
         ? " To handle errors, put the block after the default output of an error handler block."
+        : handle === "default"
+        ? " Set the handle to one of them, or connect the block to each to run it either way."
         : ""
     }`;
   }

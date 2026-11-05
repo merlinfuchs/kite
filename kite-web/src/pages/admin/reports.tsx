@@ -86,7 +86,7 @@ function Report({ report }: { report: OpenBundleReport }) {
       );
       return;
     }
-    toast.success("Banned its owner from the marketplace");
+    toast.success("Banned its owner from the Marketplace");
   }
 
   return (

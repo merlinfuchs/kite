@@ -67,6 +67,7 @@ import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
+import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageForward } from "./discordMessageForward";
@@ -93,6 +94,7 @@ import { discordRoleDelete } from "./discordRoleDelete";
 import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
 import { discordServerLeave } from "./discordServerLeave";
+import { discordServerProfileEdit } from "./discordServerProfileEdit";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
@@ -102,6 +104,8 @@ import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
+import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -112,6 +116,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
+import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
 import { tableDelete } from "./tableDelete";
 import { tableFind } from "./tableFind";
@@ -141,6 +146,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordSuspendResponseModal,
   webhookResponseCreate,
   discordMessageCreate,
+  discordPersonaMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
@@ -180,7 +186,10 @@ export const blockDefinitions: BlockDefinition[] = [
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordVoiceAudioPlay,
+  discordVoiceAudioStop,
   discordStatusSet,
+  discordServerProfileEdit,
   discordServerLeave,
   variableSet,
   variableDelete,
@@ -194,6 +203,7 @@ export const blockDefinitions: BlockDefinition[] = [
   tableColumnAdd,
   tableColumnUpdate,
   tableColumnDelete,
+  variableList,
   robloxUserGet,
   cookieApiTranscriptCreate,
   cookieApiCardCreate,

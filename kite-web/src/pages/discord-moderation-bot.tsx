@@ -5,14 +5,14 @@ import { noCodeFaq } from "@/components/landing/copy";
 import { banFlow } from "@/components/landing/flows";
 
 const content: LandingPageContent = {
-  title: "Make a Free Discord Moderation Bot",
+  title: "Make a free Discord moderation bot",
   description:
     "Make your own Discord moderation bot for free with Kite. Get /ban, /kick and /mute commands from a template and change them without writing code.",
-  heading: "Make Your Own Discord Moderation Bot",
+  heading: "Make your own Discord moderation bot",
   intro:
     "Build a moderation bot with your own name and avatar for free. Start with the moderation template, then change the commands so they work the way your server needs. You don't need to write code.",
   secondaryAction: {
-    label: "View the Template",
+    label: "View the template",
     href: "/marketplace/moderation",
   },
   showcase: {
@@ -22,7 +22,7 @@ const content: LandingPageContent = {
   },
   sections: [
     {
-      heading: "Start With the Moderation Template",
+      heading: "Start with the moderation template",
       body: "The template adds four slash commands to your bot. Only members with the right Discord permissions can use them.",
       points: [
         {
@@ -45,42 +45,42 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "Change It to Fit Your Server",
+      heading: "Change it to fit your server",
       points: [
         {
-          title: "Log Every Action",
+          title: "Log every action",
           description:
             "Send a message to a log channel every time a moderator bans, kicks or mutes someone.",
         },
         {
-          title: "Clear Messages",
+          title: "Clear messages",
           description:
             "Add a /purge command that deletes up to 100 messages in a channel at once.",
         },
         {
-          title: "Filter Messages",
+          title: "Filter messages",
           description:
             "Listen for new messages, check them with conditions and delete the ones you don't allow.",
         },
         {
-          title: "Catch Spam With AI",
+          title: "Catch spam with AI",
           description:
             "Ask the AI Check block if a message is spam or an insult. Delete it when the AI is sure, and send the ones it's unsure about to your moderators.",
         },
         {
-          title: "Manage Roles",
+          title: "Manage roles",
           description:
             "Give or remove roles with a command, for example to add a warning role.",
         },
         {
-          title: "Server Logs",
+          title: "Server logs",
           description:
             "Post a message when members join or leave, or when messages are edited or deleted.",
         },
         {
-          title: "Let AI Build It",
+          title: "Let AI build it",
           description:
-            "Describe the command you want, like a /warn command that counts warnings, and Kite's AI builds it.",
+            "Describe the command you want, like a /warn command that counts warnings, and Flow AI builds it.",
         },
       ],
     },

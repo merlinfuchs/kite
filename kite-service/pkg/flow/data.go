@@ -110,6 +110,8 @@ const (
 	FlowParameterTypeTextarea FlowParameterType = "textarea"
 	FlowParameterTypeChannel  FlowParameterType = "channel"
 	FlowParameterTypeRole     FlowParameterType = "role"
+	// Yes or no, picked from a menu. The value is true or false.
+	FlowParameterTypeBoolean FlowParameterType = "boolean"
 )
 
 // Picked is whether the value is picked from a server, as the ID of a channel
@@ -139,6 +141,7 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeTextarea,
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
+			FlowParameterTypeBoolean,
 		)),
 		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
 			return p.CheckValue(p.Value)
@@ -221,10 +224,15 @@ const (
 	FlowNodeTypeActionTableColumnAdd        FlowNodeType = "action_table_column_add"
 	FlowNodeTypeActionTableColumnUpdate     FlowNodeType = "action_table_column_update"
 	FlowNodeTypeActionTableColumnDelete     FlowNodeType = "action_table_column_delete"
+	FlowNodeTypeActionVariableList          FlowNodeType = "action_variable_list"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
+	FlowNodeTypeActionVoiceAudioPlay        FlowNodeType = "action_voice_audio_play"
+	FlowNodeTypeActionVoiceAudioStop        FlowNodeType = "action_voice_audio_stop"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
+	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
+	FlowNodeTypeActionPersonaMessageCreate  FlowNodeType = "action_persona_message_create"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -341,6 +349,10 @@ type FlowNodeData struct {
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
+	// Persona Message Create
+	PersonaName      string `json:"persona_name,omitempty"`
+	PersonaAvatarURL string `json:"persona_avatar_url,omitempty"`
+
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
 
@@ -367,8 +379,15 @@ type FlowNodeData struct {
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
 
+	// Voice Audio Play
+	AudioAssetID    string `json:"audio_asset_id,omitempty"`
+	AudioLeaveAfter bool   `json:"audio_leave_after,omitempty"`
+
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
+
+	// Server Profile Edit
+	ServerProfileData *ServerProfileData `json:"server_profile_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -392,6 +411,12 @@ type FlowNodeData struct {
 	TableColumnName    string                     `json:"table_column_name,omitempty"`
 	TableColumnType    string                     `json:"table_column_type,omitempty"`
 	TableColumnOptions string                     `json:"table_column_options,omitempty"`
+
+	// Variable List
+	VariableSort        provider.VariableListSort `json:"variable_sort,omitempty"`
+	VariableScopePrefix string                    `json:"variable_scope_prefix,omitempty"`
+	VariableLimit       string                    `json:"variable_limit,omitempty"`
+	VariableSkip        string                    `json:"variable_skip,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
@@ -717,6 +742,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.LookupRows, validation.Length(0, maxLookupRows)),
 		validation.Field(&d.LookupDefault, validation.Length(0, maxLookupTextLength)),
 
+		// Variable List
+		// An empty sort means VariableListSortValueDesc, the default the
+		// editor shows.
+		validation.Field(&d.VariableSort, validation.When(nodeType == FlowNodeTypeActionVariableList,
+			validation.In(
+				provider.VariableListSortValueDesc,
+				provider.VariableListSortValueAsc,
+				provider.VariableListSortUpdatedDesc,
+				provider.VariableListSortUpdatedAsc,
+			),
+		)),
+
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
 		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
@@ -906,6 +943,18 @@ type StatusData struct {
 	ActivityName  string `json:"activity_name,omitempty"`
 	ActivityState string `json:"activity_state,omitempty"`
 	ActivityURL   string `json:"activity_url,omitempty"`
+}
+
+// ServerProfileData is the bot's profile in one server. A field that isn't set
+// stays as it is, and one that's empty resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick      *string `json:"nick,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+	BannerURL *string `json:"banner_url,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	// Reset resets the whole profile to the bot's own, the other fields are
+	// ignored then.
+	Reset bool `json:"reset,omitempty"`
 }
 
 type ChannelData struct {
@@ -1488,7 +1537,7 @@ func (d AIChatCompletionData) Validate() error {
 			}
 			return nil
 		})),
-		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
+		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 4000)),
 	)
 }
 

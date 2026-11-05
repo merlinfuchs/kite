@@ -39,7 +39,7 @@ You can choose different types of channels including:
 >
 > `Slowmode` The cooldown in seconds users must wait between sending messages, from `0` to `21600` (6 hours). `0` turns slowmode off. Leave it empty for no slowmode. Placeholders are supported. Not available for announcement and category channels.
 
-### Permission Overwrites
+### Permission overwrites
 
 Here you can choose which roles and users will have access to the channel. Leave this blank to allow all roles and users to access the channel.
 

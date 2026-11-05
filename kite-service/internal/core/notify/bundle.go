@@ -17,11 +17,11 @@ func (n *Notifier) BundleSubmitted(b *model.Bundle) {
 	if n == nil {
 		return
 	}
-	what := fmt.Sprintf("**%s** was submitted for the marketplace", escape(b.Name))
+	what := fmt.Sprintf("**%s** was submitted for the Marketplace", escape(b.Name))
 	if b.Listed {
 		what = fmt.Sprintf("Changes to the page of **%s** were submitted", escape(b.Name))
 	} else if b.ApprovedVersion > 0 {
-		what = fmt.Sprintf("**%s** was submitted for the marketplace again", escape(b.Name))
+		what = fmt.Sprintf("**%s** was submitted for the Marketplace again", escape(b.Name))
 	}
 	n.Review(fmt.Sprintf("%s. Review it: %s/admin/reviews", what, n.appBaseURL))
 }
@@ -43,7 +43,7 @@ func (n *Notifier) BundleReviewDecided(b *model.Bundle, review *model.BundleRevi
 	}
 	if review.Status == model.BundleReviewStatusApproved {
 		n.DM(b.Owner.DiscordID, fmt.Sprintf(
-			"Kite approved version %d of your template **%s**. It's listed in the marketplace: %s/marketplace/%s",
+			"Kite approved version %d of your template **%s**. It's listed in the Marketplace: %s/marketplace/%s",
 			review.Version, escape(b.Name), n.appBaseURL, b.ID,
 		))
 		return
@@ -69,7 +69,7 @@ func (n *Notifier) BundleAutoRejected(b *model.Bundle, review *model.BundleRevie
 // and how to fix it.
 func (n *Notifier) rejected(b *model.Bundle, review *model.BundleReview, who string, extra string) {
 	n.DM(b.Owner.DiscordID, fmt.Sprintf(
-		"%s didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix. How to get a template approved: <%s>%s%s",
+		"%s didn't approve version %d of your template **%s** for the Marketplace: %s\n\nChange it and submit it again, or publish an update with the fix. How to get a template approved: <%s>%s%s",
 		who, review.Version, escape(b.Name), review.Reason, publishingGuideURL, extra, n.bundlePageLink(b),
 	))
 }
@@ -106,14 +106,14 @@ func escape(s string) string {
 	return markdownEscaper.Replace(s)
 }
 
-// UserBanned tells the user that Kite banned them from the marketplace, the
-// only feature they can be banned from for now.
+// UserBanned tells the user that Kite banned them from a feature and why.
 func (n *Notifier) UserBanned(user *model.User, ban *model.UserBan) {
 	if n == nil {
 		return
 	}
-	n.DM(user.DiscordID, fmt.Sprintf(
-		"Kite banned you from submitting templates to the marketplace: %s\n\nYour listed templates stay listed, but new versions of them aren't reviewed, so apps keep the version they have. To appeal, ask on our Discord server.",
-		ban.Reason,
-	))
+	msg := "Kite banned you from submitting templates to the Marketplace: %s\n\nYour listed templates stay listed, but new versions of them aren't reviewed, so apps keep the version they have. To appeal, ask on our Discord server."
+	if ban.Feature == model.UserBanFeatureKite {
+		msg = "Kite banned you: %s\n\nYou can't use Kite anymore and your bots were stopped. To appeal, ask on our Discord server."
+	}
+	n.DM(user.DiscordID, fmt.Sprintf(msg, ban.Reason))
 }

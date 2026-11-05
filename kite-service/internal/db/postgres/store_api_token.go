@@ -69,7 +69,9 @@ func (c *Client) APITokenByKeyHash(ctx context.Context, keyHash string) (*model.
 		return nil, err
 	}
 
-	return rowToAPIToken(row), nil
+	token := rowToAPIToken(row.ApiToken)
+	token.KiteBanReason = null.NewString(row.KiteBanReason.String, row.KiteBanReason.Valid)
+	return token, nil
 }
 
 func (c *Client) UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time, interval time.Duration) error {

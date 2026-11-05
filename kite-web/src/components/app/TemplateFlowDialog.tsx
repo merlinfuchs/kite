@@ -16,6 +16,7 @@ import {
 } from "@/lib/flow/context";
 import { isNoteNode } from "@/lib/flow/notes";
 import { useHookedTheme } from "@/lib/hooks/theme";
+import { cn } from "@/lib/utils";
 import FlowNodeEditor from "../flow/FlowNodeEditor";
 import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
 import FitView from "./TemplateFlowFitView";
@@ -65,6 +66,9 @@ export default function TemplateFlowDialog({
   );
 }
 
+const panelClassName =
+  "flex-none w-full h-[45%] border-t md:w-96 md:h-full md:border-t-0 md:border-l";
+
 function FlowView({
   nodes,
   edges,
@@ -81,8 +85,8 @@ function FlowView({
   );
 
   return (
-    <div className="flex-1 min-h-0 flex">
-      <div className="flex-1 min-w-0 bg-muted/30">
+    <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+      <div className="flex-1 min-h-0 min-w-0 bg-muted/30">
         <ReactFlow
           defaultNodes={initialNodes}
           defaultEdges={edges}
@@ -114,14 +118,19 @@ function FlowView({
         </ReactFlow>
       </div>
       {/* The panel is always there, so the flow doesn't move when a block is
-      selected. */}
+      selected. On small screens it's below the flow instead of next to it. */}
       {selected ? (
         <FlowNodeEditor
           nodeId={selected}
-          className="relative w-80 md:w-96 flex-none border-l h-full"
+          className={cn("relative", panelClassName)}
         />
       ) : (
-        <div className="w-80 md:w-96 flex-none border-l h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
+        <div
+          className={cn(
+            "flex flex-col items-center justify-center gap-3 p-8 text-center",
+            panelClassName
+          )}
+        >
           <MousePointerClickIcon className="h-8 w-8 text-muted-foreground" />
           <div className="text-sm text-muted-foreground">
             Click on a block to see how it&apos;s set up.

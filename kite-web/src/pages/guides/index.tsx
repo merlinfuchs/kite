@@ -13,21 +13,21 @@ import Link from "next/link";
 const guides = [
   {
     icon: BlocksIcon,
-    title: "How to Make a Discord Bot Without Coding",
+    title: "How to make a Discord bot without coding",
     description:
       "Create a Discord application, add it to Kite and build your first slash command in the editor.",
     href: "/guides/how-to-make-a-discord-bot",
   },
   {
     icon: SparklesIcon,
-    title: "How to Make a Discord Bot With Claude",
+    title: "How to make a Discord bot with Claude",
     description:
       "Connect Claude to Kite and let it build the commands and events of your bot.",
     href: "/guides/make-a-discord-bot-with-claude",
   },
   {
     icon: BotIcon,
-    title: "How to Make a Discord Bot With ChatGPT",
+    title: "How to make a Discord bot with ChatGPT",
     description:
       "Connect ChatGPT to Kite and describe your bot instead of copying code.",
     href: "/guides/make-a-discord-bot-with-chatgpt",
@@ -35,22 +35,23 @@ const guides = [
 ];
 
 const bots = [
-  { title: "Moderation Bot", href: "/discord-moderation-bot" },
-  { title: "Welcome Bot", href: "/discord-welcome-bot" },
-  { title: "AI Bot", href: "/ai-discord-bot" },
-  { title: "AI Bot Maker", href: "/ai-discord-bot-maker" },
-  { title: "ER:LC Bot", href: "/erlc-discord-bot" },
-  { title: "Discord MCP Server", href: "/discord-mcp-server" },
+  { title: "Moderation bot", href: "/discord-moderation-bot" },
+  { title: "Welcome bot", href: "/discord-welcome-bot" },
+  { title: "Leveling bot", href: "/discord-leveling-bot" },
+  { title: "AI bot", href: "/ai-discord-bot" },
+  { title: "AI bot maker", href: "/ai-discord-bot-maker" },
+  { title: "ER:LC bot", href: "/erlc-discord-bot" },
+  { title: "Discord MCP server", href: "/discord-mcp-server" },
 ];
 
 export default function GuidesPage() {
   return (
     <HomeLayout
-      title="Discord Bot Guides"
-      description="Step-by-step guides for making your own Discord bot for free: without coding, with Claude or with ChatGPT."
+      title="Discord bot guides"
+      description="Step-by-step guides for making your own Discord bot for free. Build it without code, or let Claude or ChatGPT build it."
     >
       <section className="container max-w-5xl pt-20 md:pt-32 pb-16">
-        <h1 className="text-4xl md:text-5xl font-bold">Discord Bot Guides</h1>
+        <h1 className="text-4xl md:text-5xl font-bold">Discord bot guides</h1>
         <p className="text-xl text-muted-foreground mt-6 max-w-3xl">
           Make your own Discord bot for free, step by step. Build it in
           Kite&apos;s editor, or let Claude or ChatGPT build it for you.
@@ -80,7 +81,7 @@ export default function GuidesPage() {
 
       <section className="container max-w-5xl pb-20 md:pb-32">
         <h2 className="text-2xl md:text-3xl font-bold">
-          What You Can Build Next
+          What you can build next
         </h2>
         <p className="text-lg text-muted-foreground mt-3 max-w-3xl">
           Each page shows the templates and blocks for one kind of bot.

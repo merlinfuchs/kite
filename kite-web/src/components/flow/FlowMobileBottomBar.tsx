@@ -81,7 +81,7 @@ export default function FlowMobileBottomBar({
         >
           <PlusIcon className="size-4" />
           <span className={selectedNodeId ? "hidden sm:inline" : ""}>
-            Add Block
+            Add block
           </span>
         </Button>
 

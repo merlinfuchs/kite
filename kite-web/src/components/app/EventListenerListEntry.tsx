@@ -93,7 +93,7 @@ export default function EventListenerListEntry({
 
     navigator.clipboard
       .writeText(webhookUrl)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy to clipboard"));
   }, [webhookUrl]);
 
@@ -108,7 +108,7 @@ export default function EventListenerListEntry({
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success(`${capitalize(name.singular)} deleted!`);
+          toast.success(`${capitalize(name.singular)} deleted.`);
         } else {
           toast.error(
             `Failed to delete ${name.singular}: ${res.error.message} (${res.error.code})`
@@ -205,7 +205,7 @@ export default function EventListenerListEntry({
               {webhookUrl && (
                 <DropdownMenuItem onSelect={copyWebhookUrl}>
                   <LinkIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Copy Webhook URL
+                  Copy webhook URL
                 </DropdownMenuItem>
               )}
               <FlowExportDialog

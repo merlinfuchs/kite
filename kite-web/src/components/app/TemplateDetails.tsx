@@ -386,7 +386,7 @@ function UserContentNotice({ madeBy }: { madeBy: string }) {
         <div className="font-semibold mb-1">Made by {madeBy}, not by Kite</div>
         <p className="text-muted-foreground">
           This template is user content. Kite only reviews templates before
-          listing them in the marketplace, and this one isn&apos;t listed, so
+          listing them in the Marketplace, and this one isn&apos;t listed, so
           Kite can&apos;t tell you whether it works or is safe, and {madeBy}{" "}
           alone is responsible for it. It runs with your bot and your credits
           once you add it, so read what it does first, and report it if it

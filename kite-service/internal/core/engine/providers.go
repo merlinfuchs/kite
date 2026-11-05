@@ -20,6 +20,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -275,7 +276,9 @@ type DiscordProvider struct {
 	appStore        store.AppStore
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
+	webhooks        *WebhookCache
 	session         *state.State
+	voice           *VoiceManager
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -286,14 +289,18 @@ func NewDiscordProvider(
 	appStore store.AppStore,
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
+	webhooks *WebhookCache,
 	session *state.State,
+	voice *VoiceManager,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:           appID,
 		appStore:        appStore,
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
+		webhooks:        webhooks,
 		session:         session,
+		voice:           voice,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -552,13 +559,21 @@ func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.Gui
 	return channel, nil
 }
 
-func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	err := p.session.ModifyChannel(channelID, data)
+func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+	// arikawa's ModifyChannel discards the response body.
+	var channel discord.Channel
+	err := p.session.Client.WithContext(ctx).RequestJSON(
+		&channel,
+		http.MethodPatch,
+		api.EndpointChannels+channelID.String(),
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to edit channel: %w", err)
+		return nil, fmt.Errorf("failed to edit channel: %w", err)
 	}
 
-	return nil
+	return &channel, nil
 }
 
 func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
@@ -601,6 +616,12 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return err
 	}
 
+	// Joining another channel or leaving stops the audio and closes the
+	// connection playing it.
+	if p.voice != nil {
+		p.voice.Leave(p.appID, guildID)
+	}
+
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
 		GuildID:   guildID,
 		ChannelID: channelID,
@@ -614,14 +635,39 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 	return nil
 }
 
+func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudioOpts) error {
+	if p.voice == nil {
+		return fmt.Errorf("playing audio isn't available here")
+	}
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.VoiceAudio {
+		return fmt.Errorf("playing audio requires premium")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	return p.voice.Play(ctx, p.appID, p.session, opts)
+}
+
+func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	if p.voice != nil {
+		p.voice.Stop(p.appID, guildID)
+	}
+	return nil
+}
+
 func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
-	// Part of the same premium feature as rotating statuses in the app settings
+	// Part of the same paid feature as rotating statuses in the app settings
 	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
 	if err != nil {
 		return fmt.Errorf("failed to get app features: %w", err)
 	}
 	if !features.RotatingStatus {
-		return fmt.Errorf("setting the status from a flow requires premium")
+		return fmt.Errorf("setting the status from a flow requires a paid plan")
 	}
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
@@ -645,6 +691,26 @@ func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildI
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data provider.ServerProfileData) error {
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.ServerProfiles {
+		return fmt.Errorf("editing the server profile requires premium")
+	}
+	for _, image := range []option.NullableString{data.Avatar, data.Banner} {
+		if image != nil && util.IsAnimatedImageDataURI(image.Val) && !features.AnimatedProfile {
+			return fmt.Errorf("animated avatars and banners require a paid plan")
+		}
+	}
+	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
+		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")
+	}
+
+	return util.EditServerProfile(ctx, p.session.Client, guildID, data)
 }
 
 func (p *DiscordProvider) allowGatewayCommand() error {
@@ -1055,6 +1121,23 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 	}
 
 	return row.Data, nil
+}
+
+func (p *VariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	rows, err := p.variableValueStore.ListVariableValues(ctx, p.appID, id, opts.ScopePrefix, string(opts.Sort), opts.Limit, opts.Skip)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list variable values: %w", err)
+	}
+
+	values := make([]provider.VariableValue, len(rows))
+	for i, row := range rows {
+		values[i] = provider.VariableValue{
+			Scope:     row.Scope,
+			Value:     row.Data,
+			UpdatedAt: row.UpdatedAt,
+		}
+	}
+	return values, nil
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {

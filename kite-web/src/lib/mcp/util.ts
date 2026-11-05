@@ -26,11 +26,17 @@ export function apiCaller(api: KiteAPI) {
       (await call<(T | null | undefined)[]>(path)).filter(
         (item): item is T => item != null
       ),
-    send: <T>(method: string, path: string, body?: unknown) =>
+    send: <T>(
+      method: string,
+      path: string,
+      body?: unknown,
+      signal?: AbortSignal
+    ) =>
       call<T>(path, {
         method,
         body: body === undefined ? undefined : JSON.stringify(body),
         headers: { "Content-Type": "application/json" },
+        signal,
       }),
   };
 }

@@ -37,7 +37,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
     if (appEmojis?.length) {
       categories.push({
         id: "custom",
-        name: "App Emojis",
+        name: "App emojis",
         icon: { svg: appIcon },
         emojis: appEmojis.map((emoji) => ({
           id: emoji!.id,
@@ -72,7 +72,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
     if (guildEmojis.length) {
       categories.push({
         id: "servers",
-        name: "Server Emojis",
+        name: "Server emojis",
         icon: { svg: serverIcon },
         emojis: guildEmojis,
       });

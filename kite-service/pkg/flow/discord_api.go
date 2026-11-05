@@ -9,8 +9,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -225,6 +228,15 @@ func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 	return discord.Snowflake(id), nil
 }
 
+// evalAuditLogReason evaluates the audit log reason setting of a block.
+func evalAuditLogReason(n *CompiledFlowNode, ctx *FlowContext) (api.AuditLogReason, error) {
+	reason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return "", err
+	}
+	return util.AuditLogReason(reason.String()), nil
+}
+
 // evalSnowflake evaluates a setting that must be an ID. what names the
 // setting in the error.
 func evalSnowflake(ctx *FlowContext, template string, what string) (discord.Snowflake, error) {
@@ -252,6 +264,41 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 	}
 	return thing.NewFromJSONValue(v), nil
 }
+
+// DiscordAPIFlowOnly reports whether a request goes to an endpoint that can
+// only be used in flows, see discordAPIOperation.FlowOnly.
+func DiscordAPIFlowOnly(method string, path string) bool {
+	path, _, _ = strings.Cut(path, "?")
+	for _, op := range discordAPIFlowOnlyPaths() {
+		if op.method == method && op.path.MatchString(path) {
+			return true
+		}
+	}
+	return false
+}
+
+type discordAPIEndpoint struct {
+	method string
+	path   *regexp.Regexp
+}
+
+var discordAPIFlowOnlyPaths = sync.OnceValue(func() []discordAPIEndpoint {
+	var res []discordAPIEndpoint
+	for _, op := range discordAPIOperations {
+		if !op.FlowOnly {
+			continue
+		}
+		parts := pathParamRe.Split(op.Path, -1)
+		for i, part := range parts {
+			parts[i] = regexp.QuoteMeta(part)
+		}
+		res = append(res, discordAPIEndpoint{
+			method: op.Method,
+			path:   regexp.MustCompile("^" + strings.Join(parts, "[^/]+") + "$"),
+		})
+	}
+	return res
+})
 
 // DiscordAPIRequestOutsideFlow is the request to the endpoint operation of
 // the Discord API Request block, for calls from outside of flows like the

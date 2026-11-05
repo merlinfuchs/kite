@@ -314,3 +314,14 @@ func TestRespondTimesOut(t *testing.T) {
 	// It counts, as the model may have worked on it.
 	assert.NotNil(t, res)
 }
+
+func TestOutlineEdits(t *testing.T) {
+	assert.Equal(t,
+		"add_node ref=$ban type=action_member_ban after=$check handle=yes data; connect source=$check target=$log; update_node error",
+		outlineEdits([]map[string]any{
+			{"op": "add_node", "ref": "$ban", "type": "action_member_ban", "after": "$check", "handle": "yes", "data": map[string]any{"reason": "spam"}},
+			{"op": "connect", "source": "$check", "target": "$log"},
+			{"op": "update_node", "error": "data_json isn't a JSON object"},
+		}),
+	)
+}

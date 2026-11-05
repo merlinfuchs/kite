@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 type fakeSessionStore struct {
@@ -36,6 +37,43 @@ func (f *fakeSessionStore) UpdateSessionExpiry(ctx context.Context, keyHash stri
 	}
 	session.ExpiresAt = expiresAt
 	return nil
+}
+
+func TestKiteBan(t *testing.T) {
+	key := util.SecureKey()
+	sessionStore := &fakeSessionStore{sessions: map[string]*model.Session{
+		util.HashKey(key): {KeyHash: util.HashKey(key), UserID: "banned", ExpiresAt: time.Now().Add(SessionExpiry), KiteBanReason: null.StringFrom("Nuke bot")},
+	}}
+	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
+		util.HashKey("kite_banned"): {ID: "banned", UserID: "banned", Scopes: write, KiteBanReason: null.StringFrom("Nuke bot")},
+		util.HashKey("kite_other"):  {ID: "other", UserID: "other", Scopes: write},
+	}}
+	manager := NewSessionManager(SessionManagerConfig{}, sessionStore, tokenStore)
+
+	login := httptest.NewRequest(http.MethodGet, "/test", nil)
+	login.AddCookie(&http.Cookie{Name: SessionCookieName, Value: key})
+	tests := []struct {
+		name       string
+		middleware handler.MiddlewareFunc
+		req        *http.Request
+		wantStatus int
+	}{
+		{"login", manager.RequireSession, login, http.StatusForbidden},
+		{"login on public route", manager.OptionalSession, login, http.StatusForbidden},
+		{"token", manager.RequireSession, tokenRequest(http.MethodGet, "kite_banned"), http.StatusForbidden},
+		{"other user's token", manager.RequireSession, tokenRequest(http.MethodGet, "kite_other"), http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status, code, _ := serve(t, tt.middleware, allow, tt.req)
+			if status != tt.wantStatus {
+				t.Fatalf("got %d %q, want %d", status, code, tt.wantStatus)
+			}
+			if status == http.StatusForbidden && code != "kite_banned" {
+				t.Errorf("got code %q, want kite_banned", code)
+			}
+		})
+	}
 }
 
 func TestSessionExpiry(t *testing.T) {

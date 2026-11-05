@@ -5,7 +5,7 @@
   "description": "A channel that catches spam bots: anyone but staff who sends a message in it gets softbanned and logged.",
   "about": [
     "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
-    "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Messages."
+    "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Message templates."
   ],
   "faq": [
     {
@@ -30,14 +30,14 @@
   "parameters": [
     {
       "key": "honeypot_channel",
-      "label": "Honeypot Channel",
+      "label": "Honeypot channel",
       "description": "The channel that catches spam bots. Anyone without the Manage Messages permission who sends a message in it gets softbanned.",
       "type": "channel",
       "required": true
     },
     {
       "key": "log_channel",
-      "label": "Log Channel",
+      "label": "Log channel",
       "description": "The channel caught messages are forwarded to and each kick is logged in.",
       "type": "channel",
       "required": true

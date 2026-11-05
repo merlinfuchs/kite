@@ -2,15 +2,15 @@
 sidebar_position: 1.5
 ---
 
-# Using the Flow Editor
+# Using the flow editor
 
-Commands, event listeners and buttons are flows of blocks, which you build in the editor. Click on `Save Changes` to save a command or event listener. The flow of a button is saved with its message.
+Commands, event listeners and buttons are flows of blocks, which you build in the editor. Click on `Save changes` to save a command or event listener. The flow of a button is saved with its message.
 
 ![The flow editor with the block explorer on the left and a command on the canvas](./img/flow-editor.webp)
 
 ## Adding and connecting blocks
 
-Drag a block from the block explorer on the left onto the canvas, or click on it to add it in the middle of what you're looking at. On mobile, tap `Add Block` in the bar at the bottom.
+Drag a block from the block explorer on the left onto the canvas, or click on it to add it in the middle of what you're looking at. On mobile, tap `Add block` in the bar at the bottom.
 
 To connect two blocks, drag from the dot at the bottom of one block to the other block. A block runs after the block connected above it. To remove a connection, click on the `x` in its middle.
 
@@ -44,7 +44,7 @@ On a Mac, use `Cmd` instead of `Ctrl`.
 | `Ctrl+Shift+Z`, or `Ctrl+Y` on Windows | Redo                       |
 | `Shift` and drag                       | Select several blocks      |
 
-Undo and redo go through your recent changes to the flow, including the changes of the [Flow AI](./flow-ai.md). While you type in a setting, they undo your typing instead.
+Undo and redo go through your recent changes to the flow, including the changes [Flow AI](./flow-ai.md) made. While you type in a setting, they undo your typing instead.
 
 ## Layout
 

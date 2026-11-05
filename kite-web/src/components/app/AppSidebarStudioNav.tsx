@@ -59,7 +59,7 @@ export default function AppSidebarStudioNav() {
             return { name: plural, url: path, icon };
           }),
           {
-            name: "Message Templates",
+            name: "Message templates",
             url: "/apps/[appId]/messages",
             icon: MailPlusIcon,
           },
@@ -74,7 +74,7 @@ export default function AppSidebarStudioNav() {
             icon: StoreIcon,
           },
           {
-            name: "Your Templates",
+            name: "Your templates",
             url: "/apps/[appId]/bundles",
             icon: PackageIcon,
             // Updates are never installed on their own, so they're counted
@@ -92,7 +92,7 @@ export default function AppSidebarStudioNav() {
             icon: DatabaseIcon,
           },
           {
-            name: "Stored Variables",
+            name: "Stored variables",
             url: "/apps/[appId]/variables",
             icon: VariableIcon,
           },

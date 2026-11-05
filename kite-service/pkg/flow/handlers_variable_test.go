@@ -107,3 +107,89 @@ func TestVariableBlocksRequireScopeOfScopedVariable(t *testing.T) {
 	_, err := executeVariableBlocks(t, true, "{{ a.b.c }}")
 	assert.Error(t, err)
 }
+
+type variableListTestProvider struct {
+	provider.MockVariableProvider
+	scoped bool
+	opts   provider.VariableListOptions
+}
+
+func (p *variableListTestProvider) VariableScoped(ctx context.Context, id string) (bool, error) {
+	return p.scoped, nil
+}
+
+func (p *variableListTestProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	p.opts = opts
+	return []provider.VariableValue{
+		{Scope: null.StringFrom("guild:alex"), Value: thing.NewInt(1240), UpdatedAt: time.Unix(100, 0)},
+		{Scope: null.StringFrom("guild:sam"), Value: thing.NewString("980"), UpdatedAt: time.Unix(200, 0)},
+	}, nil
+}
+
+func executeVariableList(t *testing.T, scoped bool, data FlowNodeData) (*variableListTestProvider, thing.Thing, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	p := &variableListTestProvider{scoped: scoped}
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{Variable: p},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	data.VariableID = "1"
+	node := &CompiledFlowNode{ID: "list", Type: FlowNodeTypeActionVariableList, Data: data}
+	err := node.Execute(c)
+	return p, c.GetNodeResult("list"), err
+}
+
+func TestVariableListResult(t *testing.T) {
+	p, res, err := executeVariableList(t, true, FlowNodeData{
+		VariableScopePrefix: "{{'guild'}}:",
+		VariableLimit:       "{{2}}",
+		VariableSkip:        "{{1 * 10}}",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, provider.VariableListOptions{
+		ScopePrefix: "guild:",
+		Sort:        provider.VariableListSortValueDesc,
+		Limit:       2,
+		Skip:        10,
+	}, p.opts)
+
+	items := res.Array()
+	require.Len(t, items, 2)
+	first := items[0].Value.(map[string]thing.Thing)
+	assert.Equal(t, "guild:alex", first["scope"].String())
+	assert.Equal(t, int64(1240), first["value"].Int())
+	assert.Equal(t, int64(100), first["updated_at"].Int())
+}
+
+func TestVariableListDefaultsAndUnscoped(t *testing.T) {
+	// Unscoped variables have one value, which a prefix can't match.
+	p, _, err := executeVariableList(t, false, FlowNodeData{
+		VariableScopePrefix: "guild:",
+		VariableSort:        provider.VariableListSortUpdatedDesc,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, provider.VariableListOptions{
+		Sort:  provider.VariableListSortUpdatedDesc,
+		Limit: defaultVariableListLimit,
+	}, p.opts)
+}
+
+func TestVariableListRejectsBadNumbers(t *testing.T) {
+	for _, limit := range []string{"0", "101", "ten", "{{''}} "} {
+		_, _, err := executeVariableList(t, true, FlowNodeData{VariableLimit: limit})
+		assert.ErrorContains(t, err, "from 1 to 100", limit)
+	}
+	for _, skip := range []string{"-1", "10001", "page 2"} {
+		_, _, err := executeVariableList(t, true, FlowNodeData{VariableSkip: skip})
+		assert.ErrorContains(t, err, "from 0 to 10000", skip)
+	}
+}

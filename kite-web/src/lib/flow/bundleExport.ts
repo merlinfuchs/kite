@@ -14,6 +14,8 @@ export type ExportedBundle = {
     description: string;
     icon: LucideIcon;
     context: FlowContextType;
+    // The source of an event listener, like "schedule". Commands have none.
+    source?: string;
     flow: FlowData;
   }[];
   // Message templates and variables are always imported, the blocks use them.
@@ -57,6 +59,7 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
         description: String(entryData(l.flow_source).description ?? ""),
         icon: eventSourceName(l.source).icon,
         context: eventFlowContext(l.source),
+        source: l.source,
         flow: l.flow_source as FlowData,
       })),
     ],

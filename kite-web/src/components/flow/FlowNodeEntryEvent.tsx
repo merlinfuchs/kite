@@ -36,15 +36,15 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
       }
       description={
         isWebhook
-          ? "Runs the flow when a request is sent to the webhook URL. Drop different actions here!"
+          ? "Runs the flow when a request is sent to the webhook URL. Drop actions here."
           : isSchedule
           ? `Runs the flow ${
               scheduleDescription
                 ? scheduleDescription.charAt(0).toLowerCase() +
                   scheduleDescription.slice(1)
                 : `on the schedule ${cron}`
-            } (UTC). Drop different actions here!`
-          : `Listens for ${eventName} events to trigger the flow. Drop different actions here!`
+            } (UTC). Drop actions here.`
+          : `Listens for ${eventName} events to trigger the flow. Drop actions here.`
       }
       highlight={true}
       showConnectedMarker={false}

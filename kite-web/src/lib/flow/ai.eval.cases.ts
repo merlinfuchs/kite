@@ -384,7 +384,7 @@ export const evalCases: EvalCase[] = [
     prompt: `if the user has the role ${roleId}, dont ban them and say you cant`,
     route: ["build"],
     types: [
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_member_ban",
     ],
   },
@@ -397,6 +397,25 @@ export const evalCases: EvalCase[] = [
     types: ["control_error_handler"],
   },
 
+  {
+    name: "if then continue",
+    context: "command",
+    flow: command("roll"),
+    prompt:
+      "roll a random number from 1 to 100. if it's above 50 reply that they won, otherwise that they lost, and in both cases log the number",
+    route: ["build"],
+    types: ["action_random_generate", "control_if", "action_log"],
+  },
+  {
+    name: "ai check then continue",
+    context: "event_discord",
+    flow: event("message_create"),
+    prompt:
+      "use AI to check if the message is spam. if it is delete it, otherwise react with a thumbs up. either way log the message content",
+    route: ["build"],
+    types: ["control_ai_check", "action_message_delete", "action_log"],
+  },
+
   // Bigger builds, with what's needed already given
   {
     name: "complex ticket",
@@ -407,7 +426,7 @@ export const evalCases: EvalCase[] = [
     types: [
       "action_channel_create",
       "action_message_create",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_channel_delete",
     ],
     componentBranch: true,
@@ -420,7 +439,7 @@ export const evalCases: EvalCase[] = [
     route: ["build"],
     types: [
       "option_command_argument",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_private_message_create",
       "action_member_ban",
       "action_message_create",
@@ -435,7 +454,7 @@ export const evalCases: EvalCase[] = [
     route: ["build"],
     types: [
       "action_response_create",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_member_role_add",
     ],
     componentBranch: true,

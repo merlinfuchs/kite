@@ -110,6 +110,10 @@ Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFil
 
 Migrations are in `kite-service/internal/db/postgres/migrations` as `NNN_description.up.sql` and `.down.sql`. Take the next free number and check `main` hasn't used it since you branched. After changing migrations or queries, run `sqlc generate`.
 
+## Copy
+
+Read `FACTS.md` before writing anything a user sees, on the site, in the dashboard, in the docs or in a bot reply. It holds the plans, limits, stats, names and naming rules. When a fact changes, update the sheet in the same PR.
+
 ## Rules
 
 - Match the surrounding code: naming, structure, comment density. Run gofmt and prettier.

@@ -185,7 +185,7 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 	}
 	ban, err := h.userStore.UserBan(c.Context(), c.Session.UserID, model.UserBanFeatureMarketplace)
 	if err == nil {
-		return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from submitting templates to the marketplace: "+ban.Reason)
+		return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from submitting templates to the Marketplace: "+ban.Reason)
 	}
 	if !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get user ban: %w", err)
@@ -220,7 +220,7 @@ func (h *BundleInstallHandler) HandleBundleUpdate(c *handler.Context, req wire.B
 		return nil, errBundleRemoved
 	}
 	if b.Listed || b.InReview {
-		return nil, handler.ErrBadRequest("bundle_in_marketplace", "Kite reviews changes to templates in the marketplace, submit them for review")
+		return nil, handler.ErrBadRequest("bundle_in_marketplace", "Kite reviews changes to templates in the Marketplace, submit them for review")
 	}
 
 	if err := h.bundleStore.UpdateBundlePage(c.Context(), b.ID, wire.BundleListingFromWire(req.BundleListing)); err != nil {

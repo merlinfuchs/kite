@@ -3,10 +3,12 @@ import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
+import economy from "../templates/economy.json";
 import erlc from "../templates/erlc.json";
 import flagTranslator from "../templates/flag-translator.json";
 import giveaway from "../templates/giveaway.json";
 import honeypot from "../templates/honeypot.json";
+import leveling from "../templates/leveling.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import reminders from "../templates/reminders.json";
@@ -28,6 +30,8 @@ export const templateFiles: unknown[] = [
   verification,
   suggestions,
   starboard,
+  leveling,
+  economy,
   serverInfo,
   modmail,
   counting,

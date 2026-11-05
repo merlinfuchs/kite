@@ -22,7 +22,7 @@ export default function MessageComponentMediaGallery({ id }: { id: NodeId }) {
   return (
     <Card className="px-4 py-3">
       <MessageCollapsibleSection
-        title={`Media Gallery ${index + 1}`}
+        title={`Media gallery ${index + 1}`}
         size="lg"
         validation={nodeScope(id)}
         className="space-y-3"
@@ -42,14 +42,14 @@ export default function MessageComponentMediaGallery({ id }: { id: NodeId }) {
             }
             disabled={itemIds.length >= slotLimit("mediaGallery", "items")}
           >
-            Add Item
+            Add item
           </Button>
           <Button
             size="sm"
             variant="destructive"
             onClick={() => removeChildren(id, "items")}
           >
-            Clear Items
+            Clear items
           </Button>
         </div>
       </MessageCollapsibleSection>

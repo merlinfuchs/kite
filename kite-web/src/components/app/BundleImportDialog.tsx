@@ -59,7 +59,9 @@ function BundleImportForm({ onImported }: { onImported: () => void }) {
         }
         const parsed = parseExportedBundle(content);
         if (!parsed) {
-          toast.error("Invalid share code, make sure it was made with Export");
+          toast.error(
+            "This share code isn't valid. Copy it again with Export and paste all of it."
+          );
           return;
         }
         setBundle({ content, parsed });

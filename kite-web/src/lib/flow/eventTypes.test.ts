@@ -28,7 +28,7 @@ describe("discordEventTypes", () => {
   });
 
   it("names each source", () => {
-    expect(eventSourceName("discord").title).toBe("Event Listener");
+    expect(eventSourceName("discord").title).toBe("Event listener");
     expect(eventSourceName("schedule").singular).toBe("scheduled task");
     expect(eventSourceName("webhook").title).toBe("Webhook");
   });

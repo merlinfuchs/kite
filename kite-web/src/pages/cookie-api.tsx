@@ -25,7 +25,7 @@ const cookieApiUrl = "https://www.cookie-api.com";
 
 const steps: { title: string; description: ReactNode }[] = [
   {
-    title: "Get Your API Key",
+    title: "Get your API key",
     description: (
       <>
         Sign up on{" "}
@@ -44,7 +44,7 @@ const steps: { title: string; description: ReactNode }[] = [
       "Open your app's Integrations and paste the key. Kite stores it encrypted and only sends it to Cookie API.",
   },
   {
-    title: "Add the Blocks",
+    title: "Add the blocks",
     description:
       "The Cookie API blocks are in the block explorer. Add them to a command or event like any other block.",
   },
@@ -53,21 +53,21 @@ const steps: { title: string; description: ReactNode }[] = [
 const extras = [
   {
     icon: LockIcon,
-    title: "No Token Pasting",
+    title: "No token pasting",
     description:
       "Transcripts need your bot's token. Kite adds it to the request itself, so it's never in a block.",
   },
   {
     icon: CoinsIcon,
-    title: "1 Credit per Block",
+    title: "1 credit per block",
     description:
       "Each Cookie API block costs 1 of your 10,000 free credits a month when it runs.",
   },
   {
     icon: SparklesIcon,
-    title: "Let AI Build It",
+    title: "Let AI build it",
     description:
-      "Describe the command you want, like a /close command that saves a transcript, and Kite's AI builds it.",
+      "Describe the command you want, like a /close command that saves a transcript, and Flow AI builds it.",
   },
 ];
 
@@ -114,19 +114,11 @@ function ExternalLink({
   );
 }
 
-function Highlight({ children }: { children: ReactNode }) {
-  return (
-    <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-      {children}
-    </span>
-  );
-}
-
 export default function CookieAPIPage() {
   return (
     <HomeLayout
-      title="Use Cookie API in a Discord Bot Without Code"
-      description="Use Cookie API in your own Discord bot without writing code. Save ticket transcripts, make welcome cards, verify members with a captcha and link Minecraft accounts with Kite."
+      title="Use Cookie API in a Discord bot without code"
+      description="Use Cookie API in your own Discord bot without writing code. Save ticket transcripts, make welcome cards, verify members with a captcha, and link Minecraft accounts with Kite."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <section className="relative container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
@@ -136,22 +128,22 @@ export default function CookieAPIPage() {
             <span className="bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
               Cookie API
             </span>{" "}
-            in Your Own Discord Bot
+            in your own Discord bot
           </h1>
           <p className="text-xl text-muted-foreground mt-6">
             <ExternalLink href={cookieApiUrl}>Cookie API</ExternalLink> makes
-            ticket transcripts, welcome cards, captchas and Minecraft
+            ticket transcripts, welcome cards, captchas, and Minecraft
             verification for Discord communities. Enable it in Kite with your
-            key, and they become blocks you add to your bot&apos;s commands, no
-            code needed.
+            key, and they become blocks you add to your bot&apos;s commands. You
+            don&apos;t need any code.
           </p>
           <div className="mt-8 flex flex-col md:flex-row justify-center lg:justify-start gap-4">
             <Button className="md:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
+              <Link href="/apps">Get started for free</Link>
             </Button>
             <Button variant="outline" className="md:w-48" asChild>
               <a href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/cookie-api`}>
-                Read the Guide
+                Read the guide
               </a>
             </Button>
           </div>
@@ -186,7 +178,7 @@ export default function CookieAPIPage() {
       <section className="container grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-12 items-center py-16 md:py-24">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Set It Up in <Highlight>Two Minutes</Highlight>
+            Set it up in two minutes
           </h2>
           <ol className="relative mt-8 space-y-8">
             {/* Connects the numbers of the steps. */}
@@ -211,9 +203,7 @@ export default function CookieAPIPage() {
 
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            See the Blocks <Highlight>Run</Highlight>
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">See the blocks run</h2>
           <p className="text-lg text-muted-foreground mt-4">
             Pick an example to see the flow in Kite and what your bot replies in
             Discord.

@@ -44,6 +44,7 @@ import {
   text,
 } from "./util";
 import { registerDiscordTools } from "./discord";
+import { registerFlowTestTool } from "./flowTest";
 import { registerTemplateTools } from "./templates";
 import { registerWriteTools } from "./write";
 
@@ -77,12 +78,19 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     },
     async () => {
       const apps = await list<App>("/v1/apps");
+      // The client can't create apps, as that needs the bot token.
+      if (apps.length === 0) {
+        return text(
+          `The user has no apps this connection can use. Ask them to create one at ${env.NEXT_PUBLIC_SITE_URL}/apps, which takes a few minutes in the Discord Developer Portal. If they connected only some of their apps, they need to connect again to give access to the new one.`
+        );
+      }
       return json(
         apps.map((app) => ({
           id: app.id,
           name: app.name,
           description: app.description,
           enabled: app.enabled,
+          out_of_credits: app.no_credits,
         }))
       );
     }
@@ -537,7 +545,10 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
 
   if (canWrite) registerWriteTools(server, caller);
   registerTemplateTools(server, caller, canWrite);
-  if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
+  if (canReadDiscord) {
+    registerDiscordTools(server, caller, canWriteDiscord);
+    registerFlowTestTool(server, caller);
+  }
 
   return server;
 }

@@ -43,6 +43,7 @@ import {
   TemplateParameterFields,
   useTemplateGuild,
 } from "./TemplateParameterFields";
+import { PlanLimitNotice, useExceededLimit } from "./PlanLimit";
 
 // useCommandNames are the names of the app's commands. An added command with
 // one of them gets a number.
@@ -113,6 +114,13 @@ export function TemplateInstallCard({
     eventListeners.length +
     messages.length +
     variables.length;
+
+  const exceeded = useExceededLimit({
+    commands: commands.length,
+    eventListenerSources: eventListeners.map((l) => l.source),
+    messages: messages.length,
+    variables: variables.length,
+  });
 
   const guilds = useAppStateGuilds();
   const includedKeys = useMemo(
@@ -413,6 +421,10 @@ export function TemplateInstallCard({
         </div>
       )}
 
+      {exceeded && (
+        <PlanLimitNotice exceeded={exceeded} from="template" className="mb-5" />
+      )}
+
       {itemCount === 0 ? (
         <Button className="w-full" disabled>
           Nothing selected
@@ -421,6 +433,7 @@ export function TemplateInstallCard({
         <LoadingButton
           className="w-full"
           onClick={install}
+          disabled={!!exceeded}
           loading={bundleInstallMutation.isPending}
         >
           Add {itemCount} {itemCount === 1 ? "item" : "items"}

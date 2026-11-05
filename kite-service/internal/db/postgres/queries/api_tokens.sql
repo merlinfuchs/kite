@@ -22,8 +22,12 @@ SELECT * FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC;
 SELECT COUNT(*) FROM api_tokens
 WHERE user_id = @user_id AND (expires_at IS NULL OR expires_at > @now);
 
+-- With the reason if Kite banned the user, like GetSession.
 -- name: GetAPITokenByKeyHash :one
-SELECT * FROM api_tokens WHERE key_hash = $1;
+SELECT sqlc.embed(api_tokens), user_bans.reason AS kite_ban_reason
+FROM api_tokens
+LEFT JOIN user_bans ON user_bans.user_id = api_tokens.user_id AND user_bans.feature = 'kite'
+WHERE api_tokens.key_hash = $1;
 
 -- name: UpdateAPITokenLastUsedAt :exec
 -- Requests in parallel may all find it due, only the first one writes it.

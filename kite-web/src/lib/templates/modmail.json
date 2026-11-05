@@ -37,7 +37,7 @@
   "parameters": [
     {
       "key": "channel_id",
-      "label": "Staff Channel",
+      "label": "Staff channel",
       "description": "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
       "type": "channel",
       "required": true

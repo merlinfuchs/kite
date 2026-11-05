@@ -12,7 +12,7 @@ export default function ToolArticle({
   return (
     <div className="mt-16 prose dark:prose-invert text-foreground max-w-none prose-code:before:content-none prose-code:after:content-none">
       {children}
-      <h2>Frequently Asked Questions</h2>
+      <h2>Frequently asked questions</h2>
       {faqs.map((faq) => (
         <div key={faq.question}>
           <h3>{faq.question}</h3>

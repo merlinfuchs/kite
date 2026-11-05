@@ -208,7 +208,7 @@ export default function ModalEditorDialog({
     <Dialog>
       <div className="space-y-2">
         <DialogTrigger asChild>
-          <Button className="w-full">Configure Modal</Button>
+          <Button className="w-full">Configure modal</Button>
         </DialogTrigger>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           <div className="truncate flex-auto">
@@ -485,7 +485,7 @@ function ModalEditorBody({
 
   return (
     <div ref={containerRef} className="flex h-full min-h-0 w-full flex-col">
-      <DialogTitle className="hidden">Modal Editor</DialogTitle>
+      <DialogTitle className="hidden">Modal editor</DialogTitle>
       <DialogDescription className="hidden">
         Edit the modal shown to the user.
       </DialogDescription>
@@ -513,7 +513,7 @@ function ModalEditorBody({
                 <ModalJSONDialog modal={currentModal} onChange={onChange}>
                   <MessageControlsButton
                     icon={CodeIcon}
-                    label="JSON Code"
+                    label="JSON code"
                     onClick={() => {}}
                   />
                 </ModalJSONDialog>
@@ -524,7 +524,7 @@ function ModalEditorBody({
                 >
                   <MessageControlsButton
                     icon={PaintbrushIcon}
-                    label="Clear Modal"
+                    label="Clear modal"
                     onClick={() => {}}
                   />
                 </ConfirmDialog>
@@ -577,7 +577,7 @@ function ModalEditorBody({
               <div className="space-x-3">
                 <AddComponentMenu onAdd={addComponent} disabled={full} />
                 <Button variant="outline" onClick={() => clear(true)}>
-                  Clear Components
+                  Clear components
                 </Button>
               </div>
             </MessageCollapsibleSection>
@@ -622,7 +622,7 @@ function AddComponentMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled}>
         <Button className="space-x-2">
-          <div>Add Component</div>
+          <div>Add component</div>
           <ChevronDownIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -633,7 +633,7 @@ function AddComponentMenu({
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem onClick={() => onAdd("text_display")}>
-          Text Display
+          Text display
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -956,7 +956,7 @@ function LabelEditor({
         <>
           <TextField
             type={input.style === 2 ? "textarea" : "text"}
-            title="Pre-filled Value"
+            title="Pre-filled value"
             field={`${iField}.value`}
             value={input.value || ""}
             onChange={(v) => updateInput({ value: v || undefined })}
@@ -965,7 +965,7 @@ function LabelEditor({
           />
           <div className="flex space-x-3">
             <NumberField
-              title="Min Length"
+              title="Min length"
               field={`${iField}.min_length`}
               value={input.min_length}
               onChange={(v) => updateInput({ min_length: v })}
@@ -975,7 +975,7 @@ function LabelEditor({
               errors={errors}
             />
             <NumberField
-              title="Max Length"
+              title="Max length"
               field={`${iField}.max_length`}
               value={input.max_length}
               onChange={(v) => updateInput({ max_length: v })}
@@ -991,7 +991,7 @@ function LabelEditor({
       {modalInputHasValueLimits(type) && (
         <div className="flex space-x-3">
           <NumberField
-            title={isFile ? "Min Files" : "Min Picks"}
+            title={isFile ? "Min files" : "Min picks"}
             field={`${iField}.min_values`}
             value={input.min_values}
             onChange={(v) => updateInput({ min_values: v })}
@@ -1001,7 +1001,7 @@ function LabelEditor({
             errors={errors}
           />
           <NumberField
-            title={isFile ? "Max Files" : "Max Picks"}
+            title={isFile ? "Max files" : "Max picks"}
             field={`${iField}.max_values`}
             value={input.max_values}
             onChange={(v) => updateInput({ max_values: v })}
@@ -1239,7 +1239,7 @@ function OptionsEditor({
         disabled={options.length >= max}
         onClick={() => onChange([...options, newModalOption(options)])}
       >
-        Add Option
+        Add option
       </Button>
       <FieldError error={errors[field]} />
     </div>

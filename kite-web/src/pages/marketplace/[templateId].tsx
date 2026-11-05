@@ -72,7 +72,7 @@ export default function TemplatePage({ bundle, related }: Props) {
   const template = templateFromBundle(bundle)!;
   return (
     <HomeLayout
-      title={`${template.name} Template for Discord Bots`}
+      title={`${template.name} template for Discord bots`}
       description={`${template.description} ${
         bundle.official
           ? "A free Kite template."

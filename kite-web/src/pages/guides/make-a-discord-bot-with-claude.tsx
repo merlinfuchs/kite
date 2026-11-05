@@ -14,10 +14,10 @@ export default function MakeADiscordBotWithClaudePage() {
     <AIClientGuide
       content={{
         client: "Claude",
-        title: "How to Make a Discord Bot With Claude (No Code)",
+        title: "How to make a Discord bot with Claude (no code)",
         description:
           "Make a Discord bot with Claude for free, without writing code. Connect Claude to Kite, describe your commands, and Claude builds them while Kite hosts the bot 24/7.",
-        heading: "How to Make a Discord Bot With Claude",
+        heading: "How to make a Discord bot with Claude",
         intro:
           "Claude can build your Discord bot for you. Connect it to Kite, describe what the bot should do, and Claude creates the commands and events. Kite runs the bot 24/7, so there's no code to host and nothing to deploy.",
         steps: [
@@ -46,14 +46,14 @@ export default function MakeADiscordBotWithClaudePage() {
                     filled in.
                   </li>
                   <li>
-                    Click on <strong>Add</strong>.
+                    Click <strong>Add</strong>.
                   </li>
                 </ol>
                 <p>
                   You can also open <strong>Customize</strong>, then{" "}
                   <strong>Connectors</strong> in claude.ai or the Claude app,
-                  click on <strong>+</strong>, choose{" "}
-                  <strong>Add custom connector</strong> and paste{" "}
+                  click <strong>+</strong>, choose{" "}
+                  <strong>Add custom connector</strong>, and paste{" "}
                   <code>https://kite.onl/api/mcp</code>.
                 </p>
                 <p>
@@ -64,7 +64,7 @@ export default function MakeADiscordBotWithClaudePage() {
             ),
           },
           {
-            title: "Sign In and Pick Its Access",
+            title: "Sign in and pick its access",
             visual: <ConnectionMockup client="Claude" origin="claude.ai" />,
             body: (
               <>
@@ -80,8 +80,8 @@ export default function MakeADiscordBotWithClaudePage() {
                   <li>Which of your apps it can use.</li>
                 </ul>
                 <p>
-                  Click on <strong>Connect</strong>, and Claude is ready. You
-                  can disconnect it anytime under API tokens in Kite.
+                  Click <strong>Connect</strong>, and Claude is ready. You can
+                  disconnect it anytime under API tokens in Kite.
                 </p>
                 <p>
                   Claude builds your bot through Kite, but can&apos;t send
@@ -98,7 +98,7 @@ export default function MakeADiscordBotWithClaudePage() {
             ),
           },
           {
-            title: "Describe Your Bot",
+            title: "Describe your bot",
             visual: (
               <MCPSessionMockup
                 session={{
@@ -121,7 +121,7 @@ export default function MakeADiscordBotWithClaudePage() {
                   the app if you have more than one.
                 </p>
                 <p>
-                  Claude looks up how each block works, builds the flow and
+                  Claude looks up how each block works, builds the flow, and
                   saves it. Kite checks the flow first, so Claude can&apos;t
                   save one that&apos;s broken.
                 </p>
@@ -133,7 +133,7 @@ export default function MakeADiscordBotWithClaudePage() {
             ),
           },
           {
-            title: "Try It in Discord",
+            title: "Try it in Discord",
             visual: (
               <DiscordReplyMockup
                 command="ban"
@@ -185,12 +185,12 @@ export default function MakeADiscordBotWithClaudePage() {
           {
             question: "Does it use my Claude usage limits?",
             answer:
-              "Yes. Claude uses its own model to build your bot, so the chat counts toward your Claude limits like any other. It doesn't use Kite's AI prompts or credits.",
+              "Yes. Claude uses its own model to build your bot, so the chat counts toward your Claude limits like any other. It doesn't use your Flow AI prompts or credits.",
           },
         ],
         children: (
           <GuideProse>
-            <h2>Using Claude Code Instead</h2>
+            <h2>Using Claude Code instead</h2>
             <p>
               Claude Code can build your bot from the terminal too. Add Kite
               with this command, then run <code>/mcp</code> in Claude Code and
@@ -201,7 +201,7 @@ export default function MakeADiscordBotWithClaudePage() {
                 claude mcp add --transport http kite https://kite.onl/api/mcp
               </code>
             </pre>
-            <h2>Why Not Have Claude Write a discord.js Bot?</h2>
+            <h2>Why not have Claude write a discord.js bot?</h2>
             <p>
               Claude can write a bot with discord.js or discord.py. Then you
               need a server that keeps it running, a place to store the token,

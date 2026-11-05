@@ -22,7 +22,7 @@ export default function AppCommandsPage() {
             target="_blank"
             className="text-primary hover:underline"
           >
-            Learn More
+            Learn more
           </a>
         </p>
       </div>

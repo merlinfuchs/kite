@@ -191,6 +191,16 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	if err != nil {
 		return &Response{Usage: usage}, err
 	}
+	if len(res.Edits) > 0 {
+		// Matches the issues logged with the next round, which are numbered
+		// by these edits.
+		slog.Info(
+			"Flow AI edits",
+			slog.String("app_id", req.AppID),
+			slog.String("prompt_id", req.PromptID),
+			slog.String("edits", outlineEdits(res.Edits)),
+		)
+	}
 	res.checkVariables(req.Variables)
 	res.checkTemplate(req.Templates)
 	res.Usage = usage
@@ -406,6 +416,27 @@ func parseOutput(text string) (*Response, error) {
 	return res, nil
 }
 
+// outlineEdits describes edits without their settings, like
+// "add_node ref=$ban type=action_member_ban after=$check handle=yes data".
+func outlineEdits(edits []map[string]any) string {
+	outlines := make([]string, len(edits))
+	for i, edit := range edits {
+		parts := []string{fmt.Sprint(edit["op"])}
+		for _, key := range []string{"ref", "type", "id", "after", "before", "handle", "source", "target"} {
+			if value, ok := edit[key].(string); ok {
+				parts = append(parts, key+"="+truncate(value, 60))
+			}
+		}
+		for _, key := range []string{"data", "items", "error"} {
+			if _, ok := edit[key]; ok {
+				parts = append(parts, key)
+			}
+		}
+		outlines[i] = strings.Join(parts, " ")
+	}
+	return strings.Join(outlines, "; ")
+}
+
 // toEdit converts the edit into the form the editor applies, leaving out the
 // fields the model set to null.
 func (e outputEdit) toEdit() (map[string]any, error) {
@@ -450,14 +481,14 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 
 	if e.DataJSON != nil {
 		var data map[string]any
-		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
+		if err := unmarshalModelJSON(*e.DataJSON, &data); err != nil || data == nil {
 			return nil, jsonError("data_json isn't a JSON object", *e.DataJSON, err)
 		}
 		edit["data"] = data
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
-		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
+		if err := unmarshalModelJSON(*e.ItemsJSON, &items); err != nil || items == nil {
 			return nil, jsonError("items_json isn't a JSON array of objects", *e.ItemsJSON, err)
 		}
 		edit["items"] = items

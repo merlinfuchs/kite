@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const breadcrumbs = [
   {
-    label: "Emoji Explorer",
+    label: "Emoji explorer",
   },
 ];
 
@@ -17,10 +17,10 @@ export default function AppGuildsPage() {
   const appEmojisUrl = `https://discord.com/developers/applications/${app?.discord_id}/emojis`;
 
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App analytics" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Emoji Explorer
+          Emoji explorer
         </h1>
         <p className="text-muted-foreground text-sm">
           Explore the emojis of your app. Create new emojis in the{" "}

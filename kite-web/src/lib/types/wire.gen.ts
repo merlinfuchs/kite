@@ -91,8 +91,9 @@ export interface App {
    */
   token_invalid: boolean;
   /**
-   * NoCredits is set when the app was disabled because it used all of its
-   * credits for the month.
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
    */
   no_credits: boolean;
   commands_deploy_pending: boolean;
@@ -102,6 +103,11 @@ export interface App {
    */
   discord_guild_count: null | number;
   discord_user_install_count: null | number;
+  /**
+   * CreditNoticesEnabled is whether the owner gets a DM from the bot when
+   * the app used 80% or all of its credits for the month.
+   */
+  credit_notices_enabled: boolean;
 }
 export interface CommandsDeployError {
   message: string;
@@ -143,6 +149,10 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export interface AppCreditNoticesUpdateRequest {
+  enabled: boolean;
+}
+export type AppCreditNoticesUpdateResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
@@ -215,8 +225,34 @@ export interface StateUser {
   id: string;
   username: string;
   avatar_url: string;
+  /**
+   * Empty if the bot has no banner.
+   */
+  banner_url: string;
 }
 export type StateUserGetResponse = StateUser;
+/**
+ * StateGuildProfile is the bot's profile in a server. Fields are empty where
+ * it uses its own profile. Discord doesn't return the About Me.
+ */
+export interface StateGuildProfile {
+  nick: string;
+  avatar_url: string;
+  banner_url: string;
+}
+export type StateGuildProfileGetResponse = StateGuildProfile;
+/**
+ * StateUserUpdateRequest changes the bot's avatar and banner. A field that
+ * isn't set stays as it is, and an empty one removes the image.
+ */
+export interface StateUserUpdateRequest {
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateUserUpdateResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
@@ -250,6 +286,21 @@ export interface ForumTag {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+/**
+ * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
+ * field that isn't set stays as it is, and an empty one resets to the bot's
+ * own profile.
+ */
+export interface StateGuildProfileUpdateRequest {
+  nick?: string;
+  bio?: string;
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {
   id: string;
   name: string;
@@ -364,6 +415,10 @@ export interface BillingPlan {
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
+  feature_server_profiles: boolean;
+  feature_animated_profile: boolean;
+  feature_personas: boolean;
+  feature_voice_audio: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
   feature_max_webhook_event_listeners: number /* int */;
@@ -1052,6 +1107,10 @@ export interface Features {
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
+  server_profiles: boolean;
+  animated_profile: boolean;
+  personas: boolean;
+  voice_audio: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
   max_webhook_event_listeners: number /* int */;
@@ -1128,6 +1187,150 @@ export interface FlowAIField {
   type: string;
   options: string[];
   default: string;
+}
+
+//////////
+// source: flow_test_run.go
+
+/**
+ * FlowTestRequest runs a flow without changing anything. Reads from Discord
+ * are real, changes are returned instead of made, and requests to services
+ * other than Discord aren't sent unless the block is mocked.
+ */
+export interface FlowTestRequest {
+  /**
+   * A draft of the flow to test instead of the saved one, for commands and
+   * event listeners.
+   */
+  flow_source?: FlowData;
+  /**
+   * The button or select menu of a message to test, by its flow.
+   */
+  flow_source_id?: string;
+  /**
+   * Who triggers the flow, by default the user of the request, and where.
+   */
+  user_id?: string;
+  guild_id?: string;
+  channel_id?: string;
+  /**
+   * Runs a command in a DM with the bot.
+   */
+  dm?: boolean;
+  /**
+   * Arguments of a command by name.
+   */
+  options?: { [key: string]: any };
+  /**
+   * Values picked in the select menu of a message.
+   */
+  values?: string[];
+  /**
+   * Merged into the Discord event or interaction, in Discord's format.
+   */
+  event?: any;
+  webhook?: FlowTestWebhook;
+  /**
+   * What blocks do instead of running, by block ID.
+   */
+  mocks?: { [key: string]: FlowTestMock};
+  /**
+   * Values of stored variables when the test starts, in place of the stored
+   * ones.
+   */
+  variables?: FlowTestVariable[];
+  /**
+   * What the user does after the flow ran, in order.
+   */
+  then?: FlowTestAction[];
+}
+export interface FlowTestWebhook {
+  body: string;
+  headers?: { [key: string]: string};
+  query?: { [key: string]: string};
+}
+export interface FlowTestMock {
+  /**
+   * The block's result, in the format of its result type.
+   */
+  result?: any;
+  /**
+   * Makes the block fail with this error.
+   */
+  error?: string;
+}
+export interface FlowTestVariable {
+  variable_id: string;
+  /**
+   * The scope, for variables with a value per scope, as the block
+   * evaluates it, like "<server ID>:<user ID>".
+   */
+  scope?: string;
+  /**
+   * The value, or null for no value.
+   */
+  value?: any;
+}
+export interface FlowTestAction {
+  /**
+   * Label or custom ID of a button to click.
+   */
+  click?: string;
+  /**
+   * Placeholder or custom ID of a select menu, with the values to pick.
+   */
+  select?: string;
+  values?: string[];
+  /**
+   * Values of the inputs of the open modal, by custom ID or label.
+   */
+  submit?: { [key: string]: any };
+  user_id?: string;
+}
+export interface FlowTestResponse {
+  executions: FlowTestExecution[];
+  /**
+   * What the test would have cost.
+   */
+  credits: number /* int */;
+  /**
+   * Mocked blocks that never ran.
+   */
+  unused_mocks?: string[];
+}
+/**
+ * FlowTestExecution is one run of the flow, like the command or a click on a
+ * button it sent.
+ */
+export interface FlowTestExecution {
+  trigger: string;
+  steps: FlowTestStep[];
+  truncated?: boolean;
+  notes?: string[];
+  /**
+   * The error that ended the run, if no Error Handler caught it.
+   */
+  error?: string;
+}
+/**
+ * FlowTestStep is a block that ran.
+ */
+export interface FlowTestStep {
+  node_id: string;
+  node_type: string;
+  result?: any;
+  error?: string;
+  error_code?: string;
+  notes?: string[];
+  effects?: FlowTestEffect[];
+}
+/**
+ * FlowTestEffect is a change the block would have made.
+ */
+export interface FlowTestEffect {
+  action: string;
+  data?: any;
+  warnings?: string[];
 }
 
 //////////
@@ -1538,7 +1741,7 @@ export interface UserBan {
   user_id: string;
   user?: User;
   /**
-   * Feature is what they're banned from, only marketplace for now.
+   * Feature is what they're banned from, marketplace or kite.
    */
   feature: string;
   reason: string;
@@ -1550,7 +1753,14 @@ export type UserBanListResponse = (UserBan | undefined)[];
  * it.
  */
 export interface UserBanCreateRequest {
-  user_id: string;
+  /**
+   * UserID is the Kite user to ban. Set either it or DiscordID.
+   */
+  user_id?: string;
+  /**
+   * DiscordID is the Discord ID of the user or of one of their bots.
+   */
+  discord_id?: string;
   feature: string;
   /**
    * Reason is shown to the user.

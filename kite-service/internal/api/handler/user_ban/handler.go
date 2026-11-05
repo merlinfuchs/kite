@@ -40,12 +40,15 @@ func (h *UserBanHandler) HandleUserBanList(c *handler.Context) (*wire.UserBanLis
 
 // HandleUserBanCreate bans a user from a feature and tells them why.
 func (h *UserBanHandler) HandleUserBanCreate(c *handler.Context, req wire.UserBanCreateRequest) (*wire.UserBanCreateResponse, error) {
-	user, err := h.userStore.User(c.Context(), req.UserID)
+	user, err := h.user(c, req)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_user", "user not found")
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user.ID == c.Session.UserID {
+		return nil, handler.ErrBadRequest("ban_self", "you can't ban yourself")
 	}
 
 	ban := &model.UserBan{
@@ -63,6 +66,19 @@ func (h *UserBanHandler) HandleUserBanCreate(c *handler.Context, req wire.UserBa
 
 	ban.User = user
 	return wire.UserBanToWire(ban), nil
+}
+
+// user is the user to ban, found by their Discord ID or that of one of their
+// bots if the request has one.
+func (h *UserBanHandler) user(c *handler.Context, req wire.UserBanCreateRequest) (*model.User, error) {
+	if req.DiscordID == "" {
+		return h.userStore.User(c.Context(), req.UserID)
+	}
+	user, err := h.userStore.UserByDiscordID(c.Context(), req.DiscordID)
+	if errors.Is(err, store.ErrNotFound) {
+		return h.userStore.UserByAppDiscordID(c.Context(), req.DiscordID)
+	}
+	return user, err
 }
 
 // HandleUserBanDelete lifts a user's ban from a feature.

@@ -24,7 +24,7 @@ export const aiWebSearch: BlockDefinition = {
         .object({
           model: aiModelSchema,
           prompt: templated(
-            z.string().max(2000).min(1),
+            z.string().max(4000).min(1),
             `What to search the web for. ${aiPromptLimits}`
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,

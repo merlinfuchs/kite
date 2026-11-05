@@ -59,7 +59,7 @@ export default function MessageComponentsSection({
               }
               disabled={componentIds.length >= limit}
             >
-              Add Button Row
+              Add button row
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -67,7 +67,7 @@ export default function MessageComponentsSection({
                 disabled={componentIds.length >= limit}
               >
                 <Button className="space-x-2">
-                  <div>Add Select Menu</div>
+                  <div>Add select menu</div>
                   <ChevronDownIcon className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -96,7 +96,7 @@ export default function MessageComponentsSection({
           onClick={() => removeChildren(rootId, "components")}
           variant="outline"
         >
-          Clear Components
+          Clear components
         </Button>
       </div>
     </CollapsibleSection>

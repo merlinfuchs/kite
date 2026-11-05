@@ -5,7 +5,7 @@ sidebar_position: 42
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
 import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
-# Loop
+# Run a loop
 
 <EmbedFlowNode type="control_loop" />
 

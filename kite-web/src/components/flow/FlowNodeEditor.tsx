@@ -9,7 +9,7 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature } from "@/lib/hooks/api";
+import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -29,6 +29,7 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
+import { variableListSorts } from "@/lib/blocks/variableList";
 import {
   lookupMaxRows,
   lookupModes,
@@ -47,6 +48,9 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
@@ -56,6 +60,7 @@ import {
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -88,6 +93,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  ChangeEvent,
   ReactNode,
   memo,
   useCallback,
@@ -97,6 +103,7 @@ import {
   useState,
 } from "react";
 import {
+  EditOnly,
   FlowReadOnlyContext,
   PreviewInert,
   useFlowMessages,
@@ -166,6 +173,7 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -182,20 +190,6 @@ interface InputProps {
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
 }
-
-// Fields that open a dialog with more settings, which previews can open to see
-// them. Their inputs make the rest of themselves read-only in previews.
-export const dialogFields = new Set([
-  "message_data",
-  "message_template_id",
-  "modal_data",
-  "channel_data",
-  "channel_edit_data",
-  "thread_data",
-  "http_request_data",
-  "discord_api_request_data",
-  "lookup_rows",
-]);
 
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
@@ -239,14 +233,21 @@ export const settingInputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   forward_source_channel_target: ForwardSourceChannelTargetInput,
   forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_asset_id: AudioAssetInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
   variable_operation: VariableOperationInput,
+  variable_list: VariableListInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
@@ -389,6 +390,7 @@ export default function FlowNodeEditor({
   const hasPremiumFeature = useAppFeature((f) =>
     premiumFeature ? !!f[premiumFeature] : true
   );
+  const premiumPlan = useFeaturePlan(premiumFeature);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -427,7 +429,7 @@ export default function FlowNodeEditor({
             {!hideTitle && (
               <div className="flex items-start justify-between mb-5">
                 <div className="text-xl font-bold text-foreground">
-                  Block Settings
+                  Block settings
                 </div>
                 <XIcon
                   className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
@@ -480,7 +482,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  Premium
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>
@@ -493,7 +495,7 @@ export default function FlowNodeEditor({
               const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
-              const input = (
+              return (
                 <Input
                   key={`${nodeId}-${field}`}
                   id={nodeId}
@@ -503,19 +505,6 @@ export default function FlowNodeEditor({
                   updateData={updateData}
                   errors={errors}
                 />
-              );
-              // Previews can't change settings, but can open the dialogs of
-              // fields to see what's in them.
-              return readOnly && !dialogFields.has(field) ? (
-                <div
-                  key={`${nodeId}-${field}`}
-                  inert
-                  className="space-y-3 empty:hidden"
-                >
-                  {input}
-                </div>
-              ) : (
-                input
               );
             })}
           </div>
@@ -528,7 +517,7 @@ export default function FlowNodeEditor({
                   className="w-full flex gap-2"
                 >
                   <TrashIcon className="h-5 w-5" />
-                  <div>Delete Block</div>
+                  <div>Delete block</div>
                 </Button>
                 <Button
                   variant="secondary"
@@ -536,7 +525,7 @@ export default function FlowNodeEditor({
                   className="w-full flex gap-2"
                 >
                   <CopyIcon className="h-5 w-5" />
-                  <div>Duplicate Block</div>
+                  <div>Duplicate block</div>
                 </Button>
               </>
             )}
@@ -551,8 +540,8 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="custom_label"
-      title="Custom Label"
-      description="Set a custom label for this block so its easier to recognize. This is optional."
+      title="Custom label"
+      description="Set a custom label for this block so it's easier to recognize. This is optional."
       value={data.custom_label || ""}
       updateValue={(v) => updateData({ custom_label: v || undefined })}
       errors={errors}
@@ -564,7 +553,7 @@ function TemporaryNameInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="temporary_name"
-      title="Temporary Variable"
+      title="Temporary variable"
       description="Store the result of this block in a temporary variable to use later."
       value={data.temporary_name || ""}
       updateValue={(v) => updateData({ temporary_name: v || undefined })}
@@ -617,7 +606,7 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
 
   return (
     <div>
-      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="font-medium text-foreground mb-2">Argument order</div>
       <div className="text-muted-foreground text-sm mb-2">
         The order of the arguments in Discord. Required arguments always come
         before optional ones.
@@ -637,30 +626,32 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
             <div className="text-xs text-muted-foreground flex-none">
               {arg.data.command_argument_required ? "Required" : "Optional"}
             </div>
-            <div className="flex flex-none">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, -1)}
-                onClick={() => move(i, -1)}
-                aria-label="Move up"
-              >
-                <ChevronUpIcon className="h-5 w-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, 1)}
-                onClick={() => move(i, 1)}
-                aria-label="Move down"
-              >
-                <ChevronDownIcon className="h-5 w-5" />
-              </Button>
-            </div>
+            <EditOnly>
+              <div className="flex flex-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, -1)}
+                  onClick={() => move(i, -1)}
+                  aria-label="Move up"
+                >
+                  <ChevronUpIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, 1)}
+                  onClick={() => move(i, 1)}
+                  aria-label="Move down"
+                >
+                  <ChevronDownIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </EditOnly>
           </div>
         ))}
       </div>
@@ -672,12 +663,12 @@ function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="command_argument_type"
-      title="Argument Type"
+      title="Argument type"
       type="select"
       options={[
         { value: "string", label: "Text" },
-        { value: "integer", label: "Whole Number" },
-        { value: "number", label: "Decimal Number" },
+        { value: "integer", label: "Whole number" },
+        { value: "number", label: "Decimal number" },
         { value: "boolean", label: "True/False" },
         { value: "user", label: "User" },
         { value: "channel", label: "Channel" },
@@ -700,7 +691,7 @@ function CommandArgumentRequiredInput({
   return (
     <BaseCheckbox
       field="command_argument_required"
-      title="Argument Required"
+      title="Argument required"
       value={!!data.command_argument_required}
       updateValue={(v) =>
         updateData({ command_argument_required: v || undefined })
@@ -725,7 +716,7 @@ function CommandArgumentMinValueInput({
     <BaseInput
       type="text"
       field="command_argument_min_value"
-      title="Minimum Value"
+      title="Minimum value"
       value={data.command_argument_min_value?.toString() || ""}
       updateValue={(v) =>
         updateData({
@@ -752,7 +743,7 @@ function CommandArgumentMaxValueInput({
     <BaseInput
       type="text"
       field="command_argument_max_value"
-      title="Maximum Value"
+      title="Maximum value"
       value={data.command_argument_max_value?.toString() || ""}
       updateValue={(v) =>
         updateData({
@@ -775,7 +766,7 @@ function CommandArgumentMaxLengthInput({
     <BaseInput
       type="text"
       field="command_argument_max_length"
-      title="Maximum Length"
+      title="Maximum length"
       value={data.command_argument_max_length?.toString() || ""}
       updateValue={(v) =>
         updateData({ command_argument_max_length: parseInt(v) || undefined })
@@ -786,6 +777,7 @@ function CommandArgumentMaxLengthInput({
 }
 
 function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const addChoice = useCallback(() => {
     updateData({
       command_argument_choices: [
@@ -845,33 +837,39 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               placeholder="Name"
               value={choice.name || ""}
               onChange={(e) => updateChoice(i, { name: e.target.value })}
+              readOnly={readOnly}
             />
             <Input
               type="text"
               placeholder="Value"
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
+              readOnly={readOnly}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              className="flex-none"
-              aria-label="Remove choice"
-              onClick={() => removeChoice(i)}
-            >
-              <MinusIcon className="h-5 w-5" />
-            </Button>
+            <EditOnly>
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove choice"
+                onClick={() => removeChoice(i)}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </EditOnly>
           </div>
         ))}
       </div>
-      <div className="flex space-x-2">
-        <Button variant="outline" size="icon" onClick={addChoice}>
-          <PlusIcon className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={clearChoices}>
-          <TrashIcon className="h-5 w-5" />
-        </Button>
-      </div>
+      <EditOnly>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="icon" onClick={addChoice}>
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={clearChoices}>
+            <TrashIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </EditOnly>
     </div>
   );
 }
@@ -880,7 +878,7 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   return (
     <BasePermissionInput
       field="command_permissions"
-      title="Required Permissions"
+      title="Required permissions"
       value={data.command_permissions || "0"}
       updateValue={(v) =>
         updateData({
@@ -897,12 +895,12 @@ function CooldownScopeInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="cooldown_scope"
-      title="Cooldown Scope"
+      title="Cooldown scope"
       description="Who the cooldown applies to."
       type="select"
       options={[
-        { value: "user", label: "Per User" },
-        { value: "guild", label: "Per Server" },
+        { value: "user", label: "Per user" },
+        { value: "guild", label: "Per server" },
         { value: "global", label: "Global" },
       ]}
       value={data.cooldown_scope || "user"}
@@ -920,7 +918,7 @@ function CooldownDurationSecondsInput({
   return (
     <BaseInput
       field="cooldown_duration_seconds"
-      title="Cooldown Duration"
+      title="Cooldown duration"
       description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
       value={data.cooldown_duration_seconds || ""}
       updateValue={(v) =>
@@ -939,7 +937,7 @@ function CooldownMessageInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="cooldown_message"
-      title="Cooldown Message"
+      title="Cooldown message"
       description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
       value={data.cooldown_message || ""}
       updateValue={(v) => updateData({ cooldown_message: v || undefined })}
@@ -978,9 +976,9 @@ function CommandContextsInput({ data, updateData, errors }: InputProps) {
         title="Contexts"
         values={values}
         options={[
-          { value: "guild", label: "In Servers" },
-          { value: "bot_dm", label: "In Bot DMs" },
-          { value: "private_channel", label: "In Other DMs" },
+          { value: "guild", label: "In servers" },
+          { value: "bot_dm", label: "In bot DMs" },
+          { value: "private_channel", label: "In other DMs" },
         ]}
         updateValues={updateValues}
         errors={errors}
@@ -1015,11 +1013,11 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseMultiSelect
       field="command_disabled_integrations"
-      title="Integrations Types"
+      title="Integration types"
       values={values}
       options={[
-        { value: "guild_install", label: "Server Install" },
-        { value: "user_install", label: "User Install" },
+        { value: "guild_install", label: "Server install" },
+        { value: "user_install", label: "User install" },
       ]}
       updateValues={updateValues}
       errors={errors}
@@ -1028,10 +1026,15 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   // Scheduled and webhook listeners can't become Discord listeners or the
   // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
-  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
+  // The URL belongs to the listener being edited, not to a previewed flow.
+  if (data.event_type === EventTypeWebhook) {
+    return readOnly ? null : <WebhookUrlInput />;
+  }
 
   return (
     <BaseInput
@@ -1119,7 +1122,7 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="event_filter_target"
-      title="Filter Target"
+      title="Filter target"
       options={targets.map((t) => ({
         value: t,
         label: eventFilterTargetLabels[t] || t,
@@ -1157,8 +1160,8 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
 }
 
 const oneOfModes = [
-  { value: "one_of", label: "Is One Of" },
-  { value: "not_one_of", label: "Is Not One Of" },
+  { value: "one_of", label: "Is one of" },
+  { value: "not_one_of", label: "Is not one of" },
 ];
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
@@ -1172,22 +1175,22 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
       ]
     : target === "role_id"
     ? [
-        { value: "equal", label: "Has Role" },
-        { value: "not_equal", label: "Doesn't Have Role" },
+        { value: "equal", label: "Has role" },
+        { value: "not_equal", label: "Doesn't have role" },
       ]
     : target === "emoji"
     ? [
         { value: "equal", label: "Is" },
-        { value: "not_equal", label: "Is Not" },
+        { value: "not_equal", label: "Is not" },
       ]
     : target === "audit_log_action"
     ? oneOfModes
     : [
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
         { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
+        { value: "starts_with", label: "Starts with" },
+        { value: "ends_with", label: "Ends with" },
         ...oneOfModes,
       ];
 
@@ -1195,7 +1198,7 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="event_filter_mode"
-      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter mode"}
       description={
         target === "user_is_bot"
           ? "Choose No to ignore bots."
@@ -1257,7 +1260,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="event_filter_value"
-      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      title={target === "role_id" ? "Role ID" : "Filter value"}
       description={
         target === "role_id"
           ? "The ID of the role, or the role mention."
@@ -1294,7 +1297,7 @@ function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="event_filter_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so !help also matches !Help."
       value={!!data.event_filter_ignore_case}
       updateValue={(v) =>
@@ -1309,7 +1312,7 @@ function LogLevelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="log_level"
-      title="Log Level"
+      title="Log level"
       type="select"
       options={[
         { value: "debug", label: "Debug" },
@@ -1329,7 +1332,7 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="log_message"
-      title="Log Message"
+      title="Log message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
       errors={errors}
@@ -1386,7 +1389,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="textarea"
             field="webhook_verify_message"
-            title="Signed Message"
+            title="Signed message"
             description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
             value={data.webhook_verify_message || ""}
             updateValue={(v) =>
@@ -1409,7 +1412,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="select"
             field="webhook_verify_signature_encoding"
-            title="Signature Encoding"
+            title="Signature encoding"
             options={[...webhookVerifyEncodings]}
             value={data.webhook_verify_signature_encoding || "hex"}
             updateValue={(v) =>
@@ -1427,7 +1430,7 @@ function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="webhook_response_status"
-      title="Status Code"
+      title="Status code"
       description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
       value={data.webhook_response_status || ""}
       updateValue={(v) =>
@@ -1447,7 +1450,7 @@ function WebhookResponseContentTypeInput({
   return (
     <BaseInput
       field="webhook_response_content_type"
-      title="Content Type"
+      title="Content type"
       type="select"
       options={[
         { value: "text/plain", label: "Text" },
@@ -1482,7 +1485,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="audit_log_reason"
-      title="Audit Log Reason"
+      title="Audit log reason"
       description="This will appear in the Discord audit log."
       value={data.audit_log_reason || ""}
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
@@ -1493,6 +1496,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1555,7 +1559,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button className="w-full" variant="secondary">
-          Configure Request
+          Configure request
         </Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
@@ -1566,7 +1570,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             service.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <BaseInput
             type="select"
             field="http_request_data.method"
@@ -1623,6 +1627,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholder="Key"
                       value={h.key || ""}
                       onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                      readOnly={readOnly}
                     />
                     <BaseInput
                       type="text"
@@ -1634,44 +1639,51 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholders
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeHeader(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeHeader(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
               ))}
 
-              <div className="flex">
-                <Button variant="outline" size="icon" onClick={addHeader}>
-                  <PlusIcon className="h-5 w-5" />
-                </Button>
-              </div>
+              <EditOnly>
+                <div className="flex">
+                  <Button variant="outline" size="icon" onClick={addHeader}>
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </EditOnly>
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-foreground">JSON Body</div>
-              <Switch
-                checked={!!data.http_request_data?.body_json}
-                onCheckedChange={(checked) =>
-                  updateField({
-                    body_json: checked ? {} : undefined,
-                  })
-                }
-              />
+              <div className="font-medium text-foreground">JSON body</div>
+              <PreviewInert>
+                <Switch
+                  checked={!!data.http_request_data?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateField({
+                      body_json: checked ? {} : undefined,
+                    })
+                  }
+                />
+              </PreviewInert>
             </div>
             {!!data.http_request_data?.body_json && (
               <JsonEditor
                 src={data.http_request_data?.body_json || {}}
                 onChange={(v) => updateField({ body_json: v })}
+                readOnly={readOnly}
               />
             )}
           </div>
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -1893,7 +1905,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button className="w-full" variant="secondary">
-          Configure Request
+          Configure request
         </Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
@@ -1920,7 +1932,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             .
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
             <EntitySelect
@@ -1978,51 +1990,57 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 errors={errors}
                 placeholders
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                onClick={() =>
-                  updateRequest({
-                    query: request.query?.filter((v) => v.key !== q.key),
-                  })
-                }
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    updateRequest({
+                      query: request.query?.filter((v) => v.key !== q.key),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
           {unusedQueryParams.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(key) =>
-                updateRequest({
-                  query: [...(request?.query ?? []), { key, value: "" }],
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Add query parameter" />
-              </SelectTrigger>
-              <SelectContent>
-                {unusedQueryParams.map((p) => (
-                  <SelectItem key={p.name} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EditOnly>
+              <Select
+                value=""
+                onValueChange={(key) =>
+                  updateRequest({
+                    query: [...(request?.query ?? []), { key, value: "" }],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add query parameter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unusedQueryParams.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditOnly>
           )}
           {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="font-medium text-foreground">JSON Body</div>
-                <Switch
-                  checked={!!request?.body_json}
-                  onCheckedChange={(checked) =>
-                    updateRequest({ body_json: checked ? {} : undefined })
-                  }
-                />
+                <div className="font-medium text-foreground">JSON body</div>
+                <PreviewInert>
+                  <Switch
+                    checked={!!request?.body_json}
+                    onCheckedChange={(checked) =>
+                      updateRequest({ body_json: checked ? {} : undefined })
+                    }
+                  />
+                </PreviewInert>
               </div>
               {!!request?.body_json && (
                 <FlowJsonInput
@@ -2044,7 +2062,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               )}
             </div>
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -2088,7 +2106,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
-        title="System Prompt"
+        title="System prompt"
         description="Tell the AI how to behave. (optional)"
         value={data.ai_chat_completion_data?.system_prompt || ""}
         updateValue={(v) =>
@@ -2136,7 +2154,7 @@ function AiMaxCompletionTokensInput({
   return (
     <BaseInput
       field="ai_chat_completion_data.max_completion_tokens"
-      title="Max Answer Length"
+      title="Max answer length"
       description={`The most tokens the answer can have. A token is about 4 characters of English. ${aiAnswerLimits}`}
       placeholder={aiOutputStepTokens.toString()}
       value={data.ai_chat_completion_data?.max_completion_tokens || ""}
@@ -2257,7 +2275,7 @@ function AiChoiceDataInput(props: InputProps) {
       <AiDecisionInput
         {...props}
         field="min_confidence"
-        title="Min Confidence"
+        title="Min confidence"
         description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
       />
     </>
@@ -2271,13 +2289,13 @@ function AiCheckDataInput(props: InputProps) {
       <AiDecisionInput
         {...props}
         field="yes_threshold"
-        title="Yes Threshold"
+        title="Yes threshold"
         description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
       />
       <AiDecisionInput
         {...props}
         field="no_threshold"
-        title="No Threshold"
+        title="No threshold"
         description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
       />
     </>
@@ -2315,27 +2333,31 @@ function AiScoreDataInput(props: InputProps) {
                 }
                 errors={errors}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                aria-label="Remove level"
-                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  aria-label="Remove level"
+                  onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Add level"
-          disabled={levels.length >= aiScoreMaxLevels}
-          onClick={() => updateLevels([...levels, ""])}
-        >
-          <PlusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Add level"
+            disabled={levels.length >= aiScoreMaxLevels}
+            onClick={() => updateLevels([...levels, ""])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
         {errors["ai_decision_data.levels"] && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
             <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -2536,7 +2558,7 @@ function LookupModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="lookup_mode"
-      title="Match Mode"
+      title="Match mode"
       description="How the key of a row has to match the value."
       options={[...lookupModes]}
       value={data.lookup_mode || "equal"}
@@ -2550,7 +2572,7 @@ function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="lookup_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so hello also matches Hello."
       value={!!data.lookup_ignore_case}
       updateValue={(v) => updateData({ lookup_ignore_case: v || undefined })}
@@ -2620,13 +2642,13 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
         </DialogTrigger>
         <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Table</DialogTitle>
+            <DialogTitle>Edit table</DialogTitle>
             <DialogDescription>
               Up to {lookupMaxRows} rows. Keys and values can use placeholders,
               like {"{{user.id}}"}.
             </DialogDescription>
           </DialogHeader>
-          <PreviewInert className="space-y-5">
+          <div className="space-y-5">
             <div>
               {rows.length > 0 && (
                 <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
@@ -2635,7 +2657,9 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     <div>Value</div>
                   </div>
                   {/* Room for the remove buttons. */}
-                  <div className="w-10 flex-none" />
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
                 </div>
               )}
               <div className="flex flex-col gap-2">
@@ -2649,57 +2673,63 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     onRemove={removeRow}
                   />
                 ))}
-                <div className="flex">
+                <EditOnly>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add row"
+                      onClick={() => setRows([...rows, { key: "", value: "" }])}
+                      disabled={rows.length >= lookupMaxRows}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </EditOnly>
+              </div>
+            </div>
+            <EditOnly>
+              <div>
+                <div className="font-medium text-foreground mb-1">
+                  Paste rows
+                </div>
+                <div className="text-muted-foreground text-sm mb-2">
+                  One row per line, as key = value, or copy two columns from a
+                  spreadsheet.
+                </div>
+                <Textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder={"hello = Hi there!\nbye = See you later!"}
+                  className="min-h-24"
+                />
+                <div className="flex gap-2 mt-2">
                   <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Add row"
-                    onClick={() => setRows([...rows, { key: "", value: "" }])}
-                    disabled={rows.length >= lookupMaxRows}
+                    variant="secondary"
+                    onClick={() => addPasted(false)}
+                    disabled={!pasted.trim()}
                   >
-                    <PlusIcon className="h-5 w-5" />
+                    Add rows
                   </Button>
+                  <ConfirmDialog
+                    title="Replace all rows?"
+                    description="This removes the rows of the table and adds the pasted ones instead."
+                    onConfirm={() => addPasted(true)}
+                  >
+                    <Button variant="outline" disabled={!pasted.trim()}>
+                      Replace all rows
+                    </Button>
+                  </ConfirmDialog>
                 </div>
+                {pasteError && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{pasteError}</div>
+                  </div>
+                )}
               </div>
-            </div>
-            <div>
-              <div className="font-medium text-foreground mb-1">Paste Rows</div>
-              <div className="text-muted-foreground text-sm mb-2">
-                One row per line, as key = value, or copy two columns from a
-                spreadsheet.
-              </div>
-              <Textarea
-                value={pasted}
-                onChange={(e) => setPasted(e.target.value)}
-                placeholder={"hello = Hi there!\nbye = See you later!"}
-                className="min-h-24"
-              />
-              <div className="flex gap-2 mt-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => addPasted(false)}
-                  disabled={!pasted.trim()}
-                >
-                  Add Rows
-                </Button>
-                <ConfirmDialog
-                  title="Replace all rows?"
-                  description="This removes the rows of the table and adds the pasted ones instead."
-                  onConfirm={() => addPasted(true)}
-                >
-                  <Button variant="outline" disabled={!pasted.trim()}>
-                    Replace All Rows
-                  </Button>
-                </ConfirmDialog>
-              </div>
-              {pasteError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{pasteError}</div>
-                </div>
-              )}
-            </div>
-          </PreviewInert>
+            </EditOnly>
+          </div>
         </DialogContent>
       </Dialog>
       {error && (
@@ -2725,6 +2755,8 @@ const LookupRowInput = memo(function LookupRowInput({
   onChange: (index: number, newData: Partial<LookupRow>) => void;
   onRemove: (index: number) => void;
 }) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   return (
     <div>
       <div className="flex gap-2">
@@ -2734,23 +2766,27 @@ const LookupRowInput = memo(function LookupRowInput({
             placeholder="Key"
             value={row.key}
             onChange={(e) => onChange(index, { key: e.target.value })}
+            readOnly={readOnly}
           />
           <Input
             type="text"
             placeholder="Value"
             value={row.value}
             onChange={(e) => onChange(index, { value: e.target.value })}
+            readOnly={readOnly}
           />
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className="flex-none"
-          aria-label="Remove row"
-          onClick={() => onRemove(index)}
-        >
-          <MinusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-none"
+            aria-label="Remove row"
+            onClick={() => onRemove(index)}
+          >
+            <MinusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
       </div>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -2767,7 +2803,7 @@ function LookupDefaultInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="lookup_default"
-      title="Default Value"
+      title="Default value"
       description="The result when no row matches. Leave empty to return nothing, which a Comparison Condition can check for."
       value={data.lookup_default || ""}
       updateValue={(v) => updateData({ lookup_default: v || undefined })}
@@ -2782,7 +2818,7 @@ function UserTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="user_target"
-      title="Target User"
+      title="Target user"
       value={data.user_target || ""}
       updateValue={(v) => updateData({ user_target: v || undefined })}
       errors={errors}
@@ -2796,7 +2832,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="guild_target"
-      title="Target Guild"
+      title="Target server"
       description={
         type === "action_guild_get"
           ? undefined
@@ -2819,7 +2855,7 @@ function MemberBanDeleteMessageDurationInput({
     <BaseInput
       type="text"
       field="member_ban_delete_message_duration_seconds"
-      title="Delete Message Duration"
+      title="Delete message duration"
       description="Number of seconds to delete messages for."
       value={data.member_ban_delete_message_duration_seconds || ""}
       updateValue={(v) =>
@@ -2838,7 +2874,7 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="member_timeout_duration_seconds"
-      title="Timeout Duration"
+      title="Timeout duration"
       description="Number of seconds to timeout the user for."
       value={data.member_timeout_duration_seconds || ""}
       updateValue={(v) =>
@@ -2855,7 +2891,7 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="member_data"
-      title="Member Nickname"
+      title="Member nickname"
       value={data.member_data?.nick || ""}
       updateValue={(v) =>
         updateData({ member_data: v ? { nick: v } : undefined })
@@ -2871,7 +2907,7 @@ function RobloxUserTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="roblox_user_target"
-      title="Roblox User Target"
+      title="Roblox user target"
       description="The Roblox ID or username of the user. Discord users and IDs don't work here."
       value={data.roblox_user_target || ""}
       updateValue={(v) => updateData({ roblox_user_target: v || undefined })}
@@ -2886,7 +2922,7 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="roblox_lookup_mode"
-      title="Roblox Lookup Mode"
+      title="Roblox lookup mode"
       value={data.roblox_lookup_mode || ""}
       options={[
         { label: "ID", value: "id" },
@@ -2909,11 +2945,11 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <PreviewInert className="flex space-x-2 items-end">
+      <div className="flex space-x-2 items-end">
         <BaseInput
           type="select"
           field="message_template_id"
-          title="Message Template"
+          title="Message template"
           description="Select a message template to use for the response."
           options={messages?.map((m) => ({
             value: m!.id,
@@ -2956,7 +2992,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
               </Button>
             </MessageCreateDialog>
           ))}
-      </PreviewInert>
+      </div>
       {readOnly && template && (
         <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
@@ -2977,25 +3013,23 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       {!componentsV2 && (
-        <PreviewInert>
-          <BaseInput
-            type="textarea"
-            field="message_data"
-            title="Text"
-            description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-            value={data.message_data?.content || ""}
-            updateValue={(v) =>
-              updateData({
-                message_data: {
-                  ...data.message_data,
-                  content: v || undefined,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-        </PreviewInert>
+        <BaseInput
+          type="textarea"
+          field="message_data"
+          title="Text"
+          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+          value={data.message_data?.content || ""}
+          updateValue={(v) =>
+            updateData({
+              message_data: {
+                ...data.message_data,
+                content: v || undefined,
+              },
+            })
+          }
+          errors={errors}
+          placeholders
+        />
       )}
 
       {readOnly ? (
@@ -3005,7 +3039,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
           onClose={(v) => updateData({ message_data: v })}
           message={data.message_data || {}}
         >
-          <Button className="w-full">Edit Message</Button>
+          <Button className="w-full">Edit message</Button>
         </MessageEditorDialog>
       )}
 
@@ -3069,7 +3103,7 @@ function AllowedMentionsDialog({
       <div>
         <DialogTrigger asChild>
           <Button className="w-full" variant="secondary">
-            Configure Pings
+            Configure pings
           </Button>
         </DialogTrigger>
         {error && (
@@ -3081,13 +3115,13 @@ function AllowedMentionsDialog({
       </div>
       <DialogContent className="overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
-          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogTitle>Configure pings</DialogTitle>
           <DialogDescription>
             Choose which mentions in the message notify people. Mentions without
             a ping are still shown.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-5">
+        <div className="space-y-5">
           {mentionKinds.map((k) => (
             <BaseCheckbox
               key={k.value}
@@ -3107,14 +3141,14 @@ function AllowedMentionsDialog({
           {data.reply_target && (
             <BaseCheckbox
               field="message_data.allowed_mentions.replied_user"
-              title="Reply Author"
+              title="Reply author"
               description="The author of the message this replies to gets a notification."
               value={repliedUser}
               updateValue={(v) => update(parse, v)}
               errors={{}}
             />
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3125,7 +3159,7 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="message_target"
-      title="Target Message"
+      title="Target message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
@@ -3139,7 +3173,7 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="reply_target"
-      title="Reply To"
+      title="Reply to"
       description="The message to reply to, in the same channel. Leave blank to not reply."
       value={data.reply_target || ""}
       updateValue={(v) => updateData({ reply_target: v || undefined })}
@@ -3162,11 +3196,11 @@ function ResponseTargetInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="select"
         field="message_target"
-        title="Target Response"
+        title="Target response"
         value={other ? "other" : data.message_target || ""}
         options={[
-          { label: "Original Response", value: "@original" },
-          { label: "Other Response", value: "other" },
+          { label: "Original response", value: "@original" },
+          { label: "Other response", value: "other" },
         ]}
         updateValue={(v) => {
           setPickedOther(v === "other");
@@ -3194,7 +3228,7 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="message_ephemeral"
-      title="Public Response"
+      title="Public response"
       description="If enabled, the response will be visible to everyone. If disabled, the response will only be visible to the user who triggered the flow."
       value={!data.message_ephemeral}
       updateValue={(v) => updateData({ message_ephemeral: !v || undefined })}
@@ -3222,6 +3256,7 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
 const pollMaxAnswers = 10;
 
 function PollDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const updateField = useCallback(
     (newData: Partial<PollData>) => {
       updateData({ poll_data: { ...data.poll_data, ...newData } });
@@ -3284,54 +3319,65 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             return (
               <div key={i}>
                 <div className="flex gap-2">
-                  <EmojiPicker
-                    onEmojiSelect={(emoji) =>
-                      updateAnswer(i, {
-                        emoji: emoji.native
-                          ? { name: emoji.name }
-                          : { id: emoji.id, name: emoji.name },
-                      })
-                    }
-                  >
-                    <Button size="icon" variant="outline" className="flex-none">
-                      {answer.emoji?.id ? (
-                        <img
-                          src={discordEmojiUrl(answer.emoji.id)}
-                          alt=""
-                          className="h-6 w-6"
-                        />
-                      ) : answer.emoji ? (
-                        <Twemoji options={{ className: "h-6 w-6" }}>
-                          {answer.emoji.name}
-                        </Twemoji>
-                      ) : (
-                        <SmileIcon className="h-6 w-6 text-foreground/80" />
-                      )}
-                    </Button>
-                  </EmojiPicker>
-                  {answer.emoji && (
-                    <div
-                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
-                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                  <PreviewInert className="flex-none">
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) =>
+                        updateAnswer(i, {
+                          emoji: emoji.native
+                            ? { name: emoji.name }
+                            : { id: emoji.id, name: emoji.name },
+                        })
+                      }
                     >
-                      <XIcon className="h-5 w-5" />
-                    </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="flex-none"
+                      >
+                        {answer.emoji?.id ? (
+                          <img
+                            src={discordEmojiUrl(answer.emoji.id)}
+                            alt=""
+                            className="h-6 w-6"
+                          />
+                        ) : answer.emoji ? (
+                          <Twemoji options={{ className: "h-6 w-6" }}>
+                            {answer.emoji.name}
+                          </Twemoji>
+                        ) : (
+                          <SmileIcon className="h-6 w-6 text-foreground/80" />
+                        )}
+                      </Button>
+                    </EmojiPicker>
+                  </PreviewInert>
+                  {answer.emoji && (
+                    <EditOnly>
+                      <div
+                        className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => updateAnswer(i, { emoji: undefined })}
+                      >
+                        <XIcon className="h-5 w-5" />
+                      </div>
+                    </EditOnly>
                   )}
                   <div className="flex-auto">
                     <PlaceholderInput
                       value={answer.text || ""}
                       onChange={(v) => updateAnswer(i, { text: v })}
                       placeholder={`Answer ${i + 1}`}
+                      readOnly={readOnly}
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeAnswer(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeAnswer(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
                 {error && (
                   <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3343,16 +3389,18 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             );
           })}
 
-          <div className="flex">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={addAnswer}
-              disabled={answers.length >= pollMaxAnswers}
-            >
-              <PlusIcon className="h-5 w-5" />
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={addAnswer}
+                disabled={answers.length >= pollMaxAnswers}
+              >
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </EditOnly>
         </div>
         {answersError && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3373,7 +3421,7 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
       />
       <BaseCheckbox
         field="poll_data.allow_multiselect"
-        title="Allow Multiple Answers"
+        title="Allow multiple answers"
         description="If enabled, people can vote for more than one answer."
         value={!!data.poll_data?.allow_multiselect}
         updateValue={(v) => updateField({ allow_multiselect: v || undefined })}
@@ -3492,17 +3540,17 @@ function ChannelDataInput({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full">Configure Channel</Button>
+        <Button className="w-full">Configure channel</Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure Channel</DialogTitle>
+          <DialogTitle>Configure channel</DialogTitle>
           <DialogDescription>
-            Configure your channel here! A channel must have one of the
+            Configure your channel here. A channel must have one of the
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <div className="flex space-x-3">
             <BaseInput
               type="select"
@@ -3638,7 +3686,7 @@ function ChannelDataInput({
               <BaseInput
                 type="text"
                 field="channel_data.user_limit"
-                title="User Limit"
+                title="User limit"
                 description="The user limit for the channel."
                 value={data.channel_data?.user_limit?.toString() || ""}
                 updateValue={(v) =>
@@ -3695,7 +3743,7 @@ function ChannelDataInput({
 
           <div className="space-y-3">
             <div className="font-medium text-foreground">
-              Permission Overwrites
+              Permission overwrites
             </div>
 
             {data.channel_data?.permission_overwrites?.map((overwrite, i) => (
@@ -3758,28 +3806,32 @@ function ChannelDataInput({
                   }
                   errors={errors}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex gap-2"
-                  onClick={() => removeOverwrite(i)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  <div>Remove Overwrite</div>
-                </Button>
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex gap-2"
+                    onClick={() => removeOverwrite(i)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    <div>Remove overwrite</div>
+                  </Button>
+                </EditOnly>
               </Card>
             ))}
           </div>
 
-          <div className="flex space-x-3">
-            <Button onClick={addOverwrite}>Add Overwrite</Button>
-            <Button variant="outline" onClick={clearOverwrites}>
-              Clear Overwrites
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex space-x-3">
+              <Button onClick={addOverwrite}>Add overwrite</Button>
+              <Button variant="outline" onClick={clearOverwrites}>
+                Clear overwrites
+              </Button>
+            </div>
+          </EditOnly>
 
           {children}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3791,7 +3843,7 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="text"
         field="channel_data.name"
-        title="Post Title"
+        title="Post title"
         value={data.channel_data?.name || ""}
         updateValue={(v) =>
           updateData({
@@ -3825,13 +3877,13 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
 const threadEditSettings = [
   {
     field: "archived",
-    title: "Archive Thread",
+    title: "Archive thread",
     description:
       "Only for threads. A new message unarchives it unless it's locked.",
   },
   {
     field: "locked",
-    title: "Lock Thread",
+    title: "Lock thread",
     description:
       "Only for threads. Only moderators can unarchive a locked thread.",
   },
@@ -3870,21 +3922,21 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full">Configure Thread</Button>
+        <Button className="w-full">Configure thread</Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure Thread</DialogTitle>
+          <DialogTitle>Configure thread</DialogTitle>
           <DialogDescription>
-            Configure your thread here! A thread must have a name and can be
+            Configure your thread here. A thread must have a name and can be
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <BaseInput
             type="text"
             field="channel_data.parent"
-            title="Parent Channel"
+            title="Parent channel"
             description="The parent channel that the thread will be created in."
             value={data.channel_data?.parent || ""}
             updateValue={(v) =>
@@ -3902,7 +3954,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="text"
             field="message_target"
-            title="Message Target"
+            title="Message target"
             description="The message to start the thread from. Leave blank to create an independent thread."
             value={data.message_target || ""}
             updateValue={(v) =>
@@ -3922,15 +3974,15 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               value={data.channel_data?.type?.toString() || "11"}
               options={[
                 {
-                  label: "Public Thread",
+                  label: "Public thread",
                   value: "11",
                 },
                 {
-                  label: "Private Thread",
+                  label: "Private thread",
                   value: "12",
                 },
                 {
-                  label: "Announcement Thread",
+                  label: "Announcement thread",
                   value: "10 ",
                 },
               ]}
@@ -3978,7 +4030,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               errors={errors}
             />
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3989,11 +4041,42 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="channel_target"
-      title="Target Channel"
+      title="Target channel"
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
     />
   );
 }
@@ -4007,7 +4090,7 @@ function ForwardSourceChannelTargetInput({
     <BaseInput
       type="text"
       field="channel_target"
-      title="Message Channel"
+      title="Message channel"
       description="The channel the message to forward is in. Leave blank to use the channel the flow runs in."
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
@@ -4022,7 +4105,7 @@ function ForwardChannelTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="forward_channel_target"
-      title="Forward To"
+      title="Forward to"
       description="The channel to forward the message to."
       value={data.forward_channel_target || ""}
       updateValue={(v) =>
@@ -4038,7 +4121,7 @@ function VoiceSelfMuteInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="voice_self_mute"
-      title="Mute Self"
+      title="Mute self"
       description="If enabled, the bot joins the voice channel muted."
       value={!!data.voice_self_mute}
       updateValue={(v) => updateData({ voice_self_mute: v || undefined })}
@@ -4051,10 +4134,113 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="voice_self_deaf"
-      title="Deafen Self"
+      title="Deafen self"
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
+
+  const createMutation = useAssetCreateMutation(appId, "sounds");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace sound" : "Upload sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave when done"
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
     />
   );
@@ -4078,7 +4264,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="select"
         field="status_data.activity_type"
-        title="Activity Type"
+        title="Activity type"
         options={activityTypeOptions}
         value={(data.status_data?.activity_type || 0).toString()}
         updateValue={(v) =>
@@ -4096,7 +4282,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       />
       <BaseInput
         field="status_data.activity_name"
-        title="Activity Name"
+        title="Activity name"
         value={data.status_data?.activity_name || ""}
         updateValue={(v) => updateField({ activity_name: v || undefined })}
         errors={errors}
@@ -4105,7 +4291,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       {data.status_data?.activity_type !== 4 && (
         <BaseInput
           field="status_data.activity_state"
-          title="Second Line"
+          title="Second line"
           description="Optional text shown under the activity name."
           value={data.status_data?.activity_state || ""}
           updateValue={(v) => updateField({ activity_state: v || undefined })}
@@ -4128,12 +4314,79 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  const reset = !!data.server_profile_data?.reset;
+
+  return (
+    <>
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
+        errors={errors}
+      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 function RoleDataInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="text"
       field="role_data"
-      title="Role Name"
+      title="Role name"
       value={data.role_data?.name || ""}
       updateValue={(v) =>
         updateData({ role_data: v ? { name: v } : undefined })
@@ -4149,7 +4402,7 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="role_target"
-      title="Target Role"
+      title="Target role"
       value={data.role_target || ""}
       updateValue={(v) => updateData({ role_target: v || undefined })}
       errors={errors}
@@ -4265,6 +4518,58 @@ function VariableOperationInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function VariableListInput({ data, updateData, errors }: InputProps) {
+  const variables = useFlowVariables();
+  const scoped = variables?.find((v) => v?.id === data.variable_id)?.scoped;
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="variable_sort"
+        title="Order"
+        options={[...variableListSorts]}
+        value={data.variable_sort || "value_desc"}
+        updateValue={(v) => updateData({ variable_sort: v || undefined })}
+        errors={errors}
+      />
+      {/* Unscoped variables have one value, so there's nothing to filter.
+          Shown while a prefix is left, so it can be cleared. */}
+      {(scoped || data.variable_scope_prefix) && (
+        <BaseInput
+          field="variable_scope_prefix"
+          title="Scope starts with"
+          description="Only values whose scope starts with this, like {{guild.id}}: for one server. All values if empty."
+          value={data.variable_scope_prefix || ""}
+          updateValue={(v) =>
+            updateData({ variable_scope_prefix: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      <BaseInput
+        field="variable_limit"
+        title="Number of values"
+        description="From 1 to 100. Defaults to 10."
+        value={data.variable_limit || ""}
+        updateValue={(v) => updateData({ variable_limit: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="variable_skip"
+        title="Skip"
+        description="How many values to skip first, like 10 for the second page of 10."
+        value={data.variable_skip || ""}
+        updateValue={(v) => updateData({ variable_skip: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
 function VariableValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -4288,7 +4593,7 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title={type === "control_if" ? "Condition" : "Base Value"}
+      title={type === "control_if" ? "Condition" : "Base value"}
       description={
         type === "control_if"
           ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, yes or 1, No otherwise."
@@ -4322,19 +4627,19 @@ function ConditionItemCompareModeInput({
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "greater_than", label: "Greater Than" },
-        { value: "less_than", label: "Less Than" },
-        { value: "greater_than_or_equal", label: "Greater Than or Equal" },
-        { value: "less_than_or_equal", label: "Less Than or Equal" },
+        { value: "not_equal", label: "Not equal" },
+        { value: "greater_than", label: "Greater than" },
+        { value: "less_than", label: "Less than" },
+        { value: "greater_than_or_equal", label: "Greater than or equal" },
+        { value: "less_than_or_equal", label: "Less than or equal" },
         { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
+        { value: "starts_with", label: "Starts with" },
+        { value: "ends_with", label: "Ends with" },
         ...oneOfModes,
-        { value: "contains_any", label: "Contains Any Of" },
+        { value: "contains_any", label: "Contains any of" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) =>
@@ -4366,7 +4671,7 @@ function ConditionItemCompareValueInput({
     return (
       <ListInput
         field="condition_item_value"
-        title="Comparison Values"
+        title="Comparison values"
         noun="value"
         value={value}
         updateValue={updateValue}
@@ -4381,7 +4686,7 @@ function ConditionItemCompareValueInput({
       // aren't hidden in a single-line input.
       type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
-      title="Comparison Value"
+      title="Comparison value"
       value={value}
       updateValue={updateValue}
       errors={errors}
@@ -4436,7 +4741,7 @@ function ConditionItemIgnoreCaseInput({
   return (
     <BaseCheckbox
       field="condition_item_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
       value={!!data.condition_item_ignore_case}
       updateValue={(v) =>
@@ -4451,7 +4756,7 @@ function ConditionUserBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base User"
+      title="Base user"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4469,14 +4774,14 @@ function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "has_role", label: "Has Role" },
-        { value: "not_has_role", label: "Does Not Have Role" },
-        { value: "has_permission", label: "Has Permission" },
-        { value: "not_has_permission", label: "Does Not Have Permission" },
+        { value: "not_equal", label: "Not equal" },
+        { value: "has_role", label: "Has role" },
+        { value: "not_has_role", label: "Does not have role" },
+        { value: "has_permission", label: "Has permission" },
+        { value: "not_has_permission", label: "Does not have permission" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4493,7 +4798,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
     return (
       <BaseInput
         field="condition_item_value"
-        title="Comparison Role"
+        title="Comparison role"
         value={data.condition_item_value || ""}
         updateValue={(v) =>
           updateData({
@@ -4511,7 +4816,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
     return (
       <BasePermissionInput
         field="condition_item_value"
-        title="Comparison Permission"
+        title="Comparison permission"
         value={data.condition_item_value || "0"}
         updateValue={(v) =>
           updateData({
@@ -4526,7 +4831,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison User"
+      title="Comparison user"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4547,7 +4852,7 @@ function ConditionChannelBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Channel"
+      title="Base channel"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4569,10 +4874,10 @@ function ConditionItemChannelModeInput({
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4589,7 +4894,7 @@ function ConditionItemChannelValueInput({
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Channel"
+      title="Comparison channel"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4606,7 +4911,7 @@ function ConditionRoleBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Role"
+      title="Base role"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4624,10 +4929,10 @@ function ConditionItemRoleModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4640,7 +4945,7 @@ function ConditionItemRoleValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Role"
+      title="Comparison role"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4657,8 +4962,8 @@ function ConditionAllowMultipleInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="condition_allow_multiple"
-      title="Allow Multiple"
-      description="Allow multiple conditions to be met. If disabled, only the first condition that is met will be executed."
+      title="Allow multiple"
+      description="Allow multiple conditions to be met. If off, only the first condition that is met runs."
       value={data.condition_allow_multiple || false}
       updateValue={(v) =>
         updateData({ condition_allow_multiple: v || undefined })
@@ -4672,7 +4977,7 @@ function ControlLoopCountInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="loop_count"
-      title="Loop Count"
+      title="Loop count"
       description="The number of times to run the loop."
       value={data.loop_count || ""}
       updateValue={(v) =>
@@ -4690,7 +4995,7 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="sleep_duration_seconds"
-      title="Wait Duration"
+      title="Wait duration"
       description="The number of seconds to wait before continuing, up to 30 days. Waits over 5 seconds end the current run and continue later, so responses only work if the flow continues within 15 minutes."
       value={data.sleep_duration_seconds || ""}
       updateValue={(v) =>
@@ -4746,6 +5051,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4761,8 +5067,14 @@ function BaseInput({
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
+  // Previews can still open selects and scroll through text to read them.
+  const readOnly = useContext(FlowReadOnlyContext);
+  const update = readOnly ? () => {} : updateValue;
+  const showPlaceholders = !!placeholders && !readOnly;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -4791,75 +5103,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            // Room for the placeholder explorer in the corner.
-            className={cn(placeholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => updateValue(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => updateValue(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => updateValue(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-          />
-        )}
-        {placeholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-            onlyParameters={placeholders === "parameters"}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4893,7 +5220,9 @@ function BaseCheckbox({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <Switch checked={value} onCheckedChange={updateValue} />
+      <PreviewInert>
+        <Switch checked={value} onCheckedChange={updateValue} />
+      </PreviewInert>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5045,17 +5374,19 @@ function BaseColorInput({
           placeholder="#ff0000 or {{ placeholder }}"
           placeholders
         />
-        <Button
-          variant="link"
-          size="sm"
-          className="px-0 h-auto mt-1"
-          onClick={() => {
-            setTextMode(false);
-            if (color === undefined) updateValue("");
-          }}
-        >
-          Use the color picker
-        </Button>
+        <EditOnly>
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 h-auto mt-1"
+            onClick={() => {
+              setTextMode(false);
+              if (color === undefined) updateValue("");
+            }}
+          >
+            Use the color picker
+          </Button>
+        </EditOnly>
       </div>
     );
   }
@@ -5068,20 +5399,22 @@ function BaseColorInput({
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="mt-2">
+      <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
-      </div>
-      <Button
-        variant="link"
-        size="sm"
-        className="px-0 h-auto mt-1"
-        onClick={() => setTextMode(true)}
-      >
-        Use a placeholder instead
-      </Button>
+      </PreviewInert>
+      <EditOnly>
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => setTextMode(true)}
+        >
+          Use a placeholder instead
+        </Button>
+      </EditOnly>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5170,30 +5503,38 @@ function BaseEmojiPicker({
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
       <div className="flex">
-        <EmojiPicker onEmojiSelect={onChange}>
-          <Button size="icon" variant="outline">
-            {emoji?.id ? (
-              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
-            ) : emoji ? (
-              <Twemoji
-                options={{
-                  className: "h-6 w-6",
-                }}
-              >
-                {emoji.name}
-              </Twemoji>
-            ) : (
-              <SmileIcon className="h-6 w-6 text-foreground/80" />
-            )}
-          </Button>
-        </EmojiPicker>
+        <PreviewInert>
+          <EmojiPicker onEmojiSelect={onChange}>
+            <Button size="icon" variant="outline">
+              {emoji?.id ? (
+                <img
+                  src={discordEmojiUrl(emoji.id)}
+                  alt=""
+                  className="h-6 w-6"
+                />
+              ) : emoji ? (
+                <Twemoji
+                  options={{
+                    className: "h-6 w-6",
+                  }}
+                >
+                  {emoji.name}
+                </Twemoji>
+              ) : (
+                <SmileIcon className="h-6 w-6 text-foreground/80" />
+              )}
+            </Button>
+          </EmojiPicker>
+        </PreviewInert>
         {emoji && (
-          <div
-            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(undefined)}
-          >
-            <XIcon className="h-5 w-5" />
-          </div>
+          <EditOnly>
+            <div
+              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(undefined)}
+            >
+              <XIcon className="h-5 w-5" />
+            </div>
+          </EditOnly>
         )}
       </div>
       {error && (

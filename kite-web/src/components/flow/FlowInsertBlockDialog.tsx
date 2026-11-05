@@ -35,7 +35,7 @@ export default function FlowInsertBlockDialog({
           </DialogDescription>
         </DialogHeader>
         <FlowBlockPicker
-          categories={["action", "control_flow"]}
+          categories={["action", "control_flow", "integration"]}
           onPick={(type) => {
             onPick(type);
             onOpenChange(false);

@@ -91,7 +91,7 @@ func TestSelect(t *testing.T) {
 	_, err := verification.Select(keys, map[string]string{"channel_id": "123456789012345678"})
 	var invalidErr *InvalidError
 	assert.ErrorAs(t, err, &invalidErr)
-	assert.ErrorContains(t, err, "Verified Role is required")
+	assert.ErrorContains(t, err, "Verified role is required")
 
 	// The channel is only used to post the message.
 	_, err = verification.Select(keys, map[string]string{"role_id": "123456789012345678"})
@@ -117,7 +117,7 @@ func TestSelect(t *testing.T) {
 		assert.Contains(t, string(raw), `"role_target":"{{params.role_id}}"`)
 		assert.Equal(t, []flow.FlowParameter{{
 			Key:         "role_id",
-			Label:       "Verified Role",
+			Label:       "Verified role",
 			Description: verification.Parameters[1].Description,
 			Type:        flow.FlowParameterTypeRole,
 			Required:    true,

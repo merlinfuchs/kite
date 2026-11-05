@@ -19,6 +19,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
+	"github.com/kitecloud/kite/kite-service/internal/core/testrun"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -151,6 +152,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
+			Voice:                engine.NewVoiceManager(assetStore),
 		},
 	)
 	engine.Run(ctx)
@@ -166,13 +168,15 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		RemoveDanglingInterval: cfg.Gateway.RemoveDanglingInterval,
 		PopulateOverlap:        cfg.Gateway.PopulateOverlap,
 		StartInterval:          cfg.Gateway.StartInterval,
+		AppBaseURL:             cfg.App.PublicBaseURL,
 	})
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
 	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, planManager)
+	creditNotifier := notify.NewAppOwnerNotifier(pg, tokenCrypt, notifier, cfg.App.PublicBaseURL)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, pg, planManager, creditNotifier)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
@@ -213,7 +217,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, gateway, engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,
 	)

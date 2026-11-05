@@ -8,16 +8,16 @@ import {
 export const modalMaxComponents = 5;
 
 export const modalInputTypes = [
-  { value: "text_input", label: "Text Input" },
-  { value: "string_select", label: "Select Menu" },
-  { value: "user_select", label: "User Select" },
-  { value: "role_select", label: "Role Select" },
-  { value: "mentionable_select", label: "Mentionable Select" },
-  { value: "channel_select", label: "Channel Select" },
-  { value: "radio_group", label: "Radio Group" },
-  { value: "checkbox_group", label: "Checkbox Group" },
+  { value: "text_input", label: "Text input" },
+  { value: "string_select", label: "Select menu" },
+  { value: "user_select", label: "User select" },
+  { value: "role_select", label: "Role select" },
+  { value: "mentionable_select", label: "Mentionable select" },
+  { value: "channel_select", label: "Channel select" },
+  { value: "radio_group", label: "Radio group" },
+  { value: "checkbox_group", label: "Checkbox group" },
   { value: "checkbox", label: "Checkbox" },
-  { value: "file_upload", label: "File Upload" },
+  { value: "file_upload", label: "File upload" },
 ] as const;
 
 export type ModalInputType = (typeof modalInputTypes)[number]["value"];
