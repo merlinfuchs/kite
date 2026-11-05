@@ -101,7 +101,7 @@ const starters: Point[] = [
     title: "Leveling",
     description:
       "Members earn XP for chatting, with /rank, /leaderboard, and a reward role.",
-    href: "/marketplace/leveling",
+    href: "/discord-leveling-bot",
     icon: TrophyIcon,
   },
   {

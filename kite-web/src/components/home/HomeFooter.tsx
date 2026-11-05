@@ -6,6 +6,7 @@ const botLinks = [
   { label: "Bot hosting", href: "/discord-bot-hosting" },
   { label: "Moderation bot", href: "/discord-moderation-bot" },
   { label: "Welcome bot", href: "/discord-welcome-bot" },
+  { label: "Leveling bot", href: "/discord-leveling-bot" },
   { label: "AI bot", href: "/ai-discord-bot" },
   { label: "AI bot maker", href: "/ai-discord-bot-maker" },
   { label: "ER:LC bot", href: "/erlc-discord-bot" },

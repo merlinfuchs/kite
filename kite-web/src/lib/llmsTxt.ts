@@ -195,6 +195,7 @@ export function llmsTxt(data: LlmsTxtData) {
     `- [Pricing](${site}/pricing): Every plan and what each block costs in credits.`,
     `- [Marketplace](${site}/marketplace): Templates to add to a bot.`,
     `- [Free Discord bot hosting](${site}/discord-bot-hosting): How Kite hosts bots 24/7.`,
+    `- [Discord leveling bot](${site}/discord-leveling-bot): XP, levels, reward roles, /rank, and /leaderboard from the Leveling template.`,
     `- [AI Discord bot maker](${site}/ai-discord-bot-maker): Building a bot with Flow AI.`,
     `- [Discord MCP server](${site}/discord-mcp-server): Building a bot from Claude, ChatGPT, and other AI apps.`,
     `- [How to make a Discord bot](${site}/guides/how-to-make-a-discord-bot): A step by step guide.`,
