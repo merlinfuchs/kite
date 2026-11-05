@@ -565,6 +565,9 @@ export default function FeaturesPage({
                       className="inline-flex items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-sm hover:border-primary hover:text-primary transition-colors"
                     >
                       {block.title}
+                      {/* The tooltip is only for the mouse. This way screen
+                          readers and crawlers get the description too. */}
+                      <span className="sr-only">: {block.description}</span>
                       {block.plan && (
                         <span className="text-xs font-medium text-primary">
                           {block.plan}
