@@ -622,3 +622,19 @@ func TestFlowTestAICheck(t *testing.T) {
 		t.Errorf("response with a mock = %q", got)
 	}
 }
+
+func TestRoleAbove(t *testing.T) {
+	older := discord.Role{ID: 10, Position: 1}
+	newer := discord.Role{ID: 20, Position: 1}
+	higher := discord.Role{ID: 30, Position: 2}
+
+	if !roleAbove(older, newer) || roleAbove(newer, older) {
+		t.Error("at the same position, the older role should be above")
+	}
+	if !roleAbove(higher, older) || roleAbove(older, higher) {
+		t.Error("a higher position should be above")
+	}
+	if roleAbove(older, older) {
+		t.Error("a role isn't above itself")
+	}
+}

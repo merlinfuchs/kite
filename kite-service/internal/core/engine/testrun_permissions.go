@@ -101,15 +101,24 @@ func (g *testGuild) role(id discord.RoleID) (discord.Role, bool) {
 	return g.roles[i], true
 }
 
-// highestPosition is the position of the member's highest role.
-func (g *testGuild) highestPosition(member discord.Member) int {
-	highest := 0
+// highestRole is the member's highest role, @everyone if they have none.
+func (g *testGuild) highestRole(member discord.Member) discord.Role {
+	highest := discord.Role{ID: discord.RoleID(g.guild.ID)}
 	for _, id := range member.RoleIDs {
-		if role, ok := g.role(id); ok && role.Position > highest {
-			highest = role.Position
+		if role, ok := g.role(id); ok && roleAbove(role, highest) {
+			highest = role
 		}
 	}
 	return highest
+}
+
+// roleAbove reports whether a is above b. Roles at the same position are
+// ordered by age, like Discord does, so the older one is above.
+func roleAbove(a, b discord.Role) bool {
+	if a.Position != b.Position {
+		return a.Position > b.Position
+	}
+	return a.ID < b.ID
 }
 
 func (g *testGuild) permissions(channel discord.Channel) discord.Permissions {
@@ -217,7 +226,7 @@ func (s *testSession) checkRole(guildID discord.GuildID, roleID discord.RoleID) 
 		return []string{"The @everyone role can't be assigned."}
 	case role.Managed:
 		return []string{fmt.Sprintf("Role %s is managed by an integration, like a bot's own role, and can't be assigned.", role.Name)}
-	case g.guild.OwnerID != s.botID && role.Position >= g.highestPosition(g.bot):
+	case g.guild.OwnerID != s.botID && !roleAbove(g.highestRole(g.bot), role):
 		return []string{fmt.Sprintf("Role %s isn't below the bot's highest role, so the bot can't manage it. Move the bot's role above it in the server settings.", role.Name)}
 	}
 	return nil
@@ -245,7 +254,7 @@ func (s *testSession) checkModerate(guildID discord.GuildID, userID discord.User
 		warnings = append(warnings, "The bot can't do this to itself.")
 	case userID == g.guild.OwnerID:
 		warnings = append(warnings, "The member is the owner of the server, the bot can't act on them.")
-	case g.guild.OwnerID != s.botID && g.highestPosition(*member) >= g.highestPosition(g.bot):
+	case g.guild.OwnerID != s.botID && !roleAbove(g.highestRole(g.bot), g.highestRole(*member)):
 		warnings = append(warnings, "The member's highest role isn't below the bot's highest role, so the bot can't act on them.")
 	}
 	return warnings
