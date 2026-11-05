@@ -113,6 +113,35 @@ export const welcomeFlow = column([
   },
 ]);
 
+export const levelingFlow = column([
+  {
+    type: "entry_event",
+    data: {
+      event_type: "message_create",
+      description: "Give members XP for chatting",
+    },
+  },
+  {
+    type: "action_variable_set",
+    data: {
+      custom_label: "Add 15 to 25 XP",
+      variable_id: "xp",
+      variable_operation: "increment",
+      variable_value: "{{15 + now().UnixMilli() % 11}}",
+    },
+  },
+  {
+    type: "action_message_create",
+    data: {
+      custom_label: "Level-up message",
+      channel_target: "123456789012345678",
+      message_data: {
+        content: "🎉 {{event.user.mention}} reached level 3!",
+      },
+    },
+  },
+]);
+
 export const askAiFlow = column([
   {
     type: "entry_command",
