@@ -26,7 +26,7 @@ const content: ComparisonPageContent = {
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
-    "You want economy or music modules ready to switch on",
+    "You want music, reaction roles, or other modules ready to switch on",
     "You'd rather turn on modules than build commands",
     "You want YouTube, Twitch, or Reddit notifications and are fine paying for them",
   ],

@@ -3,6 +3,7 @@ import {
   ArrowUp10Icon,
   BotOffIcon,
   BrainCircuitIcon,
+  CoinsIcon,
   GavelIcon,
   GiftIcon,
   InfoIcon,
@@ -47,6 +48,7 @@ export const templateIcons: Record<string, LucideIcon> = {
   "bot-off": BotOffIcon,
   languages: LanguagesIcon,
   trophy: TrophyIcon,
+  coins: CoinsIcon,
 };
 
 // lucideName is the name of the Lucide component of the icon, like
