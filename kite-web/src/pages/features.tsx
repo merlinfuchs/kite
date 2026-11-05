@@ -2,6 +2,14 @@ import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import {
+  MessageMockup,
+  VariableMockup,
+} from "@/components/home/HomeFeaturesSection";
+import {
+  ProfileMockup,
+  rotatingStatuses,
+} from "@/components/home/ProfileMockups";
 import { openSourcePoint } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { blockDefinitions } from "@/lib/blocks";
@@ -9,6 +17,7 @@ import { BlockDefinition } from "@/lib/blocks/types";
 import env from "@/lib/env/client";
 import { discordEventTypes } from "@/lib/flow/eventTypes";
 import { faqJsonLd } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import {
   fetchBundles,
@@ -30,10 +39,13 @@ import {
   GiftIcon,
   GlobeIcon,
   HandHeartIcon,
+  LayoutGridIcon,
+  LayoutTemplateIcon,
   LucideIcon,
   MousePointerClickIcon,
   PlugIcon,
   Repeat2Icon,
+  SendIcon,
   ServerIcon,
   ShieldIcon,
   SirenIcon,
@@ -48,6 +60,7 @@ import {
 } from "lucide-react";
 import { GetStaticProps } from "next";
 import Link from "next/link";
+import { ReactNode } from "react";
 
 interface Block {
   title: string;
@@ -271,6 +284,7 @@ export default function FeaturesPage({
     heading: string;
     body?: string;
     points: Point[];
+    visual?: ReactNode;
   }[] = [
     {
       heading: "Start a flow from a command, a button, or an event",
@@ -320,7 +334,33 @@ export default function FeaturesPage({
       ],
     },
     {
+      heading: "Design messages and see them the way Discord shows them",
+      body: "The message editor shows your message as it will look in Discord while you build it.",
+      visual: <MessageMockup />,
+      points: [
+        {
+          title: "Embeds and placeholders",
+          icon: LayoutTemplateIcon,
+          description:
+            "Titles, colors, images, and fields. Placeholders fill in things like the member's name when the bot sends it.",
+        },
+        {
+          title: "Discord's newer layouts",
+          icon: LayoutGridIcon,
+          description:
+            "Containers, sections, and image galleries, next to classic embeds.",
+        },
+        {
+          title: "Send it from anywhere",
+          icon: SendIcon,
+          description:
+            "A command or event sends it, or you post it to a channel or forum from the dashboard.",
+        },
+      ],
+    },
+    {
       heading: "Conditions, loops, and stored variables for the logic",
+      visual: <VariableMockup />,
       body: "Conditions and loops cost no credits, and neither does getting servers, channels, members, messages, or stored variables.",
       points: [
         {
@@ -410,6 +450,11 @@ export default function FeaturesPage({
     },
     {
       heading: "Hosted 24/7 with your bot's own name and status",
+      visual: (
+        <div className="max-w-xs mx-auto">
+          <ProfileMockup statuses={rotatingStatuses} />
+        </div>
+      ),
       points: [
         {
           title: "Always online",
@@ -578,7 +623,7 @@ export default function FeaturesPage({
         </div>
       </section>
 
-      {sections.slice(0, 3).map((section) => (
+      {sections.slice(0, 4).map((section) => (
         <PointsSection key={section.heading} {...section} />
       ))}
 
@@ -600,7 +645,7 @@ export default function FeaturesPage({
         />
       )}
 
-      {sections.slice(3).map((section) => (
+      {sections.slice(4).map((section) => (
         <PointsSection key={section.heading} {...section} />
       ))}
 
@@ -657,44 +702,76 @@ export default function FeaturesPage({
   );
 }
 
+// With a visual, the text goes on the left and the visual on the right, like
+// the landing pages.
 function PointsSection({
   heading,
   body,
   points,
+  visual,
 }: {
   heading: string;
   body?: string;
   points: Point[];
+  visual?: ReactNode;
 }) {
-  return (
-    <section className="container py-12 md:py-16">
+  const header = (
+    <>
       <h2 className="text-3xl md:text-4xl font-bold">{heading}</h2>
       {body && (
         <p className="text-lg text-muted-foreground mt-4 max-w-2xl">{body}</p>
       )}
-      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 mt-10">
-        {points.map((point) => (
-          <li key={point.title} className="border-t py-5">
-            <h3 className="font-semibold text-lg flex items-center gap-3">
-              {point.icon && (
-                <point.icon className="h-5 w-5 flex-none text-primary" />
-              )}
-              {point.href ? (
-                <Link
-                  href={point.href}
-                  className="inline-flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  {point.title}
-                  <ArrowRightIcon className="w-4 h-4" />
-                </Link>
-              ) : (
-                point.title
-              )}
-            </h3>
-            <p className="text-muted-foreground mt-2">{point.description}</p>
-          </li>
-        ))}
-      </ul>
+    </>
+  );
+  if (visual) {
+    return (
+      <section className="container py-12 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div>
+          {header}
+          <PointList points={points} className="sm:grid-cols-2" />
+        </div>
+        <div className="w-full max-w-lg mx-auto">{visual}</div>
+      </section>
+    );
+  }
+  return (
+    <section className="container py-12 md:py-16">
+      {header}
+      <PointList points={points} className="md:grid-cols-2 lg:grid-cols-3" />
     </section>
+  );
+}
+
+function PointList({
+  points,
+  className,
+}: {
+  points: Point[];
+  className: string;
+}) {
+  return (
+    <ul className={cn("grid grid-cols-1 gap-x-10 mt-10", className)}>
+      {points.map((point) => (
+        <li key={point.title} className="border-t py-5">
+          <h3 className="font-semibold text-lg flex items-center gap-3">
+            {point.icon && (
+              <point.icon className="h-5 w-5 flex-none text-primary" />
+            )}
+            {point.href ? (
+              <Link
+                href={point.href}
+                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+              >
+                {point.title}
+                <ArrowRightIcon className="w-4 h-4" />
+              </Link>
+            ) : (
+              point.title
+            )}
+          </h3>
+          <p className="text-muted-foreground mt-2">{point.description}</p>
+        </li>
+      ))}
+    </ul>
   );
 }
