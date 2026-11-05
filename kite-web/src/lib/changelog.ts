@@ -12,6 +12,26 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-05",
+    title: "Leveling template",
+    description:
+      "Members earn XP for chatting and level up, with level-up messages, a reward role, /rank, and /leaderboard.",
+    href: "/marketplace/leveling",
+  },
+  {
+    date: "2026-11-05",
+    title: "Economy template",
+    description:
+      "Members collect coins with /daily and /work, send them with /pay, and compete on /richest.",
+    href: "/marketplace/economy",
+  },
+  {
+    date: "2026-11-05",
+    title: "List stored variable values block",
+    description:
+      "Read many values of a stored variable at once, sorted by value or by when they changed. Leaderboards use it.",
+  },
+  {
+    date: "2026-11-05",
     title: "Flow AI fixes more of its own mistakes",
     description:
       "Flow AI repairs common mistakes in the block settings it writes, so fewer prompts end in an error.",

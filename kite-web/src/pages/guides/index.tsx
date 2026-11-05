@@ -37,6 +37,7 @@ const guides = [
 const bots = [
   { title: "Moderation bot", href: "/discord-moderation-bot" },
   { title: "Welcome bot", href: "/discord-welcome-bot" },
+  { title: "Leveling bot", href: "/discord-leveling-bot" },
   { title: "AI bot", href: "/ai-discord-bot" },
   { title: "AI bot maker", href: "/ai-discord-bot-maker" },
   { title: "ER:LC bot", href: "/erlc-discord-bot" },

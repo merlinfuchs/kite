@@ -23,7 +23,7 @@ const content: ComparisonPageContent = {
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
-    "You want ready-made apps like tickets, leveling, giveaways and music",
+    "You want ready-made apps like tickets, giveaways, and music",
     "You'd rather pay once for lifetime access",
     "You need more than 15 commands per bot and are fine with paying",
   ],
@@ -55,7 +55,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "100+ templates in the Marketplace",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Apps for tickets, leveling, music and more",
     },
   ],

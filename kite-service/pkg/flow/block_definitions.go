@@ -373,11 +373,11 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 	var reason api.AuditLogReason
 	if block.AuditLogReason {
-		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+		var err error
+		reason, err = evalAuditLogReason(n, ctx)
 		if err != nil {
 			return err
 		}
-		reason = api.AuditLogReason(auditLogReason.String())
 	}
 
 	var resBody []byte

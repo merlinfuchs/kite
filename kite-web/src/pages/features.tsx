@@ -28,6 +28,7 @@ import {
   CalculatorIcon,
   CircleDotIcon,
   ClockIcon,
+  CoinsIcon,
   CookieIcon,
   DatabaseIcon,
   Gamepad2Icon,
@@ -48,6 +49,7 @@ import {
   SplitIcon,
   SquareSlashIcon,
   TicketIcon,
+  TrophyIcon,
   UserRoundIcon,
   UsersIcon,
   WebhookIcon,
@@ -94,6 +96,20 @@ const starters: Point[] = [
       "Greet new members in a channel you choose, and say goodbye when they leave.",
     href: "/discord-welcome-bot",
     icon: HandHeartIcon,
+  },
+  {
+    title: "Leveling",
+    description:
+      "Members earn XP for chatting, with /rank, /leaderboard, and a reward role.",
+    href: "/discord-leveling-bot",
+    icon: TrophyIcon,
+  },
+  {
+    title: "Economy",
+    description:
+      "Members collect coins with /daily and /work, and pay each other with /pay.",
+    href: "/marketplace/economy",
+    icon: CoinsIcon,
   },
   {
     title: "Giveaways",
@@ -501,7 +517,7 @@ export default function FeaturesPage({
     {
       question: "Can I make a leveling or economy bot with Kite?",
       answer:
-        "Yes. Keep XP or coins for each member in a stored variable and add to it with a Set stored variable block. A Comparison Condition checks the value, for example to give a role at level 10. The Marketplace has no leveling or economy template right now, so you build it yourself or ask Flow AI to.",
+        "Yes. The Leveling template in the Marketplace gives members XP for chatting, with level-up messages, a reward role, /rank, and /leaderboard. The Economy template adds coins with /daily, /work, /pay, and /richest.",
     },
     {
       question: "Can I make a ticket bot with Kite?",
@@ -593,7 +609,7 @@ export default function FeaturesPage({
           Most people start with one of these. Each one links to a template you
           can add in a few clicks, or a page that shows how to build it.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
           {starters.map((starter) => {
             const Icon = starter.icon!;
             return (

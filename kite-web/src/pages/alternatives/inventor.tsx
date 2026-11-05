@@ -76,7 +76,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "100+ templates in the Marketplace",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Plugins",
     },
   ],

@@ -11,7 +11,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -224,6 +226,15 @@ func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 		return 0, fmt.Errorf("must be an ID")
 	}
 	return discord.Snowflake(id), nil
+}
+
+// evalAuditLogReason evaluates the audit log reason setting of a block.
+func evalAuditLogReason(n *CompiledFlowNode, ctx *FlowContext) (api.AuditLogReason, error) {
+	reason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return "", err
+	}
+	return util.AuditLogReason(reason.String()), nil
 }
 
 // evalSnowflake evaluates a setting that must be an ID. what names the

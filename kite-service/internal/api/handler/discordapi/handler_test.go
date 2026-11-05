@@ -126,7 +126,7 @@ func TestDiscordAPIRequestLogsWrites(t *testing.T) {
 
 	req := state.reqs[1]
 	assert.JSONEq(t, `{"content":"Hi"}`, string(req.Body))
-	assert.Equal(t, `Kite API token "Claude"`, string(req.Reason))
+	assert.Equal(t, `Kite%20API%20token%20%22Claude%22`, string(req.Reason))
 }
 
 func TestDiscordAPIRequestEmptyResult(t *testing.T) {

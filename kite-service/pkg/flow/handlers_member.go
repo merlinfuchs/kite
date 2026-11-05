@@ -29,13 +29,13 @@ func executeActionMemberEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
 
 	data := api.ModifyMemberData{
-		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		AuditLogReason: auditLogReason,
 	}
 
 	if n.Data.MemberData != nil {
