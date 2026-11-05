@@ -10,7 +10,7 @@
   "faq": [
     {
       "question": "How many credits does it use?",
-      "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, /rank uses 1, and /leaderboard uses 2."
+      "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
     },
     {
       "question": "Does the bot need the Message Content Intent?",
@@ -18,7 +18,7 @@
     },
     {
       "question": "Can I change how much XP a message gives?",
-      "answer": "Yes. Open the event listener and change the number in the Add 15 to 25 XP block. Levels follow from the XP, so level N always needs 100 × N² XP."
+      "answer": "Yes. Open the event listener and find the Add 15 to 25 XP block. Its value is 15 plus a random number from 0 to 10, so change the 15 to give more or less XP. Levels follow from the XP, so level N always needs 100 × N² XP."
     },
     {
       "question": "Why didn't a member get the reward role?",
@@ -400,7 +400,7 @@
             },
             "data": {
               "custom_label": "Reward role due?",
-              "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level)}}"
+              "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
             }
           },
           {
@@ -463,13 +463,13 @@
           {
             "id": "300047514",
             "source": "if_u5p",
-            "target": "message_l8v",
+            "target": "if_r2w",
             "sourceHandle": "yes"
           },
           {
             "id": "300055433",
             "source": "if_u5p",
-            "target": "if_r2w",
+            "target": "message_l8v",
             "sourceHandle": "yes"
           },
           {
