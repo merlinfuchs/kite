@@ -4,9 +4,9 @@ import Link from "next/link";
 import { ReactNode } from "react";
 
 // Simplified versions of what they show, drawn with the site's colors like the
-// Ask AI panel.
+// Ask AI panel. The features page shows some of them too.
 
-function MessageMockup() {
+export function MessageMockup() {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
       <div className="rounded border-l-4 border-primary bg-muted px-3 py-2">
@@ -34,7 +34,7 @@ const points = [
   { name: "Jordan", value: 455 },
 ];
 
-function VariableMockup() {
+export function VariableMockup() {
   const max = Math.max(...points.map((p) => p.value));
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
@@ -232,6 +232,14 @@ export default function HomeFeaturesSection() {
           </div>
         ))}
       </div>
+
+      <Link
+        href="/features"
+        className="mt-10 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+      >
+        See every feature and block
+        <ArrowRightIcon className="w-4 h-4" />
+      </Link>
     </section>
   );
 }

@@ -20,8 +20,8 @@ export interface NavLink {
 export const productLinks: NavLink[] = [
   {
     title: "Features",
-    description: "Everything Kite can do for your Discord bot.",
-    href: "/#features",
+    description: "Every block, template, and plan feature of Kite.",
+    href: "/features",
     icon: SparklesIcon,
   },
   {
