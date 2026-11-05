@@ -16,7 +16,36 @@ import {
   fetchStats,
   withApiData,
 } from "@/lib/apiData";
-import { ArrowRightIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  BotMessageSquareIcon,
+  BrainIcon,
+  CalculatorIcon,
+  CircleDotIcon,
+  ClockIcon,
+  CodeIcon,
+  CookieIcon,
+  DatabaseIcon,
+  Gamepad2Icon,
+  GiftIcon,
+  GlobeIcon,
+  HandHeartIcon,
+  LucideIcon,
+  MousePointerClickIcon,
+  PlugIcon,
+  Repeat2Icon,
+  ServerIcon,
+  ShieldIcon,
+  SirenIcon,
+  SparklesIcon,
+  SplitIcon,
+  SquareSlashIcon,
+  TicketIcon,
+  UserRoundIcon,
+  UsersIcon,
+  WebhookIcon,
+  ZapIcon,
+} from "lucide-react";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -27,6 +56,58 @@ interface Block {
   // The cheapest plan that has the block, or null for every plan.
   plan: string | null;
 }
+
+interface Point {
+  title: string;
+  description: string;
+  href?: string;
+  icon?: LucideIcon;
+}
+
+// What most people make, each linked to its template or landing page.
+const starters: Point[] = [
+  {
+    title: "Moderation",
+    description:
+      "Ban, kick, and mute commands only your staff can use, plus AI that deletes spam.",
+    href: "/discord-moderation-bot",
+    icon: ShieldIcon,
+  },
+  {
+    title: "AI chatbot",
+    description:
+      "Members ask your bot questions with /ask or by mentioning it.",
+    href: "/ai-discord-bot",
+    icon: BotMessageSquareIcon,
+  },
+  {
+    title: "Welcome messages",
+    description:
+      "Greet new members in a channel you choose, and say goodbye when they leave.",
+    href: "/discord-welcome-bot",
+    icon: HandHeartIcon,
+  },
+  {
+    title: "Giveaways",
+    description:
+      "A /giveaway command with an Enter button that picks random winners.",
+    href: "/marketplace/giveaway",
+    icon: GiftIcon,
+  },
+  {
+    title: "Tickets and modmail",
+    description: "Members open a ticket or DM your bot to reach your staff.",
+    href: "/marketplace/categories/support",
+    icon: TicketIcon,
+  },
+  {
+    title: "ER:LC server",
+    description:
+      "Show your private server's players and run commands on it from Discord.",
+    href: "/erlc-discord-bot",
+    icon: SirenIcon,
+  },
+];
 
 interface Props {
   blockCount: number;
@@ -147,7 +228,7 @@ export default function FeaturesPage({
   const sections: {
     heading: string;
     body?: string;
-    points: { title: string; description: string; href?: string }[];
+    points: Point[];
   }[] = [
     {
       heading: "Start a flow from a command, a button, or an event",
@@ -155,26 +236,31 @@ export default function FeaturesPage({
       points: [
         {
           title: "Slash commands",
+          icon: SquareSlashIcon,
           description:
             "Commands take arguments, like a user, role, channel, number, text, or file. You decide who can use each command, where it works, and how long the cooldown is.",
         },
         {
           title: "Buttons, select menus, and modals",
+          icon: MousePointerClickIcon,
           description:
             "Add them to a message and run a flow when a member uses one. Modals ask members to fill in a form.",
         },
         {
           title: `${eventCount} Discord events`,
+          icon: ZapIcon,
           description:
             "Run a flow without a command when messages are sent, edited, or deleted, when members join or leave, on reactions, boosts, direct messages, and audit log entries, and when your bot joins or leaves a server.",
         },
         {
           title: "Scheduled tasks",
+          icon: ClockIcon,
           description:
             "Run a flow on a schedule, like a daily reminder. The free plan runs them every 5 minutes at most, and Kite Premium every minute.",
         },
         {
           title: "Webhooks",
+          icon: WebhookIcon,
           description:
             "Start a flow from another website or service, like a store that tells your bot about a new order.",
         },
@@ -186,21 +272,25 @@ export default function FeaturesPage({
       points: [
         {
           title: "Conditions",
+          icon: SplitIcon,
           description:
             "If, comparison, role, user, and channel conditions run other blocks depending on who used the command and what they entered.",
         },
         {
           title: "Loops",
+          icon: Repeat2Icon,
           description:
             "Run a set of blocks a number of times, and exit the loop early once you're done.",
         },
         {
           title: "Stored variables",
+          icon: DatabaseIcon,
           description:
             "Keep points, counts, and settings for each member or server between runs. One block sets a value, adds to it, or subtracts from it.",
         },
         {
           title: "Math, random values, and tables",
+          icon: CalculatorIcon,
           description:
             "Calculate Value does math, Generate Random Value picks a number or an item from a list, and Lookup Value finds a value in a table.",
         },
@@ -211,18 +301,21 @@ export default function FeaturesPage({
       points: [
         {
           title: "Flow AI",
+          icon: SparklesIcon,
           description:
             "Describe a command and Flow AI, the AI assistant in the editor, adds and connects the blocks. The free plan includes 2 prompts a month.",
           href: "/ai-discord-bot-maker",
         },
         {
           title: "AI blocks",
+          icon: BrainIcon,
           description:
             "Ask AI answers questions, Search the Web looks things up, and AI Translate translates messages. AI Check, AI Choice, and AI Score sort messages, like spam or questions for your staff. They cost credits.",
           href: "/ai-discord-bot",
         },
         {
           title: "MCP server",
+          icon: PlugIcon,
           description:
             "Build and change your bot from Claude, ChatGPT, Codex, Cursor, or VS Code.",
           href: "/discord-mcp-server",
@@ -234,22 +327,26 @@ export default function FeaturesPage({
       points: [
         {
           title: "ER:LC",
+          icon: SirenIcon,
           description:
             "Get the players and status of your private server and run commands on it, with your server key.",
           href: "/erlc-discord-bot",
         },
         {
           title: "Roblox",
+          icon: Gamepad2Icon,
           description: "Look up a Roblox user by name or ID.",
         },
         {
           title: "Cookie API",
+          icon: CookieIcon,
           description:
             "Make transcripts of channels, captchas, cards, and QR codes, and check Minecraft players.",
           href: "/cookie-api",
         },
         {
           title: "Any other website",
+          icon: GlobeIcon,
           description:
             "Send API Request gets data from another website or sends it there. Discord API Request does anything Discord allows that has no block yet.",
         },
@@ -260,27 +357,31 @@ export default function FeaturesPage({
       points: [
         {
           title: "Always online",
+          icon: ServerIcon,
           description:
             "Kite hosts your bot 24/7, whether it's used or not. On the free plan, it can be in up to 100 servers.",
           href: "/discord-bot-hosting",
         },
         {
           title: "Your own status",
+          icon: CircleDotIcon,
           description:
             'Replace the default "Powered by Kite.onl" status with your own on every plan.',
         },
         {
           title: "Profile and voice on paid plans",
+          icon: UserRoundIcon,
           description:
             "Kite Plus adds a rotating status, an animated avatar and banner, and audio in voice channels. Kite Premium adds a profile per server and the Send message as block.",
           href: "/pricing",
         },
         {
           title: "Collaborators",
+          icon: UsersIcon,
           description:
             "Three people including you can edit the same bot on the free plan.",
         },
-        openSourcePoint,
+        { ...openSourcePoint, icon: CodeIcon },
       ],
     },
   ];
@@ -347,9 +448,15 @@ export default function FeaturesPage({
             <Link href="/apps">Get started for free</Link>
           </Button>
           <Button variant="outline" className="md:w-48" asChild>
-            <a href="#blocks">See all blocks</a>
+            <Link href="/marketplace">Browse templates</Link>
           </Button>
         </div>
+        <a
+          href="#blocks"
+          className="inline-block mt-6 text-sm text-muted-foreground underline hover:text-foreground"
+        >
+          Or jump to all {blockCount} blocks
+        </a>
       </section>
 
       <section className="border-y bg-muted/30">
@@ -370,7 +477,40 @@ export default function FeaturesPage({
         </div>
       </section>
 
-      {sections.slice(0, 2).map((section) => (
+      <section className="container py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold">
+          Start with the bot you need
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-2xl">
+          Most people start with one of these. Each one links to a template you
+          can add in a few clicks, or a page that shows how to build it.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+          {starters.map((starter) => {
+            const Icon = starter.icon!;
+            return (
+              <Link
+                key={starter.title}
+                href={starter.href!}
+                className="group rounded-xl border bg-card p-5 hover:border-primary transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="font-semibold text-lg">{starter.title}</span>
+                  <ArrowRightIcon className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <p className="text-muted-foreground mt-3">
+                  {starter.description}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {sections.slice(0, 3).map((section) => (
         <PointsSection key={section.heading} {...section} />
       ))}
 
@@ -392,39 +532,45 @@ export default function FeaturesPage({
         />
       )}
 
-      {sections.slice(2).map((section) => (
+      {sections.slice(3).map((section) => (
         <PointsSection key={section.heading} {...section} />
       ))}
 
       <section id="blocks" className="container py-12 md:py-16 scroll-mt-20">
-        <h2 className="text-3xl md:text-4xl font-bold">All blocks</h2>
+        <h2 className="text-3xl md:text-4xl font-bold">
+          All {blockCount} blocks
+        </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-2xl">
-          These are the {blockCount} blocks of the editor, in the groups of its
-          block list. Each one links to its page in the docs.
+          Every block of the editor, in the groups of its block list. Hover one
+          to see what it does, or click it for its page in the docs.
         </p>
-        <div className="mt-10 columns-1 md:columns-2 lg:columns-3 gap-x-10">
+        <div className="mt-10 columns-1 md:columns-2 lg:columns-3 gap-4">
           {categories.map((category) => (
-            <div key={category.title} className="break-inside-avoid pb-10">
-              <h3 className="font-semibold text-lg border-b pb-2">
+            <div
+              key={category.title}
+              className="break-inside-avoid mb-4 rounded-xl border bg-card p-5"
+            >
+              <h3 className="font-semibold flex items-baseline justify-between gap-3">
                 {category.title}
+                <span className="text-sm font-normal text-muted-foreground">
+                  {category.blocks.length}
+                </span>
               </h3>
-              <ul className="mt-3 space-y-3">
+              <ul className="mt-3 flex flex-wrap gap-2">
                 {category.blocks.map((block) => (
                   <li key={block.title}>
                     <a
                       href={block.href}
-                      className="font-medium hover:text-primary transition-colors"
+                      title={block.description}
+                      className="inline-flex items-center gap-1.5 rounded-md border bg-muted/40 px-2 py-1 text-sm hover:border-primary hover:text-primary transition-colors"
                     >
                       {block.title}
+                      {block.plan && (
+                        <span className="text-xs font-medium text-primary">
+                          {block.plan}
+                        </span>
+                      )}
                     </a>
-                    {block.plan && (
-                      <span className="ml-2 text-xs font-medium text-primary">
-                        {block.plan}
-                      </span>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      {block.description}
-                    </p>
                   </li>
                 ))}
               </ul>
@@ -447,7 +593,7 @@ function PointsSection({
 }: {
   heading: string;
   body?: string;
-  points: { title: string; description: string; href?: string }[];
+  points: Point[];
 }) {
   return (
     <section className="container py-12 md:py-16">
@@ -458,7 +604,10 @@ function PointsSection({
       <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 mt-10">
         {points.map((point) => (
           <li key={point.title} className="border-t py-5">
-            <h3 className="font-semibold text-lg">
+            <h3 className="font-semibold text-lg flex items-center gap-3">
+              {point.icon && (
+                <point.icon className="h-5 w-5 flex-none text-primary" />
+              )}
               {point.href ? (
                 <Link
                   href={point.href}
