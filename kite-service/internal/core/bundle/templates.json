@@ -3484,26 +3484,11 @@
               }
             },
             {
-              "id": "variable_d8s",
-              "type": "action_variable_set",
-              "position": {
-                "x": 0,
-                "y": 840
-              },
-              "data": {
-                "custom_label": "Save the time",
-                "variable_id": "daily-cooldown",
-                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
-                "variable_operation": "overwrite",
-                "variable_value": "{{now().Unix()}}"
-              }
-            },
-            {
               "id": "variable_d9a",
               "type": "action_variable_set",
               "position": {
                 "x": 0,
-                "y": 1050
+                "y": 840
               },
               "data": {
                 "custom_label": "Add the coins",
@@ -3511,6 +3496,21 @@
                 "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
                 "variable_operation": "increment",
                 "variable_value": "{{int(params.daily_amount)}}"
+              }
+            },
+            {
+              "id": "variable_d8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Save the time",
+                "variable_id": "daily-cooldown",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{now().Unix()}}"
               }
             },
             {
@@ -3566,7 +3566,7 @@
             {
               "id": "400055433",
               "source": "if_d5w",
-              "target": "variable_d8s",
+              "target": "variable_d9a",
               "sourceHandle": "yes"
             },
             {
@@ -3578,12 +3578,12 @@
             {
               "id": "400071271",
               "source": "variable_d9a",
-              "target": "response_d0r"
+              "target": "variable_d8s"
             },
             {
               "id": "400079190",
               "source": "variable_d8s",
-              "target": "variable_d9a"
+              "target": "response_d0r"
             }
           ]
         }
@@ -3644,11 +3644,26 @@
               }
             },
             {
-              "id": "variable_w8s",
+              "id": "variable_w9a",
               "type": "action_variable_set",
               "position": {
                 "x": 0,
                 "y": 840
+              },
+              "data": {
+                "custom_label": "Add the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{(20 + int(interaction.id) % 41)}}"
+              }
+            },
+            {
+              "id": "variable_w8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
               },
               "data": {
                 "custom_label": "Save the time",
@@ -3659,43 +3674,15 @@
               }
             },
             {
-              "id": "variable_w4b",
-              "type": "action_variable_get",
-              "position": {
-                "x": 0,
-                "y": 1050
-              },
-              "data": {
-                "custom_label": "Balance before",
-                "variable_id": "coins",
-                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
-              }
-            },
-            {
-              "id": "variable_w9a",
-              "type": "action_variable_set",
+              "id": "response_w0r",
+              "type": "action_response_create",
               "position": {
                 "x": 0,
                 "y": 1260
               },
               "data": {
-                "custom_label": "Add the coins",
-                "variable_id": "coins",
-                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
-                "variable_operation": "increment",
-                "variable_value": "{{20 + now().UnixMilli() % 41}}"
-              }
-            },
-            {
-              "id": "response_w0r",
-              "type": "action_response_create",
-              "position": {
-                "x": 0,
-                "y": 1470
-              },
-              "data": {
                 "message_data": {
-                  "content": "You {{[\"walked some dogs\", \"fixed a bug\", \"delivered pizza\", \"moderated a busy chat\", \"streamed to 3 viewers\", \"sold lemonade\"][(int(result('variable_w9a')) - int(result('variable_w4b') ?? 0)) % 6]}} and earned **{{(int(result('variable_w9a')) - int(result('variable_w4b') ?? 0))}}** {{params.currency}}. You have **{{int(result('variable_w9a'))}}** now.",
+                  "content": "You {{[\"walked some dogs\", \"fixed a bug\", \"delivered pizza\", \"moderated a busy chat\", \"streamed to 3 viewers\", \"sold lemonade\"][(20 + int(interaction.id) % 41) % 6]}} and earned **{{(20 + int(interaction.id) % 41)}}** {{params.currency}}. You have **{{int(result('variable_w9a'))}}** now.",
                   "allowed_mentions": {
                     "parse": []
                   }
@@ -3739,7 +3726,7 @@
             {
               "id": "400110866",
               "source": "if_w5w",
-              "target": "variable_w8s",
+              "target": "variable_w9a",
               "sourceHandle": "yes"
             },
             {
@@ -3751,17 +3738,12 @@
             {
               "id": "400126704",
               "source": "variable_w9a",
-              "target": "response_w0r"
+              "target": "variable_w8s"
             },
             {
               "id": "400134623",
               "source": "variable_w8s",
-              "target": "variable_w4b"
-            },
-            {
-              "id": "400142542",
-              "source": "variable_w4b",
-              "target": "variable_w9a"
+              "target": "response_w0r"
             }
           ]
         }
@@ -3992,78 +3974,78 @@
           ],
           "edges": [
             {
-              "id": "400150461",
+              "id": "400142542",
               "source": "arg_p1u",
               "target": "command_p3p"
             },
             {
-              "id": "400158380",
+              "id": "400150461",
               "source": "arg_p1a",
               "target": "command_p3p"
             },
             {
-              "id": "400166299",
+              "id": "400158380",
               "source": "contexts_p2c",
               "target": "command_p3p"
             },
             {
-              "id": "400174218",
+              "id": "400166299",
               "source": "command_p3p",
               "target": "if_p4w"
             },
             {
-              "id": "400182137",
+              "id": "400174218",
               "source": "if_p4w",
               "target": "response_p5r",
               "sourceHandle": "no"
             },
             {
-              "id": "400190056",
+              "id": "400182137",
               "source": "if_p4w",
               "target": "variable_p6g",
               "sourceHandle": "yes"
             },
             {
-              "id": "400197975",
+              "id": "400190056",
               "source": "variable_p6g",
               "target": "if_p7w"
             },
             {
-              "id": "400205894",
+              "id": "400197975",
               "source": "if_p7w",
               "target": "response_p8r",
               "sourceHandle": "no"
             },
             {
-              "id": "400213813",
+              "id": "400205894",
               "source": "if_p7w",
               "target": "variable_p9d",
               "sourceHandle": "yes"
             },
             {
-              "id": "400221732",
+              "id": "400213813",
               "source": "variable_p9d",
               "target": "if_q1w"
             },
             {
-              "id": "400229651",
+              "id": "400221732",
               "source": "if_q1w",
               "target": "variable_q3a",
               "sourceHandle": "yes"
             },
             {
-              "id": "400237570",
+              "id": "400229651",
               "source": "variable_q3a",
               "target": "response_q4r"
             },
             {
-              "id": "400245489",
+              "id": "400237570",
               "source": "if_q1w",
               "target": "variable_q5f",
               "sourceHandle": "no"
             },
             {
-              "id": "400253408",
+              "id": "400245489",
               "source": "variable_q5f",
               "target": "response_q6r"
             }
@@ -4160,22 +4142,22 @@
           ],
           "edges": [
             {
-              "id": "400261327",
+              "id": "400253408",
               "source": "arg_r1p",
               "target": "command_r3r"
             },
             {
-              "id": "400269246",
+              "id": "400261327",
               "source": "contexts_r2c",
               "target": "command_r3r"
             },
             {
-              "id": "400277165",
+              "id": "400269246",
               "source": "command_r3r",
               "target": "values_r4t"
             },
             {
-              "id": "400285084",
+              "id": "400277165",
               "source": "values_r4t",
               "target": "response_r5r"
             }
@@ -4288,32 +4270,32 @@
           ],
           "edges": [
             {
-              "id": "400293003",
+              "id": "400285084",
               "source": "arg_c1u",
               "target": "command_c3a"
             },
             {
-              "id": "400300922",
+              "id": "400293003",
               "source": "arg_c1a",
               "target": "command_c3a"
             },
             {
-              "id": "400308841",
+              "id": "400300922",
               "source": "permissions_c2p",
               "target": "command_c3a"
             },
             {
-              "id": "400316760",
+              "id": "400308841",
               "source": "contexts_c2c",
               "target": "command_c3a"
             },
             {
-              "id": "400324679",
+              "id": "400316760",
               "source": "command_c3a",
               "target": "variable_c4s"
             },
             {
-              "id": "400332598",
+              "id": "400324679",
               "source": "variable_c4s",
               "target": "response_c5r"
             }
