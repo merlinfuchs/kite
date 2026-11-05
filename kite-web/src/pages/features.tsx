@@ -28,6 +28,7 @@ import {
   CalculatorIcon,
   CircleDotIcon,
   ClockIcon,
+  CoinsIcon,
   CookieIcon,
   DatabaseIcon,
   Gamepad2Icon,
@@ -48,6 +49,7 @@ import {
   SplitIcon,
   SquareSlashIcon,
   TicketIcon,
+  TrophyIcon,
   UserRoundIcon,
   UsersIcon,
   WebhookIcon,
@@ -94,6 +96,20 @@ const starters: Point[] = [
       "Greet new members in a channel you choose, and say goodbye when they leave.",
     href: "/discord-welcome-bot",
     icon: HandHeartIcon,
+  },
+  {
+    title: "Leveling",
+    description:
+      "Members earn XP for chatting, with /rank, /leaderboard, and a reward role.",
+    href: "/marketplace/leveling",
+    icon: TrophyIcon,
+  },
+  {
+    title: "Economy",
+    description:
+      "Members collect coins with /daily and /work, and pay each other with /pay.",
+    href: "/marketplace/economy",
+    icon: CoinsIcon,
   },
   {
     title: "Giveaways",
@@ -593,7 +609,7 @@ export default function FeaturesPage({
           Most people start with one of these. Each one links to a template you
           can add in a few clicks, or a page that shows how to build it.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
           {starters.map((starter) => {
             const Icon = starter.icon!;
             return (

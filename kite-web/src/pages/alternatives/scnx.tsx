@@ -24,7 +24,7 @@ const content: ComparisonPageContent = {
     "You want to remove all branding from your bot without paying",
   ],
   chooseCompetitor: [
-    "You want dozens of ready-made modules like leveling, economy and social media notifications",
+    "You want dozens of ready-made modules, like social media notifications",
     "You'd rather turn on modules than build commands",
     "You want a ticket and modmail support bot and are fine with paying",
   ],
@@ -56,7 +56,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "100+ templates in the Marketplace",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Many",
     },
     {
