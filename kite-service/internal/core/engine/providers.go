@@ -331,7 +331,7 @@ func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.Gui
 func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
 	// arikawa's ModifyChannel discards the response body.
 	var channel discord.Channel
-	err := p.session.RequestJSON(
+	err := p.session.Client.WithContext(ctx).RequestJSON(
 		&channel,
 		http.MethodPatch,
 		api.EndpointChannels+channelID.String(),

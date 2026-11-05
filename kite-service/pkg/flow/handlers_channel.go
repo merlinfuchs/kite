@@ -58,11 +58,10 @@ func executeActionChannelCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	channelData.AuditLogReason, err = evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
-	channelData.AuditLogReason = api.AuditLogReason(auditLogReason.String())
 
 	channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
 	if err != nil {
@@ -133,11 +132,10 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	editData.AuditLogReason, err = evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
-	editData.AuditLogReason = api.AuditLogReason(auditLogReason.String())
 
 	channel, err := ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
 	if err != nil {
@@ -170,7 +168,7 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
@@ -179,7 +177,7 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		Name:           channelName.String(),
 		Type:           discord.ChannelType(n.Data.ChannelData.Type),
 		Invitable:      option.Bool(n.Data.ChannelData.Invitable),
-		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		AuditLogReason: auditLogReason,
 	}
 	if threadData.Type == 0 {
 		threadData.Type = discord.GuildPublicThread
@@ -245,7 +243,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
@@ -259,7 +257,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		Name:           name.String(),
 		AppliedTags:    tags,
 		Message:        data.ToSendMessageData(opts),
-		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		AuditLogReason: auditLogReason,
 	})
 	if err != nil {
 		return err
@@ -339,4 +337,13 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 		}
 	}
 	return tags, nil
+}
+
+// evalAuditLogReason evaluates the audit log reason setting of a block.
+func evalAuditLogReason(n *CompiledFlowNode, ctx *FlowContext) (api.AuditLogReason, error) {
+	reason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	if err != nil {
+		return "", err
+	}
+	return api.AuditLogReason(reason.String()), nil
 }

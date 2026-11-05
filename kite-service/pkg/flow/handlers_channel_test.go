@@ -188,19 +188,19 @@ func TestThreadCreateInvitable(t *testing.T) {
 	}
 }
 
-type channelEditTestProvider struct {
+type channelTestProvider struct {
 	provider.MockDiscordProvider
 
 	create api.CreateChannelData
 	edit   api.ModifyChannelData
 }
 
-func (p *channelEditTestProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
+func (p *channelTestProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
 	p.create = data
 	return &discord.Channel{ID: 7, GuildID: guildID, Name: data.Name}, nil
 }
 
-func (p *channelEditTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+func (p *channelTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
 	p.edit = data
 	return &discord.Channel{ID: channelID, Name: data.Name}, nil
 }
@@ -215,7 +215,7 @@ func TestChannelEditArchiveLock(t *testing.T) {
 		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
 		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
 	} {
-		p := &channelEditTestProvider{}
+		p := &channelTestProvider{}
 		ctx, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
 		require.NoError(t, err)
 		assert.Equal(t, discord.ChannelID(3), ctx.GetNodeState("1").Result.DiscordChannel().ID)
@@ -232,7 +232,7 @@ func TestChannelEditArchiveLock(t *testing.T) {
 }
 
 func TestChannelAuditLogReason(t *testing.T) {
-	p := &channelEditTestProvider{}
+	p := &channelTestProvider{}
 	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelCreate, `{"channel_data": {"name": "ticket"}, "audit_log_reason": "opened {{1 + 1}}"}`)
 	require.NoError(t, err)
 	assert.Equal(t, api.AuditLogReason("opened 2"), p.create.AuditLogReason)
