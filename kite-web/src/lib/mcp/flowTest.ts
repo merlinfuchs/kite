@@ -14,7 +14,7 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
     "test_flow",
     {
       title: "Test flow",
-      description: `Runs a flow as a test without changing anything, to check that it does what it should. The flow runs with a fake trigger: the command with the options, the event of an event listener, a webhook request, or a click on a button or select menu of a message template. Reads from Discord are real, like members and roles. Nothing is sent or changed: messages, role changes and every other change are returned as effects of their block, with warnings when Discord would reject them, like a missing permission or a role above the bot's. Stored variables are read, and changes to them only last for the test. Blocks that call services other than Discord, like Send API Request, AI and integrations, don't run and have no result unless you mock them. Mock blocks to test each branch, like the error branch of an Error Handler or the answers of AI Check and AI Choice. Waits are skipped. Use then to click the buttons, use the select menus and submit the modals the flow showed, which runs those parts of the flow. Returns each run of the flow with the blocks that ran in order, their results, errors and effects. After building or changing a flow, test the branches that matter and fix what fails before telling the user it works.`,
+      description: `Runs a flow as a test without changing anything, to check that it does what it should. The flow runs with a fake trigger: the command with the options, the event of an event listener, a webhook request, or a click on a button or select menu of a message template. Reads from Discord are real, like members and roles. Nothing is sent or changed: messages, role changes and every other change are returned as effects of their block, with warnings when Discord would reject them, like a missing permission or a role above the bot's. Stored variables are read, and changes to them only last for the test. Use variables to start the test with other stored values, like a balance, XP or the time a cooldown started. Blocks that call services other than Discord, like Send API Request, AI and integrations, don't run and have no result unless you mock them. Mock blocks to test each branch, like the error branch of an Error Handler or the answers of AI Check and AI Choice. Waits are skipped. Use then to click the buttons, use the select menus and submit the modals the flow showed, which runs those parts of the flow. Returns each run of the flow with the blocks that ran in order, their results, errors and effects. After building or changing a flow, test the branches that matter and fix what fails before telling the user it works.`,
       inputSchema: {
         app_id: appId,
         command_id: z.string().optional(),
@@ -83,6 +83,19 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
           .optional()
           .describe(
             'What blocks do instead of running, by block ID. {"result": ...} is the block\'s result, in the format of its result_schema, like a Discord member object for Get Member, or {"status_code": 200, "body": {...}} for Send API Request. {"error": "..."} makes the block fail. For AI Check the result is "yes", "no" or the probability of yes, for AI Choice the name of an option, and for Verify Webhook "valid" or "invalid".'
+          ),
+        variables: z
+          .array(
+            z.object({
+              variable_id: z.string(),
+              scope: z.string().optional(),
+              value: z.unknown(),
+            })
+          )
+          .max(100)
+          .optional()
+          .describe(
+            'Values of stored variables when the test starts, in place of the stored ones, like {"variable_id": "...", "scope": "<server ID>:<user ID>", "value": 95}. The scope is the scope setting of the block as it would be filled in, and only for variables with a value per scope. A value of null means the variable has no value.'
           ),
         then: z
           .array(
