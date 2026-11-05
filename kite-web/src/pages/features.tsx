@@ -501,7 +501,7 @@ export default function FeaturesPage({
     {
       question: "Can I make a leveling or economy bot with Kite?",
       answer:
-        "Yes. The Leveling template in the Marketplace gives members XP for chatting, with level-up messages, a reward role, /rank, and /leaderboard. For an economy, keep coins for each member in a stored variable and add to it with a Set stored variable block. The Marketplace has no economy template right now.",
+        "Yes. The Leveling template in the Marketplace gives members XP for chatting, with level-up messages, a reward role, /rank, and /leaderboard. The Economy template adds coins with /daily, /work, /pay, and /richest.",
     },
     {
       question: "Can I make a ticket bot with Kite?",

@@ -3278,6 +3278,1229 @@
     "changelog": []
   },
   {
+    "id": "economy",
+    "version": 1,
+    "name": "Economy",
+    "description": "Members earn coins with /daily and /work, send them with /pay, and compete on /richest.",
+    "icon": "coins",
+    "category": "games",
+    "about": [
+      "Members collect 100 coins a day with /daily and earn 20 to 60 coins an hour with /work. /balance shows how many coins a member has, /pay sends coins to another member, and /richest lists the members with the most, 10 per page.",
+      "You can rename the coins and change the daily amount when you add the template. Members with the Manage Server permission can give or take coins with /add-coins. Balances are counted per server and kept in a stored variable, so they stay when the bot restarts."
+    ],
+    "faq": [
+      {
+        "question": "How many credits does it use?",
+        "answer": "/balance uses 1 credit, /richest and /add-coins 2, and /daily, /work, and /pay 3 each. Reading balances is free, and saving them costs 1 credit each."
+      },
+      {
+        "question": "Can members spend their coins?",
+        "answer": "Only on each other with /pay. The template has no shop. You can build one with a command that checks the balance with a Comparison Condition, takes the coins with a Set stored variable block, and gives a role."
+      },
+      {
+        "question": "Can a balance go below zero?",
+        "answer": "Only with /add-coins. /pay checks the balance before it sends anything, and gives the coins back if two payments at once would take it below zero."
+      },
+      {
+        "question": "How do I reset everyone's coins?",
+        "answer": "Open Stored variables in the sidebar and delete the values of the balance variable."
+      },
+      {
+        "question": "Are balances shared between servers?",
+        "answer": "No. Each server has its own balances and its own /richest list."
+      }
+    ],
+    "setup": [],
+    "parameters": [
+      {
+        "key": "currency",
+        "label": "Currency",
+        "description": "What the coins are called in messages, like coins or gems.",
+        "type": "text",
+        "required": true,
+        "default": "coins"
+      },
+      {
+        "key": "daily_amount",
+        "label": "Daily amount",
+        "description": "How many coins /daily gives.",
+        "type": "text",
+        "required": true,
+        "default": "100"
+      }
+    ],
+    "commands": [
+      {
+        "id": "balance",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_a1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to show, yourself if empty.",
+                "command_argument_type": "user",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "contexts_a2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_a3b",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "balance",
+                "description": "Show how many coins you or another member have."
+              }
+            },
+            {
+              "id": "variable_a4g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Their balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{(arg('user') ?? user).id}}"
+              }
+            },
+            {
+              "id": "response_a5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{(arg('user') ?? user).id == user.id ? \"You have\" : (arg('user') ?? user).display_name + \" has\"}} **{{int(result('variable_a4g') ?? 0)}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400000000",
+              "source": "arg_a1u",
+              "target": "command_a3b"
+            },
+            {
+              "id": "400007919",
+              "source": "contexts_a2c",
+              "target": "command_a3b"
+            },
+            {
+              "id": "400015838",
+              "source": "command_a3b",
+              "target": "variable_a4g"
+            },
+            {
+              "id": "400023757",
+              "source": "variable_a4g",
+              "target": "response_a5r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "daily",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "contexts_d1c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_d2m",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "daily",
+                "description": "Collect your daily coins."
+              }
+            },
+            {
+              "id": "variable_d3c",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Last daily and work",
+                "variable_id": "economy-cooldowns",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "variable_d4b",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Balance before",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "condition_d5w",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "A day since the last daily?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_d3c')?.daily ?? 0) >= 86400}}"
+              }
+            },
+            {
+              "id": "condition_d6y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_d7e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 400,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_d8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Save the time",
+                "variable_id": "economy-cooldowns",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{ {\"daily\": now().Unix(), \"work\": result('variable_d3c')?.work ?? 0} }}"
+              }
+            },
+            {
+              "id": "variable_d9a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Add the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{int(params.daily_amount)}}"
+              }
+            },
+            {
+              "id": "response_d0r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1680
+              },
+              "data": {
+                "message_data": {
+                  "content": "You got **{{int(params.daily_amount)}}** {{params.currency}}. You have **{{int(result('variable_d9a'))}}** now, and you can get more <t:{{now().Unix() + 86400}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "response_d0w",
+              "type": "action_response_create",
+              "position": {
+                "x": 400,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "You already got your daily {{params.currency}}. You can get more <t:{{int(result('variable_d3c').daily) + 86400}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400031676",
+              "source": "contexts_d1c",
+              "target": "command_d2m"
+            },
+            {
+              "id": "400039595",
+              "source": "command_d2m",
+              "target": "variable_d3c"
+            },
+            {
+              "id": "400047514",
+              "source": "variable_d3c",
+              "target": "variable_d4b"
+            },
+            {
+              "id": "400055433",
+              "source": "variable_d4b",
+              "target": "condition_d5w"
+            },
+            {
+              "id": "400063352",
+              "source": "condition_d5w",
+              "target": "condition_d6y"
+            },
+            {
+              "id": "400071271",
+              "source": "condition_d5w",
+              "target": "condition_d7e"
+            },
+            {
+              "id": "400079190",
+              "source": "condition_d6y",
+              "target": "variable_d8s"
+            },
+            {
+              "id": "400087109",
+              "source": "variable_d8s",
+              "target": "variable_d9a"
+            },
+            {
+              "id": "400095028",
+              "source": "variable_d9a",
+              "target": "response_d0r"
+            },
+            {
+              "id": "400102947",
+              "source": "condition_d7e",
+              "target": "response_d0w"
+            }
+          ]
+        }
+      },
+      {
+        "id": "work",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "contexts_w1c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_w2m",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "work",
+                "description": "Work for some coins, once an hour."
+              }
+            },
+            {
+              "id": "variable_w3c",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Last daily and work",
+                "variable_id": "economy-cooldowns",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "variable_w4b",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Balance before",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "condition_w5w",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "An hour since the last work?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_w3c')?.work ?? 0) >= 3600}}"
+              }
+            },
+            {
+              "id": "condition_w6y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_w7e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 400,
+                "y": 1050
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_w8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Save the time",
+                "variable_id": "economy-cooldowns",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{ {\"daily\": result('variable_w3c')?.daily ?? 0, \"work\": now().Unix()} }}"
+              }
+            },
+            {
+              "id": "variable_w9a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Add the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{20 + now().UnixMilli() % 41}}"
+              }
+            },
+            {
+              "id": "response_w0r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1680
+              },
+              "data": {
+                "message_data": {
+                  "content": "You {{[\"walked some dogs\", \"fixed a bug\", \"delivered pizza\", \"moderated a busy chat\", \"streamed to 3 viewers\", \"sold lemonade\"][(int(result('variable_w9a')) - int(result('variable_w4b') ?? 0)) % 6]}} and earned **{{(int(result('variable_w9a')) - int(result('variable_w4b') ?? 0))}}** {{params.currency}}. You have **{{int(result('variable_w9a'))}}** now.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "response_w0w",
+              "type": "action_response_create",
+              "position": {
+                "x": 400,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "You can work again <t:{{int(result('variable_w3c').work) + 3600}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400110866",
+              "source": "contexts_w1c",
+              "target": "command_w2m"
+            },
+            {
+              "id": "400118785",
+              "source": "command_w2m",
+              "target": "variable_w3c"
+            },
+            {
+              "id": "400126704",
+              "source": "variable_w3c",
+              "target": "variable_w4b"
+            },
+            {
+              "id": "400134623",
+              "source": "variable_w4b",
+              "target": "condition_w5w"
+            },
+            {
+              "id": "400142542",
+              "source": "condition_w5w",
+              "target": "condition_w6y"
+            },
+            {
+              "id": "400150461",
+              "source": "condition_w5w",
+              "target": "condition_w7e"
+            },
+            {
+              "id": "400158380",
+              "source": "condition_w6y",
+              "target": "variable_w8s"
+            },
+            {
+              "id": "400166299",
+              "source": "variable_w8s",
+              "target": "variable_w9a"
+            },
+            {
+              "id": "400174218",
+              "source": "variable_w9a",
+              "target": "response_w0r"
+            },
+            {
+              "id": "400182137",
+              "source": "condition_w7e",
+              "target": "response_w0w"
+            }
+          ]
+        }
+      },
+      {
+        "id": "pay",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_p1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -400,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to pay.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_p1a",
+              "type": "option_command_argument",
+              "position": {
+                "x": -150,
+                "y": 0
+              },
+              "data": {
+                "name": "amount",
+                "description": "How many coins to send.",
+                "command_argument_type": "integer",
+                "command_argument_required": true,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000000
+              }
+            },
+            {
+              "id": "contexts_p2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_p3p",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "pay",
+                "description": "Send coins to another member."
+              }
+            },
+            {
+              "id": "condition_p4w",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Another member, not a bot?",
+                "condition_base_value": "{{arg('user').id != user.id && !arg('user').is_bot}}"
+              }
+            },
+            {
+              "id": "condition_p5y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_p5e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 450,
+                "y": 630
+              },
+              "data": {}
+            },
+            {
+              "id": "response_p5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 840
+              },
+              "data": {
+                "message_data": {
+                  "content": "You can't pay yourself or a bot.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_p6g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Your balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "condition_p7w",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Enough coins?",
+                "condition_base_value": "{{int(result('variable_p6g') ?? 0) >= int(arg('amount'))}}"
+              }
+            },
+            {
+              "id": "condition_p8y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_p8e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 450,
+                "y": 1260
+              },
+              "data": {}
+            },
+            {
+              "id": "response_p8r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 1470
+              },
+              "data": {
+                "message_data": {
+                  "content": "You only have **{{int(result('variable_p6g') ?? 0)}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_p9d",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Take your coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "decrement",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "condition_q1w",
+              "type": "control_condition_compare",
+              "position": {
+                "x": 0,
+                "y": 1680
+              },
+              "data": {
+                "custom_label": "Still not below zero?",
+                "condition_base_value": "{{int(result('variable_p9d')) >= 0}}"
+              }
+            },
+            {
+              "id": "condition_q2y",
+              "type": "control_condition_item_compare",
+              "position": {
+                "x": 0,
+                "y": 1890
+              },
+              "data": {
+                "condition_item_mode": "equal",
+                "condition_item_value": "{{true}}"
+              }
+            },
+            {
+              "id": "condition_q2e",
+              "type": "control_condition_item_else",
+              "position": {
+                "x": 450,
+                "y": 1890
+              },
+              "data": {}
+            },
+            {
+              "id": "variable_q3a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 2100
+              },
+              "data": {
+                "custom_label": "Give them the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{arg('user').id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_q4r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 2310
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{user.mention}} paid {{arg('user').mention}} **{{int(arg('amount'))}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": "variable_q5f",
+              "type": "action_variable_set",
+              "position": {
+                "x": 450,
+                "y": 2100
+              },
+              "data": {
+                "custom_label": "Give your coins back",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_q6r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 2310
+              },
+              "data": {
+                "message_data": {
+                  "content": "You don't have enough {{params.currency}} for that anymore.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400190056",
+              "source": "arg_p1u",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400197975",
+              "source": "arg_p1a",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400205894",
+              "source": "contexts_p2c",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400213813",
+              "source": "command_p3p",
+              "target": "condition_p4w"
+            },
+            {
+              "id": "400221732",
+              "source": "condition_p4w",
+              "target": "condition_p5y"
+            },
+            {
+              "id": "400229651",
+              "source": "condition_p4w",
+              "target": "condition_p5e"
+            },
+            {
+              "id": "400237570",
+              "source": "condition_p5e",
+              "target": "response_p5r"
+            },
+            {
+              "id": "400245489",
+              "source": "condition_p5y",
+              "target": "variable_p6g"
+            },
+            {
+              "id": "400253408",
+              "source": "variable_p6g",
+              "target": "condition_p7w"
+            },
+            {
+              "id": "400261327",
+              "source": "condition_p7w",
+              "target": "condition_p8y"
+            },
+            {
+              "id": "400269246",
+              "source": "condition_p7w",
+              "target": "condition_p8e"
+            },
+            {
+              "id": "400277165",
+              "source": "condition_p8e",
+              "target": "response_p8r"
+            },
+            {
+              "id": "400285084",
+              "source": "condition_p8y",
+              "target": "variable_p9d"
+            },
+            {
+              "id": "400293003",
+              "source": "variable_p9d",
+              "target": "condition_q1w"
+            },
+            {
+              "id": "400300922",
+              "source": "condition_q1w",
+              "target": "condition_q2y"
+            },
+            {
+              "id": "400308841",
+              "source": "condition_q1w",
+              "target": "condition_q2e"
+            },
+            {
+              "id": "400316760",
+              "source": "condition_q2y",
+              "target": "variable_q3a"
+            },
+            {
+              "id": "400324679",
+              "source": "variable_q3a",
+              "target": "response_q4r"
+            },
+            {
+              "id": "400332598",
+              "source": "condition_q2e",
+              "target": "variable_q5f"
+            },
+            {
+              "id": "400340517",
+              "source": "variable_q5f",
+              "target": "response_q6r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "richest",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_r1p",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "page",
+                "description": "Which page to show, 10 members each. Defaults to 1.",
+                "command_argument_type": "integer",
+                "command_argument_required": false,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000
+              }
+            },
+            {
+              "id": "contexts_r2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_r3r",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "richest",
+                "description": "Show the members with the most coins."
+              }
+            },
+            {
+              "id": "values_r4t",
+              "type": "action_variable_list",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "10 members with the most coins",
+                "variable_id": "coins",
+                "variable_sort": "value_desc",
+                "variable_scope_prefix": "{{interaction.guild.id}}:",
+                "variable_limit": "10",
+                "variable_skip": "{{(int(arg('page') ?? 1) - 1) * 10}}"
+              }
+            },
+            {
+              "id": "response_r5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "Richest members",
+                      "description": "{{let page = int(arg('page') ?? 1); let rows = result('values_r4t'); len(rows) == 0 ? (page == 1 ? \"No one has \" + params.currency + \" yet. Members get them with /daily and /work.\" : \"There's no one on page \" + string(page) + \".\") : join(map(rows, { \"**\" + string((page - 1) * 10 + #index + 1) + \".** <@\" + split(#.scope, \":\")[1] + \"> · \" + string(int(#.value)) + \" \" + params.currency }), \"\\n\")}}",
+                      "footer": {
+                        "text": "Page {{int(arg('page') ?? 1)}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400348436",
+              "source": "arg_r1p",
+              "target": "command_r3r"
+            },
+            {
+              "id": "400356355",
+              "source": "contexts_r2c",
+              "target": "command_r3r"
+            },
+            {
+              "id": "400364274",
+              "source": "command_r3r",
+              "target": "values_r4t"
+            },
+            {
+              "id": "400372193",
+              "source": "values_r4t",
+              "target": "response_r5r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "add-coins",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_c1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -400,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to give coins to.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_c1a",
+              "type": "option_command_argument",
+              "position": {
+                "x": -150,
+                "y": 0
+              },
+              "data": {
+                "name": "amount",
+                "description": "How many coins to give, or a negative number to take some away.",
+                "command_argument_type": "integer",
+                "command_argument_required": true,
+                "command_argument_min_value": -1000000,
+                "command_argument_max_value": 1000000
+              }
+            },
+            {
+              "id": "permissions_c2p",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 150,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "32"
+              }
+            },
+            {
+              "id": "contexts_c2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_c3a",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "add-coins",
+                "description": "Give coins to a member, or take some away."
+              }
+            },
+            {
+              "id": "variable_c4s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Change their balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{arg('user').id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_c5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{arg('user').mention}} has **{{int(result('variable_c4s'))}}** {{params.currency}} now.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400380112",
+              "source": "arg_c1u",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400388031",
+              "source": "arg_c1a",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400395950",
+              "source": "permissions_c2p",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400403869",
+              "source": "contexts_c2c",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400411788",
+              "source": "command_c3a",
+              "target": "variable_c4s"
+            },
+            {
+              "id": "400419707",
+              "source": "variable_c4s",
+              "target": "response_c5r"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [],
+    "messages": [],
+    "variables": [
+      {
+        "id": "coins",
+        "name": "balance",
+        "scoped": true
+      },
+      {
+        "id": "economy-cooldowns",
+        "name": "economy_cooldowns",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
     "id": "server-info",
     "version": 1,
     "name": "Server Info",

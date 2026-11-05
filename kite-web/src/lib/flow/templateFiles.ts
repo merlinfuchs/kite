@@ -3,6 +3,7 @@ import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
+import economy from "../templates/economy.json";
 import erlc from "../templates/erlc.json";
 import flagTranslator from "../templates/flag-translator.json";
 import giveaway from "../templates/giveaway.json";
@@ -30,6 +31,7 @@ export const templateFiles: unknown[] = [
   suggestions,
   starboard,
   leveling,
+  economy,
   serverInfo,
   modmail,
   counting,
