@@ -275,7 +275,6 @@ describe("applyFlowEdits", () => {
         { op: "remove_node", id: "entry" },
         { op: "update_node", id: "$missing", data: {} },
         addLog("$b", "a", "entry"),
-        { op: "disconnect", source: "a", target: "entry" },
         // Like an edit the service couldn't read.
         {
           op: "update_node",
@@ -289,11 +288,60 @@ describe("applyFlowEdits", () => {
       "Edit 1 (remove_node): 'entry' can't be removed on its own. Remove the block it belongs to instead.",
       "Edit 2 (update_node): There is no block '$missing'.",
       "Edit 3 (add_node): 'a' isn't connected to 'entry'.",
-      "Edit 4 (disconnect): 'a' isn't connected to 'entry'.",
-      "Edit 5 (update_node): data_json isn't a JSON object",
+      "Edit 4 (update_node): data_json isn't a JSON object",
     ]);
     expect(res.nodes).toHaveLength(3);
     expect(res.connections).toEqual(["entry->a", `a->${res.refs.$c}`]);
+  });
+
+  it("inserts blocks into a connection by its handle", () => {
+    const check = node("check", "control_if", {});
+    const res = apply(
+      [entry, check, log("a")],
+      [edge("entry", "check"), edge("check", "a", "yes")],
+      [addLog("$b", "check", "a")]
+    );
+
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      `check[yes]->${res.refs.$b}`,
+      `${res.refs.$b}->a`,
+    ]);
+  });
+
+  it("disconnects blocks by any handle if none is given", () => {
+    const check = node("check", "control_if", {});
+    const res = apply(
+      [entry, check, log("a"), log("b"), log("c")],
+      [
+        edge("entry", "check"),
+        edge("check", "a", "yes"),
+        edge("check", "b", "yes"),
+        edge("check", "b", "no"),
+        edge("check", "c", "yes"),
+      ],
+      [
+        { op: "disconnect", source: "check", target: "a" },
+        { op: "disconnect", source: "check", target: "entry" },
+        { op: "disconnect", source: "check", target: "c", handle: "no" },
+        { op: "disconnect", source: "check", target: "b" },
+      ]
+    );
+
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([
+      {
+        severity: "error",
+        message:
+          "Edit 4 (disconnect): 'check' is connected to 'b' by several outputs: 'yes', 'no'. Set the handle to one of them.",
+      },
+    ]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      "check[yes]->b",
+      "check[no]->b",
+      "check[yes]->c",
+    ]);
   });
 
   it("reports what the validator finds", () => {
