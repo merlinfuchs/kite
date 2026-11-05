@@ -109,7 +109,7 @@ const features: {
   {
     title: "Templates",
     description:
-      "Add one of 80+ ready-made bots from the Marketplace, then change it to fit your server.",
+      "Add one of 100+ ready-made bots from the Marketplace, then change it to fit your server.",
     href: "/marketplace",
     mockup: <TemplateMockup />,
   },
