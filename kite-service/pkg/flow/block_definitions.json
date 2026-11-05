@@ -1709,6 +1709,86 @@
       "result": null
     },
     {
+      "type": "action_member_voice_edit",
+      "title": "Edit voice state",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_guild_member",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "partial": true
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "user_target",
+          "in": "path",
+          "target": "user_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_mute",
+          "in": "body",
+          "target": "mute",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_deaf",
+          "in": "body",
+          "target": "deaf",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "channel_target",
+          "in": "body",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_voice_audio_play",
       "title": "Play audio",
       "credits": 1,
