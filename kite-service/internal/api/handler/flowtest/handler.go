@@ -2,6 +2,7 @@ package flowtest
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"gopkg.in/guregu/null.v4"
 )
 
 type Runner interface {
@@ -100,6 +102,19 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 			return nil, handler.ErrBadRequest("invalid_test", fmt.Sprintf("Mock of block %s needs a result or an error", id))
 		}
 		test.Mocks[id] = flow.TestMock{Result: mock.Result, Error: mock.Error}
+	}
+	for _, v := range req.Variables {
+		var value any
+		if len(v.Value) > 0 {
+			if err := json.Unmarshal(v.Value, &value); err != nil {
+				return nil, handler.ErrBadRequest("invalid_test", fmt.Sprintf("Value of variable %s isn't valid JSON", v.VariableID))
+			}
+		}
+		test.Variables = append(test.Variables, engine.FlowTestVariable{
+			VariableID: v.VariableID,
+			Scope:      null.StringFromPtr(v.Scope),
+			Value:      thing.NewFromJSONValue(value),
+		})
 	}
 	for _, action := range req.Then {
 		test.Then = append(test.Then, engine.FlowTestAction{
