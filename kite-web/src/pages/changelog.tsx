@@ -41,8 +41,8 @@ export default function ChangelogPage() {
           What&apos;s new in Kite
         </h1>
         <p className="text-xl text-muted-foreground mt-6">
-          New blocks, templates, and plan changes, newest first. Kite started in
-          2024, and this list starts in October 2026.
+          New blocks, templates, and plan changes, newest first. Kite opened to
+          everyone in September 2024.
         </p>
 
         {byMonth(changelog).map(({ month, entries }) => (

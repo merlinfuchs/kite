@@ -216,9 +216,9 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-18",
-    title: "File uploads in modals and copy and paste for blocks",
+    title: "File uploads in modals",
     description:
-      "Modals can ask members for a file, and you can copy and paste blocks in the editor.",
+      "Modals can ask members for a file, and the flow gets it with their other answers.",
   },
   {
     date: "2026-10-16",
@@ -243,5 +243,153 @@ export const changelog: ChangelogEntry[] = [
     title: "Webhooks, reaction events, and cooldowns",
     description:
       "Start a flow from another website, run one when someone reacts to a message, and limit how often a command can be used.",
+  },
+  {
+    date: "2026-09-29",
+    title: "Flow AI in the editor",
+    description:
+      "Describe a command and Flow AI adds and connects the blocks for you.",
+    href: "/ai-discord-bot-maker",
+  },
+  {
+    date: "2026-09-29",
+    title: "Discord API Request and Create poll blocks",
+    description:
+      "Discord API Request does anything Discord allows that has no block yet. Create poll sends a poll to a channel.",
+  },
+  {
+    date: "2026-09-28",
+    title: "Events for joining and leaving servers",
+    description: "Run a flow when your bot joins or leaves a server.",
+  },
+  {
+    date: "2026-09-25",
+    title: "Kite is out of beta",
+    description:
+      "The open beta that started in September 2024 is over. Your bot shows its plan where it said beta.",
+  },
+  {
+    date: "2026-09-25",
+    title: "Scheduled tasks",
+    description:
+      "Run a flow on a schedule, like every morning at 9. Kite shows when it runs next.",
+  },
+  {
+    date: "2026-09-25",
+    title: "Rotating status",
+    description:
+      "Your bot can rotate through several statuses, and the Set status block changes it from a flow. Paid plans only.",
+  },
+  {
+    date: "2026-09-25",
+    title: "Undo, redo, and copy and paste in the flow editor",
+    description:
+      "Undo and redo your changes, and copy and paste blocks within a flow or into another one.",
+  },
+  {
+    date: "2026-09-24",
+    title: "Join and leave voice channels",
+    description: "Your bot can join a voice channel and leave it again.",
+  },
+  {
+    date: "2026-09-23",
+    title: "Discord's new message layouts",
+    description:
+      "Message templates can use Discord's newer components, like containers, sections, and image galleries.",
+  },
+  {
+    date: "2026-09-23",
+    title: "Share commands and event listeners",
+    description:
+      "Export a command or event listener and import it into another bot.",
+  },
+  {
+    date: "2026-01-08",
+    title: "Kite moves to the AGPL-3.0 license",
+    description:
+      "Kite's code is open source under the AGPL-3.0. Anyone can read it or host Kite themselves.",
+  },
+  {
+    date: "2025-09-06",
+    title: "Event filters and error handling",
+    description:
+      "Event Filter runs an event listener only for the events you want. Handle Errors runs other blocks when a block fails.",
+  },
+  {
+    date: "2025-09-04",
+    title: "Channel and thread blocks",
+    description:
+      "Create, edit, and delete channels and threads from a flow. Command arguments can have choices, a minimum, and a maximum.",
+  },
+  {
+    date: "2025-07-28",
+    title: "A docs page for every block",
+    description:
+      "The documentation explains each block, its settings, and what it returns.",
+  },
+  {
+    date: "2025-07-22",
+    title: "Get members, roles, channels, and Roblox users",
+    description:
+      "Blocks that get Discord members, roles, and channels by ID, and Get Roblox User for Roblox players.",
+  },
+  {
+    date: "2025-07-20",
+    title: "Search the Web",
+    description: "Your bot can look things up on the web with AI.",
+  },
+  {
+    date: "2025-02-26",
+    title: "Paid plans",
+    description:
+      "The first paid plan raises the limits of a bot that needs more. Every bot still starts on the free plan.",
+    href: "/pricing",
+  },
+  {
+    date: "2025-01-19",
+    title: "Templates",
+    description:
+      "Add ready-made commands to your bot, and answer a few questions while adding them.",
+    href: "/marketplace",
+  },
+  {
+    date: "2025-01-14",
+    title: "Modals",
+    description:
+      "Ask members to fill in a form, and continue the flow with their answers.",
+  },
+  {
+    date: "2025-01-08",
+    title: "Calculate Value and Generate Random Value",
+    description: "Do math in a flow and pick random numbers.",
+  },
+  {
+    date: "2024-12-09",
+    title: "Event listeners",
+    description:
+      "Run a flow when something happens in a server, like a new message or a new member, without a command.",
+  },
+  {
+    date: "2024-12-01",
+    title: "Commands in user apps",
+    description:
+      "Members can add your bot to their own Discord account and use its commands in any server or DM.",
+  },
+  {
+    date: "2024-11-29",
+    title: "Ask AI and direct messages",
+    description:
+      "Your bot can answer with AI and send direct messages to members.",
+  },
+  {
+    date: "2024-10-03",
+    title: "Stored variables",
+    description: "Keep values like points or counts between runs of a command.",
+  },
+  {
+    date: "2024-09-24",
+    title: "Kite opens to everyone",
+    description:
+      "Kite starts as a free open beta. You build slash commands from blocks, design messages with buttons, and set your bot's own status.",
   },
 ];
