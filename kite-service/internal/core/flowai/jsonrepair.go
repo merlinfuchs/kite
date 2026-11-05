@@ -2,6 +2,7 @@ package flowai
 
 import (
 	"encoding/json"
+	"log/slog"
 	"strings"
 )
 
@@ -13,23 +14,25 @@ func unmarshalModelJSON(value string, v any) error {
 	if err == nil {
 		return nil
 	}
-	if repaired, ok := repairJSON(value); ok && json.Unmarshal([]byte(repaired), v) == nil {
-		return nil
+	repaired := repairJSON(value)
+	if repaired == value || json.Unmarshal([]byte(repaired), v) != nil {
+		return err
 	}
-	return err
+	// Logged to see how often the model gets JSON wrong.
+	slog.Info("Flow AI edit JSON repaired", slog.Any("cause", err))
+	return nil
 }
 
 // repairJSON fixes the mistakes the model makes most when writing JSON:
 // raw line breaks and tabs in strings, \' and other invalid escapes,
 // closing brackets that don't match the open ones, and missing closing
-// brackets at the end. It returns false if nothing was changed.
-func repairJSON(s string) (string, bool) {
+// brackets at the end.
+func repairJSON(s string) string {
 	var b strings.Builder
 	b.Grow(len(s) + 8)
 
 	var open []byte
 	inString := false
-	changed := false
 
 	for i := 0; i < len(s); i++ {
 		c := s[i]
@@ -41,7 +44,6 @@ func repairJSON(s string) (string, bool) {
 				b.WriteByte(c)
 			case '\\':
 				if i+1 >= len(s) {
-					changed = true
 					continue
 				}
 				next := s[i+1]
@@ -51,23 +53,18 @@ func repairJSON(s string) (string, bool) {
 					b.WriteByte(next)
 				case '\'':
 					b.WriteByte(next)
-					changed = true
 				default:
 					// Keep the backslash as text.
 					b.WriteString(`\\`)
 					b.WriteByte(next)
-					changed = true
 				}
 				i++
 			case '\n':
 				b.WriteString(`\n`)
-				changed = true
 			case '\r':
 				b.WriteString(`\r`)
-				changed = true
 			case '\t':
 				b.WriteString(`\t`)
-				changed = true
 			default:
 				b.WriteByte(c)
 			}
@@ -80,27 +77,21 @@ func repairJSON(s string) (string, bool) {
 		case '{', '[':
 			open = append(open, c)
 		case '}', ']':
-			opener := byte('{')
-			if c == ']' {
-				opener = '['
-			}
 			at := -1
 			for j := len(open) - 1; j >= 0; j-- {
-				if open[j] == opener {
+				if closer(open[j]) == c {
 					at = j
 					break
 				}
 			}
 			if at == -1 {
 				// Nothing to close, so the bracket is dropped.
-				changed = true
 				continue
 			}
 			// Close what was left open inside, e.g. the ] of
 			// {"a": [{"b": 1}} before its }.
 			for j := len(open) - 1; j > at; j-- {
 				b.WriteByte(closer(open[j]))
-				changed = true
 			}
 			open = open[:at]
 		}
@@ -109,14 +100,12 @@ func repairJSON(s string) (string, bool) {
 
 	if inString {
 		b.WriteByte('"')
-		changed = true
 	}
 	for j := len(open) - 1; j >= 0; j-- {
 		b.WriteByte(closer(open[j]))
-		changed = true
 	}
 
-	return b.String(), changed
+	return b.String()
 }
 
 func closer(opener byte) byte {

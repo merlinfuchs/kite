@@ -71,6 +71,6 @@ func TestUnmarshalModelJSONKeepsOriginalError(t *testing.T) {
 }
 
 func TestRepairJSONLeavesValidJSON(t *testing.T) {
-	_, changed := repairJSON(`{"a":["b\n\"c\\"],"d":{}}`)
-	assert.False(t, changed)
+	valid := `{"a":["b\n\"c\\"],"d":{}}`
+	assert.Equal(t, valid, repairJSON(valid))
 }
