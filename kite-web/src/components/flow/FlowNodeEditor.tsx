@@ -4557,6 +4557,15 @@ function VariableListInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      <BaseInput
+        field="variable_skip"
+        title="Skip"
+        description="How many values to skip first, like 10 for the second page of 10."
+        value={data.variable_skip || ""}
+        updateValue={(v) => updateData({ variable_skip: v || undefined })}
+        errors={errors}
+        placeholders
+      />
     </>
   );
 }

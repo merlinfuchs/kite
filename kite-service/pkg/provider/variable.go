@@ -50,6 +50,8 @@ type VariableListOptions struct {
 	ScopePrefix string
 	Sort        VariableListSort
 	Limit       int
+	// How many values to skip first, for pages after the first.
+	Skip int
 }
 
 type VariableValue struct {

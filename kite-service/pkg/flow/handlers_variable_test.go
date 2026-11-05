@@ -152,12 +152,14 @@ func TestVariableListResult(t *testing.T) {
 	p, res, err := executeVariableList(t, true, FlowNodeData{
 		VariableScopePrefix: "{{'guild'}}:",
 		VariableLimit:       "{{2}}",
+		VariableSkip:        "{{1 * 10}}",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, provider.VariableListOptions{
 		ScopePrefix: "guild:",
 		Sort:        provider.VariableListSortValueDesc,
 		Limit:       2,
+		Skip:        10,
 	}, p.opts)
 
 	items := res.Array()
@@ -181,9 +183,13 @@ func TestVariableListDefaultsAndUnscoped(t *testing.T) {
 	}, p.opts)
 }
 
-func TestVariableListRejectsBadLimit(t *testing.T) {
+func TestVariableListRejectsBadNumbers(t *testing.T) {
 	for _, limit := range []string{"0", "101", "ten", "{{''}} "} {
 		_, _, err := executeVariableList(t, true, FlowNodeData{VariableLimit: limit})
 		assert.ErrorContains(t, err, "from 1 to 100", limit)
+	}
+	for _, skip := range []string{"-1", "10001", "page 2"} {
+		_, _, err := executeVariableList(t, true, FlowNodeData{VariableSkip: skip})
+		assert.ErrorContains(t, err, "from 0 to 10000", skip)
 	}
 }

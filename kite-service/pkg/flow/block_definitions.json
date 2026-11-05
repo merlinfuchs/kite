@@ -1823,7 +1823,7 @@
     {
       "type": "action_variable_list",
       "title": "List stored variable values",
-      "credits": 0,
+      "credits": 1,
       "audit_log_reason": false,
       "requires": [],
       "run": {

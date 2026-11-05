@@ -398,6 +398,7 @@ type FlowNodeData struct {
 	VariableSort        provider.VariableListSort `json:"variable_sort,omitempty"`
 	VariableScopePrefix string                    `json:"variable_scope_prefix,omitempty"`
 	VariableLimit       string                    `json:"variable_limit,omitempty"`
+	VariableSkip        string                    `json:"variable_skip,omitempty"`
 
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`

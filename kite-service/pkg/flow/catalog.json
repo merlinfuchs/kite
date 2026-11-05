@@ -5037,6 +5037,19 @@
             ],
             "description": "How many values to get, from 1 to 100. Defaults to 10."
           },
+          "variable_skip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(10000|[1-9]?[0-9]{1,3})$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many values to skip first, from 0 to 10000, like 10 for the second page of 10. Defaults to 0."
+          },
           "temporary_name": {
             "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",

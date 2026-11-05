@@ -421,7 +421,7 @@ ORDER BY
   CASE WHEN $4::text = 'updated_desc' THEN variable_values.updated_at END DESC,
   CASE WHEN $4::text = 'updated_asc' THEN variable_values.updated_at END ASC,
   variable_values.id
-LIMIT $5
+LIMIT $6 OFFSET $5
 `
 
 type ListVariableValuesParams struct {
@@ -429,6 +429,7 @@ type ListVariableValuesParams struct {
 	AppID       string
 	ScopePrefix string
 	Sort        string
+	RowOffset   int32
 	RowLimit    int32
 }
 
@@ -442,6 +443,7 @@ func (q *Queries) ListVariableValues(ctx context.Context, arg ListVariableValues
 		arg.AppID,
 		arg.ScopePrefix,
 		arg.Sort,
+		arg.RowOffset,
 		arg.RowLimit,
 	)
 	if err != nil {

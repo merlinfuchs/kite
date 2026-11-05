@@ -27,8 +27,8 @@ type VariableValueStore interface {
 	SearchVariableValues(ctx context.Context, appID string, variableID string, search string, limit int, offset int) ([]*model.VariableValue, int, error)
 	// ListVariableValues returns up to limit values of the variable whose scope
 	// starts with scopePrefix, sorted by sort, one of value_desc, value_asc,
-	// updated_desc and updated_asc.
-	ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int) ([]*model.VariableValue, error)
+	// updated_desc and updated_asc, after skipping offset of them.
+	ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int, offset int) ([]*model.VariableValue, error)
 	VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error)
 	SetVariableValue(ctx context.Context, appID string, value model.VariableValue) error
 	UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error)

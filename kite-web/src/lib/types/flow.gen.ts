@@ -281,6 +281,7 @@ export interface FlowNodeData {
   variable_sort?: any /* provider.VariableListSort */;
   variable_scope_prefix?: string;
   variable_limit?: string;
+  variable_skip?: string;
   /**
    * HTTP Request
    */

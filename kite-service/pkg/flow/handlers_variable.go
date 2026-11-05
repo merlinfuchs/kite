@@ -17,6 +17,10 @@ const maxVariableListLimit = 100
 
 const defaultVariableListLimit = 10
 
+// maxVariableListSkip bounds how far into the values a block can page. The
+// database sorts all of them either way, a far offset only adds to that.
+const maxVariableListSkip = 10_000
+
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
 		FlowNodeTypeActionVariableSet:    executeActionVariableSet,
@@ -119,16 +123,13 @@ func executeActionVariableGet(n *CompiledFlowNode, ctx *FlowContext) error {
 // objects with the scope, the value and when it was last updated, like a
 // leaderboard of the highest values.
 func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
-	limit := defaultVariableListLimit
-	if strings.TrimSpace(n.Data.VariableLimit) != "" {
-		value, err := ctx.EvalTemplate(n.Data.VariableLimit)
-		if err != nil {
-			return err
-		}
-		limit, err = strconv.Atoi(strings.TrimSpace(value.String()))
-		if err != nil || limit < 1 || limit > maxVariableListLimit {
-			return fmt.Errorf("the number of values must be a whole number from 1 to %d", maxVariableListLimit)
-		}
+	limit, err := variableListNumber(ctx, n.Data.VariableLimit, defaultVariableListLimit, 1, maxVariableListLimit)
+	if err != nil {
+		return fmt.Errorf("the number of values must be a whole number from 1 to %d", maxVariableListLimit)
+	}
+	skip, err := variableListNumber(ctx, n.Data.VariableSkip, 0, 0, maxVariableListSkip)
+	if err != nil {
+		return fmt.Errorf("the number of values to skip must be a whole number from 0 to %d", maxVariableListSkip)
 	}
 
 	// Unscoped variables have one value, which a prefix can't match.
@@ -154,6 +155,7 @@ func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
 		ScopePrefix: prefix,
 		Sort:        sort,
 		Limit:       limit,
+		Skip:        skip,
 	})
 	if err != nil {
 		return err
@@ -174,4 +176,21 @@ func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	ctx.StoreNodeResult(n, thing.NewArray(items))
 	return n.ExecuteChildren(ctx)
+}
+
+// variableListNumber evaluates a number setting of the List stored variable
+// values block, which is def when empty and an error outside min to max.
+func variableListNumber(ctx *FlowContext, setting string, def, min, max int) (int, error) {
+	if strings.TrimSpace(setting) == "" {
+		return def, nil
+	}
+	value, err := ctx.EvalTemplate(setting)
+	if err != nil {
+		return 0, err
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil || n < min || n > max {
+		return 0, errors.New("out of range")
+	}
+	return n, nil
 }

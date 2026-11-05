@@ -885,7 +885,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 }
 
 func (p *VariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
-	rows, err := p.variableValueStore.ListVariableValues(ctx, p.appID, id, opts.ScopePrefix, string(opts.Sort), opts.Limit)
+	rows, err := p.variableValueStore.ListVariableValues(ctx, p.appID, id, opts.ScopePrefix, string(opts.Sort), opts.Limit, opts.Skip)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list variable values: %w", err)
 	}

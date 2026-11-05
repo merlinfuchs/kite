@@ -227,13 +227,14 @@ func (c *Client) SearchVariableValues(ctx context.Context, appID string, variabl
 	return values, int(total), nil
 }
 
-func (c *Client) ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int) ([]*model.VariableValue, error) {
+func (c *Client) ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int, offset int) ([]*model.VariableValue, error) {
 	rows, err := c.Q.ListVariableValues(ctx, pgmodel.ListVariableValuesParams{
 		VariableID:  variableID,
 		AppID:       appID,
 		ScopePrefix: scopePrefix,
 		Sort:        sort,
 		RowLimit:    int32(limit),
+		RowOffset:   int32(offset),
 	})
 	if err != nil {
 		return nil, err

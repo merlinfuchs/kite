@@ -155,7 +155,7 @@ ORDER BY
   CASE WHEN @sort::text = 'updated_desc' THEN variable_values.updated_at END DESC,
   CASE WHEN @sort::text = 'updated_asc' THEN variable_values.updated_at END ASC,
   variable_values.id
-LIMIT @row_limit;
+LIMIT @row_limit OFFSET @row_offset;
 
 -- name: CountSearchVariableValues :one
 SELECT COUNT(*) FROM variable_values

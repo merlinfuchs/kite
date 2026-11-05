@@ -21,7 +21,8 @@ export const variableList: BlockDefinition = {
     "Get the values of a stored variable in order, like a leaderboard of the highest ones",
   icon: "list-ordered",
   category: "Stored variables",
-  credits: 0,
+  // Unlike the other reads, it sorts every value of the variable.
+  credits: 1,
   strict_settings: true,
   fields: [
     { name: "variable_id", schema: variableIdSchema },
@@ -49,6 +50,14 @@ export const variableList: BlockDefinition = {
       schema: numericOrPlaceholder(
         "How many values to get, from 1 to 100. Defaults to 10.",
         /^(100|[1-9][0-9]?)$/
+      ).optional(),
+    },
+    {
+      name: "variable_skip",
+      input: "variable_list",
+      schema: numericOrPlaceholder(
+        "How many values to skip first, from 0 to 10000, like 10 for the second page of 10. Defaults to 0.",
+        /^(10000|[1-9]?[0-9]{1,3})$/
       ).optional(),
     },
   ],
