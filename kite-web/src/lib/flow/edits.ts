@@ -408,11 +408,27 @@ export function applyFlowEdits(
               `'${edit.target}' belongs to '${edit.source}' and can't be disconnected. Remove it instead.`
             );
           }
-          const matching = findEdges(source.id, target.id, handle);
+          let matching = findEdges(source.id, target.id, handle);
+          // The AI sometimes gets the handle or the direction wrong, or
+          // disconnects blocks that aren't connected, which leaves them as it
+          // wants them.
           if (matching.length === 0) {
-            throw new Error(
-              `'${edit.source}' isn't connected to '${edit.target}'.`
+            matching = edges.filter(
+              (e) =>
+                (e.source === source.id && e.target === target.id) ||
+                (e.source === target.id && e.target === source.id)
             );
+            if (matching.length > 1) {
+              throw new Error(
+                `'${edit.source}' is connected to '${
+                  edit.target
+                }' by several outputs: ${matching
+                  .map(
+                    (e) => `'${normalizeHandle(e.sourceHandle) ?? "default"}'`
+                  )
+                  .join(", ")}. Set the handle to the one to disconnect.`
+              );
+            }
           }
           edges = edges.filter((e) => !matching.includes(e));
           break;

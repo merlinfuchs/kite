@@ -314,3 +314,17 @@ func TestRespondTimesOut(t *testing.T) {
 	// It counts, as the model may have worked on it.
 	assert.NotNil(t, res)
 }
+
+func TestParseOutputOutlinesEdits(t *testing.T) {
+	res, err := parseOutput(`{"message": "", "edits": [
+		{"op": "add_node", "ref": "$ban", "type": "action_member_ban", "id": null, "after": "$check", "before": null, "handle": "yes",
+		 "source": null, "target": null, "data_json": "{\"reason\": \"spam\"}", "items_json": null, "reconnect": null},
+		{"op": "connect", "ref": null, "type": null, "id": null, "after": null, "before": null, "handle": null,
+		 "source": "$check", "target": "$log", "data_json": null, "items_json": null, "reconnect": null}
+	]}`)
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"add_node ref=$ban type=action_member_ban after=$check handle=yes data",
+		"connect source=$check target=$log",
+	}, res.outline)
+}
