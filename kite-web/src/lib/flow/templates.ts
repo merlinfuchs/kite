@@ -16,6 +16,7 @@ import {
   ShieldCheckIcon,
   SirenIcon,
   StarIcon,
+  TrophyIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 import { z } from "zod";
@@ -45,6 +46,7 @@ export const templateIcons: Record<string, LucideIcon> = {
   "alarm-clock": AlarmClockIcon,
   "bot-off": BotOffIcon,
   languages: LanguagesIcon,
+  trophy: TrophyIcon,
 };
 
 // lucideName is the name of the Lucide component of the icon, like

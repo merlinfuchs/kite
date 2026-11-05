@@ -117,7 +117,7 @@ export function llmsTxt(data: LlmsTxtData) {
       discordEventTypes.map((t) => t.label.toLowerCase())
     )}. Also scheduled tasks and webhooks from other websites.`,
     "- Stored variables keep points, counts, and settings for each member or server between runs.",
-    "- Leveling and economy systems are built with stored variables. The Marketplace has no template for them right now.",
+    "- The Leveling template adds XP for chatting, level-up messages, a reward role, /rank, and /leaderboard. Economy systems are built with stored variables, and the Marketplace has no economy template right now.",
     "- Flow AI, the AI assistant in the editor, builds and changes commands from a description.",
     "- AI blocks: Ask AI, Search the Web, AI Check, AI Choice, AI Score, and AI Translate.",
     "- Integrations with ER:LC, Roblox, and Cookie API.",
