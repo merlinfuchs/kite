@@ -123,10 +123,12 @@ ORDER BY variable_values.updated_at DESC, variable_values.id DESC
 LIMIT @row_limit OFFSET @row_offset;
 
 -- name: ListVariableValues :many
--- Values sort as numbers when they are numbers or text of a number, like the
--- "42" a Set stored variable block saves from a placeholder. Other values come
--- last when sorting by value. starts_with instead of LIKE so % and _ in the
--- prefix match literally.
+-- Values sort as numbers when they are numbers or text of a number, like
+-- "42". Other values come last when sorting by value. Values over 128 bytes,
+-- like saved messages, can't be a number of at most 30 digits, so
+-- pg_column_size skips them without reading them from TOAST, which was most of
+-- the time on variables with many. starts_with instead of LIKE so % and _ in
+-- the prefix match literally.
 SELECT variable_values.* FROM variable_values
 JOIN variables ON variables.id = variable_values.variable_id
 WHERE variable_values.variable_id = @variable_id
@@ -138,6 +140,7 @@ WHERE variable_values.variable_id = @variable_id
 ORDER BY
   CASE WHEN @sort::text = 'value_desc' THEN (
     CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
       WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
       WHEN jsonb_typeof(variable_values.value->'v') = 'string'
         AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
@@ -146,6 +149,7 @@ ORDER BY
   ) END DESC NULLS LAST,
   CASE WHEN @sort::text = 'value_asc' THEN (
     CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
       WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
       WHEN jsonb_typeof(variable_values.value->'v') = 'string'
         AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
