@@ -4683,6 +4683,473 @@
         "description": "The value of the variable."
       }
     },
+    "action_table_insert": {
+      "title": "Insert table row",
+      "description": "Create a row in a table.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_data": {
+            "type": "string",
+            "description": "A JSON object containing row column values.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The created table row."
+      }
+    },
+    "action_table_get": {
+      "title": "Get table row",
+      "description": "Get a row from a table by ID.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_row_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The row ID.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_row_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The table row, or null when it does not exist."
+      }
+    },
+    "action_table_find": {
+      "title": "Find table rows",
+      "description": "Find rows in a table using JSON filters.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_filters": {
+            "type": "string",
+            "description": "A JSON array of filters with column, operator, and value."
+          },
+          "table_limit": {
+            "type": "string",
+            "description": "Maximum rows to return, from 1 to 100."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_filters",
+          "table_limit"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The matching table rows."
+      }
+    },
+    "action_table_update": {
+      "title": "Update table row",
+      "description": "Replace the data in a table row.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_row_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The row ID.",
+            "x-templated": true
+          },
+          "table_data": {
+            "type": "string",
+            "description": "A JSON object containing row column values.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_row_id",
+          "table_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The updated table row."
+      }
+    },
+    "action_table_delete": {
+      "title": "Delete table row",
+      "description": "Delete a row from a table.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_row_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The row ID.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "table_id",
+          "table_row_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_table_columns": {
+      "title": "List table columns",
+      "description": "List the columns configured on a table.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The table columns."
+      }
+    },
+    "action_table_column_add": {
+      "title": "Add table column",
+      "description": "Add a column to a table.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_column_name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column name.",
+            "x-templated": true
+          },
+          "table_column_type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column type.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_column_name",
+          "table_column_type"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The added table column."
+      }
+    },
+    "action_table_column_update": {
+      "title": "Update table column",
+      "description": "Update a table column's name or type.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_column_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column ID.",
+            "x-templated": true
+          },
+          "table_column_name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column name.",
+            "x-templated": true
+          },
+          "table_column_type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column type.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "table_id",
+          "table_column_id",
+          "table_column_name",
+          "table_column_type"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The updated table column."
+      }
+    },
+    "action_table_column_delete": {
+      "title": "Delete table column",
+      "description": "Delete a column from a table.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "table_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The table ID.",
+            "x-templated": true
+          },
+          "table_column_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The column ID.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "table_id",
+          "table_column_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_roblox_user_get": {
       "title": "Get Roblox User",
       "description": "Get a Roblox user by ID or username",

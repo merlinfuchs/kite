@@ -30,6 +30,7 @@ import (
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
+	tablehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/table"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
@@ -56,6 +57,7 @@ func (s *APIServer) RegisterRoutes(
 	commandStore store.CommandStore,
 	variableStore store.VariableStore,
 	variableValueStore store.VariableValueStore,
+	tableStore store.TableStore,
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	eventListenerStore store.EventListenerStore,
@@ -406,6 +408,23 @@ func (s *APIServer) RegisterRoutes(
 	secretGroup := secretsGroup.Group("/{secretID}")
 	secretGroup.Patch("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretUpdate))
 	secretGroup.Delete("/", handler.Typed(appSecretHandler.HandleAppSecretDelete))
+
+	// Database-style table routes. Legacy stored-variable routes remain above
+	// so existing flows and integrations continue to work unchanged.
+	tablesHandler := tablehandler.NewHandler(tableStore)
+	tablesGroup := appGroup.Group("/tables").AllowAPIToken()
+	tablesGroup.Get("/", handler.Typed(tablesHandler.List))
+	tablesGroup.Post("/", handler.TypedWithBody(tablesHandler.Create))
+	tableGroup := tablesGroup.Group("/{tableID}")
+	tableGroup.Get("/", handler.Typed(tablesHandler.Get))
+	tableGroup.Patch("/", handler.TypedWithBody(tablesHandler.Update))
+	tableGroup.Delete("/", handler.Typed(tablesHandler.Delete))
+	tableGroup.Get("/rows", handler.Typed(tablesHandler.Rows))
+	tableGroup.Post("/rows", handler.TypedWithBody(tablesHandler.CreateRow))
+	tableGroup.Patch("/rows/{rowID}", handler.TypedWithBody(tablesHandler.UpdateRow))
+	tableGroup.Delete("/rows/{rowID}", handler.Typed(tablesHandler.DeleteRow))
+	tableGroup.Get("/history", handler.Typed(tablesHandler.Audits))
+	tableGroup.Post("/history/{auditID}/undo", handler.Typed(tablesHandler.Undo))
 
 	// Integration routes
 	integrationHandler := integration.NewIntegrationHandler(appSecretStore, appIntegrationStore, tokenCrypt)

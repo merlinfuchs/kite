@@ -15,6 +15,7 @@ type FlowProviders struct {
 	Decision        provider.DecisionProvider
 	Log             provider.LogProvider
 	Variable        provider.VariableProvider
+	Table           provider.TableProvider
 	MessageTemplate provider.MessageTemplateProvider
 	Cooldown        provider.CooldownProvider
 	ResumePoint     ResumePointProvider
