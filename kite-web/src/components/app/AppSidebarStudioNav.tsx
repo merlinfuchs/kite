@@ -1,5 +1,6 @@
 import {
   VariableIcon,
+  DatabaseIcon,
   KeyRoundIcon,
   PlugIcon,
   StoreIcon,
@@ -85,6 +86,11 @@ export default function AppSidebarStudioNav() {
       {
         label: "Resources",
         items: [
+          {
+            name: "Tables",
+            url: "/apps/[appId]/tables",
+            icon: DatabaseIcon,
+          },
           {
             name: "Stored Variables",
             url: "/apps/[appId]/variables",

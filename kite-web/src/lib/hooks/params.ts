@@ -15,6 +15,11 @@ export function useVariableId() {
   return router.query.variableId as string;
 }
 
+export function useTableId() {
+  const router = useRouter();
+  return router.query.tableId as string;
+}
+
 export function useMessageId() {
   const router = useRouter();
   return router.query.messageId as string;

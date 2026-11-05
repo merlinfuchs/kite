@@ -71,6 +71,10 @@ const sections: Record<
       contextTypes: null,
     },
     {
+      title: "Tables",
+      contextTypes: null,
+    },
+    {
       title: "Roblox",
       contextTypes: null,
     },

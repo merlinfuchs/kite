@@ -1443,6 +1443,61 @@ export interface StatsGetResponse {
 }
 
 //////////
+// source: table.go
+
+export interface TableColumn {
+  id: string;
+  name: string;
+  type: string;
+  required?: boolean;
+  default?: any;
+  reference_table_id?: string;
+}
+export interface Table {
+  id: string;
+  name: string;
+  columns: TableColumn[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface TableRow {
+  id: string;
+  table_id: string;
+  data: { [key: string]: any};
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type TableListResponse = (Table | undefined)[];
+export type TableGetResponse = Table;
+export interface TableCreateRequest {
+  name: string;
+  columns: TableColumn[];
+}
+export type TableUpdateRequest = TableCreateRequest;
+export type TableCreateResponse = Table;
+export type TableUpdateResponse = Table;
+export type TableDeleteResponse = Empty;
+export type TableRowListResponse = (TableRow | undefined)[];
+export interface TableRowRequest {
+  data: { [key: string]: any};
+}
+export type TableRowCreateResponse = TableRow;
+export type TableRowUpdateResponse = TableRow;
+export type TableRowDeleteResponse = Empty;
+export interface TableAudit {
+  id: string;
+  action: string;
+  row_id?: string;
+  before?: any;
+  after?: any;
+  actor_user_id: string;
+  created_at: string /* RFC3339 */;
+  undone_at?: string /* RFC3339 */;
+}
+export type TableAuditListResponse = (TableAudit | undefined)[];
+export type TableAuditUndoResponse = TableAudit;
+
+//////////
 // source: usage.go
 
 export interface UsageCreditsGetResponse {

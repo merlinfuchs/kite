@@ -212,7 +212,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Plans:                     cfg.Billing.Plans,
 		},
 	},
-		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,

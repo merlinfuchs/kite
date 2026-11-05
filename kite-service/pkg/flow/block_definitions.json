@@ -1762,6 +1762,135 @@
       }
     },
     {
+      "type": "action_table_insert",
+      "title": "Insert table row",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_get",
+      "title": "Get table row",
+      "credits": 0,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_find",
+      "title": "Find table rows",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_update",
+      "title": "Update table row",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_delete",
+      "title": "Delete table row",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "action_table_columns",
+      "title": "List table columns",
+      "credits": 0,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_column_add",
+      "title": "Add table column",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_column_update",
+      "title": "Update table column",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_table_column_delete",
+      "title": "Delete table column",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_roblox_user_get",
       "title": "Get Roblox User",
       "credits": 1,
