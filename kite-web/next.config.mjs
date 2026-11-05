@@ -37,6 +37,8 @@ const nextConfig = {
         source: "/sitemap-marketplace.xml",
         destination: "/api/sitemap-marketplace",
       },
+      // A summary of Kite for AI assistants, with the numbers of the API.
+      { source: "/llms.txt", destination: "/api/llms" },
       // Tells OAuth clients of the MCP server where to get tokens. Some look
       // for it with the MCP server's path at the end.
       {
