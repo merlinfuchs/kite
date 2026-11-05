@@ -190,6 +190,8 @@ export function llmsTxt(data: LlmsTxtData) {
     "",
     "## Pages",
     "",
+    `- [Features](${site}/features): Every block, what's free, and what each plan adds.`,
+    `- [What's new](${site}/changelog): Dated changes to Kite, newest first.`,
     `- [Pricing](${site}/pricing): Every plan and what each block costs in credits.`,
     `- [Marketplace](${site}/marketplace): Templates to add to a bot.`,
     `- [Free Discord bot hosting](${site}/discord-bot-hosting): How Kite hosts bots 24/7.`,
