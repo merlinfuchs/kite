@@ -122,10 +122,20 @@ interface Props {
       name: string;
       description: string;
       installs: number;
-      official: boolean;
     }[];
   } | null;
   bots: number | null;
+  // The limits of the free plan, or null when the page is built without the
+  // plans.
+  free: {
+    servers: number;
+    credits: number;
+    collaborators: number;
+    aiPrompts: number;
+    scheduleMinutes: number;
+    // The cheapest plan that runs scheduled tasks more often.
+    fasterSchedule: { plan: string; minutes: number } | null;
+  } | null;
 }
 
 // The blocks come from their definitions, so the page lists every block the
@@ -150,6 +160,31 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       : `${plan.title} and up`;
   };
 
+  const freePlan = (plans ?? []).find((p) => p?.default);
+  const fasterSchedule =
+    freePlan &&
+    paidPlans.find(
+      (p) =>
+        p.feature_min_schedule_interval_seconds <
+        freePlan.feature_min_schedule_interval_seconds
+    );
+  const free: Props["free"] = freePlan
+    ? {
+        servers: freePlan.feature_max_guilds,
+        credits: freePlan.feature_usage_credits_per_month,
+        collaborators: freePlan.feature_max_collaborators,
+        aiPrompts: freePlan.feature_max_ai_prompts_per_month,
+        scheduleMinutes: freePlan.feature_min_schedule_interval_seconds / 60,
+        fasterSchedule: fasterSchedule
+          ? {
+              plan: fasterSchedule.title,
+              minutes:
+                fasterSchedule.feature_min_schedule_interval_seconds / 60,
+            }
+          : null,
+      }
+    : null;
+
   // Blocks without a category are only created with other blocks, like the
   // branches of a condition, and aren't in the block list of the editor.
   const listed = blockDefinitions.filter((b) => b.category);
@@ -170,10 +205,13 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
     });
   }
 
+  // Only Kite's own templates are listed by name, since the text of the
+  // others is up to their authors.
   const templates = bundles && {
     count: bundles.length,
     official: bundles.filter((b) => b.official).length,
-    top: [...bundles]
+    top: bundles
+      .filter((b) => b.official)
       .sort((a, b) => b.install_count - a.install_count)
       .slice(0, 6)
       .map((b) => ({
@@ -181,7 +219,6 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
         name: b.listing?.name ?? b.name,
         description: b.listing?.description ?? b.description,
         installs: b.install_count,
-        official: b.official,
       })),
   };
 
@@ -192,6 +229,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
     paidBlocks: listed.filter((b) => b.premium_feature).map((b) => b.title),
     templates,
     bots: stats?.apps ?? null,
+    free,
   });
 };
 
@@ -224,7 +262,11 @@ export default function FeaturesPage({
   paidBlocks,
   templates,
   bots,
+  free,
 }: Props) {
+  const minutes = (n: number) =>
+    n === 1 ? "every minute" : `every ${n} minutes`;
+
   const sections: {
     heading: string;
     body?: string;
@@ -256,7 +298,18 @@ export default function FeaturesPage({
           title: "Scheduled tasks",
           icon: ClockIcon,
           description:
-            "Run a flow on a schedule, like a daily reminder. The free plan runs them every 5 minutes at most, and Kite Premium every minute.",
+            "Run a flow on a schedule, like a daily reminder." +
+            (free
+              ? ` The free plan runs them ${minutes(
+                  free.scheduleMinutes
+                )} at most${
+                  free.fasterSchedule
+                    ? `, and Kite ${free.fasterSchedule.plan} ${minutes(
+                        free.fasterSchedule.minutes
+                      )}`
+                    : ""
+                }.`
+              : ""),
         },
         {
           title: "Webhooks",
@@ -303,7 +356,10 @@ export default function FeaturesPage({
           title: "Flow AI",
           icon: SparklesIcon,
           description:
-            "Describe a command and Flow AI, the AI assistant in the editor, adds and connects the blocks. The free plan includes 2 prompts a month.",
+            "Describe a command and Flow AI, the AI assistant in the editor, adds and connects the blocks." +
+            (free
+              ? ` The free plan includes ${free.aiPrompts} prompts a month.`
+              : ""),
           href: "/ai-discord-bot-maker",
         },
         {
@@ -359,7 +415,12 @@ export default function FeaturesPage({
           title: "Always online",
           icon: ServerIcon,
           description:
-            "Kite hosts your bot 24/7, whether it's used or not. On the free plan, it can be in up to 100 servers.",
+            "Kite hosts your bot 24/7, whether it's used or not." +
+            (free
+              ? ` On the free plan, it can be in up to ${free.servers.toLocaleString(
+                  "en-US"
+                )} servers.`
+              : ""),
           href: "/discord-bot-hosting",
         },
         {
@@ -378,8 +439,9 @@ export default function FeaturesPage({
         {
           title: "Collaborators",
           icon: UsersIcon,
-          description:
-            "Three people including you can edit the same bot on the free plan.",
+          description: free
+            ? `Up to ${free.collaborators} people, including you, can edit the same bot on the free plan.`
+            : "Invite others to edit the same bot with you.",
         },
         { ...openSourcePoint, icon: CodeIcon },
       ],
@@ -410,7 +472,13 @@ export default function FeaturesPage({
       question: "Which features are free?",
       answer: `Every block works on the free plan except ${list(
         paidBlocks
-      )}. Most actions cost 1 credit, and the free plan has 10,000 credits a month.`,
+      )}. Most actions cost 1 credit${
+        free
+          ? `, and the free plan has ${free.credits.toLocaleString(
+              "en-US"
+            )} credits a month`
+          : ""
+      }.`,
     },
     {
       question: "Is Kite open source?",
@@ -521,12 +589,12 @@ export default function FeaturesPage({
             templates.official
           } made by Kite and ${
             templates.count - templates.official
-          } from the community. Adding one gives you normal commands and event listeners that you can change. These are added the most.`}
+          } from the community. Adding one gives you normal commands and event listeners that you can change. These templates by Kite are added the most.`}
           points={templates.top.map((t) => ({
             title: t.name,
-            description: `${sentence(t.description)} ${
-              t.official ? "Made by Kite" : "From the community"
-            }, added ${t.installs.toLocaleString("en-US")} times.`,
+            description: `${sentence(
+              t.description
+            )} Added ${t.installs.toLocaleString("en-US")} times.`,
             href: `/marketplace/${t.id}`,
           }))}
         />
