@@ -20,7 +20,7 @@ export function kiteAPI(token: string, clientIp?: string): KiteAPI {
       path,
       {
         ...init,
-        signal: AbortSignal.timeout(15_000),
+        signal: init?.signal ?? AbortSignal.timeout(15_000),
         headers: {
           ...init?.headers,
           Authorization: `Bearer ${token}`,

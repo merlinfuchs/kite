@@ -44,6 +44,7 @@ import {
   text,
 } from "./util";
 import { registerDiscordTools } from "./discord";
+import { registerFlowTestTool } from "./flowTest";
 import { registerTemplateTools } from "./templates";
 import { registerWriteTools } from "./write";
 
@@ -544,7 +545,10 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
 
   if (canWrite) registerWriteTools(server, caller);
   registerTemplateTools(server, caller, canWrite);
-  if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
+  if (canReadDiscord) {
+    registerDiscordTools(server, caller, canWriteDiscord);
+    registerFlowTestTool(server, caller);
+  }
 
   return server;
 }
