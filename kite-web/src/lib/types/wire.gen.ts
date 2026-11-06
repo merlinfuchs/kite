@@ -13,15 +13,34 @@ interface Empty {}
  */
 export const MaxAPITokenDays = 365;
 /**
+ * MaxAPITokenApps is how many apps a token that can't use all of them can
+ * have.
+ */
+export const MaxAPITokenApps = 100;
+/**
  * APIToken never includes the token itself, it's only shown when created.
  */
 export interface APIToken {
   id: string;
   name: string;
   scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
   last_used_at: null | string /* RFC3339 */;
   expires_at: null | string /* RFC3339 */;
   created_at: string /* RFC3339 */;
+  /**
+   * The OAuth client the token is for, like Claude, null for tokens the
+   * user made. It's the URL of the client's metadata document.
+   */
+  oauth_client_id: null | string;
+  /**
+   * When the token of an OAuth client expires, which it refreshes before.
+   * ExpiresAt is when its refresh token does, if it isn't used.
+   */
+  access_expires_at: null | string /* RFC3339 */;
 }
 export type APITokenListResponse = (APIToken | undefined)[];
 export interface APITokenCreateRequest {
@@ -30,6 +49,14 @@ export interface APITokenCreateRequest {
    * How many days the token lasts, null for a token that doesn't expire.
    */
   expires_in_days: null | number;
+  /**
+   * Like kite:read, see model.APITokenScopes.
+   */
+  scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
 }
 export interface APITokenCreateResponse {
   api_token?: APIToken;
@@ -39,6 +66,7 @@ export interface APITokenCreateResponse {
    */
   token: string;
 }
+export type APITokenCurrentGetResponse = APIToken;
 export interface APITokenDeleteResponse {
 }
 
@@ -63,8 +91,9 @@ export interface App {
    */
   token_invalid: boolean;
   /**
-   * NoCredits is set when the app was disabled because it used all of its
-   * credits for the month.
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
    */
   no_credits: boolean;
   commands_deploy_pending: boolean;
@@ -74,6 +103,11 @@ export interface App {
    */
   discord_guild_count: null | number;
   discord_user_install_count: null | number;
+  /**
+   * CreditNoticesEnabled is whether the owner gets a DM from the bot when
+   * the app used 80% or all of its credits for the month.
+   */
+  credit_notices_enabled: boolean;
 }
 export interface CommandsDeployError {
   message: string;
@@ -99,8 +133,11 @@ export type AppGetResponse = App;
  */
 export interface AppSetupGetResponse {
   invited: boolean;
-  has_command: boolean;
-  ran_command: boolean;
+  /**
+   * HasFlow is whether the app has something that can run, like a command.
+   */
+  has_flow: boolean;
+  ran_flow: boolean;
 }
 export interface AppCreateRequest {
   discord_token: string;
@@ -112,6 +149,10 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export interface AppCreditNoticesUpdateRequest {
+  enabled: boolean;
+}
+export type AppCreditNoticesUpdateResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
@@ -184,14 +225,41 @@ export interface StateUser {
   id: string;
   username: string;
   avatar_url: string;
+  /**
+   * Empty if the bot has no banner.
+   */
+  banner_url: string;
 }
 export type StateUserGetResponse = StateUser;
+/**
+ * StateGuildProfile is the bot's profile in a server. Fields are empty where
+ * it uses its own profile. Discord doesn't return the About Me.
+ */
+export interface StateGuildProfile {
+  nick: string;
+  avatar_url: string;
+  banner_url: string;
+}
+export type StateGuildProfileGetResponse = StateGuildProfile;
+/**
+ * StateUserUpdateRequest changes the bot's avatar and banner. A field that
+ * isn't set stays as it is, and an empty one removes the image.
+ */
+export interface StateUserUpdateRequest {
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateUserUpdateResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
   description: string;
   icon_url: null | string;
   created_at: string /* RFC3339 */;
+  bot_permissions?: null | string;
 }
 export type StateGuildListResponse = (Guild | undefined)[];
 export interface Channel {
@@ -218,6 +286,21 @@ export interface ForumTag {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+/**
+ * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
+ * field that isn't set stays as it is, and an empty one resets to the bot's
+ * own profile.
+ */
+export interface StateGuildProfileUpdateRequest {
+  nick?: string;
+  bio?: string;
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {
   id: string;
   name: string;
@@ -332,6 +415,10 @@ export interface BillingPlan {
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
+  feature_server_profiles: boolean;
+  feature_animated_profile: boolean;
+  feature_personas: boolean;
+  feature_voice_audio: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
   feature_max_webhook_event_listeners: number /* int */;
@@ -351,9 +438,15 @@ export interface Bundle {
   name: string;
   description: string;
   /**
-   * Listing is null for bundles that aren't listed.
+   * Listing is how it's shown: the listing Kite approved while it's listed,
+   * otherwise the page of a user's bundle. Name and Description are the same
+   * as its own.
    */
   listing?: BundleListing;
+  /**
+   * Listed is whether it's listed in the marketplace.
+   */
+  listed: boolean;
   /**
    * Content is the version in the format of the templates of kite-web.
    */
@@ -374,6 +467,19 @@ export interface Bundle {
    * VersionNotes are what changed in the last versions, newest first.
    */
   version_notes: BundleVersionNotes[];
+  /**
+   * InstallCount is how many apps added it.
+   */
+  install_count: number /* int */;
+  /**
+   * StarCount is how many users starred it.
+   */
+  star_count: number /* int */;
+  /**
+   * CreatedAt is when it was made, which the marketplace shows the newest
+   * by.
+   */
+  created_at: string /* RFC3339 */;
 }
 export interface BundleVersionNotes {
   version: number /* int */;
@@ -390,9 +496,11 @@ export interface BundleOwner {
   discord_avatar: null | string;
 }
 /**
- * BundleListing is how a listed bundle is shown.
+ * BundleListing is how a bundle is shown on its page and in the marketplace.
  */
 export interface BundleListing {
+  name: string;
+  description: string;
   icon: string;
   category: string;
   about: string[];
@@ -424,6 +532,11 @@ export interface UserBundle {
    */
   item_count: number /* int */;
   /**
+   * InstallCount is how many apps added it, also ones not from the
+   * marketplace.
+   */
+  install_count: number /* int */;
+  /**
    * ListedVersion is the version apps install from the marketplace, null if
    * it isn't listed.
    */
@@ -433,6 +546,11 @@ export interface UserBundle {
    * install also after it leaves the marketplace, null if none was.
    */
   approved_version: null | number;
+  /**
+   * Page is its listing as the user last wrote it. While it's listed, the
+   * marketplace shows the one Kite approved last.
+   */
+  page: BundleListing;
   /**
    * LatestReview is the newest review for the marketplace, null if it was
    * never submitted.
@@ -445,30 +563,45 @@ export interface UserBundle {
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
- * BundleCreateRequest makes a bundle of the user from items of the app. The
- * message templates and stored variables they use are part of it.
+ * BundleContentRequest is what a version of a bundle is made of: items of the
+ * app, with the message templates and stored variables they use.
  */
-export interface BundleCreateRequest extends BundleExportRequest {
-  name: string;
-  description: string;
+export interface BundleContentRequest extends BundleExportRequest {
   /**
    * SharedParameterKeys are the text parameters whose values the owner
    * shares. Apps that add the bundle start with them.
    */
   shared_parameter_keys?: string[];
 }
+/**
+ * BundleCreateRequest makes a bundle of the user from items of the app.
+ */
+export interface BundleCreateRequest extends BundleContentRequest {
+  name: string;
+  description: string;
+}
 export type BundleCreateResponse = UserBundle;
 /**
  * BundleVersionCreateRequest publishes items of the app as the new version of
- * a bundle. They can be different ones than before.
+ * a bundle. They can be different ones than before. Its name and description
+ * are part of its page, which changes without a new version.
  */
-export interface BundleVersionCreateRequest extends BundleCreateRequest {
+export interface BundleVersionCreateRequest extends BundleContentRequest {
   /**
    * Notes are what changed, for the apps that update to it.
    */
   notes: string;
 }
 export type BundleVersionCreateResponse = UserBundle;
+/**
+ * BundleUpdateRequest changes the page of a bundle that isn't in the
+ * marketplace. Kite reviews changes to one that is, so they're submitted with
+ * BundleListingSubmitRequest instead.
+ */
+export interface BundleUpdateRequest extends BundleListing {
+}
+export interface BundleUpdateResponse {
+}
 export interface BundleDeleteResponse {
 }
 export interface BundleListingDeleteResponse {
@@ -655,6 +788,10 @@ export interface OpenBundleReport {
   category: string;
   details: string;
   created_at: string /* RFC3339 */;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
 }
 export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
 export interface BundleReportDismissResponse {
@@ -676,9 +813,11 @@ export interface BundleRemoveResponse {
 
 /**
  * BundleListingSubmitRequest submits the newest version of a bundle to
- * the marketplace, with how it's shown there once approved.
+ * the marketplace with its page, which becomes the bundle's page. Kite reviews
+ * both before they're listed.
  */
-export type BundleListingSubmitRequest = BundleListing;
+export interface BundleListingSubmitRequest extends BundleListing {
+}
 export type BundleListingSubmitResponse = BundleReview;
 /**
  * BundleReview is a review of a version of a user's bundle for the
@@ -689,7 +828,8 @@ export interface BundleReview {
   version: number /* int */;
   listing: BundleListing;
   /**
-   * Status is pending, approved or rejected.
+   * Status is pending, approved, rejected or withdrawn, when the bundle
+   * left the marketplace before or after a rejection.
    */
   status: string;
   /**
@@ -709,6 +849,10 @@ export interface PendingBundleReview extends BundleReview {
    */
   bundle?: Bundle;
   /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
+  /**
    * ListedVersion is the version listed in the marketplace, null if the
    * bundle isn't listed.
    */
@@ -718,6 +862,41 @@ export interface PendingBundleReview extends BundleReview {
    * approved yet. Approving the review replaces it.
    */
   approved_version: null | number;
+  /**
+   * Prescreen is what the AI pre-screen made of it, which only admins see.
+   */
+  prescreen: BundleReviewPrescreen;
+}
+/**
+ * BundleReviewPrescreen is the AI's take on a review, before an admin
+ * decides.
+ */
+export interface BundleReviewPrescreen {
+  /**
+   * Verdict is review, reject when it rejected it, failed, skipped when
+   * it was too big, or empty while it didn't run.
+   */
+  verdict: string;
+  /**
+   * Rating is how likely an admin approves it, from 0 to 100.
+   */
+  rating: null | number;
+  summary: string;
+  concerns: BundleReviewConcern[];
+  model: string;
+  screened_at: null | string /* RFC3339 */;
+}
+export interface BundleReviewConcern {
+  /**
+   * Severity is high, medium or low.
+   */
+  severity: string;
+  text: string;
+}
+export type AutoRejectedBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export interface BundleReviewPrescreenRunResponse {
+}
+export interface BundleReviewReopenResponse {
 }
 export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
 export type PendingBundleReviewGetResponse = PendingBundleReview;
@@ -732,6 +911,23 @@ export interface BundleReviewDecideRequest {
   reason: string;
 }
 export type BundleReviewDecideResponse = BundleReview;
+
+//////////
+// source: bundle_star.go
+
+/**
+ * BundleStarResponse has how many users starred the bundle now, which pages
+ * rendered before don't know.
+ */
+export interface BundleStarResponse {
+  star_count: number /* int */;
+}
+export type BundleUnstarResponse = BundleStarResponse;
+/**
+ * StarredBundleListResponse are the IDs of the bundles the user starred,
+ * newest first.
+ */
+export type StarredBundleListResponse = string[];
 
 //////////
 // source: collaborator.go
@@ -782,6 +978,10 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -800,6 +1000,11 @@ export interface CommandUpdateRequest {
    * EditorSession identifies the editor that saved, see store.EditorChange.
    */
   editor_session?: string;
+  /**
+   * BaseVersion is the version of the command the change was made on. The
+   * update fails if its content changed since, see store.ItemChange.
+   */
+  base_version?: string;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -808,6 +1013,31 @@ export interface CommandUpdateEnabledRequest {
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
+
+//////////
+// source: discord_api.go
+
+/**
+ * DiscordAPIRequestRequest calls an endpoint of the Discord API Request block
+ * with the app's bot token. Parameters are JSON values, like the IDs in the
+ * path as strings.
+ */
+export interface DiscordAPIRequestRequest {
+  operation: string;
+  path_params: { [key: string]: any };
+  query: { [key: string]: any };
+  body: any;
+  /**
+   * The reason in the server's audit log, if the endpoint takes one.
+   */
+  reason: string;
+}
+export interface DiscordAPIRequestResponse {
+  /**
+   * The JSON the endpoint returned, null if it returned nothing.
+   */
+  result: any;
+}
 
 //////////
 // source: event_listener.go
@@ -825,6 +1055,10 @@ export interface EventListener {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
   last_run_at: null | string /* RFC3339 */;
   webhook_secret: null | string;
 }
@@ -845,9 +1079,10 @@ export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_version?: string;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -872,6 +1107,10 @@ export interface Features {
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
+  server_profiles: boolean;
+  animated_profile: boolean;
+  personas: boolean;
+  voice_audio: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
   max_webhook_event_listeners: number /* int */;
@@ -911,6 +1150,11 @@ export interface FlowAIChatResponse {
    */
   build_prompt: string;
   /**
+   * TemplateID is a template of the marketplace the message suggests adding
+   * instead of building what it does, if any.
+   */
+  template_id: string;
+  /**
    * Fields ask the user for what the AI needs but only they know.
    */
   fields: FlowAIField[];
@@ -943,6 +1187,150 @@ export interface FlowAIField {
   type: string;
   options: string[];
   default: string;
+}
+
+//////////
+// source: flow_test_run.go
+
+/**
+ * FlowTestRequest runs a flow without changing anything. Reads from Discord
+ * are real, changes are returned instead of made, and requests to services
+ * other than Discord aren't sent unless the block is mocked.
+ */
+export interface FlowTestRequest {
+  /**
+   * A draft of the flow to test instead of the saved one, for commands and
+   * event listeners.
+   */
+  flow_source?: FlowData;
+  /**
+   * The button or select menu of a message to test, by its flow.
+   */
+  flow_source_id?: string;
+  /**
+   * Who triggers the flow, by default the user of the request, and where.
+   */
+  user_id?: string;
+  guild_id?: string;
+  channel_id?: string;
+  /**
+   * Runs a command in a DM with the bot.
+   */
+  dm?: boolean;
+  /**
+   * Arguments of a command by name.
+   */
+  options?: { [key: string]: any };
+  /**
+   * Values picked in the select menu of a message.
+   */
+  values?: string[];
+  /**
+   * Merged into the Discord event or interaction, in Discord's format.
+   */
+  event?: any;
+  webhook?: FlowTestWebhook;
+  /**
+   * What blocks do instead of running, by block ID.
+   */
+  mocks?: { [key: string]: FlowTestMock};
+  /**
+   * Values of stored variables when the test starts, in place of the stored
+   * ones.
+   */
+  variables?: FlowTestVariable[];
+  /**
+   * What the user does after the flow ran, in order.
+   */
+  then?: FlowTestAction[];
+}
+export interface FlowTestWebhook {
+  body: string;
+  headers?: { [key: string]: string};
+  query?: { [key: string]: string};
+}
+export interface FlowTestMock {
+  /**
+   * The block's result, in the format of its result type.
+   */
+  result?: any;
+  /**
+   * Makes the block fail with this error.
+   */
+  error?: string;
+}
+export interface FlowTestVariable {
+  variable_id: string;
+  /**
+   * The scope, for variables with a value per scope, as the block
+   * evaluates it, like "<server ID>:<user ID>".
+   */
+  scope?: string;
+  /**
+   * The value, or null for no value.
+   */
+  value?: any;
+}
+export interface FlowTestAction {
+  /**
+   * Label or custom ID of a button to click.
+   */
+  click?: string;
+  /**
+   * Placeholder or custom ID of a select menu, with the values to pick.
+   */
+  select?: string;
+  values?: string[];
+  /**
+   * Values of the inputs of the open modal, by custom ID or label.
+   */
+  submit?: { [key: string]: any };
+  user_id?: string;
+}
+export interface FlowTestResponse {
+  executions: FlowTestExecution[];
+  /**
+   * What the test would have cost.
+   */
+  credits: number /* int */;
+  /**
+   * Mocked blocks that never ran.
+   */
+  unused_mocks?: string[];
+}
+/**
+ * FlowTestExecution is one run of the flow, like the command or a click on a
+ * button it sent.
+ */
+export interface FlowTestExecution {
+  trigger: string;
+  steps: FlowTestStep[];
+  truncated?: boolean;
+  notes?: string[];
+  /**
+   * The error that ended the run, if no Error Handler caught it.
+   */
+  error?: string;
+}
+/**
+ * FlowTestStep is a block that ran.
+ */
+export interface FlowTestStep {
+  node_id: string;
+  node_type: string;
+  result?: any;
+  error?: string;
+  error_code?: string;
+  notes?: string[];
+  effects?: FlowTestEffect[];
+}
+/**
+ * FlowTestEffect is a change the block would have made.
+ */
+export interface FlowTestEffect {
+  action: string;
+  data?: any;
+  warnings?: string[];
 }
 
 //////////
@@ -1072,6 +1460,10 @@ export interface Message {
   flow_sources: { [key: string]: FlowData};
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type MessageGetResponse = Message;
 export type MessageListResponse = (Message | undefined)[];
@@ -1092,9 +1484,10 @@ export interface MessageUpdateRequest {
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_version?: string;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;
@@ -1127,6 +1520,50 @@ export interface MessageInstanceUpdateRequest {
 }
 export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
+
+//////////
+// source: oauth.go
+
+export interface OAuthClient {
+  /**
+   * The URL of the client's metadata document.
+   */
+  id: string;
+  name: string;
+  /**
+   * The host of the ID, which says who the client is. Its name can be
+   * anything.
+   */
+  domain: string;
+}
+export interface OAuthAuthorizeGetResponse {
+  client: OAuthClient;
+  /**
+   * The scopes the client asks for, the user can grant fewer.
+   */
+  scopes: string[];
+}
+/**
+ * OAuthAuthorizeRequest is sent with the client's authorization request in
+ * the query string, like for OAuthAuthorizeGetResponse.
+ */
+export interface OAuthAuthorizeRequest {
+  /**
+   * False if the user denied the client.
+   */
+  approved: boolean;
+  scopes: string[];
+  /**
+   * The apps the client can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
+}
+export interface OAuthAuthorizeResponse {
+  /**
+   * Where to send the user, back to the client.
+   */
+  redirect_url: string;
+}
 
 //////////
 // source: plugin.go
@@ -1200,10 +1637,6 @@ export interface StatsGetResponse {
    * Flow executions in the last 30 days.
    */
   executions_last_month: number /* int */;
-  /**
-   * Apps that added each template, by its ID.
-   */
-  template_installs: { [key: string]: number /* int */};
 }
 
 //////////
@@ -1242,6 +1675,46 @@ export interface User {
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: user_ban.go
+
+/**
+ * UserBan bans a user from a feature, for the admins.
+ */
+export interface UserBan {
+  user_id: string;
+  user?: User;
+  /**
+   * Feature is what they're banned from, marketplace or kite.
+   */
+  feature: string;
+  reason: string;
+  created_at: string /* RFC3339 */;
+}
+export type UserBanListResponse = (UserBan | undefined)[];
+/**
+ * UserBanCreateRequest bans a user from a feature, replacing their ban from
+ * it.
+ */
+export interface UserBanCreateRequest {
+  /**
+   * UserID is the Kite user to ban. Set either it or DiscordID.
+   */
+  user_id?: string;
+  /**
+   * DiscordID is the Discord ID of the user or of one of their bots.
+   */
+  discord_id?: string;
+  feature: string;
+  /**
+   * Reason is shown to the user.
+   */
+  reason: string;
+}
+export type UserBanCreateResponse = UserBan;
+export interface UserBanDeleteResponse {
+}
 
 //////////
 // source: variable.go

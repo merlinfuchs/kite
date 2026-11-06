@@ -36,12 +36,13 @@ LEFT JOIN (
 ) u ON d.dt = u.date
 ORDER BY d.dt;
 
--- Only enabled apps and apps stopped for running out of credits, which the
--- credit sweep starts again once they are under their limit. Other disabled
--- apps would only add work, their usage rows stay for the rest of the month.
+-- Only enabled apps and apps paused for credits, which the credit sweep
+-- unpauses once they are under their limit, even if they were stopped since.
+-- Other disabled apps would only add work, their usage rows stay for the rest
+-- of the month.
 -- name: GetAllUsageCreditsUsedBetween :many
 SELECT u.app_id, SUM(u.credits_used) FROM usage_records u
-JOIN apps a ON a.id = u.app_id AND (a.enabled OR a.disabled_reason = @no_credits_reason)
+JOIN apps a ON a.id = u.app_id AND (a.enabled OR a.credits_paused_at IS NOT NULL)
 WHERE u.created_at BETWEEN @start_at AND @end_at
 GROUP BY u.app_id;
 
@@ -53,5 +54,5 @@ DELETE FROM usage_records WHERE id IN (
     LIMIT @batch_size
 );
 
--- name: HasAppCommandUsage :one
-SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1 AND command_id IS NOT NULL);
+-- name: HasAppUsage :one
+SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1);

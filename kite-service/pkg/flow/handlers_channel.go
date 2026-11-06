@@ -58,6 +58,11 @@ func executeActionChannelCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
+	channelData.AuditLogReason, err = evalAuditLogReason(n, ctx)
+	if err != nil {
+		return err
+	}
+
 	channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
 	if err != nil {
 		return err
@@ -112,6 +117,8 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if len(createData.Overwrites) > 0 {
 		editData.Overwrites = &createData.Overwrites
 	}
+	editData.Archived = option.Bool(n.Data.ChannelData.Archived)
+	editData.Locked = option.Bool(n.Data.ChannelData.Locked)
 
 	// Unlike the other fields, 0 is meaningful here (it turns slowmode off),
 	// so only an empty setting leaves the current slowmode alone. The type
@@ -125,12 +132,19 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
-	err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	editData.AuditLogReason, err = evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
 
-	// TODO: ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	channel, err := ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	if err != nil {
+		return err
+	}
+
+	if channel != nil {
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	}
 	return n.ExecuteChildren(ctx)
 }
 
@@ -154,10 +168,16 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
+	auditLogReason, err := evalAuditLogReason(n, ctx)
+	if err != nil {
+		return err
+	}
+
 	threadData := api.StartThreadData{
-		Name:      channelName.String(),
-		Type:      discord.ChannelType(n.Data.ChannelData.Type),
-		Invitable: n.Data.ChannelData.Invitable,
+		Name:           channelName.String(),
+		Type:           discord.ChannelType(n.Data.ChannelData.Type),
+		Invitable:      option.Bool(n.Data.ChannelData.Invitable),
+		AuditLogReason: auditLogReason,
 	}
 	if threadData.Type == 0 {
 		threadData.Type = discord.GuildPublicThread
@@ -223,7 +243,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
@@ -237,7 +257,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		Name:           name.String(),
 		AppliedTags:    tags,
 		Message:        data.ToSendMessageData(opts),
-		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		AuditLogReason: auditLogReason,
 	})
 	if err != nil {
 		return err

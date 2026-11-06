@@ -351,18 +351,16 @@ func (q *Queries) GetEventListenersUpdatedSince(ctx context.Context, arg GetEven
 
 const updateEventListener = `-- name: UpdateEventListener :one
 UPDATE event_listeners SET
-    enabled = $2,
-    type = $3,
-    filter = $4,
-    description = $5,
-    flow_source = $6,
-    updated_at = $7
+    type = $2,
+    filter = $3,
+    description = $4,
+    flow_source = $5,
+    updated_at = $6
 WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret
 `
 
 type UpdateEventListenerParams struct {
 	ID          string
-	Enabled     bool
 	Type        string
 	Filter      []byte
 	Description string
@@ -373,13 +371,47 @@ type UpdateEventListenerParams struct {
 func (q *Queries) UpdateEventListener(ctx context.Context, arg UpdateEventListenerParams) (EventListener, error) {
 	row := q.db.QueryRow(ctx, updateEventListener,
 		arg.ID,
-		arg.Enabled,
 		arg.Type,
 		arg.Filter,
 		arg.Description,
 		arg.FlowSource,
 		arg.UpdatedAt,
 	)
+	var i EventListener
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.Filter,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastRunAt,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
+const updateEventListenerEnabled = `-- name: UpdateEventListenerEnabled :one
+UPDATE event_listeners SET
+    enabled = $2,
+    updated_at = $3
+WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret
+`
+
+type UpdateEventListenerEnabledParams struct {
+	ID        string
+	Enabled   bool
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpdateEventListenerEnabled(ctx context.Context, arg UpdateEventListenerEnabledParams) (EventListener, error) {
+	row := q.db.QueryRow(ctx, updateEventListenerEnabled, arg.ID, arg.Enabled, arg.UpdatedAt)
 	var i EventListener
 	err := row.Scan(
 		&i.ID,

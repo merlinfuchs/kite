@@ -1,4 +1,5 @@
-import { Template } from "@/lib/flow/templates";
+import { lucideName, Template } from "@/lib/flow/templates";
+import { icons, PackageIcon } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   fetchAvatar,
@@ -12,10 +13,10 @@ import {
 // The link preview of a template or bundle, like og.png with its icon and name.
 export async function renderTemplateImage(template: Template) {
   // Satori only draws plain elements, so the Lucide icon is drawn as an image.
+  const Icon =
+    icons[lucideName(template.icon) as keyof typeof icons] ?? PackageIcon;
   const icon = svgDataUrl(
-    renderToStaticMarkup(
-      <template.icon color={orange} size={72} strokeWidth={2} />
-    )
+    renderToStaticMarkup(<Icon color={orange} size={72} strokeWidth={2} />)
   );
 
   const contents = [

@@ -50,7 +50,7 @@ type Parameter struct {
 	Type        flow.FlowParameterType `json:"type"`
 	Required    bool                   `json:"required"`
 	// Default is the value the owner shared for it, which it starts with
-	// when the bundle is added. Only text parameters have one.
+	// when the bundle is added. Channels and roles don't have one.
 	Default string `json:"default,omitempty"`
 }
 

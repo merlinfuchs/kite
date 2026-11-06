@@ -65,7 +65,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Command deleted!");
+          toast.success("Command deleted.");
         } else {
           toast.error(
             `Failed to delete command: ${res.error.message} (${res.error.code})`
@@ -96,8 +96,10 @@ export default function CommandListEntry({ command }: { command: Command }) {
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
-          <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{command.name}</div>
+          <div className="flex items-center gap-2 min-w-0">
+            <SlashSquareIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{command.name}</div>
+          </div>
           <BundleInstallBadge bundleInstallId={command.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
@@ -133,17 +135,17 @@ export default function CommandListEntry({ command }: { command: Command }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Delete Command
+                  Delete command
                 </DropdownMenuItem>
               </ConfirmDialog>
               <CommandDuplicateDialog command={command}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Duplicate Command
+                  Duplicate command
                 </DropdownMenuItem>
               </CommandDuplicateDialog>
               <FlowExportDialog
-                title="Export Command"
+                title="Export command"
                 type="command"
                 shareData={{
                   flow_source: withoutParameterValues(command.flow_source),
@@ -152,7 +154,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Export Command
+                  Export command
                 </DropdownMenuItem>
               </FlowExportDialog>
             </DropdownMenuGroup>

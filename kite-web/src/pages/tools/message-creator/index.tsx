@@ -10,17 +10,17 @@ import { CurrentMessageStoreProvider } from "@/lib/message/state";
 
 export default function MessageCreatorPage() {
   return (
-    <HomeLayout title="Message Creator" noindex>
+    <HomeLayout title="Message creator" noindex>
       <CurrentMessageStoreProvider noPlaceholders>
         <div className="flex flex-col xl:flex-row h-full">
           <div className="flex flex-col xl:w-7/12 pt-8 pb-24 xl:pb-8 space-y-8 h-full overflow-y-auto px-3 md:px-5 lg:px-10 no-scrollbar">
             <div className="flex flex-col space-y-5 md:flex-row md:space-y-0 justify-between">
               <div className="flex flex-col space-y-1.5">
                 <h1 className="text-2xl font-semibold leading-none tracking-tight">
-                  Message Creator
+                  Message creator
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Create good looking Discord messages and send them through
+                  Create good-looking Discord messages and send them through
                   webhooks!
                 </p>
               </div>
@@ -28,7 +28,7 @@ export default function MessageCreatorPage() {
                 <DialogTrigger asChild>
                   <Button className="flex items-center space-x-2">
                     <SendIcon />
-                    <div>Send Message</div>
+                    <div>Send message</div>
                   </Button>
                 </DialogTrigger>
                 <WebhookExecuteDialog />

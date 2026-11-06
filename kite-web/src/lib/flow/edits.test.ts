@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { serializeFlow } from "./serialize";
 import { testEdge as edge, testNode } from "./testUtils";
 
@@ -54,6 +55,14 @@ describe("applyFlowEdits", () => {
     expect(res.connections).toEqual(["entry->a", `a->${b}`]);
     expect(res.byId(b)?.position).toEqual({ x: 0, y: 500 });
     expect(res.edges[1].type).toBe("delete_button");
+  });
+
+  it("refers to the entry block as $entry", () => {
+    const res = apply([entry], [], [addLog("$a", "$entry")]);
+
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([`entry->${res.refs.$a}`]);
+    expect(res.refs).not.toHaveProperty("$entry");
   });
 
   it("puts blocks into existing connections and moves the rest down", () => {
@@ -266,7 +275,6 @@ describe("applyFlowEdits", () => {
         { op: "remove_node", id: "entry" },
         { op: "update_node", id: "$missing", data: {} },
         addLog("$b", "a", "entry"),
-        { op: "disconnect", source: "a", target: "entry" },
         // Like an edit the service couldn't read.
         {
           op: "update_node",
@@ -280,11 +288,60 @@ describe("applyFlowEdits", () => {
       "Edit 1 (remove_node): 'entry' can't be removed on its own. Remove the block it belongs to instead.",
       "Edit 2 (update_node): There is no block '$missing'.",
       "Edit 3 (add_node): 'a' isn't connected to 'entry'.",
-      "Edit 4 (disconnect): 'a' isn't connected to 'entry'.",
-      "Edit 5 (update_node): data_json isn't a JSON object",
+      "Edit 4 (update_node): data_json isn't a JSON object",
     ]);
     expect(res.nodes).toHaveLength(3);
     expect(res.connections).toEqual(["entry->a", `a->${res.refs.$c}`]);
+  });
+
+  it("inserts blocks into a connection by its handle", () => {
+    const check = node("check", "control_if", {});
+    const res = apply(
+      [entry, check, log("a")],
+      [edge("entry", "check"), edge("check", "a", "yes")],
+      [addLog("$b", "check", "a")]
+    );
+
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      `check[yes]->${res.refs.$b}`,
+      `${res.refs.$b}->a`,
+    ]);
+  });
+
+  it("disconnects blocks by any handle if none is given", () => {
+    const check = node("check", "control_if", {});
+    const res = apply(
+      [entry, check, log("a"), log("b"), log("c")],
+      [
+        edge("entry", "check"),
+        edge("check", "a", "yes"),
+        edge("check", "b", "yes"),
+        edge("check", "b", "no"),
+        edge("check", "c", "yes"),
+      ],
+      [
+        { op: "disconnect", source: "check", target: "a" },
+        { op: "disconnect", source: "check", target: "entry" },
+        { op: "disconnect", source: "check", target: "c", handle: "no" },
+        { op: "disconnect", source: "check", target: "b" },
+      ]
+    );
+
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([
+      {
+        severity: "error",
+        message:
+          "Edit 4 (disconnect): 'check' is connected to 'b' by several outputs: 'yes', 'no'. Set the handle to one of them.",
+      },
+    ]);
+    expect(res.connections).toEqual([
+      "entry->check",
+      "check[yes]->b",
+      "check[no]->b",
+      "check[yes]->c",
+    ]);
   });
 
   it("reports what the validator finds", () => {
@@ -496,6 +553,89 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
   });
 
+  it("replaces refs in result() with the IDs of the added blocks", () => {
+    const res = apply(
+      [
+        entry,
+        log("a"),
+        log("b", "{{result('$get')}}"),
+        log("c", "{{result('get')}}"),
+      ],
+      [edge("entry", "a")],
+      [
+        {
+          op: "add_node",
+          ref: "$get",
+          type: "action_user_get",
+          after: "a",
+          data: { user_target: "1" },
+        },
+        addLog("$log", "$get"),
+        {
+          op: "update_node",
+          id: "$log",
+          data: {
+            log_message: `{{result('$get').id}} {{result("get").name}} {{result('a')}}`,
+          },
+        },
+      ]
+    );
+
+    const get = res.refs.$get;
+    expect(res.byId(res.refs.$log)?.data.log_message).toBe(
+      `{{result('${get}').id}} {{result("${get}").name}} {{result('a')}}`
+    );
+    // Refs left by an earlier repair round are resolved too, names without $
+    // only in changed blocks.
+    expect(res.byId("b")?.data.log_message).toBe(`{{result('${get}')}}`);
+    expect(res.byId("c")?.data.log_message).toBe("{{result('get')}}");
+  });
+
+  it("explains that blocks with several outputs have no branches", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_if",
+          after: "entry",
+          data: { condition_base_value: "{{true}}" },
+        },
+        addLog("$log", "$check.item0"),
+      ]
+    );
+    expect(res.issues[0].message).toBe(
+      "Edit 2 (add_node): There is no block '$check.item0', as 'If' has no branches. Put blocks after it with the handle of one of its outputs: 'yes', 'no'."
+    );
+  });
+
+  it("uses outputs referred to like branches as handles", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$errors",
+          type: "control_error_handler",
+          after: "entry",
+        },
+        addLog("$a", "$errors.default"),
+        addLog("$b"),
+        { op: "connect", source: "$errors.error", target: "$b" },
+      ]
+    );
+    const { $errors: errors, $a: a, $b: b } = res.refs;
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${errors}`,
+      `${errors}[default]->${a}`,
+      `${errors}[error]->${b}`,
+    ]);
+  });
+
   it("ignores updates without settings", () => {
     const res = apply(
       [entry, log("a")],
@@ -582,6 +722,59 @@ describe("applyFlowEdits edge cases", () => {
       ]
     );
     expect(res.byId(res.refs.$x)?.position.y).toBe(1750);
+  });
+});
+
+describe("applyFlowEdits layout", () => {
+  const reply = (after: string): FlowEdit => ({
+    op: "add_node",
+    ref: "$reply",
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content: "hi",
+        components: [1, 2, 3, 4].map((id) => ({
+          type: 1,
+          components: [{ type: 2, id, label: "Hi", style: 1 }],
+        })),
+      },
+    },
+    after,
+  });
+
+  it("lays out new and formatted flows like the format button", () => {
+    const created = apply(
+      [entry],
+      [],
+      [reply("$entry"), addLog("$log", "$reply")]
+    );
+    expect(created.issues).toEqual([]);
+    expect(isFlowLaidOut(created.nodes, created.edges)).toBe(true);
+
+    const edges = [edge("entry", "a"), edge("a", "b")];
+    const formatted = getFlowLayout([entry, log("a"), log("b")], edges);
+    const res = apply(formatted, edges, [addLog("$new", "entry", "a")]);
+    expect(isFlowLaidOut(res.nodes, res.edges)).toBe(true);
+  });
+
+  it("keeps blocks of rearranged flows where they are", () => {
+    const res = apply(
+      [
+        entry,
+        log("a", "hi", 300),
+        { ...log("b", "hi", 600), position: { x: 900, y: 600 } },
+      ],
+      [edge("entry", "a"), edge("a", "b")],
+      [reply("a"), addLog("$log", "$reply")]
+    );
+    expect(res.byId("a")?.position).toEqual({ x: 0, y: 300 });
+    expect(res.byId("b")?.position).toEqual({ x: 900, y: 600 });
+
+    // Below the message with its rows of buttons, not on top of them.
+    const message = res.byId(res.refs.$reply)!;
+    expect(res.byId(res.refs.$log)!.position.y).toBe(
+      message.position.y + nodeSize(message).height + rowGap
+    );
   });
 });
 

@@ -1,9 +1,10 @@
+import { inMarketplace } from "@/lib/flow/bundleListing";
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
-import BundleListingDialog from "@/components/app/BundleListingDialog";
+import BundlePageDialog from "@/components/app/BundlePageDialog";
 import {
   ListingBadge,
   ListingStatus,
@@ -17,6 +18,7 @@ import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
+import { formatNumber } from "@/lib/utils";
 import {
   ChevronRightIcon,
   ImportIcon,
@@ -28,7 +30,7 @@ import Link from "next/link";
 
 const breadcrumbs = [
   {
-    label: "Your Templates",
+    label: "Your templates",
   },
 ];
 
@@ -46,11 +48,11 @@ export default function AppBundlesPage() {
     );
 
   return (
-    <AppLayout title="Your Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Your templates" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
-            Your Templates
+            Your templates
           </h1>
           <p className="text-muted-foreground text-sm">
             The templates this app added, and the ones you made from its
@@ -61,11 +63,11 @@ export default function AppBundlesPage() {
               target="_blank"
               className="text-primary hover:underline"
             >
-              Learn More
+              Learn more
             </a>
           </p>
         </div>
-        <div className="flex gap-2 flex-none">
+        <div className="flex flex-wrap gap-2 flex-none">
           <BundleImportDialog>
             <Button variant="outline">
               <ImportIcon className="mr-2 h-4 w-4" />
@@ -165,29 +167,28 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
       ? `From ${sourceApp.name}`
       : "From an app you can't open anymore";
   const review = bundle.latest_review;
-  const inMarketplace =
-    bundle.listed_version !== null || review?.status === "pending";
   // Details beyond the badge, like what's in review or why it wasn't approved.
   const details =
     bundle.removed_reason !== null ||
     review?.status === "rejected" ||
     (review?.status === "pending" && bundle.listed_version !== null);
 
+  // On phones the button goes below, so it doesn't squeeze the name.
   return (
-    <Card className="p-4 flex items-center gap-3">
+    <Card className="p-4 grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
       <Link
         href={{
           pathname: "/apps/[appId]/bundles/[bundleId]",
           query: { appId, bundleId: bundle.id },
         }}
-        className="flex items-center gap-3 group min-w-0 flex-1"
+        className="flex items-center gap-3 group min-w-0"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
           <PackageIcon className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-medium group-hover:underline truncate">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-medium group-hover:underline min-w-0 break-words">
               {bundle.name}
             </span>
             <ListingBadge bundle={bundle} />
@@ -199,7 +200,8 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           )}
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
-            · {source}
+            · Added to {formatNumber(bundle.install_count)}{" "}
+            {bundle.install_count === 1 ? "bot" : "bots"} · {source}
           </div>
           {details && (
             <div className="text-xs text-muted-foreground mt-1">
@@ -212,14 +214,18 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           )}
         </div>
       </Link>
-      {!inMarketplace && bundle.removed_reason === null && (
-        <BundleListingDialog bundle={bundle}>
-          <Button variant="outline" size="sm" className="flex-none">
-            List in marketplace
+      {!inMarketplace(bundle) && bundle.removed_reason === null && (
+        <BundlePageDialog bundle={bundle} submit>
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-span-2 row-start-2 justify-self-start ml-[3.25rem] sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ml-0"
+          >
+            List in Marketplace
           </Button>
-        </BundleListingDialog>
+        </BundlePageDialog>
       )}
-      <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
+      <ChevronRightIcon className="h-4 w-4 col-start-2 row-start-1 text-muted-foreground sm:col-start-3" />
     </Card>
   );
 }

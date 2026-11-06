@@ -1,6 +1,7 @@
 package database
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -44,22 +46,45 @@ func RunBackup(ctx context.Context, db string, opts DatabaseBackupOpts) error {
 
 	slog.Info("Creating database backup", "database", db, "operation", opts.Operation)
 
-	tmpFile, err := os.CreateTemp("", "xvault-pg-backup-*.tar")
-	if err != nil {
-		return fmt.Errorf("failed to create temporary file: %w", err)
+	// A failed upload leaves the previous backup of the same name in place,
+	// as S3 only replaces it when the upload completes. Parts are retried on
+	// their own, this is for when the storage is down for longer.
+	for attempt := 1; ; attempt++ {
+		err = dumpAndStore(ctx, s3, cfg.Database.Postgres, db, opts.Name)
+		if err == nil {
+			return nil
+		}
+		if attempt == backupAttempts {
+			return err
+		}
+
+		slog.Error("Failed to create database backup, retrying", "attempt", attempt, "error", err)
+
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(backupRetryDelay):
+		}
 	}
-	defer os.Remove(tmpFile.Name())
+}
 
-	slog.Info("Creating database dump", "file", tmpFile.Name())
+const (
+	backupAttempts   = 3
+	backupRetryDelay = 5 * time.Minute
+)
 
-	pgConfig := cfg.Database.Postgres
+// dumpAndStore streams the dump through gzip into S3. Nothing is written to
+// local disk, as writing the dump there slowed down Postgres on the same disk
+// enough for queries to time out.
+func dumpAndStore(ctx context.Context, s3 *s3.Client, pgConfig config.PostgresConfig, db string, name string) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	cmd := exec.Command("pg_dump",
+	cmd := exec.CommandContext(ctx, "pg_dump",
 		"--host="+pgConfig.Host,
 		"--username="+pgConfig.User,
 		"--port="+fmt.Sprintf("%d", pgConfig.Port),
 		"--dbname="+pgConfig.DBName,
-		"--file="+tmpFile.Name(),
 		"--format=tar",
 	)
 
@@ -67,55 +92,54 @@ func RunBackup(ctx context.Context, db string, opts DatabaseBackupOpts) error {
 		cmd.Env = append(os.Environ(), "PGPASSWORD="+pgConfig.Password)
 	}
 
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to create database dump: %w\noutput: %s", err, output)
-	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
-	stat, err := tmpFile.Stat()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to get file size: %w", err)
+		return fmt.Errorf("failed to get dump output: %w", err)
 	}
 
-	slog.Info("Successfully created database dump", "file", tmpFile.Name(), "size", stat.Size())
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start database dump: %w", err)
+	}
 
-	// Create a temporary gzipped file
-	gzipFile, err := os.CreateTemp("", "xvault-pg-backup-*.tar.gz")
+	pr, pw := io.Pipe()
+	var size int64
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		gzipWriter := gzip.NewWriter(pw)
+		n, err := io.Copy(gzipWriter, stdout)
+		size = n
+		if err == nil {
+			err = gzipWriter.Close()
+		}
+		if waitErr := cmd.Wait(); err == nil && waitErr != nil {
+			err = fmt.Errorf("failed to create database dump: %w\noutput: %s", waitErr, stderr.String())
+		}
+
+		// An error here fails the upload instead of storing a cut off dump.
+		pw.CloseWithError(err)
+	}()
+
+	slog.Info("Storing compressed database backup", "name", name)
+
+	compressedSize, err := s3.StoreDBBackup(ctx, db, name, pr)
 	if err != nil {
-		return fmt.Errorf("failed to create temporary gzip file: %w", err)
+		// Stops pg_dump, and unblocks the goroutine if it's still writing.
+		cancel()
+		pr.CloseWithError(err)
 	}
-	defer os.Remove(gzipFile.Name())
+	<-done
 
-	// Create gzip writer
-	gzipWriter := gzip.NewWriter(gzipFile)
-
-	// Copy data from tmpFile to gzip writer
-	if _, err := io.Copy(gzipWriter, tmpFile); err != nil {
-		gzipWriter.Close()
-		return fmt.Errorf("failed to compress backup file: %w", err)
-	}
-
-	if err := gzipWriter.Close(); err != nil {
-		return fmt.Errorf("failed to finalize gzip compression: %w", err)
-	}
-
-	// Get size of compressed file
-	if _, err := gzipFile.Seek(0, 0); err != nil {
-		return fmt.Errorf("failed to seek gzip file: %w", err)
-	}
-
-	gzipStat, err := gzipFile.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to get compressed file size: %w", err)
+		return err
 	}
 
-	slog.Info("Storing compressed database backup", "name", opts.Name, "original_size", stat.Size(), "compressed_size", gzipStat.Size())
-
-	err = s3.StoreDBBackup(ctx, db, opts.Name, gzipStat.Size(), gzipFile)
-	if err != nil {
-		return fmt.Errorf("failed to store db backup: %w", err)
-	}
-
-	slog.Info("Successfully stored compressed db backup", "name", opts.Name, "original_size", stat.Size(), "compressed_size", gzipStat.Size())
+	slog.Info("Successfully stored compressed db backup", "name", name, "original_size", size, "compressed_size", compressedSize)
 
 	return nil
 }

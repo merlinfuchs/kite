@@ -5,16 +5,16 @@ import { Separator } from "@/components/ui/separator";
 
 const breadcrumbs = [
   {
-    label: "Server Explorer",
+    label: "Server explorer",
   },
 ];
 
 export default function AppGuildsPage() {
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App analytics" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Server Explorer
+          Server explorer
         </h1>
         <p className="text-muted-foreground text-sm">
           Explore the servers your app is in.

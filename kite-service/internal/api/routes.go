@@ -19,22 +19,27 @@ import (
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -61,6 +66,7 @@ func (s *APIServer) RegisterRoutes(
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	webhookRunner eventlistener.WebhookRunner,
+	flowTestRunner flowtest.Runner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
@@ -74,6 +80,8 @@ func (s *APIServer) RegisterRoutes(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	oauthCodeStore store.OAuthCodeStore,
+	notifier *notify.Notifier,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -119,11 +127,12 @@ func (s *APIServer) RegisterRoutes(
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
-	// Bundles are public, like the templates on the website.
+	// Bundles are public, like the templates on the website. A token gets the
+	// user's own ones too, so the MCP server can add them.
 	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
-	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
+	v1Group.AllowAPIToken().Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
-	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
+	v1Group.AllowAPIToken().Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -147,15 +156,40 @@ func (s *APIServer) RegisterRoutes(
 
 	// API token routes. They don't allow API tokens, like every group without
 	// AllowAPIToken, so a leaked token can't make more.
-	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, s.config.UserLimits.MaxAPITokensPerUser)
+	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, appStore, s.config.UserLimits.MaxAPITokensPerUser)
 
 	apiTokensGroup := usersGroup.Group("/@me/api-tokens")
 	apiTokensGroup.Get("/", handler.Typed(apiTokenHandler.HandleAPITokenList))
+	apiTokensGroup.AllowAPITokenWithoutScope().Get("/current", handler.Typed(apiTokenHandler.HandleAPITokenCurrentGet))
 	apiTokensGroup.Post("/",
 		handler.TypedWithBody(apiTokenHandler.HandleAPITokenCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
 	apiTokensGroup.Delete("/{tokenID}", handler.Typed(apiTokenHandler.HandleAPITokenDelete))
+
+	// OAuth routes, so clients like Claude get tokens without users making
+	// one. The consent page is on the website and approves with the session.
+	oauthHandler := oauth.NewOAuthHandler(oauth.OAuthHandlerConfig{
+		Issuer:                s.config.APIPublicBaseURL,
+		AuthorizationEndpoint: s.config.AppPublicBaseURL + "/oauth/authorize",
+		Resources:             []string{s.config.AppPublicBaseURL + "/api/mcp"},
+		MaxAPITokensPerUser:   s.config.UserLimits.MaxAPITokensPerUser,
+	}, oauth.NewMetadataClientFetcher(s.config.HTTPClient), apiTokenStore, oauthCodeStore, appStore)
+
+	s.mux.Handle("GET "+oauth.MetadataPath, handler.APIHandler(oauthHandler.HandleMetadata))
+	s.mux.Handle("POST "+oauth.TokenPath, handler.APIHandler(oauthHandler.HandleOAuthToken))
+	oauthGroup := v1Group.Group("/oauth")
+	// Getting the request fetches the client's metadata document.
+	oauthGroup.Get("/authorize",
+		handler.Typed(oauthHandler.HandleOAuthAuthorizeGet),
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	oauthGroup.Post("/authorize",
+		handler.TypedWithBody(oauthHandler.HandleOAuthAuthorize),
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Share code routes
 	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
@@ -172,7 +206,6 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
-		usageStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
@@ -202,6 +235,7 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	appGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
 		handler.RateLimitByUser(2, time.Minute),
@@ -248,7 +282,8 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
 	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
-	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
+	// MCP clients read the plan's limits, like its monthly credits.
+	appBillingGroup.AllowAPIToken().Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)
@@ -258,7 +293,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, bundleStore, bundleInstallStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
@@ -412,10 +447,10 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	// These send, edit and delete messages in Discord, so a script can't spam
 	// channels through the bot. Updating a message sent to many channels edits
-	// each one, so editing and deleting allow more than sending. They need a
-	// login, so a client doesn't send by mistake, though a flow a token
-	// edits can still send messages.
-	messageGroup.DenyAPIToken().Post("/instances",
+	// each one, so editing and deleting allow more than sending. Tokens can
+	// send messages, like adding a template does, but editing and deleting
+	// them needs a login.
+	messageGroup.Post("/instances",
 		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
@@ -436,17 +471,21 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerStore,
 		messageStore,
 		variableStore,
+		userStore,
 		commandsHandler,
 		eventListenerHandler,
 		messageHandler,
 		variablesHandler,
 		s.config.UserLimits.MaxBundlesPerUser,
+		notifier,
 	)
 
+	// Tokens can add templates and update them, but not remove them or change
+	// their parameters, and not publish templates.
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
-	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
-	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
-	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
+	bundleInstallsGroup.AllowAPIToken().Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
+	bundleInstallsGroup.AllowAPIToken().Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
+	bundleInstallsGroup.AllowAPIToken().Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
 	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
 	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
 
@@ -458,25 +497,38 @@ func (s *APIServer) RegisterRoutes(
 	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
 
-	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	usersGroup.AllowAPIToken().Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	usersGroup.Get("/@me/starred-bundles", handler.Typed(bundleHandler.HandleStarredBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
+	userBundlesGroup.Patch("/{bundleID}", handler.TypedWithBody(bundleInstallHandler.HandleBundleUpdate), handler.RateLimitByUser(10, time.Minute))
 	userBundlesGroup.Delete("/{bundleID}/listing", handler.Typed(bundleInstallHandler.HandleBundleListingDelete))
 	// Each submission is reviewed, so a few a day are plenty.
 	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))
+	bundleStarGroup := userBundlesGroup.Group("/{bundleID}/star", handler.RateLimitByUser(60, time.Minute))
+	bundleStarGroup.Put("/", handler.Typed(bundleHandler.HandleBundleStar))
+	bundleStarGroup.Delete("/", handler.Typed(bundleHandler.HandleBundleUnstar))
 	userBundlesGroup.Group("/{bundleID}/reports", handler.RateLimitByUser(10, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
 
 	// Admin routes
-	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore)
+	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore, notifier)
 	adminGroup := v1Group.Group("/admin", sessionManager.RequireSession, handler.RequireUserIn(s.config.AdminUserIDs))
 	adminGroup.Get("/bundle-reviews", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewList))
+	adminGroup.Get("/bundle-reviews/auto-rejected", handler.Typed(bundleReviewHandler.HandleAutoRejectedBundleReviewList))
 	adminGroup.Get("/bundle-reviews/{reviewID}", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewGet))
+	adminGroup.Post("/bundle-reviews/{reviewID}/prescreen", handler.Typed(bundleReviewHandler.HandleBundleReviewPrescreenRun))
+	adminGroup.Post("/bundle-reviews/{reviewID}/reopen", handler.Typed(bundleReviewHandler.HandleBundleReviewReopen))
 	adminGroup.Post("/bundle-reviews/{reviewID}/decision", handler.TypedWithBody(bundleReviewHandler.HandleBundleReviewDecide))
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
+
+	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
+	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))
+	adminGroup.Post("/user-bans", handler.TypedWithBody(userBanHandler.HandleUserBanCreate))
+	adminGroup.Delete("/user-bans/{userID}/{feature}", handler.Typed(userBanHandler.HandleUserBanDelete))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
@@ -487,6 +539,7 @@ func (s *APIServer) RegisterRoutes(
 
 	assetsGroup := appGroup.Group("/assets")
 	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
+	assetsGroup.Post("/sounds", handler.Typed(assetHandler.HandleSoundCreate))
 	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
 	v1Group.Get(
 		"/assets/{assetID}",
@@ -495,7 +548,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Setup checklist of new apps
-	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, appStore, usageStore)
 	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
@@ -504,12 +557,43 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup := appGroup.Group("/state")
 	stateGroup.AllowAPIToken().Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.AllowAPIToken().Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
+	stateGroup.Patch("/user",
+		handler.TypedWithBody(stateHandler.HandleStateUserUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 	stateGroup.AllowAPIToken().Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.AllowAPIToken().Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
 	stateGroup.Delete("/guilds/{guildID}",
 		handler.Typed(stateHandler.HandleStateGuildLeave),
 		handler.RateLimitByUser(5, time.Minute),
 	)
+	stateGroup.Get("/guilds/{guildID}/profile",
+		handler.Typed(stateHandler.HandleStateGuildProfileGet),
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	stateGroup.Patch("/guilds/{guildID}/profile",
+		handler.TypedWithBody(stateHandler.HandleStateGuildProfileUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
+
+	// Test runs change nothing, so API tokens only need read scopes, which
+	// the handler checks. Each test can run a flow several times.
+	flowTestHandler := flowtest.NewFlowTestHandler(flowTestRunner, userStore)
+	flowTestRateLimit := handler.RateLimitByUser(30, time.Minute)
+
+	commandGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleCommandTest), flowTestRateLimit)
+	eventListenerGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleEventListenerTest), flowTestRateLimit)
+	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit)
+
+	// Discord API routes. The handler checks the discord scope, as the access
+	// a request needs depends on the endpoint it calls. Limited more than the
+	// other routes of apps, which share 60 requests a minute.
+	discordAPIHandler := discordapi.NewDiscordAPIHandler(appStateManager, logStore)
+
+	appGroup.AllowAPITokenWithoutScope().Post("/discord-api",
+		handler.TypedWithBody(discordAPIHandler.HandleDiscordAPIRequest),
+		handler.RateLimitByUser(30, time.Minute),
+	)
 }

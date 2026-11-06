@@ -43,8 +43,8 @@ UPDATE variables SET
     updated_at = $4
 WHERE id = $1 RETURNING *;
 
--- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1;
+-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id;
 
 -- variable_values has no app_id, so these reach the app through variables.
 
@@ -120,6 +120,45 @@ WHERE variable_values.variable_id = @variable_id
     OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
   )
 ORDER BY variable_values.updated_at DESC, variable_values.id DESC
+LIMIT @row_limit OFFSET @row_offset;
+
+-- name: ListVariableValues :many
+-- Values sort as numbers when they are numbers or text of a number, like
+-- "42". Other values come last when sorting by value. Values over 128 bytes,
+-- like saved messages, can't be a number of at most 30 digits, so
+-- pg_column_size skips them without reading them from TOAST, which was most of
+-- the time on variables with many. starts_with instead of LIKE so % and _ in
+-- the prefix match literally.
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = @variable_id
+  AND variables.app_id = @app_id
+  AND (
+    @scope_prefix::text = ''
+    OR starts_with(coalesce(variable_values.scope, ''), @scope_prefix::text)
+  )
+ORDER BY
+  CASE WHEN @sort::text = 'value_desc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END DESC NULLS LAST,
+  CASE WHEN @sort::text = 'value_asc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END ASC NULLS LAST,
+  CASE WHEN @sort::text = 'updated_desc' THEN variable_values.updated_at END DESC,
+  CASE WHEN @sort::text = 'updated_asc' THEN variable_values.updated_at END ASC,
+  variable_values.id
 LIMIT @row_limit OFFSET @row_offset;
 
 -- name: CountSearchVariableValues :one

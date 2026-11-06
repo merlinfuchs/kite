@@ -70,6 +70,9 @@ type FlowAIChatResponse struct {
 	// BuildPrompt is a request the user can send to make the change the
 	// message suggests, if any.
 	BuildPrompt string `json:"build_prompt"`
+	// TemplateID is a template of the marketplace the message suggests adding
+	// instead of building what it does, if any.
+	TemplateID string `json:"template_id"`
 	// Fields ask the user for what the AI needs but only they know.
 	Fields []FlowAIField `json:"fields"`
 	// Edits are applied with the editor's applyFlowEdits.

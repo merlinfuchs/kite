@@ -326,6 +326,17 @@ export function getFlowLayout<N extends Node<NodeData>>(
   );
 }
 
+// Whether the blocks are where getFlowLayout puts them, like in a new flow or
+// one that was formatted and not rearranged since.
+export function isFlowLaidOut(nodes: Node<NodeData>[], edges: Edge[]) {
+  const laid = getFlowLayout(nodes, edges);
+  return laid.every(
+    (n, i) =>
+      Math.abs(n.position.x - (nodes[i].position?.x ?? 0)) < 1 &&
+      Math.abs(n.position.y - (nodes[i].position?.y ?? 0)) < 1
+  );
+}
+
 function overlaps(a: Rect, b: Rect) {
   return (
     a.x < b.x + b.width &&

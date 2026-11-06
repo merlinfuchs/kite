@@ -5,7 +5,7 @@ package flowai
 var outputSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"message", "edits", "build_prompt", "fields"},
+	"required":             []string{"message", "edits", "build_prompt", "fields", "template_id"},
 	"properties": map[string]any{
 		"message": map[string]any{
 			"type":        "string",
@@ -14,6 +14,10 @@ var outputSchema = map[string]any{
 		"build_prompt": map[string]any{
 			"type":        []string{"string", "null"},
 			"description": "When answering without edits and suggesting a change: the request to make it, in the user's words.",
+		},
+		"template_id": map[string]any{
+			"type":        []string{"string", "null"},
+			"description": "When suggesting a template of the marketplace instead of building: its ID.",
 		},
 		"fields": map[string]any{
 			"type":        "array",

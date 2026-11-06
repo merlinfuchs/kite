@@ -1,81 +1,90 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
+import TemplateAppPickerCard from "@/components/app/TemplateAppPickerCard";
 import HomeCTASection from "@/components/home/HomeCTASection";
-import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { fetchBundle } from "@/lib/api/client";
-import { fetchStats, Stats, withApiData } from "@/lib/apiData";
+import { fetchBundle, loginUrlTo } from "@/lib/api/client";
+import { useUserQuery } from "@/lib/api/queries";
 import { isExport } from "@/lib/env/client";
-import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import {
+  categoryPath,
+  relatedTemplates,
   Template,
   templateFromBundle,
   templatePath,
 } from "@/lib/flow/templates";
-import { communityTemplateFaq } from "@/lib/flow/templateFaq";
-import { ogImagePath } from "@/lib/og/path";
+import { ogImagePath, templateImageVersion } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
-import { BundleGetResponse } from "@/lib/types/wire.gen";
+import { fetchBundles } from "@/lib/apiData";
+import { Bundle, BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
-import Link from "next/link";
 
-// bundle is set for the bundles users listed, null for official templates.
 type Props = {
-  templateId: string;
-  stats: Stats;
-  bundle: BundleGetResponse | null;
+  bundle: BundleGetResponse;
+  // The ones the page suggests, see relatedTemplates.
+  related: Bundle[];
+  templateIconSvgs: TemplateIconSvgs;
 };
 
-// Every official template is exported as its own page, so crawlers see its
-// content without running JavaScript. On kite.onl the bundles users listed
-// are rendered on their first visit. The export for self-hosting only has the
-// official ones.
+// On kite.onl the page of a template is rendered on its first visit, and is
+// checked again every minute. The export for self-hosting has no templates, so
+// it has none.
 export const getStaticPaths: GetStaticPaths = () => ({
-  paths: templatePaths(),
+  paths: [],
   fallback: isExport ? false : "blocking",
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-  const templateId = String(params?.templateId);
-  if (getTemplate(templateId)) {
-    return withApiData({ templateId, stats: await fetchStats(), bundle: null });
-  }
-
-  // Others are only here while they're listed, and are checked again every
-  // minute like the pages of bundles.
-  const [bundle, stats] = await Promise.all([
-    fetchBundle(templateId),
-    fetchStats(),
-  ]);
-  if (!bundle || bundle.official || !templateFromBundle(bundle)?.listed) {
+  const bundle = await fetchBundle(String(params?.templateId));
+  // Templates of users are only here while they're listed.
+  const template = bundle ? templateFromBundle(bundle) : undefined;
+  if (!bundle || !template?.listed) {
     return { notFound: true, revalidate: 60 };
   }
-  return { props: { templateId, stats, bundle }, revalidate: 60 };
+
+  // Only the bundles it suggests, not all of the marketplace.
+  const bundles = (await fetchBundles()) ?? [];
+  const { byCreator, similar } = relatedTemplates(
+    template,
+    bundles.flatMap((b) => templateFromBundle(b) ?? [])
+  );
+  const relatedIds = [...byCreator, ...similar].map((t) => t.id);
+  const related = bundles.filter((b) => relatedIds.includes(b.id));
+
+  return {
+    props: {
+      bundle,
+      related,
+      templateIconSvgs: templateIconSvgs(
+        [bundle, ...related].map((b) => b.listing?.icon)
+      ),
+    },
+    revalidate: 60,
+  };
 };
 
-export default function TemplatePage({ templateId, stats, bundle }: Props) {
-  const template = bundle
-    ? templateFromBundle(bundle)!
-    : getTemplate(templateId)!;
-  // The questions every template users made has go after its own, and aren't
-  // structured data, which would repeat them on every page.
-  const faq = bundle
-    ? [...template.faq, ...communityTemplateFaq(template)]
-    : template.faq;
-
+export default function TemplatePage({ bundle, related }: Props) {
+  const template = templateFromBundle(bundle)!;
   return (
     <HomeLayout
-      title={`${template.name} Template for Discord Bots`}
+      title={`${template.name} template for Discord bots`}
       description={`${template.description} ${
-        bundle ? "A free template made with Kite." : "A free Kite template."
+        bundle.official
+          ? "A free Kite template."
+          : "A free template made with Kite."
       }`}
+      // The questions every template users made has aren't structured data,
+      // which would repeat them on every page.
       jsonLd={template.faq.length ? [faqJsonLd(template.faq)] : []}
       image={ogImagePath(
-        bundle ? "bundles" : "templates",
+        bundle.official ? "templates" : "bundles",
         template.id,
-        template.version
+        templateImageVersion(template)
       )}
       embedButtons={[
         {
@@ -85,24 +94,43 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
+      <MarketplaceBar category={template.category ?? null} />
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={stats?.template_installs?.[template.id]}
-          backHref="/marketplace"
-          backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
+          related={{
+            templates: related.flatMap((b) => templateFromBundle(b) ?? []),
+            categoryHref: categoryPath,
+            href: (t) => templatePath(t.id),
+          }}
         />
       </div>
 
-      {faq.length > 0 && <HomeFAQSection faqs={faq} className="max-w-5xl" />}
-      <HomeCTASection />
+      <HomeCTASection light />
       <HomeFooter />
     </HomeLayout>
   );
 }
 
+// TemplateGetStartedCard lets logged in users add the template to one of their
+// apps. The page is rendered on the server for everyone, so others, and
+// everyone until the user loads, see how to get started, which logs them in and
+// brings them back here.
 function TemplateGetStartedCard({ template }: { template: Template }) {
+  const { data: user } = useUserQuery();
+
+  if (user?.success) {
+    return (
+      <TemplateAppPickerCard
+        href={(appId) => ({
+          pathname: "/apps/[appId]/marketplace/[templateId]",
+          query: { appId, templateId: template.id },
+        })}
+      />
+    );
+  }
+
   return (
     // The button of the Discord preview links here.
     <Card id="use" className="p-5 scroll-mt-20">
@@ -112,7 +140,7 @@ function TemplateGetStartedCard({ template }: { template: Template }) {
         Marketplace in your app and change anything you like in the editor.
       </p>
       <Button className="w-full" asChild>
-        <Link href="/apps">Get started</Link>
+        <a href={loginUrlTo(templatePath(template.id))}>Get started</a>
       </Button>
     </Card>
   );

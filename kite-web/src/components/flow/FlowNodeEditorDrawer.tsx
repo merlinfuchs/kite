@@ -27,7 +27,7 @@ export default function FlowNodeEditorDrawer({
       <DrawerContent className="max-h-[85dvh] h-[85dvh] flex flex-col after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-96 after:bg-background">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 flex-none">
           <DrawerTitle className="text-base font-semibold text-foreground">
-            Block Settings
+            Block settings
           </DrawerTitle>
           <DrawerDescription className="sr-only">
             Configure settings for the selected block.

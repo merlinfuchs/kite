@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   getItemVersion,
@@ -120,4 +120,28 @@ export function useVersionHistory({
 export function useEditorSession() {
   const [editorSession] = useState(() => crypto.randomUUID());
   return editorSession;
+}
+
+// useSaveBase keeps the version of the item the editor's content was loaded
+// from. Saves send it as base_version, so they fail instead of overwriting a
+// change made elsewhere. It's null after such a failure, so saving again
+// overwrites the change.
+export function useSaveBase(version: string | undefined) {
+  const base = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (base.current === undefined) base.current = version;
+  }, [version]);
+  return base;
+}
+
+// saveErrorMessage is the message for a failed save of an editor, including
+// one that failed because the item changed elsewhere (item_outdated).
+export function saveErrorMessage(
+  thing: string,
+  error: { code: string; message: string }
+) {
+  if (error.code === "item_outdated") {
+    return `This ${thing} was changed since you opened it, like in another tab or by an AI client. Save again to overwrite that change, or reload to see it.`;
+  }
+  return `Failed to update ${thing}: ${error.message} (${error.code})`;
 }

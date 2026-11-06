@@ -58,7 +58,7 @@ func (c *Client) UpdatePluginValue(ctx context.Context, operation model.PluginVa
 	currentValue, err := c.pluginValueWithTx(ctx, tx, value.PluginInstanceID, value.Key)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Current trasaction is rolled back, we set the value outside of the transaction
+			// Current transaction is rolled back, we set the value outside of the transaction
 			return c.setPluginValueWithTx(ctx, nil, value)
 		}
 		return nil, fmt.Errorf("failed to get current plugin value: %w", err)

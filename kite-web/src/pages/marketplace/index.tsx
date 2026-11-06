@@ -1,44 +1,43 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateList } from "@/components/app/TemplateList";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { noCodeFaq } from "@/components/landing/copy";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates } from "@/lib/flow/templateFiles";
-import { templateFromBundle, templatePath } from "@/lib/flow/templates";
+import {
+  categoryPath,
+  templateFromBundle,
+  templatePath,
+  utcDay,
+} from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
-import {
-  fetchListedBundles,
-  fetchStats,
-  Stats,
-  withApiData,
-} from "@/lib/apiData";
+import { fetchBundles, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
-import { SparklesIcon } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
 
 const points = [
   {
-    title: "Change Every Block",
+    title: "Change every block",
     description:
-      "A template is copied into your bot as normal commands and event listeners. Open them in the editor and change the replies, permissions or anything else.",
+      "A template is copied into your bot as normal commands and event listeners. Open them in the editor and change the replies, permissions, or anything else.",
   },
   {
-    title: "Add Only What You Need",
+    title: "Add only what you need",
     description:
       "Pick the commands and listeners you want from a template. Commands your bot already has are left alone.",
   },
   {
-    title: "Combine Templates",
+    title: "Combine templates",
     description:
-      "Add several templates to the same bot, like Moderation, Welcomer and Verification, and build your own commands next to them.",
+      "Add several templates to the same bot, like Moderation, Welcomer, and Verification, and build your own commands next to them.",
   },
   {
-    title: "Pick Channels and Roles",
+    title: "Pick channels and roles",
     description:
       "Choose the channels and roles a template uses from your server when you add it, instead of copying IDs.",
   },
@@ -46,17 +45,17 @@ const points = [
 
 const steps = [
   {
-    title: "Create Your Bot",
+    title: "Create your bot",
     description:
-      "Sign in with Discord, add your bot's token to Kite and invite the bot to your server.",
+      "Sign in with Discord, add your bot's token to Kite, and invite the bot to your server.",
   },
   {
-    title: "Add a Template",
+    title: "Add a template",
     description:
-      "Open the Marketplace in your app, choose one and pick the channels and roles it should use.",
+      "Open the Marketplace in your app, choose one, and pick the channels and roles it should use.",
   },
   {
-    title: "Make It Your Own",
+    title: "Make it your own",
     description:
       "The commands show up in Discord a few seconds later. Change them in the editor whenever you like.",
   },
@@ -87,77 +86,70 @@ const faqs: FAQProps[] = [
   {
     question: "What if there's no template for what I need?",
     answer:
-      "Describe the command you want and Kite's AI builds it for you, or connect the blocks yourself in the editor.",
+      "Describe the command you want and Flow AI builds it for you, or connect the blocks yourself in the editor.",
   },
 ];
 
-type Props = { stats: Stats; listed: Bundle[] | null };
-
-export const getStaticProps: GetStaticProps<Props> = async () => {
-  const [stats, listed] = await Promise.all([
-    fetchStats(),
-    fetchListedBundles(),
-  ]);
-  // Bundles users listed show up, or leave after being taken down, within a
-  // minute.
-  return withApiData({ stats, listed }, 60);
+type Props = {
+  // The official templates first, then the ones users made.
+  bundles: Bundle[] | null;
+  templateIconSvgs: TemplateIconSvgs;
+  // When the page was rendered, see featuredTemplates.
+  featuredDay: number;
 };
 
-export default function MarketplacePage({ stats, listed }: Props) {
-  // The official templates first, then the ones users made.
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const bundles = await fetchBundles();
+  // Bundles users listed show up, or leave after being taken down, within a
+  // minute.
+  return withApiData(
+    {
+      bundles,
+      featuredDay: utcDay(),
+      templateIconSvgs: templateIconSvgs(
+        (bundles ?? []).map((b) => b.listing?.icon)
+      ),
+    },
+    60
+  );
+};
+
+export default function MarketplacePage({ bundles, featuredDay }: Props) {
   const templates = useMemo(
-    () => [
-      ...getTemplates(),
-      ...(listed ?? []).flatMap((b) => templateFromBundle(b) ?? []),
-    ],
-    [listed]
+    () => (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []),
+    [bundles]
   );
   const count = templates.length;
 
   return (
     <HomeLayout
-      title="Discord Bot Templates"
+      title="Discord bot templates"
       description="Free templates for Discord bots made with Kite, from moderation commands to a verification button. Add one to your bot and change anything in the editor."
       jsonLd={[faqJsonLd(faqs)]}
     >
-      <section className="border-b bg-muted/30">
-        <div className="container max-w-5xl py-14 md:py-20 text-center">
-          <div className="text-sm font-semibold uppercase tracking-wide text-primary mb-3">
-            Marketplace
+      <MarketplaceBar category={null} search={false} />
+      <TemplateList
+        templates={templates}
+        href={(t) => templatePath(t.id)}
+        buildHref="/apps"
+        categoryHref={categoryPath}
+        featuredDay={featuredDay}
+        hero={
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Discord bot templates
+            </h1>
+            <p className="text-lg text-muted-foreground mt-2">
+              {count} templates from Kite and the community. Add one to your bot
+              and change anything in the editor.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold">
-            Discord Bot Templates
-          </h1>
-          <p className="text-xl text-muted-foreground mt-4 max-w-2xl mx-auto">
-            Ready-made commands, event listeners and messages for your bot. Add
-            one in Kite and change it like anything you built yourself.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <Button className="sm:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
-            </Button>
-            <Button variant="outline" className="sm:w-48" asChild>
-              <a href="#templates">Browse {count} Templates</a>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="templates"
-        className="container max-w-5xl py-12 scroll-mt-16"
-      >
-        <TemplateList
-          templates={templates}
-          href={(t) => templatePath(t.id)}
-          installs={(t) => stats?.template_installs?.[t.id]}
-          last={<BuildYourOwnCard />}
-        />
-      </section>
+        }
+      />
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          What You Can Do With Templates
+          What you can do with templates
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
           Templates save you building the common parts of a bot, so you can
@@ -179,7 +171,7 @@ export default function MarketplacePage({ stats, listed }: Props) {
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          How to Add a Template
+          How to add a template
         </h2>
         <ol className="relative grid md:grid-cols-3 gap-8 mt-12">
           {/* Connects the numbers of the steps. */}
@@ -197,25 +189,8 @@ export default function MarketplacePage({ stats, listed }: Props) {
       </section>
 
       <HomeFAQSection faqs={faqs} className="max-w-5xl" />
-      <HomeCTASection />
+      <HomeCTASection light />
       <HomeFooter />
     </HomeLayout>
-  );
-}
-
-function BuildYourOwnCard() {
-  return (
-    <Link href="/apps" className="group">
-      <Card className="h-full flex flex-col p-5 border-dashed bg-transparent transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
-        <div className="h-11 w-11 bg-primary/15 flex-none rounded-lg flex items-center justify-center mb-4">
-          <SparklesIcon className="w-6 h-6 text-primary" />
-        </div>
-        <div className="font-semibold mb-1">Build Your Own</div>
-        <div className="text-sm text-muted-foreground">
-          Don&apos;t see what you need? Describe a command and Kite&apos;s AI
-          builds it, or connect the blocks yourself.
-        </div>
-      </Card>
-    </Link>
   );
 }

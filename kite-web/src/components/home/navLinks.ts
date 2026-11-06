@@ -20,12 +20,12 @@ export interface NavLink {
 export const productLinks: NavLink[] = [
   {
     title: "Features",
-    description: "Everything Kite can do for your Discord bot.",
-    href: "/#features",
+    description: "Every block, template, and plan feature of Kite.",
+    href: "/features",
     icon: SparklesIcon,
   },
   {
-    title: "How It Works",
+    title: "How it works",
     description: "See how you make a Discord bot without writing code.",
     href: "/#how-it-works",
     icon: WorkflowIcon,
@@ -37,9 +37,10 @@ export const productLinks: NavLink[] = [
     icon: StoreIcon,
   },
   {
-    title: "Guide",
-    description: "Step by step: make your first Discord bot.",
-    href: "/guides/how-to-make-a-discord-bot",
+    title: "Guides",
+    description:
+      "Step by step guides to make your bot in Kite, Claude, or ChatGPT.",
+    href: "/guides",
     icon: BookOpenIcon,
   },
   {

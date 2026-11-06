@@ -17,10 +17,6 @@
       "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
     },
     {
-      "question": "What permissions does the bot need?",
-      "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
-    },
-    {
       "question": "Can I change the replies or log actions to a channel?",
       "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
     }

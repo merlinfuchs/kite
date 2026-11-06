@@ -66,6 +66,7 @@ packages:
       - "handlers_utility.go"
       - "handlers_variable.go"
       - "provider.go"
+      - "test_run.go"
     frontmatter: |
       import { MessageData } from './message.gen';
       type StringIndexable = Record<string, unknown>;

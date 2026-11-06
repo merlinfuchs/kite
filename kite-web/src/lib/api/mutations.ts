@@ -11,6 +11,8 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppCreditNoticesUpdateRequest,
+  AppCreditNoticesUpdateResponse,
   AppStatusUpdateRequest,
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
@@ -63,6 +65,10 @@ import {
   ShareCodeCreateResponse,
   ShareCodeGetResponse,
   StateGuildLeaveResponse,
+  StateGuildProfileUpdateRequest,
+  StateGuildProfileUpdateResponse,
+  StateUserUpdateRequest,
+  StateUserUpdateResponse,
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
@@ -93,7 +99,11 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
+  BundleUpdateRequest,
+  BundleUpdateResponse,
   BundleListingDeleteResponse,
+  BundleReviewPrescreenRunResponse,
+  BundleReviewReopenResponse,
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
   BundleRemoveRequest,
@@ -101,6 +111,10 @@ import {
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
+  BundleGetResponse,
+  BundleListResponse,
+  BundleStarResponse,
+  StarredBundleListResponse,
   BundleReviewDecideRequest,
   BundleReviewDecideResponse,
   BundleExportResponse,
@@ -113,10 +127,16 @@ import {
   BundleInstallUpdateRequest,
   BundleInstallUpdateResponse,
   APITokenCreateRequest,
+  OAuthAuthorizeRequest,
+  OAuthAuthorizeResponse,
   APITokenCreateResponse,
   APITokenDeleteResponse,
+  UserBanCreateRequest,
+  UserBanCreateResponse,
+  UserBanDeleteResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
@@ -187,6 +207,29 @@ export function useAppStatusUpdateMutation(appId: string) {
           "Content-Type": "application/json",
         },
       }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId],
+      });
+    },
+  });
+}
+
+export function useAppCreditNoticesUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppCreditNoticesUpdateRequest) =>
+      apiRequest<AppCreditNoticesUpdateResponse>(
+        `/v1/apps/${appId}/credit-notices`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId],
@@ -329,6 +372,10 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
+      });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
       });
       client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
@@ -506,6 +553,32 @@ export function useBundleDeleteMutation() {
   });
 }
 
+export function useBundleUpdateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      page,
+    }: {
+      bundleId: string;
+      page: BundleUpdateRequest;
+    }) =>
+      apiRequest<BundleUpdateResponse>(`/v1/bundles/${bundleId}`, {
+        method: "PATCH",
+        body: JSON.stringify(page),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (_, { bundleId }) => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Its link shows the page right away.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
+  });
+}
+
 export function useBundleListingSubmitMutation() {
   const client = useQueryClient();
 
@@ -527,8 +600,10 @@ export function useBundleListingSubmitMutation() {
           },
         }
       ),
-    onSuccess: () => {
+    onSuccess: (_, { bundleId }) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // The listing becomes its page, which its link shows until it's listed.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
     },
   });
 }
@@ -565,6 +640,47 @@ export function useBundleReviewDecideMutation() {
   });
 }
 
+// useBundleReviewPrescreenRunMutation has the AI pre-screen screen a pending
+// review again.
+export function useBundleReviewPrescreenRunMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewPrescreenRunResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/prescreen`,
+        { method: "POST" }
+      ),
+    // It may reject it, which moves it to the auto-rejected ones.
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
+      });
+    },
+  });
+}
+
+// useBundleReviewReopenMutation puts a review the AI pre-screen rejected
+// back in the queue.
+export function useBundleReviewReopenMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewReopenResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/reopen`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
+      });
+    },
+  });
+}
+
 export function useBundleReportCreateMutation() {
   return useMutation({
     mutationFn: ({
@@ -584,6 +700,58 @@ export function useBundleReportCreateMutation() {
           },
         }
       ),
+  });
+}
+
+export function useBundleStarMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      starred,
+    }: {
+      bundleId: string;
+      starred: boolean;
+    }) =>
+      apiRequest<BundleStarResponse>(`/v1/bundles/${bundleId}/star`, {
+        method: starred ? "PUT" : "DELETE",
+      }),
+    // The response has the new count, so the cached bundles are updated
+    // instead of loading the whole marketplace again.
+    onSuccess: (res, { bundleId, starred }) => {
+      if (!res.success) return;
+      const count = res.data.star_count;
+      client.setQueryData<APIResponse<StarredBundleListResponse>>(
+        ["users", "@me", "starred-bundles"],
+        (old) =>
+          old?.success
+            ? {
+                success: true,
+                data: starred
+                  ? [bundleId, ...old.data.filter((id) => id !== bundleId)]
+                  : old.data.filter((id) => id !== bundleId),
+              }
+            : old
+      );
+      client.setQueryData<APIResponse<BundleListResponse>>(["bundles"], (old) =>
+        old?.success
+          ? {
+              success: true,
+              data: old.data.map((b) =>
+                b?.id === bundleId ? { ...b, star_count: count } : b
+              ),
+            }
+          : old
+      );
+      client.setQueryData<APIResponse<BundleGetResponse>>(
+        ["bundles", bundleId],
+        (old) =>
+          old?.success
+            ? { success: true, data: { ...old.data, star_count: count } }
+            : old
+      );
+    },
   });
 }
 
@@ -629,6 +797,48 @@ export function useBundleRemoveMutation() {
   });
 }
 
+// useUserBanCreateMutation bans a user from a feature. A ban from the
+// marketplace or Kite rejects what they have in review, and one from Kite
+// stops their apps.
+export function useUserBanCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserBanCreateRequest) =>
+      apiRequest<UserBanCreateResponse>(`/v1/admin/user-bans`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      // Like deciding, the rejected reviews leave the list without their
+      // pages loading again.
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews"],
+        exact: true,
+      });
+      client.invalidateQueries({ queryKey: ["admin", "user-bans"] });
+    },
+  });
+}
+
+export function useUserBanDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, feature }: { userId: string; feature: string }) =>
+      apiRequest<UserBanDeleteResponse>(
+        `/v1/admin/user-bans/${userId}/${feature}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-bans"] });
+    },
+  });
+}
+
 export function useBundleListingDeleteMutation() {
   const client = useQueryClient();
 
@@ -638,8 +848,10 @@ export function useBundleListingDeleteMutation() {
         `/v1/bundles/${bundleId}/listing`,
         { method: "DELETE" }
       ),
-    onSuccess: () => {
+    onSuccess: (_, bundleId) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Its link shows its page instead of the listing.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
     },
   });
 }
@@ -783,6 +995,10 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
       });
     },
   });
@@ -1005,6 +1221,10 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "variables"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1135,6 +1355,10 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1236,7 +1460,54 @@ export function useAppStateGuildLeaveMutation(appId: string) {
   });
 }
 
-export function useAssetCreateMutation(appId: string) {
+export function useAppStateGuildProfileUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      guildId,
+      ...req
+    }: StateGuildProfileUpdateRequest & { guildId: string }) =>
+      apiRequest<StateGuildProfileUpdateResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/profile`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: (_, { guildId }) => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
+      });
+    },
+  });
+}
+
+export function useAppStateUserUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: StateUserUpdateRequest) =>
+      apiRequest<StateUserUpdateResponse>(`/v1/apps/${appId}/state/user`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["apps", appId, "state", "user"], res);
+      }
+    },
+  });
+}
+
+/** Uploads a file as an asset. "sounds" converts an audio file to a sound for Play audio. */
+export function useAssetCreateMutation(appId: string, kind?: "sounds") {
   const client = useQueryClient();
 
   return useMutation({
@@ -1244,7 +1515,8 @@ export function useAssetCreateMutation(appId: string) {
       const body = new FormData();
       body.append("file", file);
 
-      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}/assets`, {
+      const path = kind ? `/assets/${kind}` : "/assets";
+      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}${path}`, {
         method: "POST",
         body,
       });
@@ -1524,5 +1796,22 @@ export function useAPITokenDeleteMutation(tokenId: string) {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["users", "@me", "api-tokens"] });
     },
+  });
+}
+
+// useOAuthAuthorizeMutation approves or denies an OAuth client, with its
+// authorization request as the query string, and returns where to send the
+// user back to it. The client's token is only made when it gets it with the
+// code.
+export function useOAuthAuthorizeMutation(query: string) {
+  return useMutation({
+    mutationFn: (req: OAuthAuthorizeRequest) =>
+      apiRequest<OAuthAuthorizeResponse>(`/v1/oauth/authorize?${query}`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
   });
 }

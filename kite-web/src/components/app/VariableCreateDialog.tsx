@@ -63,7 +63,7 @@ export default function VariableCreateDialog({
         onSuccess(res) {
           if (res.success) {
             track("variable_created", { scoped: data.scoped });
-            toast.success("Variable created!");
+            toast.success("Variable created.");
             setOpen(false);
 
             if (onVariableCreated) {
@@ -88,7 +88,7 @@ export default function VariableCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Variable</DialogTitle>
+          <DialogTitle>Create variable</DialogTitle>
           <DialogDescription>
             Create a new variable of a specific type.
           </DialogDescription>

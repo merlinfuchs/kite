@@ -11,7 +11,7 @@ export default function AppSubscriptionList() {
   return (
     <div>
       <h2 className="text-lg font-semibold md:text-2xl mt-32 mb-6">
-        Subscription History
+        Subscription history
       </h2>
       <div className="flex flex-col gap-4">
         {subscriptions?.map((sub) => (

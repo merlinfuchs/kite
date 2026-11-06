@@ -7,14 +7,18 @@ import VariableListEntry from "./VariableListEntry";
 import VariableCreateDialog from "./VariableCreateDialog";
 import { VariableIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function VariableList() {
   const variables = useVariables();
+  const limit = usePlanLimit("max_variables", variables?.length);
 
   const variableCreateButton = (
-    <VariableCreateDialog>
-      <Button>Create variable</Button>
-    </VariableCreateDialog>
+    <PlanLimitGate limit={limit} noun="variables" from="variables">
+      <VariableCreateDialog>
+        <Button>Create variable</Button>
+      </VariableCreateDialog>
+    </PlanLimitGate>
   );
 
   return (
@@ -41,6 +45,9 @@ export default function VariableList() {
           )}
           placeholder="Search variables"
           actions={variableCreateButton}
+          status={
+            <PlanLimitCount limit={limit} noun="variables" from="variables" />
+          }
         />
       )}
     </AutoAnimate>

@@ -3,19 +3,21 @@ import {
   ArrowUp10Icon,
   BotOffIcon,
   BrainCircuitIcon,
+  CoinsIcon,
   GavelIcon,
   GiftIcon,
   InfoIcon,
+  LanguagesIcon,
   LightbulbIcon,
   LucideIcon,
   MailIcon,
   MoonIcon,
-  PackageIcon,
   PinIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
   SirenIcon,
   StarIcon,
+  TrophyIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 import { z } from "zod";
@@ -25,6 +27,8 @@ import { Bundle } from "../types/wire.gen";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
 import userAvatar from "@/tools/common/utils/discordCdn";
 
+// templateIcons are the icons of Kite's templates, which are bundled. User
+// templates can have any Lucide icon, see TemplateIcon.
 export const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
@@ -42,28 +46,181 @@ export const templateIcons: Record<string, LucideIcon> = {
   pin: PinIcon,
   "alarm-clock": AlarmClockIcon,
   "bot-off": BotOffIcon,
+  languages: LanguagesIcon,
+  trophy: TrophyIcon,
+  coins: CoinsIcon,
 };
 
+// lucideName is the name of the Lucide component of the icon, like
+// ArrowUp10 for arrow-up-1-0.
+export function lucideName(icon: string) {
+  return icon
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+}
+
+// iconName is the name a template stores for the Lucide component, which
+// lucideName turns back into it.
+export function iconName(component: string) {
+  return component.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase();
+}
+
+// Each category has a page in the marketplace, with the title and
+// description. The colors are of the icons of the templates in a category, so
+// the cards of the marketplace don't all look the same.
 export const templateCategories = [
-  { value: "moderation", label: "Moderation" },
-  { value: "ai", label: "AI" },
-  { value: "community", label: "Community" },
-  { value: "support", label: "Support" },
-  { value: "games", label: "Games" },
-  { value: "other", label: "Other" },
+  {
+    value: "moderation",
+    label: "Moderation",
+    title: "Discord Moderation Bot Templates",
+    description:
+      "Commands to ban, kick and mute members, and automods that remove spam and rule breaks for you.",
+    icon: "text-blue-600 dark:text-blue-400",
+    tile: "bg-blue-500/10",
+    banner: "from-blue-500/25 via-blue-500/5",
+  },
+  {
+    value: "ai",
+    label: "AI",
+    title: "Discord AI Bot Templates",
+    description:
+      "Commands that answer the questions of your members with AI, or use it to do things for them.",
+    icon: "text-violet-600 dark:text-violet-400",
+    tile: "bg-violet-500/10",
+    banner: "from-violet-500/25 via-violet-500/5",
+  },
+  {
+    value: "welcome",
+    label: "Welcome",
+    title: "Discord Welcome and Verification Bot Templates",
+    description:
+      "Greet new members, have them verify or register, and reward the ones who invite others.",
+    icon: "text-cyan-600 dark:text-cyan-400",
+    tile: "bg-cyan-500/10",
+    banner: "from-cyan-500/25 via-cyan-500/5",
+  },
+  {
+    value: "community",
+    label: "Community",
+    title: "Discord Community Bot Templates",
+    description:
+      "Suggestions, giveaways, starboards and more to keep your server active.",
+    icon: "text-emerald-600 dark:text-emerald-400",
+    tile: "bg-emerald-500/10",
+    banner: "from-emerald-500/25 via-emerald-500/5",
+  },
+  {
+    value: "utility",
+    label: "Utility",
+    title: "Discord Utility Bot Templates",
+    description:
+      "Server and user info, reminders, notes, translations and other everyday commands.",
+    icon: "text-slate-600 dark:text-slate-300",
+    tile: "bg-slate-500/10",
+    banner: "from-slate-500/25 via-slate-500/5",
+  },
+  {
+    value: "support",
+    label: "Support",
+    title: "Discord Ticket and Modmail Bot Templates",
+    description:
+      "Tickets and modmail, so members can reach your staff in private.",
+    icon: "text-amber-600 dark:text-amber-400",
+    tile: "bg-amber-500/10",
+    banner: "from-amber-500/25 via-amber-500/5",
+  },
+  {
+    value: "games",
+    label: "Fun & Games",
+    title: "Discord Fun and Game Bot Templates",
+    description:
+      "Games, fun commands and random activities for your members, and panels for ER:LC servers.",
+    icon: "text-pink-600 dark:text-pink-400",
+    tile: "bg-pink-500/10",
+    banner: "from-pink-500/25 via-pink-500/5",
+  },
+  {
+    value: "other",
+    label: "Other",
+    title: "More Discord Bot Templates",
+    description:
+      "Commands that fit no other category, like leave requests for staff.",
+    icon: "text-primary",
+    tile: "bg-primary/10",
+    banner: "from-primary/25 via-primary/5",
+  },
 ] as const;
+
+// templateCategory is the category of a template, Other if it has none.
+export function templateCategory(template: Template) {
+  return (
+    templateCategories.find((c) => c.value === template.category) ??
+    templateCategories[templateCategories.length - 1]!
+  );
+}
+
+// featuredTemplates are the templates the marketplace shows first, two of
+// Kite's and one a user made, picked again every day. day is the number of
+// days since 1970 in UTC, so everyone sees the same ones.
+export function featuredTemplates(templates: Template[], day: number) {
+  // A different order of them every day.
+  const pick = (pool: Template[], count: number) =>
+    pool
+      .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, count)
+      .map(({ t }) => t);
+
+  const community = pick(
+    templates.filter(
+      (t) =>
+        t.author.kind === "user" &&
+        t.listed &&
+        (t.installs ?? 0) >= minFeaturedInstalls
+    ),
+    1
+  );
+  const official = pick(
+    templates.filter((t) => t.author.kind === "kite"),
+    3 - community.length
+  );
+  return [...official.slice(0, 1), ...community, ...official.slice(1)];
+}
+
+// Users' templates need a few installs to be featured, so the ones nobody
+// tried yet don't get the top of the marketplace.
+const minFeaturedInstalls = 5;
+
+// utcDay is the day featuredTemplates picks for.
+export function utcDay(date = new Date()) {
+  return Math.floor(date.getTime() / 86_400_000);
+}
+
+// hash is FNV-1a, enough to shuffle the featured templates.
+function hash(text: string) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 
+const flowNodeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  // The size of notes, they're a dot without it.
+  width: z.number().optional(),
+  height: z.number().optional(),
+  data: z.record(z.string(), z.unknown()),
+});
+
 const flowSourceSchema = z.object({
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),
@@ -81,15 +238,31 @@ export const templateParameterSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   // channel and role are picked from a server the app is in, and their ID is
-  // the value.
-  type: z.enum(["text", "textarea", "channel", "role"]),
+  // the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Only text
-  // parameters have one.
+  // The value it starts with when the template is added. Channels and roles
+  // don't have one.
   default: z.string().optional(),
 });
 
 export type TemplateParameter = z.infer<typeof templateParameterSchema>;
+
+export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
+  text: "Text",
+  textarea: "Long text",
+  channel: "Channel",
+  role: "Role",
+  boolean: "Yes/No",
+};
+
+const isBooleanValue = (value: string) => value === "true" || value === "false";
+
+// formatParameterValue is the value as it's shown, Yes or No for a yes/no.
+export function formatParameterValue(type: string, value: string): string {
+  if (type !== "boolean" || !isBooleanValue(value)) return value;
+  return value === "true" ? "Yes" : "No";
+}
 
 // parameterDefaults are the values the parameters start with when the
 // template is added, by their key.
@@ -153,7 +326,12 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
-  parameters: z.array(templateParameterSchema),
+  parameters: z.array(
+    templateParameterSchema.refine(
+      (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
+      { message: "The default of a yes/no must be true or false" }
+    )
+  ),
   // Item IDs match what an app installed to a later version of the
   // template, so they must never change either.
   commands: z.array(
@@ -223,14 +401,7 @@ const bundleFlowSchema = z.object({
         .extend({ value: z.string() })
     )
     .optional(),
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),
@@ -317,7 +488,8 @@ export type Template = {
   version: number;
   name: string;
   description: string;
-  icon: LucideIcon;
+  // icon is the name of a Lucide icon, in kebab case.
+  icon: string;
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
@@ -326,6 +498,12 @@ export type Template = {
   listed: boolean;
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
+  // How many apps added it, unknown for the official ones from the files.
+  installs?: number;
+  // How many users starred it, unknown for the official ones from the files.
+  stars?: number;
+  // When it was made, unknown for the official ones from the files.
+  createdAt?: string;
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
@@ -362,10 +540,36 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
+// relatedTemplates are the templates the page of one suggests: more by the
+// user who made it, and the most added others of its category.
+export function relatedTemplates(template: Template, templates: Template[]) {
+  const others = templates.filter((t) => t.id !== template.id && t.listed);
+  const creator =
+    template.author.kind === "user" ? template.author.discordId : undefined;
+  const byCreator = creator
+    ? others
+        .filter(
+          (t) => t.author.kind === "user" && t.author.discordId === creator
+        )
+        .slice(0, 3)
+    : [];
+  const similar = others
+    .filter((t) => t.category === template.category && !byCreator.includes(t))
+    .sort((a, b) => (b.installs ?? 0) - (a.installs ?? 0))
+    .slice(0, 3);
+  return { byCreator, similar };
+}
+
 // templatePath is the public page of a template or a listed bundle in the
 // marketplace.
 export function templatePath(id: string) {
   return `/marketplace/${id}`;
+}
+
+// categoryPath is the page of the templates of a category in the
+// marketplace.
+export function categoryPath(category: TemplateCategory) {
+  return `/marketplace/categories/${category}`;
 }
 
 // creatorPath is the page of a user's templates in the marketplace. The
@@ -379,52 +583,63 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
+// Below this, a star count makes a template look unused, so it isn't shown.
+export const minShownStars = 5;
+
 // templateFromBundle is the template of a bundle of the service, or undefined
-// if it isn't one the site can show. Official ones always have a listing, the
-// bundles of users once they're listed in the marketplace.
+// if it isn't one the site can show. Official ones always have a listing,
+// users' ones show their page until a listing of them is approved.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
   if (!content.success) return undefined;
-  const versionNotes = bundle.version_notes ?? [];
+  const listing = bundle.listing;
   const category = templateCategories.find(
-    (c) => c.value === bundle.listing?.category
-  );
-  const listing =
-    bundle.listing && category
-      ? { ...bundle.listing, category: category.value }
-      : undefined;
+    (c) => c.value === listing?.category
+  )?.value;
+  // The content has the name and description it was published with, which
+  // can have changed since.
+  const source = {
+    ...content.data,
+    name: bundle.name,
+    description: bundle.description,
+    icon: listing?.icon || "package",
+    category,
+    about: listing?.about ?? [],
+    faq: listing?.faq ?? [],
+    setup: listing?.setup,
+    versionNotes: bundle.version_notes ?? [],
+  };
 
   if (bundle.official) {
-    if (!listing) return undefined;
-    return loadTemplate(
-      { ...content.data, ...listing, versionNotes },
-      { kind: "kite" },
-      true
-    );
+    if (!listing || !category) return undefined;
+    return {
+      ...loadTemplate(source, { kind: "kite" }, true),
+      installs: bundle.install_count,
+      stars: bundle.star_count,
+      createdAt: bundle.created_at,
+    };
   }
-  return loadTemplate(
-    {
-      ...content.data,
-      icon: "package",
-      about: [],
-      faq: [],
-      ...listing,
-      versionNotes,
-    },
-    bundle.yours || !bundle.owner
-      ? { kind: "you" }
-      : {
-          kind: "user",
-          discordId: bundle.owner.discord_id,
-          name: bundle.owner.display_name,
-          username: bundle.owner.discord_username,
-          avatarUrl: userAvatar({
-            id: bundle.owner.discord_id,
-            avatar: bundle.owner.discord_avatar,
-          }),
-        },
-    !!listing
-  );
+  return {
+    ...loadTemplate(
+      source,
+      bundle.yours || !bundle.owner
+        ? { kind: "you" }
+        : {
+            kind: "user",
+            discordId: bundle.owner.discord_id,
+            name: bundle.owner.display_name,
+            username: bundle.owner.discord_username,
+            avatarUrl: userAvatar({
+              id: bundle.owner.discord_id,
+              avatar: bundle.owner.discord_avatar,
+            }),
+          },
+      bundle.listed
+    ),
+    installs: bundle.install_count,
+    stars: bundle.star_count,
+    createdAt: bundle.created_at,
+  };
 }
 
 export function loadTemplate(
@@ -438,7 +653,7 @@ export function loadTemplate(
     version: file.version,
     name: file.name,
     description: file.description,
-    icon: templateIcons[file.icon] ?? PackageIcon,
+    icon: file.icon,
     category: file.category,
     author,
     versionNotes: file.versionNotes ?? [],
@@ -543,16 +758,24 @@ export function templateFlows(template: Template): TemplateFlow[] {
 // componentLabel is the label of the button or select menu in a message that
 // runs a flow.
 export function componentLabel(data: unknown, flowSourceId: string) {
-  let label: string | undefined;
-  const walk = (value: unknown) => {
-    if (label || !value || typeof value !== "object") return;
-    const component = value as Record<string, unknown>;
-    if (component.flow_source_id === flowSourceId) {
-      label = String(component.label ?? component.placeholder ?? "");
-      return;
-    }
-    Object.values(component).forEach(walk);
-  };
-  walk(data);
+  const component = findFlowSourceComponent(data, flowSourceId);
+  const label =
+    component && String(component.label ?? component.placeholder ?? "");
   return label ? `"${label}"` : undefined;
+}
+
+// findFlowSourceComponent finds the button or select menu in a message that
+// runs a flow. Components can be nested in rows, sections and containers.
+export function findFlowSourceComponent(
+  value: unknown,
+  flowSourceId: string
+): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const component = value as Record<string, unknown>;
+  if (component.flow_source_id === flowSourceId) return component;
+  for (const child of Object.values(component)) {
+    const found = findFlowSourceComponent(child, flowSourceId);
+    if (found) return found;
+  }
+  return undefined;
 }

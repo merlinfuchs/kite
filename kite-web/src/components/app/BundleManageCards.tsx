@@ -8,15 +8,18 @@ import {
   useBundleListingDeleteMutation,
 } from "@/lib/api/mutations";
 import env from "@/lib/env/client";
+import { inMarketplace, newVersionsReviewed } from "@/lib/flow/bundleListing";
 import { templatePath } from "@/lib/flow/templates";
+import { useApps } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
 import { CopyIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { toast } from "sonner";
 import BundleDialog from "./BundleDialog";
-import BundleListingDialog from "./BundleListingDialog";
+import BundlePageDialog from "./BundlePageDialog";
 
 // bundleUrl is where others see the bundle: its page in the marketplace while
 // it's listed, otherwise the page of its link.
@@ -28,9 +31,9 @@ export function bundleUrl(bundle: UserBundle) {
   }`;
 }
 
-// BundleManageCards are where the user shares, lists and deletes a bundle
-// they made, on its page. A bundle Kite took down can't be deleted, so apps
-// that added it keep the warning.
+// BundleManageCards are where the user edits the page of a bundle they made,
+// shares, lists and deletes it, on its page. A bundle Kite took down can't be
+// deleted, so apps that added it keep the warning.
 export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
   return (
     <>
@@ -41,6 +44,7 @@ export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
         </Card>
       ) : (
         <>
+          <PageCard bundle={bundle} />
           <MarketplaceCard bundle={bundle} />
           <LinkCard bundle={bundle} />
           <DeleteCard bundle={bundle} />
@@ -64,6 +68,62 @@ export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>
       </BundleDialog>
+    </Card>
+  );
+}
+
+// OtherSourceAppCard is for the user's bundle in an app it isn't made from,
+// which can't publish its updates.
+export function OtherSourceAppCard({ bundle }: { bundle: UserBundle }) {
+  const apps = useApps();
+  if (!apps) return null;
+  const sourceApp = apps.find((a) => a?.id === bundle.source_app_id);
+
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">
+        {sourceApp ? `Made from ${sourceApp.name}` : "Made by you"}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {sourceApp
+          ? `${sourceApp.name} has the commands, event listeners and messages the template is made of. Switch to it to change them and publish an update.`
+          : bundle.source_app_id
+          ? "It's made from an app you can't open anymore, so you can't publish updates of it."
+          : "The app it was made from was deleted, so it can't get updates anymore."}
+        {/* Kite took it down, so its page can't change. */}
+        {bundle.removed_reason === null &&
+          " You can edit its page from any app."}
+      </p>
+      {sourceApp && (
+        <Button asChild variant="outline" className="w-full mt-4">
+          <Link
+            href={{
+              pathname: "/apps/[appId]/bundles/[bundleId]",
+              query: { appId: sourceApp.id, bundleId: bundle.id },
+            }}
+          >
+            Switch to {sourceApp.name}
+          </Link>
+        </Button>
+      )}
+    </Card>
+  );
+}
+
+function PageCard({ bundle }: { bundle: UserBundle }) {
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">Page</div>
+      <p className="text-sm text-muted-foreground mb-4">
+        {inMarketplace(bundle)
+          ? "Its name, description and how it works. Kite reviews your changes before the Marketplace shows them."
+          : "Its name, description and how it works, which anyone with its link sees."}
+      </p>
+      <BundlePageDialog bundle={bundle}>
+        <Button variant="outline" className="w-full">
+          Edit page
+        </Button>
+      </BundlePageDialog>
     </Card>
   );
 }
@@ -93,19 +153,23 @@ function LinkCard({ bundle }: { bundle: UserBundle }) {
 
 function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
   const unlistMutation = useBundleListingDeleteMutation();
-  const inMarketplace =
-    bundle.listed_version !== null ||
-    bundle.latest_review?.status === "pending";
+  // After a rejection, new versions are submitted again until the owner
+  // withdraws it.
+  const listed = inMarketplace(bundle);
 
   async function unlist() {
     const res = await unlistMutation.mutateAsync(bundle.id);
     if (!res.success) {
       toast.error(
-        `Failed to remove ${bundle.name} from the marketplace: ${res.error.message} (${res.error.code})`
+        `Failed to withdraw ${bundle.name}: ${res.error.message} (${res.error.code})`
       );
       return;
     }
-    toast.success(`Removed ${bundle.name} from the marketplace`);
+    toast.success(
+      listed
+        ? `Removed ${bundle.name} from the Marketplace`
+        : `New versions of ${bundle.name} won't be submitted anymore`
+    );
   }
 
   return (
@@ -113,25 +177,33 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
       <div className="font-semibold mb-1">Marketplace</div>
       <div className="text-sm text-muted-foreground mb-4">
         <ListingStatus bundle={bundle} /> Kite reviews templates before
-        they&apos;re listed, and each new version of a listed one.
+        they&apos;re listed, and each new version of a listed one.{" "}
+        <a
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`}
+          target="_blank"
+          className="text-primary hover:underline"
+        >
+          How to get it approved
+        </a>
       </div>
       <div className="flex flex-col gap-2">
-        <BundleListingDialog bundle={bundle}>
-          <Button
-            variant={inMarketplace ? "outline" : "default"}
-            className="w-full"
-          >
-            {bundle.listed_version !== null
-              ? "Edit listing"
-              : bundle.latest_review?.status === "pending"
-              ? "Edit submission"
-              : "List in marketplace"}
-          </Button>
-        </BundleListingDialog>
-        {inMarketplace && (
+        {!listed && (
+          <BundlePageDialog bundle={bundle} submit>
+            <Button className="w-full">List in Marketplace</Button>
+          </BundlePageDialog>
+        )}
+        {newVersionsReviewed(bundle) && (
           <ConfirmDialog
-            title={`Remove ${bundle.name} from the marketplace?`}
-            description="Apps that added it stay on the last version Kite approved. Listing it again needs a new review."
+            title={
+              listed
+                ? `Remove ${bundle.name} from the Marketplace?`
+                : `Stop submitting ${bundle.name}?`
+            }
+            description={
+              listed
+                ? "Apps that added it stay on the last version Kite approved. Listing it again needs a new review."
+                : "New versions you publish won't be submitted for the Marketplace again. You can still list it later."
+            }
             onConfirm={unlist}
           >
             <Button
@@ -139,7 +211,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
               className="w-full"
               disabled={unlistMutation.isPending}
             >
-              Remove from marketplace
+              {listed ? "Remove from Marketplace" : "Stop submitting updates"}
             </Button>
           </ConfirmDialog>
         )}
@@ -168,7 +240,7 @@ function DeleteCard({ bundle }: { bundle: UserBundle }) {
   return (
     <ConfirmDialog
       title={`Delete ${bundle.name}?`}
-      description="Its link stops working and it leaves the marketplace. Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
+      description="Its link stops working and it leaves the Marketplace. Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
       onConfirm={remove}
     >
       <Button
@@ -228,30 +300,30 @@ export function ListingStatus({ bundle }: { bundle: UserBundle }) {
   const review = bundle.latest_review;
   const listed = bundle.listed_version;
 
-  // A review of the listed version is a change of its listing.
-  let status: ReactNode = "Not in the marketplace.";
+  // A review of the listed version is a change of its page.
+  let status: ReactNode = "Not in the Marketplace.";
   if (review?.status === "pending") {
     status =
       listed === null
-        ? "In review for the marketplace."
+        ? "In review for the Marketplace."
         : review.version === listed
-        ? "Listed in the marketplace, your changes to its listing are in review."
-        : `Listed in the marketplace, version ${review.version} is in review and apps get version ${listed} until then.`;
+        ? "Listed in the Marketplace, your changes to its page are in review."
+        : `Listed in the Marketplace, version ${review.version} is in review and apps get version ${listed} until then.`;
   } else if (review?.status === "rejected") {
     status = (
       <span className="text-destructive">
         {listed === null
-          ? "Not approved for the marketplace: "
+          ? "Not approved for the Marketplace: "
           : review.version === listed
-          ? "Listed in the marketplace, but your changes to its listing weren't approved: "
+          ? "Listed in the Marketplace, but your changes to its page weren't approved: "
           : `Version ${review.version} wasn't approved, apps keep version ${listed}: `}
         {review.reason}
       </span>
     );
   } else if (listed !== null) {
-    status = "Listed in the marketplace.";
+    status = "Listed in the Marketplace.";
   } else if (bundle.approved_version !== null) {
-    status = `Not in the marketplace. Apps get version ${bundle.approved_version}, the last one Kite approved, until it's listed again.`;
+    status = `Not in the Marketplace. Apps get version ${bundle.approved_version}, the last one Kite approved, until it's listed again.`;
   }
   return <>{status}</>;
 }

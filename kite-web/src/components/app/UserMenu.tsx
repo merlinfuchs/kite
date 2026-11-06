@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -22,6 +23,8 @@ import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
 // elsewhere, like with the logo, leave out returnHome.
+//
+// Guides that need a token link to ?api-tokens, which opens the API tokens.
 export default function UserMenu({
   children,
   className,
@@ -37,11 +40,26 @@ export default function UserMenu({
 }) {
   const user = useUser();
   const logout = useLogout();
+  const router = useRouter();
   const [tokensOpen, setTokensOpen] = useState(false);
+  const tokensLinked = router.query["api-tokens"] !== undefined;
+
+  function onTokensOpenChange(open: boolean) {
+    setTokensOpen(open);
+    if (!open && tokensLinked) {
+      const { "api-tokens": _, ...query } = router.query;
+      router.replace({ pathname: router.pathname, query }, undefined, {
+        shallow: true,
+      });
+    }
+  }
 
   return (
     <>
-      <APITokensDialog open={tokensOpen} onOpenChange={setTokensOpen} />
+      <APITokensDialog
+        open={tokensOpen || tokensLinked}
+        onOpenChange={onTokensOpenChange}
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
         <DropdownMenuContent

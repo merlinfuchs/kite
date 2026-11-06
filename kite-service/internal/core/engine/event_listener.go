@@ -106,6 +106,15 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	)
 }
 
+// ShouldHandleEvent reports whether an event listener runs for an event, for
+// test runs. botID is the app's own user.
+func ShouldHandleEvent(listener *model.EventListener, e ws.Event, botID discord.UserID) bool {
+	if listener.Source != model.EventSourceDiscord {
+		return true
+	}
+	return (&EventListener{listener: listener}).shouldHandleEvent(e, botID)
+}
+
 // shouldHandleEvent reports whether the listener runs for an event. botID is
 // the app's own user, zero if unknown.
 func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool {

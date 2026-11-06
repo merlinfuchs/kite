@@ -24,6 +24,7 @@ import {
   PreviewItemsProvider,
 } from "./ItemPreviewCards";
 import { toast } from "sonner";
+import { PlanLimitNotice, useExceededLimit } from "./PlanLimit";
 
 // BundleImportItems is the second step of importing several items: what to
 // include and the parameters. It's loaded when it's needed, finding the secrets
@@ -53,6 +54,13 @@ export default function ImportItems({
     (i) => i.key
   );
 
+  const exceeded = useExceededLimit({
+    commands: items.filter((i) => !i.source).length,
+    eventListenerSources: items.flatMap((i) => (i.source ? [i.source] : [])),
+    messages: bundle.messages.length,
+    variables: bundle.variables.length,
+  });
+
   const missingSecrets = missingSecretNames(
     bundle.flows,
     secrets?.map((s) => s?.name) ?? []
@@ -74,8 +82,8 @@ export default function ImportItems({
     track("bundle_imported", { count: res.data.items.length });
     toast.success(
       res.data.items.length === 1
-        ? "Imported 1 item!"
-        : `Imported ${res.data.items.length} items!`
+        ? "Imported 1 item."
+        : `Imported ${res.data.items.length} items.`
     );
     if (missingSecrets.length) {
       toast.warning(
@@ -156,6 +164,8 @@ export default function ImportItems({
           )}
         </div>
 
+        {exceeded && <PlanLimitNotice exceeded={exceeded} from="import" />}
+
         {!!missingSecrets.length && (
           <div className="flex gap-2 text-sm text-amber-600 dark:text-amber-500">
             <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
@@ -174,7 +184,11 @@ export default function ImportItems({
           Back
         </Button>
         {keys.length ? (
-          <LoadingButton onClick={onImport} loading={importMutation.isPending}>
+          <LoadingButton
+            onClick={onImport}
+            disabled={!!exceeded}
+            loading={importMutation.isPending}
+          >
             Import {keys.length} {keys.length === 1 ? "item" : "items"}
           </LoadingButton>
         ) : (

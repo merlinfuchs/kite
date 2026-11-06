@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 // How long after the update users who haven't seen it yet are told about it.
-const showForMs = 60 * 24 * 60 * 60 * 1000;
+const showForMs = 30 * 24 * 60 * 60 * 1000;
 
 // Tells users who signed up before the last change to the terms or privacy
 // policy about it, once per browser.

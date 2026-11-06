@@ -40,10 +40,11 @@ func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.B
 		SourceAppID:   null.StringFrom(c.App.ID),
 		Version:       1,
 		LatestVersion: 1,
+		Page:          model.BundleListing{Name: req.Name, Description: req.Description, About: []string{}, Setup: []string{}},
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
-	if err := h.setBundleContent(c, b, req); err != nil {
+	if err := h.setBundleContent(c, b, req.BundleContentRequest); err != nil {
 		return nil, err
 	}
 
@@ -70,36 +71,39 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 	// An approved bundle loads as its approved version, but new versions
 	// follow the newest one.
 	fromVersion := b.LatestVersion
-	b.Name = req.Name
-	b.Description = req.Description
 	b.Notes = strings.TrimSpace(req.Notes)
 	b.Version = b.LatestVersion + 1
 	b.LatestVersion = b.Version
 	b.UpdatedAt = time.Now().UTC()
-	if err := h.setBundleContent(c, b, req.BundleCreateRequest); err != nil {
+	if err := h.setBundleContent(c, b, req.BundleContentRequest); err != nil {
 		return nil, err
 	}
 
-	if err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion); err != nil {
+	submitted, err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion)
+	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
 			return nil, handler.ErrBadRequest("bundle_changed", "the template changed, reload the page and try again")
 		}
 		return nil, fmt.Errorf("failed to publish bundle version: %w", err)
+	}
+	if submitted {
+		h.notifier.BundleVersionInReview(b)
 	}
 	return wire.UserBundleToWire(b), nil
 }
 
 // setBundleContent exports the items of the app as the content of the
 // version of the bundle, with the defaults of the parameters. The items keep
-// their keys between versions, they're their IDs in the app.
-func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleCreateRequest) error {
-	content, err := h.export(c, req.BundleExportRequest, b.Name, req.SharedParameterKeys)
+// their keys between versions, they're their IDs in the app. The content has
+// no name and description, they're part of the page, which changes without a
+// new version.
+func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleContentRequest) error {
+	content, err := h.export(c, req.BundleExportRequest, "", req.SharedParameterKeys)
 	if err != nil {
 		return err
 	}
 	content.ID = b.ID
 	content.Version = b.Version
-	content.Description = b.Description
 
 	count := len(content.Commands) + len(content.EventListeners) + len(content.Messages) + len(content.Variables)
 	if count > maxBundleItems {
@@ -179,11 +183,18 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 	if b.RemovedAt.Valid {
 		return nil, errBundleRemoved
 	}
+	ban, err := h.userStore.UserBan(c.Context(), c.Session.UserID, model.UserBanFeatureMarketplace)
+	if err == nil {
+		return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from submitting templates to the Marketplace: "+ban.Reason)
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get user ban: %w", err)
+	}
 
 	review := &model.BundleReview{
 		ID:        util.UniqueID(),
 		BundleID:  b.ID,
-		Listing:   wire.BundleListingFromWire(req),
+		Listing:   wire.BundleListingFromWire(req.BundleListing),
 		Status:    model.BundleReviewStatusPending,
 		CreatedAt: time.Now().UTC(),
 	}
@@ -193,7 +204,32 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 		}
 		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
 	}
+	h.notifier.BundleSubmitted(b)
 	return wire.BundleReviewToWire(review), nil
+}
+
+// HandleBundleUpdate changes the page of the user's bundle, which its link
+// shows right away. Kite reviews changes to one in the marketplace, so they're
+// submitted instead.
+func (h *BundleInstallHandler) HandleBundleUpdate(c *handler.Context, req wire.BundleUpdateRequest) (*wire.BundleUpdateResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if b.RemovedAt.Valid {
+		return nil, errBundleRemoved
+	}
+	if b.Listed || b.InReview {
+		return nil, handler.ErrBadRequest("bundle_in_marketplace", "Kite reviews changes to templates in the Marketplace, submit them for review")
+	}
+
+	if err := h.bundleStore.UpdateBundlePage(c.Context(), b.ID, wire.BundleListingFromWire(req.BundleListing)); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errBundleRemoved
+		}
+		return nil, fmt.Errorf("failed to update bundle page: %w", err)
+	}
+	return &wire.BundleUpdateResponse{}, nil
 }
 
 // ownBundle returns the bundle of the route if the user made it. Others don't

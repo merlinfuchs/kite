@@ -155,6 +155,14 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
 		},
 		{
+			name: "flows that play audio add voice states",
+			reqs: model.AppGatewayRequirements{
+				UsesVoice: true,
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
 			name: "starboard plugin adds reactions but not messages",
 			reqs: model.AppGatewayRequirements{
 				PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"},
@@ -232,7 +240,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentGuildVoiceStates | gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

@@ -1,10 +1,14 @@
 package plan
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 func testManager() *PlanManager {
@@ -88,5 +92,24 @@ func TestPlanByLemonSqueezyVariantID(t *testing.T) {
 		if got != want {
 			t.Errorf("variant %q resolved to plan %q, want %q", variantID, got, want)
 		}
+	}
+}
+
+type brokenEntitlementStore struct {
+	store.EntitlementStore
+}
+
+func (brokenEntitlementStore) ActiveEntitlements(context.Context, string, time.Time) ([]*model.Entitlement, error) {
+	return nil, errors.New("database unavailable")
+}
+
+// Falling back to the default plan would treat paid apps as free ones, like
+// saving their settings without the premium features they pay for.
+func TestAppFeaturesFailsWhenEntitlementsFail(t *testing.T) {
+	m := testManager()
+	m.entitlementStore = brokenEntitlementStore{}
+
+	if _, err := m.AppFeatures(context.Background(), "app"); err == nil {
+		t.Error("expected an error")
 	}
 }

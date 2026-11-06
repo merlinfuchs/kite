@@ -13,18 +13,18 @@ import (
 // AppSetupHandler reports how far a new app is through the setup checklist.
 type AppSetupHandler struct {
 	appStateManager store.AppStateManager
-	commandStore    store.CommandStore
+	appStore        store.AppStore
 	usageStore      store.UsageStore
 }
 
 func NewAppSetupHandler(
 	appStateManager store.AppStateManager,
-	commandStore store.CommandStore,
+	appStore store.AppStore,
 	usageStore store.UsageStore,
 ) *AppSetupHandler {
 	return &AppSetupHandler{
 		appStateManager: appStateManager,
-		commandStore:    commandStore,
+		appStore:        appStore,
 		usageStore:      usageStore,
 	}
 }
@@ -35,20 +35,20 @@ func (h *AppSetupHandler) HandleAppSetupGet(c *handler.Context) (*wire.AppSetupG
 		return nil, err
 	}
 
-	commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+	hasFlow, err := h.appStore.HasAppFlows(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to count commands: %w", err)
+		return nil, fmt.Errorf("failed to check flows: %w", err)
 	}
 
-	ranCommand, err := h.usageStore.HasAppCommandUsage(c.Context(), c.App.ID)
+	ranFlow, err := h.usageStore.HasAppUsage(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check command usage: %w", err)
+		return nil, fmt.Errorf("failed to check usage: %w", err)
 	}
 
 	return &wire.AppSetupGetResponse{
-		Invited:    invited,
-		HasCommand: commandCount > 0,
-		RanCommand: ranCommand,
+		Invited: invited,
+		HasFlow: hasFlow,
+		RanFlow: ranFlow,
 	}, nil
 }
 

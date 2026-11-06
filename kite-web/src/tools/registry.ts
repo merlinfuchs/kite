@@ -28,7 +28,7 @@ export interface Tool {
 export const kiteTools: Tool[] = [
   {
     id: "permissions-calculator",
-    title: "Permissions Calculator",
+    title: "Permissions calculator",
     description:
       "Get the permissions integer and an invite link for your Discord bot.",
     icon: ShieldCheckIcon,
@@ -37,7 +37,7 @@ export const kiteTools: Tool[] = [
   },
   {
     id: "timestamp-generator",
-    title: "Timestamp Generator",
+    title: "Timestamp generator",
     description:
       "Create timestamps that show everyone the time in their own time zone.",
     icon: ClockIcon,
@@ -46,7 +46,7 @@ export const kiteTools: Tool[] = [
   },
   {
     id: "snowflake-decoder",
-    title: "Snowflake Decoder",
+    title: "Snowflake decoder",
     description: "Find out when a Discord user, server or message was created.",
     icon: SnowflakeIcon,
     color: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
@@ -54,7 +54,7 @@ export const kiteTools: Tool[] = [
   },
   {
     id: "webhook-info",
-    title: "Webhook Info",
+    title: "Webhook info",
     description: "Get the name, avatar, channel and server of a webhook.",
     icon: WebhookIcon,
     color: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
@@ -65,7 +65,7 @@ export const kiteTools: Tool[] = [
 export const externalTools: Tool[] = [
   {
     id: "message-creator",
-    title: "Message Creator",
+    title: "Message creator",
     description:
       "Create Discord messages with embeds and send them through webhooks.",
     icon: MailPlusIcon,
@@ -75,7 +75,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "colored-text",
-    title: "Colored Text",
+    title: "Colored text",
     description: "Generate colored text for your Discord messages.",
     icon: PaletteIcon,
     color: "bg-pink-500/15 text-pink-600 dark:text-pink-400",
@@ -84,7 +84,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "embed-links",
-    title: "Embed Links",
+    title: "Embed links",
     description: "Create links with a custom title, description and image.",
     icon: ImageIcon,
     color: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
@@ -93,7 +93,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "user-lookup",
-    title: "User Lookup",
+    title: "User lookup",
     description: "Get information about a Discord user from their ID.",
     icon: UserSearchIcon,
     color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
@@ -102,7 +102,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "server-lookup",
-    title: "Server Lookup",
+    title: "Server lookup",
     description: "Get information about a Discord server from its ID.",
     icon: FolderSearchIcon,
     color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
@@ -111,7 +111,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "invite-resolver",
-    title: "Invite Resolver",
+    title: "Invite resolver",
     description: "Get information about a Discord server from an invite code.",
     icon: FolderSearchIcon,
     color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
@@ -120,7 +120,7 @@ export const externalTools: Tool[] = [
   },
   {
     id: "application-lookup",
-    title: "Application Lookup",
+    title: "Application lookup",
     description: "Get information about a Discord application from its ID.",
     icon: FileSearchIcon,
     color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",

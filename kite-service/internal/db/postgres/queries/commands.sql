@@ -27,9 +27,14 @@ INSERT INTO commands (
 UPDATE commands SET
     name = $2,
     description = $3,
-    enabled = $4,
-    flow_source = $5,
-    updated_at = $6
+    flow_source = $4,
+    updated_at = $5
+WHERE id = $1 RETURNING *;
+
+-- name: UpdateCommandEnabled :one
+UPDATE commands SET
+    enabled = $2,
+    updated_at = $3
 WHERE id = $1 RETURNING *;
 
 -- name: GetEnabledCommandsUpdatesSince :many

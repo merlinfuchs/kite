@@ -211,8 +211,9 @@ export default memo(function FlowNodeNote({
           !readOnly && "cursor-grab"
         )}
         style={{
-          width: width ?? defaultNoteSize.width,
-          height: height ?? defaultNoteSize.height,
+          // Unmeasured nodes get a size of 0.
+          width: width || defaultNoteSize.width,
+          height: height || defaultNoteSize.height,
           borderColor: selected ? color : `${color}80`,
           backgroundImage: `linear-gradient(${color}24, ${color}24)`,
         }}
@@ -256,7 +257,7 @@ export default memo(function FlowNodeNote({
             ref={textareaRef}
             value={text}
             maxLength={noteMaxLength}
-            placeholder="Write a note… Markdown like **bold**, lists and links works."
+            placeholder="Write a note… Markdown like **bold**, lists, and links works."
             className="nodrag nowheel nopan min-h-0 flex-auto resize-none bg-transparent px-2.5 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             onChange={(e) => updateNodeData(id, { note_text: e.target.value })}
             onKeyDown={onKeyDown}

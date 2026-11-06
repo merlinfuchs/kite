@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -69,4 +70,46 @@ func TestMessageCreateColorPlaceholder(t *testing.T) {
 
 	_, err = send(`{{'red'}}`)
 	assert.ErrorContains(t, err, "must be a number or a hex color")
+}
+
+type personaTestProvider struct {
+	provider.MockDiscordProvider
+
+	channelID discord.ChannelID
+	persona   provider.Persona
+	sent      api.SendMessageData
+}
+
+func (p *personaTestProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona provider.Persona, message api.SendMessageData) (*discord.Message, error) {
+	p.channelID = channelID
+	p.persona = persona
+	p.sent = message
+	return &discord.Message{ID: 9, ChannelID: channelID}, nil
+}
+
+func TestPersonaMessageCreate(t *testing.T) {
+	p := &personaTestProvider{}
+	_, err := executeBlock(t, p, FlowNodeTypeActionPersonaMessageCreate, `{
+		"channel_target": "3",
+		"persona_name": " Narrator ",
+		"persona_avatar_url": "https://example.com/a.png",
+		"message_data": {"content": "Hi"}
+	}`)
+	require.NoError(t, err)
+	assert.Equal(t, discord.ChannelID(3), p.channelID)
+	assert.Equal(t, provider.Persona{Name: "Narrator", AvatarURL: "https://example.com/a.png"}, p.persona)
+	assert.Equal(t, "Hi", p.sent.Content)
+
+	for data, want := range map[string]string{
+		`"persona_name": "{{''}}"`:                                   "name is empty",
+		`"persona_name": "` + strings.Repeat("a", 81) + `"`:          "longer than 80 characters",
+		`"persona_name": "A", "persona_avatar_url": "ftp://x/a.png"`: "must start with http:// or https://",
+	} {
+		_, err := executeBlock(t, &personaTestProvider{}, FlowNodeTypeActionPersonaMessageCreate, `{
+			"channel_target": "3",
+			`+data+`,
+			"message_data": {"content": "Hi"}
+		}`)
+		assert.ErrorContains(t, err, want, data)
+	}
 }

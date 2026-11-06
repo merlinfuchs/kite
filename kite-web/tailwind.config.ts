@@ -99,12 +99,44 @@ const config = {
   				'40%, 60%': {
   					transform: 'translate3d(4px, 0, 0)'
   				}
+  			},
+  			progress: {
+  				from: {
+  					transform: 'scaleX(0)'
+  				},
+  				to: {
+  					transform: 'scaleX(1)'
+  				}
+  			},
+  			'banner-shift': {
+  				'0%, 100%': {
+  					backgroundPosition: '0% 50%'
+  				},
+  				'50%': {
+  					backgroundPosition: '100% 50%'
+  				}
+  			},
+  			hop: {
+  				'0%, 60%, 100%': {
+  					transform: 'translateY(0) scale(1, 1)'
+  				},
+  				'15%': {
+  					transform: 'translateY(0) scale(1.15, 0.85)'
+  				},
+  				'35%': {
+  					transform: 'translateY(-6px) scale(0.92, 1.08)'
+  				},
+  				'50%': {
+  					transform: 'translateY(0) scale(1.08, 0.92)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both'
+  			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
+  			'banner-shift': 'banner-shift 4s ease-in-out infinite',
+  			hop: 'hop 1.2s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [

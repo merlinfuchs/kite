@@ -4,13 +4,13 @@ sidebar_position: 5
 
 # Expressions
 
-Kite supports performing calculations and transformations on data using expressions. Expressions are available in the `Evaluate Expression` block (**which also supports multi-line input**) and in every placeholder surrounded by `{{` and `}}`.
+Kite supports performing calculations and transformations on data using expressions. Expressions are available in the `Calculate Value` block (**which also supports multi-line input**) and in every placeholder surrounded by `{{` and `}}`.
 
-## Expression Syntax
+## Expression syntax
 
 Expressions are powered by the [Expr](https://expr-lang.org) language, you can learn more about the features and syntax [here](https://expr-lang.org/docs/language-definition).
 
-## Available Variables
+## Available variables
 
 Kite provides the following variables in the expression environment:
 
@@ -141,9 +141,9 @@ In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the
 
 ## Examples
 
-When using the `Evaluate Expression` block, you must omit the `{{` and `}}` from the expression.
+When using the `Calculate Value` block, you must omit the `{{` and `}}` from the expression.
 
-### Get Command Argument
+### Get a command argument
 
 This will return the value of the `myarg` argument passed to the command.
 
@@ -151,7 +151,7 @@ This will return the value of the `myarg` argument passed to the command.
 {{ arg('myarg') }}
 ```
 
-### Get User Display Name
+### Get a user's display name
 
 This will return the display name of the user who clicked the button or triggered the command or event.
 
@@ -159,7 +159,7 @@ This will return the display name of the user who clicked the button or triggere
 {{ user.display_name }}
 ```
 
-### Get Message Content
+### Get the message content
 
 This will return the content of the message that was sent.
 
@@ -167,7 +167,7 @@ This will return the content of the message that was sent.
 {{ message.content }}
 ```
 
-### Check Reaction Emoji
+### Check the reaction emoji
 
 In a Reaction Add or Reaction Remove event listener, this will return true if the reaction was a 👍. For a custom emoji, compare `emoji.id` instead.
 
@@ -175,7 +175,7 @@ In a Reaction Add or Reaction Remove event listener, this will return true if th
 {{ emoji.name == "👍" }}
 ```
 
-### Check if User Has Role
+### Check if a user has a role
 
 This will return true if the user has the role with the ID `123`.
 
@@ -183,7 +183,7 @@ This will return true if the user has the role with the ID `123`.
 {{ "123" in user.role_ids }}
 ```
 
-### Get Selected Option
+### Get the selected option
 
 This will return the value of the option that the user picked in a select menu.
 
@@ -203,7 +203,7 @@ In a user, role, mentionable or channel select, the values are IDs. This mention
 <#{{ interaction.value }}>
 ```
 
-### Welcome a New Member
+### Welcome a new member
 
 This will greet a member with the name of the server and their member number.
 
@@ -211,7 +211,7 @@ This will greet a member with the name of the server and their member number.
 Welcome to {{ guild.name }}, {{ user.mention }}! You're member #{{ guild.member_count }}.
 ```
 
-### Check Picked Modal Options
+### Check picked modal options
 
 If a modal input with the identifier `colors` allows picking more than one option, `inputs('colors')` returns all picked values as a list. This will return true if the user picked `red`.
 
@@ -231,7 +231,7 @@ And this will list them separated by commas, e.g. `red, blue`.
 {{ join(inputs('colors'), ', ') }}
 ```
 
-### Use Picked Members, Roles and Channels
+### Use picked members, roles, and channels
 
 For a user, role, mentionable or channel select in a modal, `input(...)` and `inputs(...)` return IDs. `picked(...)` returns the picked member, role or channel itself, with the same fields as `user`, a role or `channel`, and `pickedAll(...)` all of them as a list. On its own it shows as a mention. If a modal has a user select with the identifier `reported`, this will name the reported member.
 
@@ -251,7 +251,7 @@ For a file upload in a modal, `picked(...)` returns the uploaded file, which sho
 {{ picked('image').filename }} ({{ picked('image').size }} bytes)
 ```
 
-### Check User Creation Date
+### Check when a user was created
 
 This will show when the user's account was created, as a Discord timestamp.
 
@@ -265,7 +265,7 @@ This will return true if the account is less than 7 days old, which is useful fo
 {{ user.created_at > now().Unix() - 7 * 86400 }}
 ```
 
-### Only Run in a Category
+### Only run in a category
 
 This will return true if the command was used in a channel of the category named `Tickets`. Use `channel.category_id` instead to keep working when the category is renamed.
 
@@ -279,7 +279,7 @@ This will return true inside a thread.
 {{ channel.type == "thread" }}
 ```
 
-### Check if User Owns the Server
+### Check if a user owns the server
 
 This will return true if the user is the owner of the server.
 
@@ -287,7 +287,7 @@ This will return true if the user is the owner of the server.
 {{ user.is_owner }}
 ```
 
-### Check the Permissions of a User
+### Check the permissions of a user
 
 This will return true if the user is allowed to ban members. The names are listed below.
 
@@ -352,7 +352,7 @@ This will return true if the user is allowed to ban members. The names are liste
 | `pin_messages`                        | Pin Messages                            |
 | `bypass_slowmode`                     | Bypass Slowmode                         |
 
-### Point to the Rules Channel
+### Point to the rules channel
 
 This will mention the rules channel the server has set in its settings, and is empty if it has none.
 
@@ -360,7 +360,7 @@ This will mention the rules channel the server has set in its settings, and is e
 Please read {{ guild.rules_channel }} before posting.
 ```
 
-### Show the Roles of a User
+### Show the roles of a user
 
 This will mention the highest role of the user, and then all of their roles.
 
@@ -369,7 +369,7 @@ This will mention the highest role of the user, and then all of their roles.
 {{ user.role_mentions }}
 ```
 
-### Show Bot Stats
+### Show bot stats
 
 This will show how many servers your app is in and its ping, for commands like `/botinfo` or `/ping`.
 
@@ -377,7 +377,7 @@ This will show how many servers your app is in and its ping, for commands like `
 In {{ app.guild_count }} servers with {{ app.member_count }} members, ping {{ app.latency }}ms
 ```
 
-### Do Some Math
+### Do some math
 
 This will return the result of the expression.
 
@@ -391,7 +391,7 @@ To calculate math that members write, like `(3 * 4) - 2` in a message, use `calc
 {{ calculate(message.content) }}
 ```
 
-### Decode JSON Response
+### Decode a JSON response
 
 This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_k3f`.
 

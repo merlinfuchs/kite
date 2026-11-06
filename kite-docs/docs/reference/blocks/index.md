@@ -8,13 +8,13 @@ Each flow in Kite consists of a number of blocks that are connected. The blocks 
 
 The output of previously executed blocks is available in all subsequent blocks and can be accessed using the `result(...)` variables. In case there is an error in a block the execution will stop and no further blocks will be executed.
 
-## Entry Blocks
+## Entry blocks
 
 - [Command](./entries/entry_command.md) - Entry point for slash commands
 - [Listen for Event](./entries/entry_event.md) - Entry point for event-triggered flows
 - [Button](./entries/entry_component_button.md) - Entry point for button component interactions
 
-## Response Blocks
+## Response blocks
 
 - [Create response message](./actions/action_response_create.md) - Respond to commands or interactions
 - [Edit response message](./actions/action_response_edit.md) - Edit previously created responses
@@ -23,9 +23,10 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Defer response](./actions/action_response_defer.md) - Defer response for longer processing
 - [Respond to webhook](./actions/action_webhook_response_create.md) - Answer the request of a webhook event listener
 
-## Message Blocks
+## Message blocks
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
+- [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
@@ -41,7 +42,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Publish message](./actions/action_message_publish.md) - Publish messages from announcement channels to following servers
 - [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
-## User & Member Blocks
+## User and member blocks
 
 - [Get user](./actions/action_user_get.md) - Retrieve user information
 - [Get member](./actions/action_member_get.md) - Get server member information
@@ -53,7 +54,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Add member role](./actions/action_member_role_add.md) - Add roles to members
 - [Remove member role](./actions/action_member_role_remove.md) - Remove roles from members
 
-## Server & Channel Blocks
+## Server and channel blocks
 
 - [Get role](./actions/action_role_get.md) - Retrieve role information
 - [Create role](./actions/action_role_create.md) - Create roles in servers
@@ -64,53 +65,72 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
 - [Create forum post](./actions/action_forum_post_create.md) - Create posts in forum and media channels
 
-## Voice Blocks
+## Voice blocks
 
 - [Join voice channel](./actions/action_voice_channel_join.md) - Make the app join a voice channel
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
+- [Play audio](./actions/action_voice_audio_play.md) - Play an uploaded sound in a voice channel
+- [Stop audio](./actions/action_voice_audio_stop.md) - Stop the audio the app plays
 
-## Bot Blocks
+## Bot blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
 - [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
 
-## Variable Blocks
+## Variable blocks
 
 - [Set stored variable](./actions/action_variable_set.md) - Set persistent variables
 - [Get stored variable](./actions/action_variable_get.md) - Retrieve stored variables
 - [Delete stored variable](./actions/action_variable_delete.md) - Remove stored variables
+- [List stored variable values](./actions/action_variable_list.md) - List the values of a variable in order, like a leaderboard
 
-## AI Blocks
+## AI blocks
 
 - [Ask AI](./actions/action_ai_chat_completion.md) - Interact with AI models
 - [Search the Web](./actions/action_ai_web_search.md) - Search the internet with AI
 - [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
 - [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
 - [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
+- [AI Translate](./actions/action_ai_translate.md) - Let AI translate text to another language
 
-## Utility Blocks
+## Utility blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
 - [Generate Random Value](./actions/action_random_generate.md) - Generate random numbers or pick random items from a list
 - [Lookup Value](./actions/action_value_lookup.md) - Find the value for a key in a table
 - [Log Message](./actions/action_log.md) - Log messages for debugging
 
-## API Request Blocks
+## API request blocks
 
 - [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
-## Roblox Blocks
+## Integration blocks
+
+Integration blocks use services outside of Discord. They have their own **Integrations** tab in the flow editor's sidebar, and most of them only work after the integration has been enabled on your app's [Integrations](../integrations.md) page.
+
+### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
-## ER:LC Blocks
+### Cookie API
+
+- [Create transcript](./actions/action_cookie_api_transcript_create.md) - Save the messages of a channel as a web page
+- [Generate card](./actions/action_cookie_api_card_create.md) - Create an image like a welcome card
+- [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
+- [Create captcha](./actions/action_cookie_api_captcha_create.md) - Create a captcha page for a user to solve
+- [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
+- [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
+
+### ER:LC
 
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
-## Control Flow Blocks
+## Control flow blocks
 
+- [If](./controls/control_if.md) - Run actions if something is true
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
@@ -121,13 +141,13 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [End flow](./controls/control_flow_end.md) - Stop the flow early
 - [Wait](./controls/control_sleep.md) - Pause flow execution
 
-## Command Options
+## Command options
 
 - [Command Argument](./options/option_command_argument.md) - Define command arguments
 - [Command Permissions](./options/option_command_permissions.md) - Set command permissions
 - [Command Cooldown](./options/option_command_cooldown.md) - Limit how often a command can be used
 - [Command Contexts](./options/option_command_contexts.md) - Define command availability
 
-## Event Options
+## Event options
 
 - [Event Filter](./options/option_event_filter.md) - Filter events based on properties

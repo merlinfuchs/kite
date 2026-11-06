@@ -75,7 +75,7 @@ export default function MessageComponentButton({
                 { label: "Gray", value: "2" },
                 { label: "Green", value: "3" },
                 { label: "Red", value: "4" },
-                { label: "Direct Link", value: "5" },
+                { label: "Direct link", value: "5" },
               ]}
               placeholder="Select a button style"
               onChange={(v) =>

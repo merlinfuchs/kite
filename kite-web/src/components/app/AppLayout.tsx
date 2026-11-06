@@ -40,7 +40,7 @@ export default function AppLayout({ children, ...props }: Props) {
         href: "/apps",
       },
       {
-        label: app?.name || "Unknown App",
+        label: app?.name || "Unknown app",
         href: props.breadcrumbs?.length ? `/apps/[appId]` : undefined,
       },
       ...(props.breadcrumbs || []),

@@ -22,6 +22,9 @@ type Message struct {
 	FlowSources     map[string]flow.FlowData
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	// ContentVersion identifies the saved content, see
+	// store.ItemChange.BaseVersion. The store sets it.
+	ContentVersion string
 }
 
 // ContentHash identifies the message's content and the flows of its buttons

@@ -15,10 +15,6 @@
   ],
   "faq": [
     {
-      "question": "What permissions does the bot need?",
-      "answer": "View Channel, Send Messages, Embed Links and Add Reactions in the suggestions channel."
-    },
-    {
       "question": "Can members suggest anonymously?",
       "answer": "Yes. Open the command in the editor and remove the author from the embed of the Send message block."
     },

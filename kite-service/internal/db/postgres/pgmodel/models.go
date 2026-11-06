@@ -9,14 +9,19 @@ import (
 )
 
 type ApiToken struct {
-	ID         string
-	UserID     string
-	Name       string
-	KeyHash    string
-	Scopes     []string
-	LastUsedAt pgtype.Timestamp
-	ExpiresAt  pgtype.Timestamp
-	CreatedAt  pgtype.Timestamp
+	ID              string
+	UserID          string
+	Name            string
+	KeyHash         string
+	Scopes          []string
+	LastUsedAt      pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
+	CreatedAt       pgtype.Timestamp
+	AppIds          []string
+	OauthClientID   pgtype.Text
+	OauthResource   pgtype.Text
+	RefreshKeyHash  pgtype.Text
+	AccessExpiresAt pgtype.Timestamp
 }
 
 type App struct {
@@ -39,6 +44,8 @@ type App struct {
 	DiscordUserInstallCount pgtype.Int4
 	DiscordCountsUpdatedAt  pgtype.Timestamp
 	DiscordVerifyKey        pgtype.Text
+	CreditsPausedAt         pgtype.Timestamp
+	CreditNoticesEnabled    bool
 }
 
 type AppIntegration struct {
@@ -101,6 +108,10 @@ type Bundle struct {
 	ApprovedVersion pgtype.Int4
 	RemovedAt       pgtype.Timestamp
 	RemovedReason   string
+	Icon            string
+	Category        string
+	About           []byte
+	Setup           []byte
 }
 
 type BundleInstall struct {
@@ -119,14 +130,16 @@ type BundleInstall struct {
 }
 
 type BundleListing struct {
-	BundleID  string
-	Icon      string
-	Category  string
-	About     []byte
-	Faq       []byte
-	Setup     []byte
-	Position  int32
-	UpdatedAt pgtype.Timestamp
+	BundleID    string
+	Icon        string
+	Category    string
+	About       []byte
+	Faq         []byte
+	Setup       []byte
+	Position    int32
+	UpdatedAt   pgtype.Timestamp
+	Name        string
+	Description string
 }
 
 type BundleReport struct {
@@ -150,6 +163,18 @@ type BundleReview struct {
 	ReviewerUserID pgtype.Text
 	CreatedAt      pgtype.Timestamp
 	DecidedAt      pgtype.Timestamp
+	AiVerdict      string
+	AiRating       pgtype.Int4
+	AiSummary      string
+	AiConcerns     []byte
+	AiModel        string
+	AiScreenedAt   pgtype.Timestamp
+}
+
+type BundleStar struct {
+	BundleID  string
+	UserID    string
+	CreatedAt pgtype.Timestamp
 }
 
 type BundleVersion struct {
@@ -273,6 +298,31 @@ type MessageInstance struct {
 	LastUsedAt       pgtype.Timestamp
 }
 
+type Notification struct {
+	ID        string
+	AppID     pgtype.Text
+	UserID    pgtype.Text
+	Type      string
+	DedupeKey pgtype.Text
+	Data      []byte
+	CreatedAt pgtype.Timestamp
+}
+
+type OauthCode struct {
+	CodeHash      string
+	UserID        string
+	ClientID      string
+	ClientName    string
+	RedirectUri   string
+	CodeChallenge string
+	Scopes        []string
+	AppIds        []string
+	Resource      string
+	ApiTokenID    pgtype.Text
+	ExpiresAt     pgtype.Timestamp
+	CreatedAt     pgtype.Timestamp
+}
+
 type PluginInstance struct {
 	ID                 string
 	PluginID           string
@@ -369,6 +419,14 @@ type User struct {
 	DiscordAvatar   pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+}
+
+type UserBan struct {
+	UserID         string
+	Feature        string
+	Reason         string
+	BannedByUserID pgtype.Text
+	CreatedAt      pgtype.Timestamp
 }
 
 type Variable struct {

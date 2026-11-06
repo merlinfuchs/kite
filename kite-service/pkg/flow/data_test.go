@@ -316,3 +316,12 @@ func TestFlowNodeDataKeyCase(t *testing.T) {
 	assert.Equal(t, "1", data.ChannelTarget)
 	assert.Empty(t, data.Fields)
 }
+
+func TestAITranslateDataValidatesLanguage(t *testing.T) {
+	for _, language := range []string{"es", "pt-BR", "{{ var('lang') }}"} {
+		assert.NoError(t, AITranslateData{Text: "hi", Language: language}.Validate(), language)
+	}
+	for _, language := range []string{"", "Spanish", "es {{ x }}", "{{ a }}{{ b }}"} {
+		assert.Error(t, AITranslateData{Text: "hi", Language: language}.Validate(), language)
+	}
+}

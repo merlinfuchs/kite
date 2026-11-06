@@ -18,4 +18,19 @@ type APITokenStore interface {
 	UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time, interval time.Duration) error
 	// DeleteAPIToken returns ErrNotFound if the user has no token with the ID.
 	DeleteAPIToken(ctx context.Context, userID string, id string) error
+	// RefreshAPIToken replaces the keys of the OAuth client's token with the
+	// refresh token. It returns ErrNotFound if there's no such token or its
+	// refresh token expired.
+	RefreshAPIToken(ctx context.Context, refresh APITokenRefresh) (*model.APIToken, error)
+	DeleteExpiredOAuthAPITokens(ctx context.Context, expiredBefore time.Time, batchSize int) (int64, error)
+}
+
+type APITokenRefresh struct {
+	ClientID          string
+	RefreshKeyHash    string
+	NewKeyHash        string
+	NewRefreshKeyHash string
+	AccessExpiresAt   time.Time
+	ExpiresAt         time.Time
+	Now               time.Time
 }

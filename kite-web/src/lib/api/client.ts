@@ -42,8 +42,12 @@ export function loginUrlTo(path: string) {
 
 export const loginUrl = loginUrlTo("/apps");
 
-export function apiRequest<T>(path: string, options?: RequestInit) {
-  return fetch(getApiUrl(path), {
+export function apiRequest<T>(
+  path: string,
+  options?: RequestInit,
+  baseUrl = getApiUrl()
+) {
+  return fetch(baseUrl + path, {
     ...options,
     credentials: "include",
   }).then(async (res) => {

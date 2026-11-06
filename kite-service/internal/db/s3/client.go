@@ -18,11 +18,12 @@ func init() {
 	minio.DefaultRetryCap = 5 * time.Second
 }
 
-// RetryLonger makes every request of this process retry for ~30s on average.
-// It's for processes nobody waits on, like backups, which should outlast
-// throttling rather than fail.
+// RetryLonger makes every request of this process retry for ~5min on
+// average, ~9min at most. It's for processes nobody waits on, like backups,
+// which should outlast throttling and short outages rather than fail.
 func RetryLonger() {
-	minio.MaxRetry = 15
+	minio.MaxRetry = 25
+	minio.DefaultRetryCap = 30 * time.Second
 }
 
 type Client struct {

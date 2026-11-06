@@ -18,4 +18,7 @@ type Command struct {
 	FlowSource      flow.FlowData
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	// ContentVersion identifies the saved content, see
+	// store.ItemChange.BaseVersion. The store sets it.
+	ContentVersion string
 }

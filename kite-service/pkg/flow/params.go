@@ -26,9 +26,13 @@ var (
 // withParameters replaces every {{params.<key>}} in value with the value of
 // the parameter. It's for settings that aren't templates, like the value of an
 // event filter, so other placeholders are left as they are.
-func withParameters(value string, params map[string]string) string {
+func withParameters(value string, params map[string]any) string {
 	return paramPlaceholderRe.ReplaceAllStringFunc(value, func(m string) string {
-		return params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
+		v, ok := params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
+		if !ok {
+			return ""
+		}
+		return fmt.Sprint(v)
 	})
 }
 
@@ -75,6 +79,21 @@ func (d FlowData) ParameterValues() map[string]string {
 	return values
 }
 
+// ParameterEnv returns the values of the parameters by their key, as blocks
+// get them as {{params.<key>}}. Yes/No ones are true or false, also when
+// they're empty, so expressions like !params.<key> work.
+func (d FlowData) ParameterEnv() map[string]any {
+	env := make(map[string]any, len(d.Parameters))
+	for _, p := range d.Parameters {
+		if p.Type == FlowParameterTypeBoolean {
+			env[p.Key] = p.Value == "true"
+		} else {
+			env[p.Key] = p.Value
+		}
+	}
+	return env
+}
+
 // WithParameterValues returns the flow with the values of the parameters it
 // has, and whether one of them changed. Other values are left out.
 func (d FlowData) WithParameterValues(values map[string]string) (FlowData, bool) {
@@ -102,11 +121,18 @@ func (p FlowParameter) DisplayLabel() string {
 // CheckValue reports a value that doesn't fit the type of the parameter, like
 // a channel that isn't an ID. Empty values fit any type.
 func (p FlowParameter) CheckValue(value string) error {
-	if value == "" || !p.Type.Picked() {
+	if value == "" {
 		return nil
 	}
-	if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-		return fmt.Errorf("%s must be the ID of a %s", p.DisplayLabel(), p.Type)
+	switch {
+	case p.Type == FlowParameterTypeBoolean:
+		if value != "true" && value != "false" {
+			return fmt.Errorf("%s must be true or false", p.DisplayLabel())
+		}
+	case p.Type.Picked():
+		if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
+			return fmt.Errorf("%s must be the ID of a %s", p.DisplayLabel(), p.Type)
+		}
 	}
 	return nil
 }

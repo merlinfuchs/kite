@@ -83,7 +83,7 @@ export default function VariableValueExplorer() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{scoped ? "Stored Values" : "Stored Value"}</CardTitle>
+        <CardTitle>{scoped ? "Stored values" : "Stored value"}</CardTitle>
         <CardDescription>
           {scoped
             ? "View and edit the values your flows have stored in this variable, one for each scope."
@@ -97,13 +97,14 @@ export default function VariableValueExplorer() {
               placeholder="Search by scope..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="max-w-sm"
+              className="max-w-sm min-w-0"
             />
           )}
           <div className="flex-1" />
           <Button
             variant="outline"
             size="icon"
+            className="flex-none"
             onClick={() => query.refetch()}
             disabled={query.isFetching}
             title="Refresh"
@@ -114,7 +115,9 @@ export default function VariableValueExplorer() {
           </Button>
           {canAdd && (
             <VariableValueDialog variable={variable}>
-              <Button>{scoped ? "Add value" : "Set value"}</Button>
+              <Button className="flex-none">
+                {scoped ? "Add value" : "Set value"}
+              </Button>
             </VariableValueDialog>
           )}
         </div>
@@ -215,7 +218,7 @@ function VariableValueRow({
     deleteMutation.mutate(value.scope, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Value deleted!");
+          toast.success("Value deleted.");
         } else {
           toast.error(
             `Failed to delete value: ${res.error.message} (${res.error.code})`

@@ -47,6 +47,7 @@ func (h *BundleReviewHandler) HandleOpenBundleReportList(c *handler.Context) (*w
 			BundleName:        r.Bundle.Name,
 			BundleDescription: r.Bundle.Description,
 			Owner:             owner,
+			OwnerUserID:       r.Bundle.OwnerUserID.String,
 			Reporter:          reporter,
 			Category:          string(r.Report.Category),
 			Details:           r.Report.Details,
@@ -78,6 +79,9 @@ func (h *BundleReviewHandler) HandleBundleRemove(c *handler.Context, req wire.Bu
 			return nil, handler.ErrNotFound("unknown_bundle", "the template doesn't exist, is official or was taken down already")
 		}
 		return nil, fmt.Errorf("failed to remove bundle: %w", err)
+	}
+	if b := h.bundleToNotify(c.Context(), c.Param("bundleID")); b != nil {
+		h.notifier.BundleRemoved(b, req.Reason)
 	}
 	return &wire.BundleRemoveResponse{}, nil
 }

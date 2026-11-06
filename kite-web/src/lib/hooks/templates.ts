@@ -1,7 +1,13 @@
 import { useMemo } from "react";
-import { useBundleQuery, useBundlesQuery } from "../api/queries";
+import {
+  useBundleQuery,
+  useBundlesQuery,
+  useStarredBundlesQuery,
+  useUserQuery,
+} from "../api/queries";
 import { Template, templateFromBundle } from "../flow/templates";
 import { BundleGetResponse } from "../types/wire.gen";
+import { useResponseData } from "./api";
 
 // useTemplates are the official templates of the service and the bundles
 // users listed in the marketplace, or undefined while they load.
@@ -28,4 +34,11 @@ export function useTemplate(
     if (!data.success) return null;
     return templateFromBundle(data.data) ?? null;
   }, [data]);
+}
+
+// useStarredTemplateIds are the IDs of the templates the user starred, or
+// undefined while they load and without logging in.
+export function useStarredTemplateIds(): string[] | undefined {
+  const { data: user } = useUserQuery();
+  return useResponseData(useStarredBundlesQuery(!!user?.success));
 }

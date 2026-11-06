@@ -64,8 +64,8 @@ export default function FlowNav({
   const getFlowData = useGetFlowData();
 
   const save = useCallback(() => {
-    onSave(getFlowData());
-  }, [onSave, getFlowData]);
+    if (!isSaving) onSave(getFlowData());
+  }, [onSave, getFlowData, isSaving]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -86,37 +86,37 @@ export default function FlowNav({
           type="button"
           className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent cursor-pointer"
           onClick={onExit}
-          title="Back to App"
-          aria-label="Back to App"
+          title="Back to app"
+          aria-label="Back to app"
         >
           <ArrowLeftIcon className="h-5 w-5 flex-none" />
-          <span className="hidden md:inline">Back to App</span>
+          <span className="hidden md:inline">Back to app</span>
         </button>
         {isSaving ? (
           <div
             className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0"
-            title="Saving Changes"
+            title="Saving changes"
           >
             <RefreshCwIcon className="h-5 w-5 animate-spin flex-none" />
-            <span className="hidden md:inline">Saving Changes</span>
+            <span className="hidden md:inline">Saving changes</span>
           </div>
         ) : hasUnsavedChanges ? (
           <button
             className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent"
             onClick={save}
-            title="Save Changes"
-            aria-label="Save Changes"
+            title="Save changes"
+            aria-label="Save changes"
           >
             <div className="h-3 w-3 rounded-full bg-foreground/80 flex-none"></div>
-            <span className="hidden md:inline">Save Changes</span>
+            <span className="hidden md:inline">Save changes</span>
           </button>
         ) : (
           <div
             className="flex space-x-2 text-foreground/70 items-center p-1.5 md:p-0"
-            title="No Unsaved Changes"
+            title="No unsaved changes"
           >
             <CheckIcon className="h-5 w-5 flex-none" />
-            <span className="hidden md:inline">No Unsaved Changes</span>
+            <span className="hidden md:inline">No unsaved changes</span>
           </div>
         )}
         {command && app && (
@@ -179,12 +179,12 @@ const deployStatuses = {
   },
   stopped: {
     icon: <CircleDotIcon className="h-5 w-5 flex-none" />,
-    label: "App Stopped",
+    label: "App stopped",
     description: "Your saved changes go to Discord once your app runs again.",
   },
   error: {
     icon: <AlertCircleIcon className="h-5 w-5 flex-none text-destructive" />,
-    label: "Not Updated in Discord",
+    label: "Not updated in Discord",
     description: null,
   },
   disabled: {

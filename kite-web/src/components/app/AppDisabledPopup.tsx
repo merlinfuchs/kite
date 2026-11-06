@@ -10,13 +10,17 @@ import GetCreditsButton from "./GetCreditsButton";
 export default function AppDisabledPopup() {
   const app = useApp();
 
-  if (app?.enabled || !app?.disabled_reason) return null;
+  if (!app) return null;
+  // Apps paused for credits stay enabled and reply to users. A stopped app is
+  // offline, so it only shows why it was stopped.
+  const paused = app.enabled && app.no_credits;
+  if (!paused && (app.enabled || !app.disabled_reason)) return null;
 
-  let title = "App Disabled";
+  let title = "App disabled";
   let description = `Your app is currently disabled: ${app.disabled_reason}`;
   let action: ReactNode = null;
   if (app.token_invalid) {
-    title = "Your Bot Token Stopped Working";
+    title = "Your bot token stopped working";
     description =
       "The token was probably reset in the Discord Developer Portal. Update it to start your bot again.";
     action = (
@@ -24,9 +28,9 @@ export default function AppDisabledPopup() {
         <Button size="sm">Update token</Button>
       </AppTokenUpdateDialog>
     );
-  } else if (app.no_credits) {
-    title = "Your App Is Out of Credits";
-    description = `Your bot used all of its credits for this month and is offline. It starts again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
+  } else if (paused) {
+    title = "Your app is out of credits";
+    description = `Your app used all of its credits for this month, so its commands and events are paused. Anyone who uses it is told why. It runs again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
     action = <GetCreditsButton from="no_credits_popup" />;
   }
 

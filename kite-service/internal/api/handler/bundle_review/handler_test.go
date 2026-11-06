@@ -116,7 +116,7 @@ func TestBundleReviewDecide(t *testing.T) {
 		"r1": {ID: "r1", BundleID: "b1", Version: 2, Status: model.BundleReviewStatusPending},
 		"r2": {ID: "r2", BundleID: "b2", Version: 1, Status: model.BundleReviewStatusPending},
 	}}
-	h := NewBundleReviewHandler(bundles, &memoryUserStore{})
+	h := NewBundleReviewHandler(bundles, &memoryUserStore{}, nil)
 	decide := handler.TypedWithBody(h.HandleBundleReviewDecide)
 
 	code, res := call(t, handler.Typed(h.HandlePendingBundleReviewList), "", nil)
@@ -177,7 +177,7 @@ func TestBundleRemove(t *testing.T) {
 		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
 		"moderation": {ID: "moderation"},
 	}}
-	h := NewBundleReviewHandler(bundles, &memoryUserStore{})
+	h := NewBundleReviewHandler(bundles, &memoryUserStore{}, nil)
 	remove := handler.TypedWithBody(h.HandleBundleRemove)
 
 	// Taking it down needs a reason for the owner, and happens once.

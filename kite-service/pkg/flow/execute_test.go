@@ -666,6 +666,12 @@ func TestFlowExecuteConditionCompare(t *testing.T) {
 		{name: "equal mismatch", base: "a", mode: ComparsionModeEqual, itemValue: "b", expected: false},
 		{name: "not equal match", base: "a", mode: ComparsionModeNotEqual, itemValue: "a", expected: false},
 		{name: "not equal mismatch", base: "a", mode: ComparsionModeNotEqual, itemValue: "b", expected: true},
+		{name: "equal yes or no with text", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: true},
+		{name: "equal no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeEqual, itemValue: "true", expected: false},
+		{name: "not equal yes or no with text", base: "{{ 1 > 2 }}", mode: ComparsionModeNotEqual, itemValue: "false", expected: false},
+		{name: "equal number with text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5", expected: true},
+		{name: "equal yes or no with yes", base: "{{ 1 < 2 }}", mode: ComparsionModeEqual, itemValue: "yes", expected: true},
+		{name: "equal number with decimal text", base: "{{ 2 + 3 }}", mode: ComparsionModeEqual, itemValue: "5.0", expected: true},
 
 		{name: "one of match", base: "gtg", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: true},
 		{name: "one of mismatch", base: "afk", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: false},

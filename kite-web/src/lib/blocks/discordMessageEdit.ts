@@ -17,6 +17,7 @@ export const discordMessageEdit: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
+  permissions: ["VIEW_CHANNEL", "SEND_MESSAGES"],
   fields: [
     channelTargetSetting,
     messageTargetSetting,

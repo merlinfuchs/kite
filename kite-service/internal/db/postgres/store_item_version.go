@@ -3,6 +3,8 @@ package postgres
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +25,42 @@ type itemVersionTarget struct {
 	appID      string
 	targetType model.ItemVersionTargetType
 	id         string
+}
+
+// contentVersion identifies the saved content of an item, the parts of its
+// row that saves change. It hashes the bytes Postgres returns, which are equal
+// for equal content, so it stays the same when an item is only enabled or
+// gets a new webhook secret, and when the Go types change how they encode.
+func contentVersion(parts ...[]byte) string {
+	h := sha256.New()
+	for _, part := range parts {
+		// The length keeps one part from running into the next.
+		fmt.Fprintf(h, "%d:", len(part))
+		h.Write(part)
+	}
+	return hex.EncodeToString(h.Sum(nil)[:8])
+}
+
+func commandVersion(row pgmodel.Command) string {
+	return contentVersion(row.FlowSource)
+}
+
+func eventListenerVersion(row pgmodel.EventListener) string {
+	return contentVersion(row.FlowSource)
+}
+
+func messageVersion(row pgmodel.Message) string {
+	return contentVersion([]byte(row.Name), []byte(row.Description.String), row.Data, row.FlowSources)
+}
+
+// checkBaseVersion fails with store.ErrOutdated if the content of the item
+// changed since the version the change was made on. The row is locked, so no
+// other change can come in between.
+func checkBaseVersion(version string, change store.ItemChange) error {
+	if change.BaseVersion != "" && change.BaseVersion != version {
+		return store.ErrOutdated
+	}
+	return nil
 }
 
 // recordItemChange adds the saved content to the history of its target,

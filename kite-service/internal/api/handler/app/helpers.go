@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -12,7 +11,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -118,17 +116,4 @@ func (h *AppHandler) retryFailedCommandsDeploy(c *handler.Context) {
 			slog.String("error", err.Error()),
 		)
 	}
-}
-
-// isOverCredits reports whether the app used all of its credits for the month,
-// the same way the credit sweep decides.
-func (h *AppHandler) isOverCredits(c *handler.Context) (bool, error) {
-	start, end := util.StartAndEndOfMonth(time.Now().UTC())
-
-	used, err := h.usageStore.UsageCreditsUsedBetween(c.Context(), c.App.ID, start, end)
-	if err != nil {
-		return false, fmt.Errorf("failed to get credits used: %w", err)
-	}
-
-	return used >= c.Features.UsageCreditsPerMonth, nil
 }

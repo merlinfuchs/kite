@@ -1,3 +1,9 @@
+import {
+  maxBundleDescription,
+  maxBundleName,
+  nameHasSymbols,
+  newVersionsReviewed,
+} from "@/lib/flow/bundleListing";
 import { ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -25,15 +31,17 @@ import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
-import { parameterDefaults } from "@/lib/flow/templates";
+import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
+import { formatParameterValue, parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
-import { BundleExportRequest, UserBundle } from "@/lib/types/wire.gen";
+import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
 import {
   BundleItemPicker,
   selectedItems,
   useBundleItemSections,
 } from "./BundleItemPicker";
 import { isPickedParameter } from "./TemplateParameterFields";
+import { CircleAlertIcon } from "lucide-react";
 
 // BundleDialog makes a bundle from items of the app, or publishes them as the
 // new version of the bundle.
@@ -117,8 +125,9 @@ function BundleForm({
   const createMutation = useBundleCreateMutation(appId);
   const publishMutation = useBundleVersionCreateMutation(appId);
 
-  const [name, setName] = useState(bundle?.name ?? "");
-  const [description, setDescription] = useState(bundle?.description ?? "");
+  // A new version keeps the name and description, they're part of the page.
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
@@ -126,11 +135,18 @@ function BundleForm({
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const items = sections ? selectedItems(sections, selected) : undefined;
-  const shareable = useShareableParameters(items);
+  const { flows, messages } = useSelectedContent(items);
+  const shareable = shareableParameters(flows);
   // A value the current version shares is shared again, unless it changed
   // since. A changed one could be private now.
   const isShared = (p: ShareableParameter) =>
     toggled[p.key] ?? defaults[p.key] === p.value;
+  const shared = shareable.filter(isShared);
+  const warnings = bundleWarnings(
+    flows,
+    messages,
+    shared.map((p) => p.value)
+  );
   const count = items
     ? items.command_ids.length +
       items.event_listener_ids.length +
@@ -139,21 +155,21 @@ function BundleForm({
 
   async function save() {
     if (!items) return;
-    const req = {
-      name: name.trim(),
-      description: description.trim(),
-      shared_parameter_keys: shareable.flatMap((p) =>
-        isShared(p) ? [p.key] : []
-      ),
+    const content = {
+      shared_parameter_keys: shared.map((p) => p.key),
       ...items,
     };
     const res = bundle
       ? await publishMutation.mutateAsync({
           bundleId: bundle.id,
-          ...req,
+          ...content,
           notes: notes.trim(),
         })
-      : await createMutation.mutateAsync(req);
+      : await createMutation.mutateAsync({
+          name: name.trim(),
+          description: description.trim(),
+          ...content,
+        });
     if (!res.success) {
       toast.error(
         `Failed to ${bundle ? "publish" : "create"} the template: ${
@@ -180,32 +196,17 @@ function BundleForm({
         </DialogTitle>
         <DialogDescription>
           {bundle
-            ? "Apps that added the template can update to it. Items you leave out stay in those apps without updates."
+            ? `Apps that added the template can update to it. Items you leave out stay in those apps without updates.${
+                newVersionsReviewed(bundle)
+                  ? " Kite reviews it for the Marketplace."
+                  : ""
+              }`
             : "Choose what's part of it. The message templates and stored variables they use are added. Apps that add it get your new versions as updates."}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="bundle-name">Name</Label>
-          <Input
-            id="bundle-name"
-            value={name}
-            maxLength={100}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="bundle-description">Description</Label>
-          <Textarea
-            id="bundle-description"
-            value={description}
-            maxLength={1000}
-            placeholder="What it does"
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-        {bundle && (
+        {bundle ? (
           <div className="space-y-1.5">
             <Label htmlFor="bundle-notes">What changed</Label>
             <Textarea
@@ -216,6 +217,38 @@ function BundleForm({
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="bundle-name">Name</Label>
+              <Input
+                id="bundle-name"
+                value={name}
+                maxLength={maxBundleName}
+                onChange={(e) => setName(e.target.value)}
+              />
+              {nameHasSymbols(name) && (
+                <p className="text-sm text-destructive">
+                  Names can&apos;t have emojis or symbols. Pick an icon for the
+                  marketplace instead.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bundle-description">Description</Label>
+              <Input
+                id="bundle-description"
+                value={description}
+                maxLength={maxBundleDescription}
+                placeholder="What it does, in one sentence"
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                How it works and what it needs go on its page, which you can
+                edit once it&apos;s created.
+              </p>
+            </div>
+          </>
         )}
       </div>
 
@@ -248,13 +281,23 @@ function BundleForm({
                 />
                 <span className="truncate">{p.label}</span>
                 <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
-                  {p.value}
+                  {p.shown}
                 </span>
               </label>
             ))}
           </div>
         </div>
       )}
+
+      {warnings.map((w) => (
+        <div
+          key={w}
+          className="flex gap-2 text-sm text-amber-600 dark:text-amber-500"
+        >
+          <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+          <span>{w}</span>
+        </div>
+      ))}
 
       <DialogFooter className="gap-2">
         <DialogClose asChild>
@@ -263,7 +306,9 @@ function BundleForm({
         <LoadingButton
           onClick={save}
           loading={createMutation.isPending || publishMutation.isPending}
-          disabled={!name.trim() || !count}
+          disabled={
+            !count || (!bundle && (!name.trim() || nameHasSymbols(name)))
+          }
         >
           {bundle ? "Publish" : "Create"} with {count}{" "}
           {count === 1 ? "item" : "items"}
@@ -273,20 +318,63 @@ function BundleForm({
   );
 }
 
-type ShareableParameter = { key: string; label: string; value: string };
+type ShareableParameter = {
+  key: string;
+  label: string;
+  value: string;
+  // The value as it's shown, Yes or No for a yes/no.
+  shown: string;
+};
 
-// useShareableParameters are the text parameters of the selected items that
-// have a value, which can be shared as defaults. The flows of the message
-// templates the items use are part of the template too. A channel or role is
-// from the owner's server, so it's never shared.
-function useShareableParameters(
-  items: BundleExportRequest | undefined
-): ShareableParameter[] {
+// bundleWarnings are what the owner should know before sharing the content,
+// because it leaks something or doesn't work the same in other apps.
+function bundleWarnings(
+  flows: FlowData[],
+  messages: Message[],
+  defaults: string[]
+) {
+  const content = { flows, messages: messages.map((m) => m.data), defaults };
+  const res: string[] = [];
+  if (hasCredential(content)) {
+    res.push(
+      "Something seems to have an API key or token typed in. Anyone who sees the template can read it. Use a secret instead."
+    );
+  }
+  if (hasServerIds(content)) {
+    res.push(
+      "Some blocks or message templates have IDs of channels, roles or users of your server, which don't exist in other servers. Use parameters for them in blocks."
+    );
+  }
+  if (messages.some((m) => m.data.attachments?.length)) {
+    res.push(
+      "Files attached to message templates aren't part of the template. Apps that add it get the messages without them."
+    );
+  }
+  if (flows.some((f) => f.nodes.some((n) => n.data?.variable_id))) {
+    res.push(
+      "The values of stored variables aren't part of the template. They start empty in apps that add it."
+    );
+  }
+  return res;
+}
+
+// useSelectedContent are the flows and message templates of the selected
+// items. The message templates the items use, and their flows, are part of
+// the template too.
+function useSelectedContent(items: BundleExportRequest | undefined): {
+  flows: FlowData[];
+  messages: Message[];
+} {
   const commands = useCommands();
   const eventListeners = useEventListeners();
   const messages = useMessages();
-  if (!items || !commands || !eventListeners || !messages) return [];
+  if (!items || !commands || !eventListeners || !messages) {
+    return { flows: [], messages: [] };
+  }
 
+  const selectedMessages = messages.flatMap((m) =>
+    m && items.message_ids.includes(m.id) ? [m] : []
+  );
   const selectedFlows: FlowData[] = [
     ...commands.flatMap((c) =>
       c && items.command_ids.includes(c.id) ? [c.flow_source] : []
@@ -294,17 +382,26 @@ function useShareableParameters(
     ...eventListeners.flatMap((l) =>
       l && items.event_listener_ids.includes(l.id) ? [l.flow_source] : []
     ),
-    ...messages.flatMap((m) =>
-      m && items.message_ids.includes(m.id) ? Object.values(m.flow_sources) : []
-    ),
+    ...selectedMessages.flatMap((m) => Object.values(m.flow_sources)),
   ];
-  const flows = [
-    ...selectedFlows,
-    ...referencedMessages(selectedFlows, messages, items.message_ids).flatMap(
-      (m) => Object.values(m.flow_sources)
-    ),
-  ];
+  const usedMessages = referencedMessages(
+    selectedFlows,
+    messages,
+    items.message_ids
+  );
+  return {
+    flows: [
+      ...selectedFlows,
+      ...usedMessages.flatMap((m) => Object.values(m.flow_sources)),
+    ],
+    messages: [...selectedMessages, ...usedMessages],
+  };
+}
 
+// shareableParameters are the text and yes/no parameters of the flows that have a value,
+// which can be shared as defaults. A channel or role is from the owner's
+// server, so it's never shared.
+function shareableParameters(flows: FlowData[]): ShareableParameter[] {
   const res: ShareableParameter[] = [];
   for (const flow of flows) {
     const used = referencedParameters(flow);
@@ -315,7 +412,12 @@ function useShareableParameters(
         p.value.trim() &&
         !res.some((r) => r.key === p.key)
       ) {
-        res.push({ key: p.key, label: p.label || p.key, value: p.value });
+        res.push({
+          key: p.key,
+          label: p.label || p.key,
+          value: p.value,
+          shown: formatParameterValue(p.type, p.value),
+        });
       }
     }
   }

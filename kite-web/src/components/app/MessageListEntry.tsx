@@ -43,7 +43,7 @@ export default function MessageListEntry({ message }: { message: Message }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Message template deleted!");
+          toast.success("Message template deleted.");
         } else {
           toast.error(
             `Failed to delete message template: ${res.error.message} (${res.error.code})`
@@ -54,8 +54,8 @@ export default function MessageListEntry({ message }: { message: Message }) {
   }
 
   return (
-    <Card>
-      <div className="float-right pt-3 pr-4">
+    <Card className="relative">
+      <div className="px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:pt-3 sm:pr-4">
         <div className="flex items-center space-x-2">
           <CheckIcon className="h-5 w-5 text-green-500" />
           <div className="text-sm text-muted-foreground">
@@ -63,10 +63,12 @@ export default function MessageListEntry({ message }: { message: Message }) {
           </div>
         </div>
       </div>
-      <CardHeader>
+      <CardHeader className="pt-3 sm:pt-6 sm:pr-48">
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
-          <MailIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{message.name}</div>
+          <div className="flex items-center gap-2 min-w-0">
+            <MailIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{message.name}</div>
+          </div>
           <BundleInstallBadge bundleInstallId={message.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
@@ -102,17 +104,17 @@ export default function MessageListEntry({ message }: { message: Message }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Delete Message
+                  Delete message
                 </DropdownMenuItem>
               </ConfirmDialog>
               <MessageDuplicateDialog message={message}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Duplicate Message
+                  Duplicate message
                 </DropdownMenuItem>
               </MessageDuplicateDialog>
               <FlowExportDialog
-                title="Export Message Template"
+                title="Export message template"
                 type="message"
                 shareData={{ message: messageToShared(message) }}
                 flows={Object.values(message.flow_sources ?? {})}
@@ -120,7 +122,7 @@ export default function MessageListEntry({ message }: { message: Message }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Export Message
+                  Export message
                 </DropdownMenuItem>
               </FlowExportDialog>
             </DropdownMenuGroup>

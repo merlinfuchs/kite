@@ -84,7 +84,7 @@ func (c *Client) RemoveBundle(ctx context.Context, id string, reason string, res
 	if err != nil {
 		return fmt.Errorf("failed to resolve bundle reports: %w", err)
 	}
-	if err := unlistBundle(ctx, q, id); err != nil {
+	if err := unlistBundle(ctx, q, id, at); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

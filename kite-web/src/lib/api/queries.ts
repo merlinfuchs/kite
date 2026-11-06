@@ -2,6 +2,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorInviteListResponse,
+  OAuthAuthorizeGetResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -13,8 +14,12 @@ import {
   CommandGetResponse,
   CommandListResponse,
   OpenBundleReportListResponse,
+  StarredBundleListResponse,
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
+  AutoRejectedBundleReviewListResponse,
+  PendingBundleReview,
+  UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
@@ -38,6 +43,7 @@ import {
   StateGuildListResponse,
   StateStatusGetResponse,
   StateUserGetResponse,
+  StateGuildProfileGetResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
@@ -208,14 +214,23 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-// The marketplace, with only what the cards show. The official bundles only
-// change when Kite is deployed, the listed ones of users when a review
-// approves them.
+// The marketplace, with only what the cards show.
 export function useBundlesQuery() {
   return useQuery({
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
+  });
+}
+
+// useStarredBundlesQuery are the IDs of the bundles the user starred, which
+// needs the user to be logged in.
+export function useStarredBundlesQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["users", "@me", "starred-bundles"],
+    queryFn: () =>
+      apiRequest<StarredBundleListResponse>(`/v1/users/@me/starred-bundles`),
+    enabled,
   });
 }
 
@@ -226,6 +241,38 @@ export function usePendingBundleReviewsQuery() {
     queryKey: ["admin", "bundle-reviews"],
     queryFn: () =>
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success
+        ? prescreenPoll(data.data.flatMap((r) => (r ? [r] : [])))
+        : false;
+    },
+  });
+}
+
+// prescreenPoll is how often to check for the AI pre-screen of reviews that
+// don't have one yet, or false if all have. It runs within a minute of
+// submitting, so recent ones are checked more often. It also doesn't run when
+// it's turned off, so older ones are checked less often, but still, since
+// running it again keeps their age.
+function prescreenPoll(reviews: PendingBundleReview[]) {
+  const waiting = reviews.filter((r) => !r.prescreen.screened_at);
+  if (!waiting.length) return false;
+  const recent = waiting.some(
+    (r) => Date.now() - new Date(r.created_at).getTime() < 5 * 60_000
+  );
+  return recent ? 15_000 : 60_000;
+}
+
+// useAutoRejectedBundleReviewsQuery are the reviews the AI pre-screen
+// rejected, newest first.
+export function useAutoRejectedBundleReviewsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews-auto-rejected"],
+    queryFn: () =>
+      apiRequest<AutoRejectedBundleReviewListResponse>(
+        `/v1/admin/bundle-reviews/auto-rejected`
+      ),
   });
 }
 
@@ -239,6 +286,10 @@ export function usePendingBundleReviewQuery(reviewId: string) {
         `/v1/admin/bundle-reviews/${reviewId}`
       ),
     enabled: !!reviewId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success ? prescreenPoll([data.data]) : false;
+    },
   });
 }
 
@@ -249,6 +300,15 @@ export function useOpenBundleReportsQuery() {
     queryKey: ["admin", "bundle-reports"],
     queryFn: () =>
       apiRequest<OpenBundleReportListResponse>(`/v1/admin/bundle-reports`),
+  });
+}
+
+// useUserBansQuery are the users banned from features, which only admins
+// can see.
+export function useUserBansQuery() {
+  return useQuery({
+    queryKey: ["admin", "user-bans"],
+    queryFn: () => apiRequest<UserBanListResponse>(`/v1/admin/user-bans`),
   });
 }
 
@@ -266,6 +326,20 @@ export function useAPITokensQuery(enabled: boolean) {
     queryKey: ["users", "@me", "api-tokens"],
     queryFn: () => apiRequest<APITokenListResponse>(`/v1/users/@me/api-tokens`),
     enabled,
+  });
+}
+
+// useOAuthAuthorizeQuery checks the authorization request of an OAuth client,
+// with the query string of the consent page. It fetches the client, so it
+// isn't retried or refetched.
+export function useOAuthAuthorizeQuery(query: string | null) {
+  return useQuery({
+    queryKey: ["oauth", "authorize", query],
+    queryFn: () =>
+      apiRequest<OAuthAuthorizeGetResponse>(`/v1/oauth/authorize?${query}`),
+    enabled: query !== null,
+    retry: false,
+    staleTime: Infinity,
   });
 }
 
@@ -507,6 +581,9 @@ export function useAppStateStatusQuery(appId?: string) {
   });
 }
 
+// The steps of the setup checklist, in order.
+export const setupSteps = ["invited", "has_flow", "ran_flow"] as const;
+
 // Polls until every step is done, so steps tick as the user does them.
 export function useAppSetupQuery(appId: string) {
   return useQuery({
@@ -515,8 +592,7 @@ export function useAppSetupQuery(appId: string) {
     enabled: !!appId,
     refetchInterval: (query) => {
       const setup = query.state.data?.success ? query.state.data.data : null;
-      const done = setup?.invited && setup.has_command && setup.ran_command;
-      return done ? false : 5000;
+      return setup && setupSteps.every((s) => setup[s]) ? false : 5000;
     },
   });
 }
@@ -527,6 +603,17 @@ export function useAppStateGuildsQuery(appId: string) {
     queryFn: () =>
       apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
     enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildProfileQuery(appId: string, guildId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
+    queryFn: () =>
+      apiRequest<StateGuildProfileGetResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/profile`
+      ),
+    enabled: !!appId && !!guildId,
   });
 }
 

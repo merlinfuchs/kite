@@ -25,6 +25,7 @@ func init() {
 		FlowNodeTypeControlConditionItemChannel: executeControlConditionItemUser,
 		FlowNodeTypeControlConditionItemRole:    executeControlConditionItemUser,
 		FlowNodeTypeControlConditionItemElse:    executeControlConditionItemElse,
+		FlowNodeTypeControlIf:                   executeControlIf,
 		FlowNodeTypeControlErrorHandler:         executeControlErrorHandler,
 		FlowNodeTypeControlLoop:                 executeControlLoop,
 		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
@@ -34,6 +35,20 @@ func init() {
 		FlowNodeTypeControlSleep:                executeControlSleep,
 		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
+}
+
+// executeControlIf runs the yes branch if the condition is true, yes or 1, and
+// the no branch otherwise.
+func executeControlIf(n *CompiledFlowNode, ctx *FlowContext) error {
+	value, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
+	if err != nil {
+		return err
+	}
+
+	if yes, _ := thing.ParseYesNo(value.String()); yes {
+		return n.ExecuteChildrenByHandle(ctx, "yes")
+	}
+	return n.ExecuteChildrenByHandle(ctx, "no")
 }
 
 func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -387,6 +402,11 @@ func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 	// couldn't continue with its next iteration.
 	if duration > durableSleepThreshold && !n.inLoop() {
 		return n.sleepDurable(ctx, duration)
+	}
+
+	if ctx.Test != nil {
+		ctx.Test.AddNote(fmt.Sprintf("Waited %s, which test runs skip", duration))
+		return n.ExecuteChildren(ctx)
 	}
 
 	deadline, ok := ctx.Deadline()

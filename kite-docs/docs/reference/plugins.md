@@ -14,7 +14,7 @@ Plugins are being replaced by templates. Counting and Starboard are now template
 
 :::
 
-## Setting Up a Plugin
+## Setting up a plugin
 
 1. Click on `Configure` on the plugin
 2. Choose which of the plugin's commands and event listeners you want to use. All of them are selected by default.

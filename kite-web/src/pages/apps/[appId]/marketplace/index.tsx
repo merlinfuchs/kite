@@ -33,7 +33,7 @@ export default function AppMarketplacePage() {
               target="_blank"
               className="text-primary hover:underline"
             >
-              Learn More
+              Learn more
             </a>
           </p>
         </div>
@@ -47,6 +47,7 @@ export default function AppMarketplacePage() {
             query: { appId, templateId: t.id },
           })}
           added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
+          buildHref={{ pathname: "/apps/[appId]/commands", query: { appId } }}
         />
       )}
     </AppLayout>

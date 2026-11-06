@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -16,23 +15,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// listCacheDuration is how long the marketplace is cached, which anyone can
-// load. Reviews and takedowns show in it after that.
-const listCacheDuration = time.Minute
-
-// listRetryDuration is how long the error is returned when the first load
-// failed.
-const listRetryDuration = 5 * time.Second
-
 type BundleHandler struct {
 	bundleStore store.BundleStore
 	userStore   store.UserStore
-
-	listMu       sync.Mutex
-	list         []*model.Bundle
-	listCachedAt time.Time
-	// listErr is why the last load failed while there was no list yet.
-	listErr error
 }
 
 func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) *BundleHandler {
@@ -49,7 +34,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		userID = c.Session.UserID
 	}
 
-	list, err := h.cachedList(c.Context())
+	list, err := h.loadList(c.Context())
 	if err != nil {
 		return nil, err
 	}
@@ -63,37 +48,6 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		}
 	}
 	return &res, nil
-}
-
-// cachedList is the marketplace with the content of the cards. The lock makes
-// requests wait for one load when the cache expires. If it fails, the old
-// list or the error is kept for another while, so the waiting requests don't
-// each load it.
-func (h *BundleHandler) cachedList(ctx context.Context) ([]*model.Bundle, error) {
-	h.listMu.Lock()
-	defer h.listMu.Unlock()
-	if h.list != nil && time.Since(h.listCachedAt) < listCacheDuration {
-		return h.list, nil
-	}
-	if h.list == nil && h.listErr != nil && time.Since(h.listCachedAt) < listRetryDuration {
-		return nil, h.listErr
-	}
-
-	// The request that loads it may be canceled, the others still wait for it.
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-	defer cancel()
-	list, err := h.loadList(ctx)
-	h.listCachedAt = time.Now()
-	if err != nil {
-		if h.list == nil {
-			h.listErr = err
-			return nil, err
-		}
-		slog.With("error", err).Error("Failed to reload the marketplace, keeping the old one")
-		return h.list, nil
-	}
-	h.list = list
-	return list, nil
 }
 
 func (h *BundleHandler) loadList(ctx context.Context) ([]*model.Bundle, error) {
@@ -151,15 +105,72 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 	return res, nil
 }
 
-// HandleBundleReportCreate reports a user's bundle the user can see for
-// breaking the rules. Reporting it again replaces their open report.
-func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+// HandleBundleStar stars a bundle of the marketplace for the user. Users
+// can't star their own ones.
+func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarResponse, error) {
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if !b.Listed {
+		return nil, handler.ErrBadRequest("bundle_not_starrable", "only templates in the Marketplace can be starred")
+	}
+	if b.OwnedBy(c.Session.UserID) {
+		return nil, handler.ErrBadRequest("bundle_not_starrable", "you can't star your own templates")
+	}
+
+	count, err := h.bundleStore.StarBundle(c.Context(), b.ID, c.Session.UserID, time.Now())
+	if err != nil {
+		return nil, fmt.Errorf("failed to star bundle: %w", err)
+	}
+	return &wire.BundleStarResponse{StarCount: count}, nil
+}
+
+// HandleBundleUnstar takes the user's star from a bundle, also from one that
+// left the marketplace since.
+func (h *BundleHandler) HandleBundleUnstar(c *handler.Context) (*wire.BundleUnstarResponse, error) {
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := h.bundleStore.UnstarBundle(c.Context(), b.ID, c.Session.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unstar bundle: %w", err)
+	}
+	return &wire.BundleUnstarResponse{StarCount: count}, nil
+}
+
+// HandleStarredBundleList returns the IDs of the bundles the user starred.
+func (h *BundleHandler) HandleStarredBundleList(c *handler.Context) (*wire.StarredBundleListResponse, error) {
+	ids, err := h.bundleStore.StarredBundleIDs(c.Context(), c.Session.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get starred bundles: %w", err)
+	}
+	// An empty list, not null, for users who didn't star any.
+	res := append(wire.StarredBundleListResponse{}, ids...)
+	return &res, nil
+}
+
+// visibleBundle is the bundle of the request, if the logged in user can see
+// it.
+func (h *BundleHandler) visibleBundle(c *handler.Context) (*model.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
 		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+	}
+	return b, nil
+}
+
+// HandleBundleReportCreate reports a user's bundle the user can see for
+// breaking the rules. Reporting it again replaces their open report.
+func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
 	}
 	if !b.OwnerUserID.Valid || b.OwnedBy(c.Session.UserID) {
 		return nil, handler.ErrBadRequest("bundle_not_reportable", "only templates of other users can be reported")

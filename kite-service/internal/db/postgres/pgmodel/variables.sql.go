@@ -111,13 +111,15 @@ func (q *Queries) DeleteAllVariableValues(ctx context.Context, arg DeleteAllVari
 	return err
 }
 
-const deleteVariable = `-- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1
+const deleteVariable = `-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id
 `
 
-func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteVariable, id)
-	return err
+func (q *Queries) DeleteVariable(ctx context.Context, id string) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, deleteVariable, id)
+	var bundle_install_id pgtype.Text
+	err := row.Scan(&bundle_install_id)
+	return bundle_install_id, err
 }
 
 const deleteVariableValue = `-- name: DeleteVariableValue :exec
@@ -377,6 +379,89 @@ func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID stri
 			&i.Scoped,
 			&i.AppID,
 			&i.BundleInstallID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVariableValues = `-- name: ListVariableValues :many
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variables.app_id = $2
+  AND (
+    $3::text = ''
+    OR starts_with(coalesce(variable_values.scope, ''), $3::text)
+  )
+ORDER BY
+  CASE WHEN $4::text = 'value_desc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END DESC NULLS LAST,
+  CASE WHEN $4::text = 'value_asc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END ASC NULLS LAST,
+  CASE WHEN $4::text = 'updated_desc' THEN variable_values.updated_at END DESC,
+  CASE WHEN $4::text = 'updated_asc' THEN variable_values.updated_at END ASC,
+  variable_values.id
+LIMIT $6 OFFSET $5
+`
+
+type ListVariableValuesParams struct {
+	VariableID  string
+	AppID       string
+	ScopePrefix string
+	Sort        string
+	RowOffset   int32
+	RowLimit    int32
+}
+
+// Values sort as numbers when they are numbers or text of a number, like
+// "42". Other values come last when sorting by value. Values over 128 bytes,
+// like saved messages, can't be a number of at most 30 digits, so
+// pg_column_size skips them without reading them from TOAST, which was most of
+// the time on variables with many. starts_with instead of LIKE so % and _ in
+// the prefix match literally.
+func (q *Queries) ListVariableValues(ctx context.Context, arg ListVariableValuesParams) ([]VariableValue, error) {
+	rows, err := q.db.Query(ctx, listVariableValues,
+		arg.VariableID,
+		arg.AppID,
+		arg.ScopePrefix,
+		arg.Sort,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VariableValue
+	for rows.Next() {
+		var i VariableValue
+		if err := rows.Scan(
+			&i.ID,
+			&i.VariableID,
+			&i.Scope,
+			&i.Value,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

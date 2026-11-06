@@ -230,6 +230,44 @@ func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
 	assert.Empty(t, res.BuildPrompt)
 }
 
+func TestParseOutputWithTemplate(t *testing.T) {
+	res, err := parseOutput(`{"message": "Add the Moderation template.", "edits": [], "build_prompt": "Build it here instead",
+		"fields": [], "template_id": "moderation"}`)
+	require.NoError(t, err)
+	assert.Equal(t, "moderation", res.TemplateID)
+	assert.Equal(t, "Build it here instead", res.BuildPrompt)
+
+	// It's built already.
+	res, err = parseOutput(`{"message": "Done.", "edits": [
+		{"op": "remove_node", "ref": null, "type": null, "id": "a", "after": null, "before": null, "handle": null,
+		 "source": null, "target": null, "data_json": null, "items_json": null, "reconnect": null}
+	], "build_prompt": null, "fields": [], "template_id": "moderation"}`)
+	require.NoError(t, err)
+	assert.Empty(t, res.TemplateID)
+}
+
+func TestCheckTemplate(t *testing.T) {
+	templates := []Template{{ID: "moderation"}, {ID: "welcomer", Added: true}}
+	for id, want := range map[string]string{"moderation": "moderation", "welcomer": "welcomer", "made_up": ""} {
+		res := &Response{TemplateID: id}
+		res.checkTemplate(templates)
+		assert.Equal(t, want, res.TemplateID, id)
+	}
+}
+
+func TestDescribeTemplates(t *testing.T) {
+	assert.Equal(t, `
+
+Templates of the marketplace:
+Made by Kite:
+- moderation: "Moderation" (moderation) "Ban and kick."
+Made by other users:
+- tickets: "Tickets" (support) "Private ticket channels."`, describeTemplates([]Template{
+		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
+		{ID: "tickets", Name: "Tickets", Description: "Private ticket channels.", Category: "support", Added: true},
+	}))
+}
+
 func TestParseOutputLimitsFields(t *testing.T) {
 	field := `{"label": "Staff role", "description": "", "type": "choice", "options": [], "default": ""}`
 	res, err := parseOutput(`{"message": "Which role?", "edits": [], "build_prompt": null,
@@ -275,4 +313,15 @@ func TestRespondTimesOut(t *testing.T) {
 	assert.Contains(t, resErr.Message, "took too long")
 	// It counts, as the model may have worked on it.
 	assert.NotNil(t, res)
+}
+
+func TestOutlineEdits(t *testing.T) {
+	assert.Equal(t,
+		"add_node ref=$ban type=action_member_ban after=$check handle=yes data; connect source=$check target=$log; update_node error",
+		outlineEdits([]map[string]any{
+			{"op": "add_node", "ref": "$ban", "type": "action_member_ban", "after": "$check", "handle": "yes", "data": map[string]any{"reason": "spam"}},
+			{"op": "connect", "source": "$check", "target": "$log"},
+			{"op": "update_node", "error": "data_json isn't a JSON object"},
+		}),
+	)
 }

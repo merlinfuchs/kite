@@ -35,7 +35,7 @@
     "per_thousand_members": 100
   },
   "icon": "alarm-clock",
-  "category": "community",
+  "category": "utility",
   "parameters": [],
   "commands": [
     {

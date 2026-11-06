@@ -1,5 +1,9 @@
 import { bundleCapabilities } from "@/lib/flow/bundleCapabilities";
-import { Template, templateFlows } from "@/lib/flow/templates";
+import {
+  parameterDefaults,
+  Template,
+  templateFlows,
+} from "@/lib/flow/templates";
 import { TriangleAlertIcon } from "lucide-react";
 import { useMemo } from "react";
 
@@ -11,7 +15,12 @@ export default function BundleCapabilities({
   template: Template;
 }) {
   const capabilities = useMemo(
-    () => bundleCapabilities(templateFlows(template).map((f) => f.flow)),
+    () =>
+      bundleCapabilities({
+        flows: templateFlows(template).map((f) => f.flow),
+        messages: template.messages.map((m) => m.data),
+        defaults: Object.values(parameterDefaults(template.parameters)),
+      }),
     [template]
   );
 

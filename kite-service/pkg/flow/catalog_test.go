@@ -18,6 +18,7 @@ type catalogSchema struct {
 	Properties map[string]*catalogSchema `json:"properties"`
 	Items      *catalogSchema            `json:"items"`
 	Enum       []any                     `json:"enum"`
+	AnyOf      []*catalogSchema          `json:"anyOf"`
 	UserPicked bool                      `json:"x-user-picked"`
 }
 

@@ -77,7 +77,7 @@ func TestReconcile(t *testing.T) {
 	entStore := &fakeEntitlementStore{}
 
 	plans := []model.Plan{{ID: "pro", LemonSqueezyProductID: "1"}}
-	planManager := plan.NewPlanManager(entStore, subStore, nil, plans, plan.PlanManagerConfig{})
+	planManager := plan.NewPlanManager(entStore, subStore, nil, nil, plans, plan.PlanManagerConfig{})
 	client := lemonsqueezy.New(lemonsqueezy.WithBaseURL(api.URL), lemonsqueezy.WithAPIKey("key"))
 	m := NewSubscriptionManager(subStore, entStore, planManager, client)
 

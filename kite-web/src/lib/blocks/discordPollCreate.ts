@@ -15,6 +15,7 @@ export const discordPollCreate: BlockDefinition = {
   category: "Messages",
   requires: ["discord"],
   credits: 1,
+  permissions: ["SEND_POLLS"],
   fields: [
     {
       name: "channel_target",

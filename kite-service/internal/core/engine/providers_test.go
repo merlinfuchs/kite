@@ -100,7 +100,7 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	api.Endpoint = server.URL + api.Path + "/"
 	defer func() { api.Endpoint = endpoint }()
 
-	p := NewDiscordProvider("app", nil, nil, nil, state.New("Bot token"))
+	p := NewDiscordProvider("app", nil, nil, nil, nil, state.New("Bot token"), nil)
 
 	body, err := p.APIRequest(context.Background(), provider.DiscordAPIRequest{
 		Method: http.MethodPost,
@@ -215,5 +215,82 @@ func TestDecisionProviderHidesKeyErrors(t *testing.T) {
 	_, err := p.Decide(context.Background(), provider.DecideOpts{Type: provider.DecisionTypeNoul})
 	if err == nil || strings.Contains(err.Error(), "credits") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+type robloxTransport func(r *http.Request) (int, string)
+
+func (f robloxTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	status, body := f(r)
+	return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+}
+
+func TestRobloxProviderErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+		err    string
+	}{
+		{"rate limited", http.StatusTooManyRequests, `{"errors":[{"code":0,"message":""}]}`, "Roblox is rate limiting requests"},
+		{"server error", http.StatusInternalServerError, `{"errors":[{"code":0,"message":"InternalServerError"}]}`, "status 500: InternalServerError"},
+		{"no body", http.StatusServiceUnavailable, ``, "status 503"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+				return tc.status, tc.body
+			})})
+
+			user, err := p.UserByID(context.Background(), 1)
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UserByID: got %v, %v, want error with %q", user, err, tc.err)
+			}
+
+			users, err := p.UsersByUsername(context.Background(), "builderman")
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UsersByUsername: got %v, %v, want error with %q", users, err, tc.err)
+			}
+
+			url, err := p.UserAvatarURL(context.Background(), 1)
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UserAvatarURL: got %q, %v, want error with %q", url, err, tc.err)
+			}
+		})
+	}
+}
+
+func TestRobloxProviderUserNotFound(t *testing.T) {
+	p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+		return http.StatusNotFound, `{"errors":[{"code":3,"message":"The user id is invalid."}]}`
+	})})
+
+	_, err := p.UserByID(context.Background(), 1)
+	if !errors.Is(err, provider.ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+}
+
+func TestRobloxProviderUserAvatarURL(t *testing.T) {
+	tests := []struct {
+		body string
+		want string
+	}{
+		{`{"data":[{"targetId":1,"state":"Completed","imageUrl":"https://tr.rbxcdn.com/a.png"}]}`, "https://tr.rbxcdn.com/a.png"},
+		{`{"data":[{"targetId":1,"state":"Blocked","imageUrl":"https://tr.rbxcdn.com/blocked.png"}]}`, ""},
+		{`{"data":[{"targetId":1,"state":"Pending","imageUrl":null}]}`, ""},
+		{`{"data":[]}`, ""},
+	}
+
+	for _, tc := range tests {
+		p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+			return http.StatusOK, tc.body
+		})})
+
+		url, err := p.UserAvatarURL(context.Background(), 1)
+		if err != nil || url != tc.want {
+			t.Errorf("%s: got %q, %v, want %q", tc.body, url, err, tc.want)
+		}
 	}
 }

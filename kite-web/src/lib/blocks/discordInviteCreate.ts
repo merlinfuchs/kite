@@ -9,6 +9,7 @@ export const discordInviteCreate: BlockDefinition = {
   icon: "link",
   category: "Channels",
   credits: 1,
+  permissions: ["CREATE_INSTANT_INVITE"],
   audit_log_reason: true,
   strict_settings: true,
   run: {

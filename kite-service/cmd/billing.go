@@ -50,7 +50,7 @@ func billingReconcileCMD(c *cli.Context) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{})
+	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{})
 
 	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
 		cfg.Billing.LemonSqueezyAPIKey,
