@@ -145,6 +145,16 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
 		},
 		{
+			name: "voice state update listeners add voice states",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordVoiceStateUpdate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
 			name: "flows that play audio add voice states",
 			reqs: model.AppGatewayRequirements{
 				UsesVoice: true,

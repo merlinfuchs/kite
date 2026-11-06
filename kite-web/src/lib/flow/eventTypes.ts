@@ -5,6 +5,7 @@ import {
   LogOutIcon,
   LucideIcon,
   MailIcon,
+  MicIcon,
   MessageSquareDiffIcon,
   MessageSquareIcon,
   MessageSquareXIcon,
@@ -147,6 +148,14 @@ export const discordEventTypes: DiscordEventType[] = [
     // The user is whoever did it, the channel the one the entry is about.
     placeholders: ["audit_log", "user", "server", "channel"],
     note: "Runs for bans, kicks, timeouts, role changes, channel changes and more. Your bot needs the View Audit Log permission in the server. Pick the actions with an Event Filter.",
+  },
+  {
+    value: "voice_state_update",
+    label: "Voice State Update",
+    description: "A member joins, leaves, or moves voice channels",
+    icon: MicIcon,
+    category: "Voice",
+    placeholders: ["user", "server", "channel"],
   },
   {
     value: "guild_create",

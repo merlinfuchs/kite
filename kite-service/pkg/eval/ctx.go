@@ -710,6 +710,44 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Channel = currentChannelEnv(session, id, nil)
 		}
 		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
+	case *gateway.VoiceStateUpdateEvent:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+			env.User = env.Member
+		} else if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
+		}
+		if e.GuildID != 0 {
+			env.Guild = guild(e.GuildID).guildEnv()
+		}
+		if e.ChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
+		}
+	case *guildevent.VoiceStateUpdate:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+			env.User = env.Member
+		} else if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
+		}
+		if e.GuildID != 0 {
+			env.Guild = guild(e.GuildID).guildEnv()
+		}
+		chID := e.ChannelID
+		if !chID.IsValid() && e.OldChannelID.IsValid() {
+			chID = e.OldChannelID
+		}
+		if chID.IsValid() {
+			env.Channel = currentChannelEnv(session, chID, nil)
+		}
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}

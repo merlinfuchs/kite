@@ -55,6 +55,7 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 // cache is the part of the state cache deriving events reads.
 type cache interface {
 	Message(discord.ChannelID, discord.MessageID) (*discord.Message, error)
+	VoiceState(discord.GuildID, discord.UserID) (*discord.VoiceState, error)
 }
 
 // deriveEvents returns the events Kite derives from a Discord event. c is the
@@ -80,6 +81,33 @@ func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event
 			return nil
 		}
 		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
+	case *gateway.VoiceStateUpdateEvent:
+		if !e.GuildID.IsValid() {
+			return nil
+		}
+		var oldChannelID discord.ChannelID
+		action := "join"
+		if old, err := c.VoiceState(e.GuildID, e.UserID); err == nil && old != nil && old.ChannelID.IsValid() {
+			oldChannelID = old.ChannelID
+			if !e.ChannelID.IsValid() {
+				action = "leave"
+			} else if e.ChannelID != oldChannelID {
+				action = "move"
+			} else {
+				action = "update"
+			}
+		} else {
+			if !e.ChannelID.IsValid() {
+				action = "leave"
+			} else {
+				action = "join"
+			}
+		}
+		return []guildevent.Event{&guildevent.VoiceStateUpdate{
+			VoiceStateUpdateEvent: *e,
+			OldChannelID:          oldChannelID,
+			Action:                action,
+		}}
 	}
 	return nil
 }

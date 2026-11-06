@@ -82,6 +82,7 @@ func TestEventFilterRole(t *testing.T) {
 
 	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), msg))
 	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "<@&123>"), reaction))
+	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{Member: member}}))
 	assert.False(t, matches(filter(EventFilterTypeRoleID, ComparsionModeNotEqual, "123"), msg))
 	assert.False(t, matches(filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), dm))
 	assert.True(t, matches(filter(EventFilterTypeRoleID, ComparsionModeNotEqual, "123"), dm))
@@ -105,6 +106,7 @@ func TestEventFilterUserIsBot(t *testing.T) {
 	assert.False(t, matches(ignoreBots, &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{Bot: true}}}))
 	assert.True(t, matches(ignoreBots, &gateway.GuildMemberRemoveEvent{User: discord.User{}}))
 	assert.False(t, matches(ignoreBots, &gateway.MessageReactionAddEvent{Member: &discord.Member{User: discord.User{Bot: true}}}))
+	assert.False(t, matches(ignoreBots, &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{Member: &discord.Member{User: discord.User{Bot: true}}}}))
 }
 
 func TestEventFilterAuditLogAction(t *testing.T) {
@@ -119,6 +121,23 @@ func TestEventFilterAuditLogAction(t *testing.T) {
 	assert.True(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_timeout_add,member_timeout_remove"), timeout))
 	// Timeouts are named on their own, not as member updates.
 	assert.False(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_update"), timeout))
+}
+
+func TestEventFilterVoiceStateAction(t *testing.T) {
+	join := &guildevent.VoiceStateUpdate{Action: "join"}
+	leave := &guildevent.VoiceStateUpdate{Action: "leave"}
+	move := &guildevent.VoiceStateUpdate{Action: "move"}
+
+	assert.True(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeOneOf, "join, move"), join))
+	assert.True(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeOneOf, "join, move"), move))
+	assert.False(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeOneOf, "join, move"), leave))
+	assert.True(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeEqual, "leave"), leave))
+	assert.False(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeNotEqual, "leave"), leave))
+
+	rawJoin := &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{ChannelID: 123}}
+	rawLeave := &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{ChannelID: 0}}
+	assert.True(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeEqual, "join"), rawJoin))
+	assert.True(t, matches(filter(EventFilterTypeVoiceStateAction, ComparsionModeEqual, "leave"), rawLeave))
 }
 
 func TestEventFilterOneOf(t *testing.T) {
@@ -199,6 +218,8 @@ func TestValidateEventFilters(t *testing.T) {
 		{"channels one of", "message_create", filter(EventFilterTypeChannelID, ComparsionModeOneOf, "1,2"), false},
 		{"role one of", "message_create", filter(EventFilterTypeRoleID, ComparsionModeOneOf, "1,2"), true},
 		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
+		{"voice state update channel", "voice_state_update", filter(EventFilterTypeChannelID, ComparsionModeEqual, "1"), false},
+		{"voice state update message content", "voice_state_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
 	}
 
 	for _, tt := range tests {
