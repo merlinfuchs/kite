@@ -2,12 +2,15 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	_ "github.com/lib/pq"
 )
 
@@ -53,4 +56,42 @@ func BuildConnectionDSN(cfg config.PostgresConfig) string {
 		dsn += " password=" + cfg.Password
 	}
 	return dsn
+}
+
+// uniqueViolation turns a violated unique constraint into store.ErrAlreadyExists.
+func uniqueViolation(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return store.ErrAlreadyExists
+	}
+	return err
+}
+
+// PoolStats is how busy the connection pool is. A rising EmptyAcquireCount
+// means queries waited for a free connection.
+type PoolStats struct {
+	MaxConns              int32 `json:"max_conns"`
+	TotalConns            int32 `json:"total_conns"`
+	AcquiredConns         int32 `json:"acquired_conns"`
+	IdleConns             int32 `json:"idle_conns"`
+	AcquireCount          int64 `json:"acquire_count"`
+	AcquireNanosTotal     int64 `json:"acquire_nanos_total"`
+	EmptyAcquireCount     int64 `json:"empty_acquire_count"`
+	EmptyAcquireWaitNanos int64 `json:"empty_acquire_wait_nanos"`
+	CanceledAcquireCount  int64 `json:"canceled_acquire_count"`
+}
+
+func (c *Client) PoolStats() PoolStats {
+	s := c.DB.Stat()
+	return PoolStats{
+		MaxConns:              s.MaxConns(),
+		TotalConns:            s.TotalConns(),
+		AcquiredConns:         s.AcquiredConns(),
+		IdleConns:             s.IdleConns(),
+		AcquireCount:          s.AcquireCount(),
+		AcquireNanosTotal:     s.AcquireDuration().Nanoseconds(),
+		EmptyAcquireCount:     s.EmptyAcquireCount(),
+		EmptyAcquireWaitNanos: s.EmptyAcquireWaitTime().Nanoseconds(),
+		CanceledAcquireCount:  s.CanceledAcquireCount(),
+	}
 }

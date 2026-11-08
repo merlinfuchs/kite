@@ -58,14 +58,14 @@ export default function MessageComponentRow({
                 size="sm"
                 disabled={childIds.length >= 5}
               >
-                Add Button
+                Add button
               </Button>
               <Button
                 onClick={() => removeChildren(rowId, "components")}
                 variant="destructive"
                 size="sm"
               >
-                Clear Buttons
+                Clear buttons
               </Button>
             </div>
           </>

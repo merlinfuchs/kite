@@ -9,6 +9,10 @@ import { describeSchedule } from "@/lib/flow/schedule";
 const eventTitles: Record<string, string> = {
   guild_create: "Bot joined a server",
   guild_delete: "Bot left a server",
+  direct_message_create: "Direct message received",
+  guild_boost: "Member boosted the server",
+  guild_boost_remove: "Member stopped boosting the server",
+  guild_audit_log_entry_create: "Audit log entry created",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {
@@ -33,15 +37,15 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
       }
       description={
         isWebhook
-          ? "Runs the flow when a request is sent to the webhook URL. Drop different actions here!"
+          ? "Runs the flow when a request is sent to the webhook URL. Drop actions here."
           : isSchedule
           ? `Runs the flow ${
               scheduleDescription
                 ? scheduleDescription.charAt(0).toLowerCase() +
                   scheduleDescription.slice(1)
                 : `on the schedule ${cron}`
-            } (UTC). Drop different actions here!`
-          : `Listens for ${eventName} events to trigger the flow. Drop different actions here!`
+            } (UTC). Drop actions here.`
+          : `Listens for ${eventName} events to trigger the flow. Drop actions here.`
       }
       highlight={true}
       showConnectedMarker={false}

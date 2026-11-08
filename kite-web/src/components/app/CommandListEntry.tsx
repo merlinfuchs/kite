@@ -1,13 +1,18 @@
+import { withoutParameterValues } from "@/lib/flow/parameters";
 import {
   useCommandDeleteMutation,
   useCommandUpdateEnabledMutation,
 } from "@/lib/api/mutations";
+import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { Command } from "@/lib/types/wire.gen";
+import { App, Command } from "@/lib/types/wire.gen";
 import { formatDateTime } from "@/lib/utils";
 import {
+  AlertCircleIcon,
   CheckIcon,
   CircleDotIcon,
+  CircleOffIcon,
+  RefreshCwIcon,
   CopyPlusIcon,
   EllipsisIcon,
   SlashSquareIcon,
@@ -16,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
@@ -36,13 +41,19 @@ import {
 } from "../ui/dropdown-menu";
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import {
+  commandDeployState,
+  isCommandDeployErrorCause,
+} from "./CommandDeployStatus";
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
+import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
 
   const appId = useAppId();
+  const app = useApp();
 
   const deleteMutation = useCommandDeleteMutation(appId, command.id);
   const updateEnabledMutation = useCommandUpdateEnabledMutation(
@@ -54,7 +65,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Command deleted!");
+          toast.success("Command deleted.");
         } else {
           toast.error(
             `Failed to delete command: ${res.error.message} (${res.error.code})`
@@ -70,39 +81,11 @@ export default function CommandListEntry({ command }: { command: Command }) {
     });
   }, [updateEnabledMutation, command.enabled]);
 
-  const changesDeployed = useMemo(
-    () =>
-      new Date(command.updated_at) <= new Date(command.last_deployed_at || 0),
-    [command]
-  );
-
   return (
     <Card className="relative">
       <div className="flex items-center justify-between px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:h-full sm:flex-col sm:items-end sm:p-3">
         <div className="flex items-center space-x-2">
-          {changesDeployed ? (
-            <Tooltip>
-              <TooltipTrigger>
-                <CheckIcon className="h-5 w-5 text-green-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-foreground/90">
-                  All changes have been deployed!
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger>
-                <CircleDotIcon className="h-5 w-5 text-orange-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-foreground/90">
-                  Latest changes are not deployed yet. Deploy them to apply.
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {app && <DeployIcon app={app} command={command} />}
           <div className="text-sm text-muted-foreground">
             {formatDateTime(new Date(command.updated_at))}
           </div>
@@ -112,9 +95,12 @@ export default function CommandListEntry({ command }: { command: Command }) {
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
-        <CardTitle className="text-base flex items-center space-x-2">
-          <SlashSquareIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{command.name}</div>
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <SlashSquareIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{command.name}</div>
+          </div>
+          <BundleInstallBadge bundleInstallId={command.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           {command.description}
@@ -149,23 +135,26 @@ export default function CommandListEntry({ command }: { command: Command }) {
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Trash2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Delete Command
+                  Delete command
                 </DropdownMenuItem>
               </ConfirmDialog>
               <CommandDuplicateDialog command={command}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <CopyPlusIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Duplicate Command
+                  Duplicate command
                 </DropdownMenuItem>
               </CommandDuplicateDialog>
               <FlowExportDialog
-                title="Export Command"
+                title="Export command"
                 type="command"
-                shareData={{ flow_source: command.flow_source }}
+                shareData={{
+                  flow_source: withoutParameterValues(command.flow_source),
+                }}
+                flows={[command.flow_source]}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Share2Icon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Export Command
+                  Export command
                 </DropdownMenuItem>
               </FlowExportDialog>
             </DropdownMenuGroup>
@@ -173,5 +162,41 @@ export default function CommandListEntry({ command }: { command: Command }) {
         </DropdownMenu>
       </CardFooter>
     </Card>
+  );
+}
+
+function DeployIcon({ app, command }: { app: App; command: Command }) {
+  const state = commandDeployState(app, command);
+
+  let icon = <CheckIcon className="h-5 w-5 text-green-500" />;
+  let text = "Up to date in Discord.";
+  if (state === "pending") {
+    icon = (
+      <RefreshCwIcon className="h-5 w-5 text-muted-foreground animate-spin" />
+    );
+    text = "Updating in Discord...";
+  } else if (state === "disabled") {
+    icon = <CircleOffIcon className="h-5 w-5 text-muted-foreground" />;
+    text = "Not in Discord while disabled.";
+  } else if (state === "stopped") {
+    icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
+    text = "Goes to Discord once your app runs again.";
+  } else if (state === "error") {
+    if (isCommandDeployErrorCause(app, command.name)) {
+      icon = <AlertCircleIcon className="h-5 w-5 text-destructive" />;
+      text = "Discord rejected this command. See the error above.";
+    } else {
+      icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
+      text = "Not updated in Discord until the error above is fixed.";
+    }
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger>{icon}</TooltipTrigger>
+      <TooltipContent>
+        <div className="text-foreground/90">{text}</div>
+      </TooltipContent>
+    </Tooltip>
   );
 }

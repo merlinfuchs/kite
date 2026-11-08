@@ -33,16 +33,22 @@ Here you can choose what kind of option you want to use.
 >
 > `Channel`: Allows the user to choose a channel.
 >
-> ` Mentionable`: Allows the user to choose a role or user.
+> `Mentionable`: Allows the user to choose a role or user.
 >
-> `Attatchment`: Allows the user to attatch a file.
+> `Attachment`: Allows the user to attach a file.
 
 ### Choices
 Choices allow the user to select a value from a predefined set of options.
 
+Use the plus button to add a choice and the minus button next to a choice to remove just that one. The trash button removes all choices.
+
+## Order
+
+Arguments show up in Discord in the order set in the [Command](../entries/entry_command#argument-order) block. Required arguments always come before optional ones.
+
 ## Output
 
-To use the result of your option later in your flow you will use the variable
+To use the result of your option later in your flow, you will use the variable
 `{{arg('ARGNAME')}}`.
 
 :::tip

@@ -1,0 +1,107 @@
+import LandingPage, {
+  LandingPageContent,
+} from "@/components/landing/LandingPage";
+import { openSourcePoint } from "@/components/landing/copy";
+import { helloFlow } from "@/components/landing/flows";
+import env from "@/lib/env/client";
+
+const content: LandingPageContent = {
+  title: "Free 24/7 Discord bot hosting",
+  description:
+    "Host your Discord bot 24/7 for free with Kite. Build the bot in a visual editor and Kite runs it for you. No server, no code and no credit card needed.",
+  heading: "Free 24/7 Discord bot hosting",
+  intro:
+    "Kite runs your Discord bot on its servers 24/7, for free. You build the bot in Kite's editor and add your bot token. You don't need a VPS or a computer that stays on.",
+  secondaryAction: {
+    label: "Read the guide",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/getting-started`,
+  },
+  showcase: {
+    flow: helloFlow,
+    command: "hello",
+    reply: "Hello @Alex!",
+  },
+  sections: [
+    {
+      heading: "What the free plan includes",
+      points: [
+        {
+          title: "24/7 uptime",
+          description:
+            "Your bot stays connected to Discord at all times. If the connection drops, Kite reconnects it for you.",
+        },
+        {
+          title: "10,000 credits per month",
+          description:
+            "Most actions, like sending a message, cost 1 credit. Conditions and loops are free. This is enough for most servers.",
+        },
+        {
+          title: "Up to 100 servers",
+          description:
+            "You can add your bot to up to 100 servers. Paid plans raise this limit if you need more.",
+        },
+        {
+          title: "Your own name and avatar",
+          description:
+            "Your bot is your own Discord application with your name and avatar. You can replace Kite's default status with your own for free.",
+        },
+        {
+          title: "No credit card",
+          description:
+            "You sign in with your Discord account. The free plan has no time limit.",
+        },
+        openSourcePoint,
+      ],
+    },
+    {
+      heading: "Can Kite host my discord.js or discord.py bot?",
+      body: "No. Kite only runs bots that are built in Kite. If your bot is written in JavaScript or Python, you need a server or a hosting service that runs your code. If your bot mostly responds to commands and events, building it again in Kite is often faster than keeping a server running.",
+    },
+    {
+      heading: "How it works",
+      points: [
+        {
+          title: "1. Create a Discord app",
+          description:
+            "Create an application in the Discord Developer Portal and copy its bot token.",
+        },
+        {
+          title: "2. Add it to Kite",
+          description:
+            "Sign in to Kite with Discord, click Create app, and paste the token.",
+        },
+        {
+          title: "3. Build your commands",
+          description:
+            "Create commands and event listeners in the editor. They go live as soon as you save them.",
+        },
+      ],
+    },
+  ],
+  faqs: [
+    {
+      question: "Is the hosting really free?",
+      answer:
+        "Yes. Every bot gets free 24/7 hosting with 10,000 credits per month. Paid plans give you more credits and higher limits, but you don't need one to keep your bot online.",
+    },
+    {
+      question: "Will my bot stay online when I close my computer?",
+      answer:
+        "Yes. Your bot runs on Kite's servers, not on your computer. It stays online when your computer is off.",
+    },
+    {
+      question: "Can I host a bot that I wrote in code?",
+      answer:
+        "No. Kite runs bots built with its visual editor. It can't run discord.js, discord.py, or other code.",
+    },
+    {
+      question: "What happens when my bot runs out of credits?",
+      answer:
+        "The dashboard shows when your bot will run out of credits at its current rate, and warns you once it has used 80% of them. If it uses all of them, it stays online, but its commands and events pause and anyone who uses it is told why. Your bot also sends you a direct message at 80% and when it pauses. It runs again by itself when the next month begins, or a few minutes after you upgrade.",
+    },
+  ],
+};
+
+export default function DiscordBotHostingPage() {
+  return <LandingPage content={content} />;
+}

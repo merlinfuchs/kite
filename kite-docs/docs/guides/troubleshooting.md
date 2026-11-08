@@ -12,28 +12,34 @@ When a block fails, Kite logs an error with the type of the block and the reason
 
 Logs are kept for 30 days.
 
-## My Bot Is Offline
+## My bot is offline
 
 Open the dashboard of your app. If the app was stopped, a popup tells you why.
 
-- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Click on `Start App` in the settings once the new month has started or you have more credits.
-- **Discord bot token is invalid**: The token was reset in the Discord Developer Portal. Copy the new one and save it under `Credentials` in the settings.
-- **Failed to connect to gateway**: Kite couldn't connect your bot to Discord. Click on `Start App` in the settings to try again.
-- **Too many servers**: Your app is in more servers than your plan allows. Remove your bot from some servers in Discord, or get [Premium](../reference/premium.md), then click on `Start App`.
+- **Your bot token stopped working**: Discord no longer accepts the token, usually because it was reset. Click on `Reset Token` under `Bot` in the Discord Developer Portal, copy the new token and click on `Update token` in the popup or under `Credentials` in the settings.
+- **Your bot needs privileged intents**: Some of your event listeners need intents that are turned off for your bot. Turn them on under `Bot` in the Discord Developer Portal, then click on `Start app` in the settings.
+- **Failed to connect to gateway**: Kite couldn't connect your bot to Discord. Click on `Start app` in the settings to try again.
+- **Too many servers**: Your app is in more servers than your plan allows. Remove your bot from some servers in Discord, or get a [paid plan](../reference/premium.md) with more servers, then click `Start app`.
 
-## My Command Doesn't Show Up
+## My bot says it's paused
 
-Commands only show up in Discord after you deploy them. Click on `Deploy Changes` in the editor, or on `Deploy all commands` on the `Commands` page. You also need to deploy again after changing a command's name, description, arguments or permissions. Changes to the blocks don't need a deploy.
+Your app used all of its [credits](../reference/credit-system.md) for this month. Your bot stays online and tells anyone who uses it that it's paused, but its commands and event listeners don't run. It runs again by itself when the next month begins, or a few minutes after you upgrade.
 
-Your app has to be running to deploy. If it was stopped, deploying does nothing, so start it first and deploy again.
+## My command doesn't show up
+
+Kite updates your commands in Discord a few seconds after you save them. The `Commands` page shows if that worked. If Discord rejected your commands, it shows why and which command caused it. Fix that command and save it again.
+
+Disabled commands don't show up in Discord. Check that the command is enabled in the list of commands.
+
+Your app has to be running for its commands to be updated. If it was stopped, start it and Kite updates them right away.
 
 If it still doesn't show up, restart your Discord client with `Ctrl+R`, and check that your app was invited to the server with `Invite app` on the dashboard.
 
-## My Command Says "The application did not respond"
+## My command says "The application did not respond"
 
 Every command has to respond, usually with a `Create response message` block. Discord gives up after 3 seconds, so if your flow takes longer, add a `Defer response` block at the start. Check the logs in case a block failed before the response.
 
-## My Event Listener Doesn't Run
+## My event listener doesn't run
 
 - Kite ignores messages sent by bots, including your own.
 - Message events need the `Message Content Intent` to see the text of messages, and member events need the `Server Members Intent`. Enable them in the `Bot` section of the [Discord Developer Portal](https://discord.com/developers/applications).

@@ -50,7 +50,7 @@ export default function WebhookInfoTool() {
     <div>
       <div className="mb-5">
         <BaseInput
-          label=""
+          label="Webhook URL"
           type="text"
           placeholder="https://discord.com/api/webhooks/..."
           value={webhookUrl}

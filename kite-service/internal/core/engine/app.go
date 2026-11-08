@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
@@ -329,18 +331,75 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		eventType := model.EventTypeFromDiscordEventType(e.EventType())
-
-		// The index is replaced rather than mutated on rebuild, so this slice
-		// stays valid after the lock is released.
-		a.RLock()
-		listeners := a.listenersByType[eventType]
-		a.RUnlock()
-
+		listeners := a.listenersForEvent(event)
+		// Listeners get Discord's event, so stored triggers and flows don't
+		// need to know MessageEdit.
+		if e, ok := event.(*guildevent.MessageEdit); ok {
+			event = &e.MessageUpdateEvent
+		}
 		for _, listener := range listeners {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
+}
+
+// listenersForEvent returns the event listeners an event is dispatched to.
+// Messages in DMs only go to direct message listeners: message listeners
+// were written for servers, and running them, and spending credits, on every
+// DM once an app has the direct messages intent would change what existing
+// flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// boost listeners on top of the message create ones. Discord's MESSAGE_DELETE
+// goes to no listeners, they get guildevent.MessageDelete instead, which has
+// the same type. The same goes for MESSAGE_UPDATE and guildevent.MessageEdit,
+// so link previews and pins don't run Message Update listeners.
+func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+	switch event.(type) {
+	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent:
+		return nil
+	}
+
+	eventType := model.EventTypeFromDiscordEventType(event.EventType())
+
+	if isDirectMessageEvent(event) {
+		if _, ok := event.(*gateway.MessageCreateEvent); !ok {
+			return nil
+		}
+		eventType = model.EventListenerTypeDiscordDirectMessageCreate
+	}
+
+	// The index is replaced rather than mutated on rebuild, so this slice
+	// stays valid after the lock is released.
+	a.RLock()
+	defer a.RUnlock()
+
+	listeners := a.listenersByType[eventType]
+
+	if e, ok := event.(*gateway.MessageCreateEvent); ok && isBoostMessage(e.Message) {
+		boostListeners := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
+		if len(boostListeners) > 0 {
+			// Clip so the append can't write into the index's backing array.
+			listeners = append(slices.Clip(listeners), boostListeners...)
+		}
+	}
+
+	return listeners
+}
+
+// isDirectMessageEvent reports whether an event is a message create, update
+// or delete in a DM.
+func isDirectMessageEvent(event gateway.Event) bool {
+	switch e := event.(type) {
+	case *gateway.MessageCreateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *guildevent.MessageEdit:
+		return e.GuildID == 0
+	case *gateway.MessageDeleteEvent:
+		return e.GuildID == 0
+	}
+
+	return false
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that
@@ -496,7 +555,20 @@ func (a *App) dropTimer(resumePoint *model.ResumePoint, reason string) {
 // timerResumeEvent restores the interaction or event a flow suspended with in
 // a durable sleep.
 func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, flow.FlowContextState, error) {
-	state := resumePoint.FlowState
+	var token string
+	if resumePoint.InteractionToken.Valid {
+		var err error
+		token, err = a.env.TokenCrypt.DecryptString(resumePoint.InteractionToken.String)
+		if err != nil {
+			return nil, resumePoint.FlowState, fmt.Errorf("failed to decrypt interaction token: %w", err)
+		}
+	}
+	return ResumeTriggerEvent(resumePoint.FlowState, token)
+}
+
+// ResumeTriggerEvent returns the interaction or event a flow continues with
+// after a durable sleep, and the state without it.
+func ResumeTriggerEvent(state flow.FlowContextState, token string) (gateway.Event, flow.FlowContextState, error) {
 	trigger := state.ResumeTrigger
 	if trigger == nil {
 		return nil, state, errors.New("resume point has no trigger")
@@ -508,13 +580,7 @@ func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, f
 	}
 
 	interaction := *trigger.Interaction
-	if resumePoint.InteractionToken.Valid {
-		token, err := a.env.TokenCrypt.DecryptString(resumePoint.InteractionToken.String)
-		if err != nil {
-			return nil, state, fmt.Errorf("failed to decrypt interaction token: %w", err)
-		}
-		interaction.Token = token
-	}
+	interaction.Token = token
 	return &gateway.InteractionCreateEvent{InteractionEvent: interaction}, state, nil
 }
 

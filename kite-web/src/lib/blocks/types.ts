@@ -1,7 +1,9 @@
-import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
+import { z } from "zod";
 import { FlowContextType } from "../flow/context";
+import { ThingType } from "../flow/expressionTypes";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
+import { PermissionFlag } from "../discord/permissions";
 
 // Every block is defined here: its settings, how it runs, what it returns and
 // how it connects to other blocks. The service runs request blocks from the
@@ -14,6 +16,9 @@ export type BlockFieldType =
   // A list placeholder, or IDs separated by commas or spaces.
   | "snowflake_list"
   | "integer"
+  // A color, sent as a number. Also takes a hex code like #ff0000, and is
+  // edited with a color picker.
+  | "color"
   // A number of seconds. Fractions are dropped, like before these blocks were
   // requests.
   | "seconds"
@@ -22,7 +27,10 @@ export type BlockFieldType =
   // An emoji setting like emoji_data, sent as its name or "name:id".
   | "emoji"
   // A number of seconds, sent as the timestamp that many seconds from now.
-  | "seconds_until";
+  | "seconds_until"
+  // A JSON object whose properties are sent as those of the body, with the
+  // placeholders in its strings filled in.
+  | "json_object";
 
 export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
@@ -39,7 +47,7 @@ export interface BlockField {
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
   // the type otherwise. A function for schemas that depend on other blocks.
-  schema?: ZodTypeAny | (() => ZodTypeAny);
+  schema?: z.ZodType | (() => z.ZodType);
   // The editor input of a setting with a schema, one of those registered in
   // FlowNodeEditor.tsx, if it isn't registered under the setting's name. An
   // input several fields name, which edits all of them, is shown once.
@@ -57,7 +65,16 @@ export interface BlockField {
   min?: number;
   max?: number;
   max_length?: number;
+  // The values a string field can have, picked from a list in the editor.
+  options?: { value: string; label: string }[];
   widget?: "permissions";
+  // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
+  // handler has to evaluate it with them, see flowSecrets in the service.
+  secrets?: boolean;
+  // Left out of the flow catalog, so the flow AI doesn't set it. For settings
+  // it can't get right, like IDs of blocks, which it only knows by ref for the
+  // blocks it adds.
+  hidden_from_ai?: boolean;
 }
 
 // A request to an integration's API, with the bot's token or the app's
@@ -70,9 +87,20 @@ export interface BlockRequest {
   operation: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
+  // Values Kite adds to the request, which aren't settings.
+  inject?: BlockRequestInject[];
   // The block does one of several things the endpoint does, like a timeout
   // is one way of editing a member, so it doesn't replace the raw request.
   partial?: boolean;
+}
+
+export interface BlockRequestInject {
+  in: "body";
+  // Name of the parameter.
+  name: string;
+  // "discord_bot_token" is the app's bot token, for services that call
+  // Discord for the app. The block needs Discord too.
+  value: "discord_bot_token";
 }
 
 // Runs the Go handler registered under the block's type.
@@ -89,22 +117,25 @@ export type BlockComponent =
   | "entry_command"
   | "entry_event"
   | "entry_component_button"
-  | "condition_compare"
-  | "condition_user"
-  | "condition_channel"
-  | "condition_role"
+  // A condition, whose plus button adds the branch type it owns.
+  | "condition"
   | "condition_item"
   | "control_loop"
   | "control_loop_each"
   | "control_loop_end"
-  | "control_loop_exit"
   | "control_sleep"
-  | "control_error_handler"
+  // An input and no outputs.
+  | "terminal"
+  // A labeled handle for each output, see output_labels.
+  | "branches"
   | "suspend";
 
 export interface BlockDefinition {
   // Node type, namespaced by the integration it acts on except for Discord.
   type: string;
+  // Start of the IDs of new blocks, like "message" for message_k3f. Short, so
+  // placeholders like result('message_k3f') stay short.
+  id_prefix: string;
   title: string;
   description: string;
   icon: string;
@@ -115,11 +146,20 @@ export interface BlockDefinition {
   category?: string;
   // Flow types the block can be used in, otherwise those of its section.
   contexts?: FlowContextType[];
+  // Responds to the interaction the flow runs with, which event listeners
+  // only have after a button or select menu is used.
+  needs_interaction?: boolean;
   // Output handles, defaults to ["default"].
   outputs?: string[];
+  // Labels of the outputs of blocks drawn as "branches", and their color if
+  // it isn't the default.
+  output_labels?: Record<string, { label: string; color?: string }>;
   // Blocks created together with this one and connected to it with fixed
   // edges, like the else branch of a condition.
   owns?: string[];
+  // For blocks without outputs, the owned block the flow continues from when
+  // the block is inserted into a connection, like After loop.
+  continues_from?: string;
   // Can't be deleted or duplicated, like the entry block.
   fixed?: boolean;
   component?: BlockComponent;
@@ -128,11 +168,12 @@ export interface BlockDefinition {
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
   credits?: number | ((data: NodeData) => number);
+  permissions?: PermissionFlag[] | ((data: NodeData) => PermissionFlag[]);
   // The block's settings, from which its schema and editor are generated.
   fields?: BlockField[];
   // Adds rules over several settings to the generated schema, which the
   // fields' own schemas can't express.
-  refine?: (schema: AnyZodObject) => ZodTypeAny;
+  refine?: (schema: SettingsSchema) => z.ZodType;
   // Rejects settings the block doesn't know, so a misnamed one isn't lost.
   // Blocks that had a hand-written schema ignore them instead, as saved flows
   // can have settings it ignored.
@@ -142,14 +183,24 @@ export interface BlockDefinition {
   custom_label?: false;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
-  result?: {
-    // Wraps the response of a request like the results of built-in blocks,
-    // so e.g. {{result('id').mention}} works.
-    thing?: "discord_message" | "discord_role" | "discord_channel";
-    list?: boolean;
-    schema: ZodSchema;
-  };
+  result?: BlockResult;
 }
+
+// The generated schema of a block's settings. Its refine functions read them
+// untyped, like the settings of saved flows.
+export type SettingsSchema = z.ZodType<Record<string, any>>;
+
+export type BlockResult =
+  | {
+      // The type of the result, whose fields come from the service. Requests
+      // are wrapped in it like the results of built-in blocks, so e.g.
+      // {{result('id').mention}} works.
+      thing: ThingType;
+      list?: boolean;
+      description?: string;
+      schema?: undefined;
+    }
+  | { thing?: undefined; list?: undefined; schema: z.ZodType };
 
 // A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {

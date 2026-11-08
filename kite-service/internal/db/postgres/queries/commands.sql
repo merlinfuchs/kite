@@ -2,7 +2,7 @@
 SELECT * FROM commands WHERE id = $1;
 
 -- name: GetCommandsByApp :many
-SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC;
+SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id;
 
 -- name: CountCommandsByApp :one
 SELECT COUNT(*) FROM commands WHERE app_id = $1;
@@ -14,7 +14,7 @@ INSERT INTO commands (
     description,
     enabled,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     flow_source,
     created_at,
@@ -27,15 +27,15 @@ INSERT INTO commands (
 UPDATE commands SET
     name = $2,
     description = $3,
-    enabled = $4,
-    flow_source = $5,
-    updated_at = $6
+    flow_source = $4,
+    updated_at = $5
 WHERE id = $1 RETURNING *;
 
--- name: UpdateCommandsLastDeployedAt :exec
+-- name: UpdateCommandEnabled :one
 UPDATE commands SET
-    last_deployed_at = $2
-WHERE app_id = $1;
+    enabled = $2,
+    updated_at = $3
+WHERE id = $1 RETURNING *;
 
 -- name: GetEnabledCommandsUpdatesSince :many
 SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;
@@ -43,8 +43,11 @@ SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;
 -- name: GetEnabledCommandIDs :many
 SELECT id FROM commands WHERE enabled = TRUE;
 
--- name: DeleteCommand :exec
-DELETE FROM commands WHERE id = $1;
+-- name: DeleteCommand :one
+DELETE FROM commands WHERE id = $1 RETURNING *;
 
--- name: DinstinctAppIDsWithUndeployedCommands :many
-SELECT DISTINCT app_id FROM commands WHERE last_deployed_at IS NULL OR last_deployed_at < updated_at;
+-- name: DeleteCommandsByBundleInstall :many
+DELETE FROM commands WHERE bundle_install_id = $1 RETURNING *;
+
+-- name: GetCommandForUpdate :one
+SELECT * FROM commands WHERE id = $1 FOR UPDATE;

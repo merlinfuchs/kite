@@ -14,5 +14,7 @@ type SubscriptionStore interface {
 	// SubscriptionByLemonSqueezyID returns ErrNotFound if we have never seen the
 	// subscription before.
 	SubscriptionByLemonSqueezyID(ctx context.Context, lemonSqueezyID string) (*model.Subscription, error)
+	// UpsertLemonSqueezySubscription returns ErrOutdated if the stored
+	// subscription was updated after sub.
 	UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error)
 }

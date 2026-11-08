@@ -29,7 +29,7 @@ export default function UnsavedChangesDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-lg w-[calc(100%-2rem)] sm:max-w-[480px]">
         <AlertDialogHeader>
-          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
           <AlertDialogDescription>
             You have unsaved changes. If you leave now, they will be lost.
           </AlertDialogDescription>

@@ -5,6 +5,7 @@ import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
 import { isUserPickedSetting, NodeData } from "./dataSchema";
+import { getEventFilterTargets } from "./eventFilterTargets";
 import {
   canConnect,
   getNodeOutputs,
@@ -21,8 +22,9 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
-import { collectComponentGroups } from "./resume";
+import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
+import { isNoteNode } from "./notes";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -36,6 +38,13 @@ export interface FlowIssue {
   suggestion?: boolean;
 }
 
+// Blocks of the same type have the same title, so the ID tells an AI which
+// one is meant.
+export function describeIssue(issue: FlowIssue) {
+  const id = issue.nodeId ?? issue.edgeId;
+  return id ? `${id}: ${issue.message}` : issue.message;
+}
+
 // Checks what the editor and the service expect of a flow, beyond what each
 // block's settings schema covers: one entry, valid connections, complete
 // conditions and loops, and placeholders that point at something that exists.
@@ -44,8 +53,11 @@ export function validateFlow(
   edges: Edge[],
   context: FlowContextType
 ): FlowIssue[] {
-  // Generated flows can leave out the data of blocks without settings.
-  const nodes = flowNodes.map((n) => (n.data ? n : { ...n, data: {} }));
+  // Generated flows can leave out the data of blocks without settings. Notes
+  // aren't part of what runs.
+  const nodes = flowNodes
+    .filter((n) => !isNoteNode(n))
+    .map((n) => (n.data ? n : { ...n, data: {} }));
   const issues: FlowIssue[] = [];
   const report = (
     severity: FlowIssue["severity"],
@@ -92,7 +104,8 @@ export function validateFlow(
           // Only missing ones, as the AI has to fix wrong ones.
           userPicked:
             issue.code === "invalid_type" &&
-            issue.received === "undefined" &&
+            issue.path.length === 1 &&
+            node.data[issue.path[0] as string] === undefined &&
             isUserPickedSetting(schema!, issue.path),
         }
       );
@@ -116,6 +129,70 @@ export function validateFlow(
           nodeId: node.id,
         });
       }
+    }
+
+    // The service rejects filters on something the event doesn't have.
+    if (node.type === "option_event_filter") {
+      const target = node.data.event_filter_target;
+      const eventType = edges
+        .filter((e) => e.source === node.id)
+        .map((e) => knownById.get(e.target))
+        .find((n) => n?.type === "entry_event")?.data.event_type;
+      const targets = getEventFilterTargets(eventType);
+      if (eventType && target && !targets.includes(target)) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can't filter on ${target} for ${eventType} events, only on ${targets.join(
+            ", "
+          )}.`,
+          { nodeId: node.id }
+        );
+      }
+    }
+  }
+
+  // Event listeners run without an interaction, until a button or select menu
+  // on a message they sent is used. Blocks that respond to one before that
+  // fail.
+  if (context.startsWith("event_") && entries.length === 1) {
+    const sameExecution = edges.filter(
+      (e) => !isResumeEdge(e, knownById.get(e.source)?.type)
+    );
+    for (const id of walkDownstream([entries[0].id], sameExecution)) {
+      const node = knownById.get(id);
+      if (node && getNodeValues(node.type!).needsInteraction) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can only be used after a button or select menu in event listeners.`,
+          { nodeId: node.id }
+        );
+      }
+    }
+  }
+
+  // Discord rejects a command whose arguments share a name.
+  const argumentIds = new Map<string, string>();
+  for (const edge of edges) {
+    const arg = knownById.get(edge.source);
+    if (
+      arg?.type !== "option_command_argument" ||
+      !arg.data.name ||
+      !knownById.get(edge.target)?.type?.startsWith("entry_")
+    ) {
+      continue;
+    }
+
+    const otherId = argumentIds.get(arg.data.name);
+    if (otherId && otherId !== arg.id) {
+      report("error", `More than one argument is named '${arg.data.name}'.`, {
+        nodeId: arg.id,
+      });
+    } else {
+      argumentIds.set(arg.data.name, arg.id);
     }
   }
 
@@ -186,6 +263,24 @@ export function validateFlow(
           }' block, but has ${count}.`,
           { nodeId: node.id }
         );
+      }
+    }
+
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
       }
     }
 
@@ -261,8 +356,14 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      // inputs() reads the same modal inputs as input().
-      const provided = fn === "inputs" ? `input('${name}')` : placeholder;
+      // inputs() reads the same modal inputs as input(), and pickedAll() the
+      // same selects as picked().
+      const provided =
+        fn === "inputs"
+          ? `input('${name}')`
+          : fn === "pickedAll"
+          ? `picked('${name}')`
+          : placeholder;
       if (available.has(provided)) continue;
 
       // Blocks with the same parent run one after another, in an order the
@@ -298,6 +399,10 @@ const referenceHints: Record<string, (name: string) => string> = {
   input: (id) => `no modal before it has an input with the identifier '${id}'.`,
   inputs: (id) =>
     `no modal before it has an input with the identifier '${id}'.`,
+  picked: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
+  pickedAll: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.
@@ -324,7 +429,7 @@ function findReferences(node: Node<NodeData>) {
   const res: { fn: string; name: string }[] = [];
   for (const expression of expressions) {
     for (const match of expression.matchAll(
-      /\b(arg|input|inputs|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
+      /\b(arg|input|inputs|picked|pickedAll|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
     )) {
       res.push({
         fn: match[1] === "node" ? "result" : match[1],
@@ -376,11 +481,20 @@ function getMessageIssues(message: NodeData["message_data"]) {
 // type and style, matched, with the fewest issues.
 function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
   return issues.flatMap((issue) => {
-    if (issue.code !== "invalid_union") return [issue];
+    // A discriminated union whose discriminator matched no variant, like a
+    // modal input of an unknown type, has no variant issues to pick from.
+    if (issue.code !== "invalid_union" || issue.errors.length === 0) {
+      return [issue];
+    }
 
-    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    // The paths of the variants' issues are relative to the union.
+    const variants = issue.errors.map((e) =>
+      unwrapUnionIssues(
+        e.map((i) => ({ ...i, path: [...issue.path, ...i.path] }))
+      )
+    );
     const score = (v: ZodIssue[]) =>
-      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+      v.filter((i) => i.code === "invalid_value").length * 1000 + v.length;
     return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
   });
 }
@@ -430,9 +544,13 @@ export function getConnectionIssue(
     }.`;
   }
   if (!outputs.includes(handle)) {
-    return `'${sourceTitle}' has no output '${handle}', only ${outputs
-      .map((o) => `'${o}'`)
-      .join(", ")}.${
+    const names = outputs.map((o) => `'${o}'`).join(", ");
+    // A left-out handle is the default one, so "no output 'default'" would
+    // often name a handle that was never set.
+    if (handle === "default") {
+      return `'${sourceTitle}' only has the outputs ${names}, so a block after it needs one of them as its handle. To run the block either way, connect it to each.`;
+    }
+    return `'${sourceTitle}' has no output '${handle}', only ${names}.${
       handle === "error"
         ? " To handle errors, put the block after the default output of an error handler block."
         : ""

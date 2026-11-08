@@ -14,14 +14,15 @@ import {
 import { KeyboardEvent, ReactNode, useMemo, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { cn } from "@/lib/utils";
+import {
+  flattenPlaceholders,
+  Placeholder,
+  PlaceholderGroup,
+} from "@/lib/flow/placeholders";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { defaultFilter } from "cmdk";
 
-interface PlaceholderGroup {
-  label: string;
-  placeholders: {
-    label: string;
-    value: string;
-  }[];
-}
+const backValue = "$back";
 
 const tabGridCols: Record<number, string> = {
   1: "grid-cols-1",
@@ -36,10 +37,12 @@ export default function PlaceholderExplorer({
   tab,
   tabs,
   onTabChange,
+  onOpenChange: onOpenChangeProp,
+  header,
   hideBrackets,
 }: {
   children: ReactNode;
-  onSelect: (value: string) => void;
+  onSelect: (value: string, raw?: boolean) => void;
   placeholders: PlaceholderGroup[];
   tab?: string;
   tabs?: {
@@ -47,6 +50,9 @@ export default function PlaceholderExplorer({
     value: string;
   }[];
   onTabChange?: (value: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  // Shown above the placeholders, e.g. for inputs that change them.
+  header?: ReactNode;
   hideBrackets?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +60,8 @@ export default function PlaceholderExplorer({
   const [category, setCategory] = useState<string>();
   // The highlighted placeholder, which Enter picks.
   const [selected, setSelected] = useState("");
+  // The values whose fields are shown, innermost last.
+  const [path, setPath] = useState<Placeholder[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const categoriesRef = useRef<HTMLDivElement>(null);
@@ -68,20 +76,112 @@ export default function PlaceholderExplorer({
   const activeGroup =
     placeholderGroups.find((group) => group.label === category) ??
     placeholderGroups[0];
+  const openValue = path.at(-1);
+  // Searching also finds the fields of values, like User Top Role Name.
+  const flatGroups = useMemo(
+    () =>
+      searching
+        ? placeholderGroups.map((group) => ({
+            ...group,
+            placeholders: flattenPlaceholders(group.placeholders),
+          }))
+        : [],
+    [searching, placeholderGroups]
+  );
+  // cmdk sorts the items in a group, but doesn't move the groups, so the
+  // group with the best match goes first here.
+  const searchGroups = useMemo(() => {
+    const score = (group: PlaceholderGroup) =>
+      Math.max(
+        0,
+        ...group.placeholders.map((p) =>
+          defaultFilter(p.value, search, placeholderKeywords(p, group))
+        )
+      );
+    return flatGroups
+      .map((group) => ({ group, score: score(group) }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ group }) => group);
+  }, [flatGroups, search]);
   const visibleGroups = searching
-    ? placeholderGroups
+    ? searchGroups
+    : openValue
+    ? [
+        {
+          label: path.map((p) => p.label).join(" › "),
+          placeholders: openValue.fields ?? [],
+        },
+      ]
     : activeGroup
     ? [activeGroup]
     : [];
 
-  function selectCategory(group: PlaceholderGroup) {
-    setCategory(group.label);
-    // cmdk would highlight nothing after the list changed.
-    setSelected(group.placeholders[0]?.value ?? "");
+  // Values can change while they're shown, like the timestamps of a time the
+  // header sets, so a value that's gone falls back to the first one.
+  const visiblePlaceholders = visibleGroups.flatMap((g) => g.placeholders);
+  const highlighted =
+    visiblePlaceholders.find((p) => p.value === selected) ??
+    visiblePlaceholders[0];
+
+  // The fields of an opened value leave out its value, like .name of
+  // user.top_role.name, as it's the same for all of them.
+  function shortValue(value: string) {
+    if (!openValue?.value) return value;
+    const rest = value.slice(openValue.value.length);
+    return value.startsWith(openValue.value) && /^[.[]/.test(rest)
+      ? rest
+      : value;
+  }
+
+  function resetList(selected: string) {
+    setSelected(selected);
     setSearch("");
     if (listRef.current) listRef.current.scrollTop = 0;
-    // Keeps typing and the arrow keys working after clicking a category.
     inputRef.current?.focus();
+  }
+
+  function showFields(placeholder: Placeholder, group?: PlaceholderGroup) {
+    // A search result opens in its category, which Back returns to.
+    if (searching && group) {
+      setCategory(group.label);
+      setPath([placeholder]);
+    } else {
+      setPath([...path, placeholder]);
+    }
+    resetList(placeholder.fields?.[0]?.value ?? "");
+  }
+
+  // Only placeholders without fields are inserted. A value with fields opens
+  // them instead, as one of them says what it is, like user.id instead of
+  // user, which is also the ID.
+  function pick(placeholder: Placeholder, group: PlaceholderGroup) {
+    if (placeholder.fields?.length) {
+      showFields(placeholder, group);
+      return;
+    }
+    onSelect(placeholder.value, placeholder.raw);
+    onOpenChange(false);
+  }
+
+  function goBack() {
+    if (!openValue) return;
+    setPath(path.slice(0, -1));
+    // A value opened from search isn't listed where Back leads to.
+    const parent = path.at(-2);
+    const list = parent ? parent.fields ?? [] : activeGroup?.placeholders ?? [];
+    resetList(
+      list.some((p) => p.value === openValue.value)
+        ? openValue.value
+        : list[0]?.value ?? ""
+    );
+  }
+
+  function selectCategory(group: PlaceholderGroup) {
+    setPath([]);
+    setCategory(group.label);
+    // cmdk would highlight nothing after the list changed. Focusing the input
+    // keeps typing and the arrow keys working after clicking a category.
+    resetList(group.placeholders[0]?.value ?? "");
     // The arrow keys can pick a category that is scrolled out of view.
     requestAnimationFrame(() =>
       categoriesRef.current
@@ -92,17 +192,33 @@ export default function PlaceholderExplorer({
 
   function onOpenChange(open: boolean) {
     setOpen(open);
+    onOpenChangeProp?.(open);
     if (!open) {
       setSearch("");
       setSelected("");
+      setPath([]);
     }
   }
 
   // Up and down move through the placeholders, so left and right are free to
-  // move through the categories while nothing is typed.
+  // open and close values with fields, or else move through the categories,
+  // while nothing is typed.
   function onKeyDown(e: KeyboardEvent) {
     if (searching || !activeGroup) return;
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+
+    if (e.key === "ArrowRight" && highlighted?.fields?.length) {
+      e.preventDefault();
+      showFields(highlighted);
+      return;
+    }
+    if (openValue) {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBack();
+      }
+      return;
+    }
 
     const index = placeholderGroups.indexOf(activeGroup);
     const next = placeholderGroups[index + (e.key === "ArrowRight" ? 1 : -1)];
@@ -115,12 +231,15 @@ export default function PlaceholderExplorer({
   return (
     <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
+      {/* Only the list shrinks when the screen has less room, like on
+          phones, so the search stays visible. */}
       <PopoverContent
-        className="w-[500px] max-w-[calc(100vw-1rem)] p-0"
+        className="flex w-[500px] max-w-[calc(100vw-1rem)] max-h-[var(--radix-popover-content-available-height)] flex-col p-0"
         collisionPadding={8}
       >
         <Command
-          value={selected}
+          className="min-h-0"
+          value={highlighted?.value ?? ""}
           onValueChange={setSelected}
           onKeyDown={onKeyDown}
         >
@@ -128,11 +247,21 @@ export default function PlaceholderExplorer({
             ref={inputRef}
             placeholder="Search placeholder..."
             value={search}
-            onValueChange={setSearch}
+            onValueChange={(value) => {
+              setSearch(value);
+              // The best match is first, which could be scrolled out of view.
+              if (listRef.current) listRef.current.scrollTop = 0;
+            }}
           />
           {tabs && (
             <div className="px-3 pt-3">
-              <Tabs value={tab} onValueChange={onTabChange}>
+              <Tabs
+                value={tab}
+                onValueChange={(value) => {
+                  setPath([]);
+                  onTabChange?.(value);
+                }}
+              >
                 <TabsList
                   className={cn(
                     "w-full grid h-8 py-0",
@@ -152,9 +281,13 @@ export default function PlaceholderExplorer({
               </Tabs>
             </div>
           )}
+          {header && (
+            // Keys typed into the header must not move the list selection.
+            <div onKeyDown={(e) => e.stopPropagation()}>{header}</div>
+          )}
           {/* On small screens the categories are a row above the list, so
               the list keeps the full width. */}
-          <div className="flex flex-col sm:flex-row min-h-0">
+          <div className="flex flex-auto flex-col sm:flex-row min-h-0">
             {placeholderGroups.length > 0 && (
               <div
                 ref={categoriesRef}
@@ -189,45 +322,103 @@ export default function PlaceholderExplorer({
                 ))}
               </div>
             )}
-            <CommandList ref={listRef} className="flex-auto min-w-0">
+            <CommandList ref={listRef} className="flex-auto min-w-0 min-h-0">
               <CommandEmpty>No placeholder found.</CommandEmpty>
               {visibleGroups.map((group) => (
                 <CommandGroup heading={group.label} key={group.label}>
+                  {!searching && openValue && (
+                    <CommandItem
+                      value={backValue}
+                      onSelect={goBack}
+                      className="text-muted-foreground"
+                    >
+                      <ChevronLeftIcon className="h-4 w-4 mr-1" />
+                      Back
+                    </CommandItem>
+                  )}
                   {group.placeholders.map((placeholder) => (
                     <CommandItem
                       key={placeholder.value}
                       value={placeholder.value}
-                      keywords={[placeholder.label, group.label]}
-                      onSelect={() => {
-                        onSelect(placeholder.value);
-                        onOpenChange(false);
-                      }}
-                      className="flex flex-col items-start"
+                      keywords={placeholderKeywords(placeholder, group)}
+                      onSelect={() => pick(placeholder, group)}
+                      className="flex items-center gap-3"
                     >
-                      <div>{placeholder.label}</div>
-                      <div className="text-xs">
-                        {!hideBrackets ? (
-                          <>
-                            <span className="text-muted-foreground mr-1">
-                              {"{{"}
-                            </span>
-                            <span>{placeholder.value}</span>
-                            <span className="text-muted-foreground ml-1">
-                              {"}}"}
-                            </span>
-                          </>
-                        ) : (
-                          <span>{placeholder.value}</span>
-                        )}
-                      </div>
+                      <span className="flex-auto truncate">
+                        {placeholder.label}
+                      </span>
+                      {/* The labels of search results are long, like User
+                          Top Role Name, and the footer shows the value. */}
+                      {/* Raw values are long, like <t:...:R>, so the
+                          description says what they are instead. */}
+                      {!searching && (
+                        <span
+                          className={cn(
+                            "max-w-[40%] truncate text-xs text-muted-foreground",
+                            !placeholder.raw && "font-mono"
+                          )}
+                        >
+                          {placeholder.raw
+                            ? placeholder.description
+                            : shortValue(placeholder.value)}
+                        </span>
+                      )}
+                      {!!placeholder.fields?.length && (
+                        <ChevronRightIcon className="-mr-1 h-4 w-4 flex-none text-muted-foreground" />
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
               ))}
             </CommandList>
           </div>
+          {/* Always two lines high, so the list doesn't move when only some
+              placeholders have a description. */}
+          <div className="border-t px-3 py-2 text-xs flex-none min-h-[52px]">
+            {highlighted && (
+              <>
+                {highlighted.fields?.length ? (
+                  <div className="text-muted-foreground">
+                    {fieldsSummary(highlighted.fields)}
+                  </div>
+                ) : (
+                  <div className="font-mono break-all">
+                    {hideBrackets || highlighted.raw
+                      ? highlighted.value
+                      : `{{${highlighted.value}}}`}
+                  </div>
+                )}
+                {highlighted.description && (
+                  <div className="mt-1 text-muted-foreground">
+                    {highlighted.description}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
   );
+}
+
+// fieldsSummary names the first fields of a value, like "25 fields, like ID,
+// Username and Display Name".
+function fieldsSummary(fields: Placeholder[]) {
+  const names = fields.slice(0, 3).map((f) => f.label);
+  const list =
+    names.length > 1
+      ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
+      : names[0];
+  return fields.length > names.length
+    ? `${fields.length} fields, like ${list}`
+    : `Fields: ${list}`;
+}
+
+// The search terms of a placeholder besides its value.
+function placeholderKeywords(
+  placeholder: Placeholder,
+  group: PlaceholderGroup
+) {
+  return [placeholder.label, group.label, ...(placeholder.keywords ?? [])];
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -227,6 +228,36 @@ func TestCommandArgMemberUsesGuildRoles(t *testing.T) {
 	}
 }
 
+// ?? dereferences the member, which used to lose its lazy fields, so
+// (arg('user') ?? user).role_mentions failed the flow.
+func TestLazyFieldsAfterCoalesce(t *testing.T) {
+	member := NewMemberEnv(discord.Member{
+		User:    discord.User{ID: 2, Username: "other"},
+		RoleIDs: []discord.RoleID{5},
+	})
+	self := NewUserEnv(discord.User{ID: 1, Username: "self"})
+
+	cases := []struct {
+		arg  any
+		tpl  string
+		want string
+	}{
+		{arg: member, tpl: "{{(arg('user') ?? user).role_mentions}}", want: "<@&5>"},
+		{arg: member, tpl: "{{(arg('user') ?? user).username}}", want: "other"},
+		{arg: nil, tpl: "{{(arg('user') ?? user).role_mentions}}", want: ""},
+		{arg: nil, tpl: "{{(arg('user') ?? user).username}}", want: "self"},
+	}
+	for _, tt := range cases {
+		c := Context{Env: Env{
+			"user": self,
+			"arg":  func(name string) any { return tt.arg },
+		}}
+		if got := evalString(t, c, tt.tpl); got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.tpl, got, tt.want)
+		}
+	}
+}
+
 func testChannelSession(t *testing.T) *state.State {
 	t.Helper()
 
@@ -258,7 +289,7 @@ func TestChannelPlaceholders(t *testing.T) {
 		99: "99|99||<#99>|||",
 	}
 	for id, want := range tests {
-		env := NewEventEnv(&gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}, session)
+		env := NewEventEnv(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}}, session)
 		c := Context{Env: Env{"channel": env.Channel}}
 		if got := evalString(t, c, template); got != want {
 			t.Errorf("channel %d: got %q, want %q", id, got, want)
@@ -459,6 +490,119 @@ func TestMemberResultNeedsServer(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), field+" isn't known for a member from a block result or variable") {
 			t.Errorf("%s: got error %v", field, err)
 		}
+	}
+}
+
+func TestUserHasEmptyMemberFields(t *testing.T) {
+	// A user that isn't a member, like a command argument outside of a
+	// server, has the fields of a member, but empty.
+	c := NewContext(Env{"result": func(string) any {
+		return NewThingEnv(thing.NewDiscordUser(discord.User{ID: testUserID}))
+	}})
+	if got := evalString(t, c, "{{result('a').nick}}|{{len(result('a').role_ids)}}|{{result('a').is_admin}}"); got != "|0|false" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestRoleAndMessageResults(t *testing.T) {
+	results := map[string]thing.Thing{
+		"role": thing.NewDiscordRole(discord.Role{ID: 12, Name: "Admin", Color: 0x5865f2, Hoist: true}),
+		"message": thing.NewDiscordMessage(discord.Message{
+			ID:        20,
+			ChannelID: 30,
+			Content:   "hi",
+			Author:    discord.User{ID: testUserID, Username: "kite"},
+		}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	tests := map[string]string{
+		"{{result('role').color}}|{{result('role').hoist}}|{{result('role').mentionable}}":                    "#5865f2|true|false",
+		"{{result('message').channel_id}}|{{result('message').author.username}}|{{result('message').author}}": "30|kite|<@175928847299117063>",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestChannelGuildID(t *testing.T) {
+	results := map[string]thing.Thing{
+		"guild": thing.NewDiscordChannel(discord.Channel{ID: 30, GuildID: testGuildID}),
+		"dm":    thing.NewDiscordChannel(discord.Channel{ID: 31, Type: discord.DirectMessage}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	if got := evalString(t, c, "{{result('guild').guild_id}}|{{result('dm').guild_id}}"); got != "100|" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestMessageReactions(t *testing.T) {
+	msg := thing.NewDiscordMessage(discord.Message{
+		ID: 20,
+		Reactions: []discord.Reaction{
+			{Emoji: discord.Emoji{Name: "👍"}, Count: 2},
+			{Emoji: discord.Emoji{ID: 40, Name: "kite"}, Count: 5},
+		},
+	})
+	c := NewContext(Env{
+		"result": func(string) any { return NewThingEnv(msg) },
+		"emoji":  NewEmojiEnv(discord.Emoji{ID: 40, Name: "kite"}),
+	})
+
+	tests := map[string]string{
+		"{{len(result('m').reactions)}}|{{result('m').reactions[0]}}|{{result('m').reactions[0].count}}": "2|👍|2",
+		"{{find(result('m').reactions, .emoji.id == emoji.id)?.count ?? 0}}":                             "5",
+		"{{find(result('m').reactions, .emoji.name == '⭐')?.count ?? 0}}":                                "0",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestMessageMentions(t *testing.T) {
+	c := NewContext(Env{"message": NewMessageEnv(discord.Message{
+		ID:     20,
+		Author: discord.User{ID: 10, Username: "author"},
+		Mentions: []discord.GuildUser{
+			{User: discord.User{ID: 10, Username: "author"}},
+			{User: discord.User{ID: 11, Username: "pinged"}},
+		},
+	})})
+
+	tests := map[string]string{
+		"{{len(message.mentions)}}|{{message.mentions[1].username}}":      "2|pinged",
+		"{{find(message.mentions, .id != message.author.id)?.id}}":        "11",
+		"{{any(message.mentions, .id != message.author.id)}}":             "true",
+		"{{find(message.mentions, .username == 'nobody')?.id ?? 'none'}}": "none",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestReactionMessage(t *testing.T) {
+	env := NewEventEnv(&gateway.MessageReactionAddEvent{
+		UserID:    testUserID,
+		ChannelID: 30,
+		MessageID: 20,
+		Emoji:     discord.Emoji{Name: "👍"},
+	}, nil)
+	c := NewContext(Env{"message": env.Message})
+
+	// Only the IDs of the message are known.
+	if got := evalString(t, c, "{{message.id}}|{{message.channel_id}}|[{{message.author.id}}]"); got != "20|30|[]" {
+		t.Errorf("got %q", got)
 	}
 }
 

@@ -1,4 +1,5 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
+import { colorRegex, parseColorValue } from "@/tools/common/utils/color";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -16,6 +17,17 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { aiScore } from "./aiScore";
+import { aiTranslate } from "./aiTranslate";
+import { controlAiCheck } from "./controlAiCheck";
+import { controlConditionAiChoice } from "./controlConditionAiChoice";
+import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
+import { cookieApiCaptchaCreate } from "./cookieApiCaptchaCreate";
+import { cookieApiCaptchaGet } from "./cookieApiCaptchaGet";
+import { cookieApiCardCreate } from "./cookieApiCardCreate";
+import { cookieApiMinecraftUserGet } from "./cookieApiMinecraftUserGet";
+import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
+import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -25,12 +37,15 @@ import { controlConditionItemRole } from "./controlConditionItemRole";
 import { controlConditionItemUser } from "./controlConditionItemUser";
 import { controlConditionRole } from "./controlConditionRole";
 import { controlConditionUser } from "./controlConditionUser";
+import { controlIf } from "./controlIf";
 import { controlErrorHandler } from "./controlErrorHandler";
 import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
+import { controlFlowEnd } from "./controlFlowEnd";
 import { controlSleep } from "./controlSleep";
+import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
@@ -50,13 +65,17 @@ import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
 import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
+import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
+import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
+import { discordMessageForward } from "./discordMessageForward";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
+import { discordMessagePublish } from "./discordMessagePublish";
 import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
 import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
@@ -72,23 +91,36 @@ import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
+import { discordRoleDelete } from "./discordRoleDelete";
+import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
+import { discordServerLeave } from "./discordServerLeave";
+import { discordServerProfileEdit } from "./discordServerProfileEdit";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
 import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
 import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
+import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
+import { discordSoundboardSoundPlay } from "./discordSoundboardSoundPlay";
+import { erlcCommandRun } from "./erlcCommandRun";
+import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
+import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -105,15 +137,20 @@ export const blockDefinitions: BlockDefinition[] = [
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
+  discordPersonaMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
+  discordMessageForward,
   discordPrivateMessageCreate,
+  discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,
   discordMessageUnpin,
+  discordMessagePublish,
   discordPollCreate,
   discordMessageList,
   discordMessageBulkDelete,
@@ -128,45 +165,71 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberRoleRemove,
   discordRoleGet,
   discordRoleCreate,
+  discordRoleEdit,
+  discordRoleDelete,
   discordGuildGet,
   discordChannelCreate,
   discordChannelEdit,
   discordChannelDelete,
   discordChannelGet,
   discordThreadCreate,
+  discordForumPostCreate,
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordMemberVoiceEdit,
+  discordVoiceAudioPlay,
+  discordVoiceAudioStop,
+  discordSoundboardSoundPlay,
   discordStatusSet,
+  discordServerProfileEdit,
+  discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,
+  variableList,
   robloxUserGet,
+  cookieApiTranscriptCreate,
+  cookieApiCardCreate,
+  cookieApiQrCodeCreate,
+  cookieApiCaptchaCreate,
+  cookieApiCaptchaGet,
+  cookieApiMinecraftUserGet,
+  erlcServerGet,
+  erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
+  controlConditionAiChoice,
+  controlAiCheck,
+  aiScore,
+  aiTranslate,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
   randomGenerate,
+  valueLookup,
   log,
+  controlIf,
   controlConditionCompare,
   controlConditionUser,
   controlConditionChannel,
   controlConditionRole,
+  controlWebhookVerify,
   controlLoop,
   controlLoopExit,
   controlErrorHandler,
   controlSleep,
+  controlFlowEnd,
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
-  discordForumPostCreate,
   controlConditionItemCompare,
   controlConditionItemUser,
   controlConditionItemChannel,
   controlConditionItemRole,
+  controlConditionItemAiChoice,
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,
@@ -207,14 +270,21 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
     "Must be IDs separated by commas",
   ],
   integer: discordApiParamFormats.integer,
+  color: [colorRegex, "Must be a number or a hex color like #ff0000"],
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  json_object: null,
 };
 
-const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
+const numberTypes: BlockFieldType[] = [
+  "integer",
+  "color",
+  "seconds",
+  "seconds_until",
+];
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
@@ -234,6 +304,15 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
+    // Placeholders in JSON go in its strings, so it's checked either way.
+    if (type === "json_object" && !isJSONObject(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a JSON object",
+      });
+      return;
+    }
+
     const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
@@ -249,9 +328,16 @@ function fieldSchema(field: BlockField) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
       return;
     }
+    if (field.options && !field.options.some((o) => o.value === value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Must be one of ${optionValues(field)}`,
+      });
+    }
 
     if (numberTypes.includes(type)) {
-      const n = Number(value);
+      const n =
+        type === "color" ? parseColorValue(value) ?? NaN : Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -302,12 +388,13 @@ function fieldSchema(field: BlockField) {
       : withChecks;
 
   // Values are stored as text, so the flow AI needs to know the format.
-  const described = templated(
-    listOrText,
-    field.type === "boolean"
-      ? `${field.description} Either "true" or "false".`
-      : field.description!
-  );
+  let description = field.description!;
+  if (field.type === "boolean") {
+    description += ' Either "true" or "false".';
+  } else if (field.options) {
+    description += ` One of ${optionValues(field)}.`;
+  }
+  const described = templated(listOrText, description);
   // Numbers and booleans work too, as long as they have the right format.
   const schema = z.preprocess(
     (v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v),
@@ -316,15 +403,34 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
+function isJSONObject(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return (
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function optionValues(field: BlockField) {
+  return field.options!.map((o) => `"${o.value}"`).join(", ");
+}
+
 // The schema of a block, generated from its fields.
 export function blockDataSchema(block: BlockDefinition) {
   const fields = block.fields ?? [];
   const names = fields.map((f) => f.name).join(", ");
 
-  let base: AnyZodObject =
+  let base: z.ZodObject =
     block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
   if (block.strict_settings) {
-    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+    base = base.catchall(
+      z.never({
+        error: `Unknown setting. This block's settings are: ${names}`,
+      })
+    );
   }
 
   const schema = base.extend({

@@ -45,4 +45,6 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
     lemonsqueezy_order_id = EXCLUDED.lemonsqueezy_order_id,
     lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
     lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id
+-- Webhooks can arrive out of order, an older state must not overwrite a newer one
+WHERE subscriptions.updated_at <= EXCLUDED.updated_at
 RETURNING *;

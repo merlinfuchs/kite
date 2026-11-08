@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { parseColorValue } from "@/tools/common/utils/color";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 export const uniqueIdSchema = z.preprocess(
@@ -194,9 +195,14 @@ export const embedTimestampSchema = z.preprocess(
 
 export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
+// Text without placeholders is a hex color, which the service reads as a
+// number too.
 export const embedColor = z.preprocess(
-  (d) => d ?? undefined,
-  z.optional(z.number())
+  (d) =>
+    typeof d === "string" && !d.includes("{{")
+      ? parseColorValue(d) ?? d
+      : d ?? undefined,
+  z.optional(z.union([z.number(), z.string()]))
 );
 
 export type EmbedColor = z.infer<typeof embedColor>;
@@ -207,6 +213,7 @@ export const embedSchema = z.object({
   description: embedDescriptionSchema,
   url: embedUrlSchema,
   timestamp: embedTimestampSchema,
+  timestamp_now: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   color: embedColor,
   footer: embedFooterSchema,
   author: embedAuthorSchema,
@@ -281,7 +288,12 @@ export type MessageComponentSelectMenuOption = z.infer<
 
 export const selectMenuSchema = z.object({
   id: uniqueIdSchema,
-  type: z.literal(3),
+  type: z
+    .literal(3)
+    .or(z.literal(5))
+    .or(z.literal(6))
+    .or(z.literal(7))
+    .or(z.literal(8)),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
   min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
@@ -289,6 +301,10 @@ export const selectMenuSchema = z.object({
   options: z.preprocess(
     (d) => d ?? undefined,
     z.array(selectMenuOptionSchema).default([])
+  ),
+  channel_types: z.preprocess(
+    (d) => d ?? undefined,
+    z.optional(z.array(z.number()))
   ),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
@@ -321,7 +337,7 @@ export const unfurledMediaItemSchema = z.preprocess(
     .object({
       url: z.preprocess((d) => d ?? undefined, z.string().default("")),
     })
-    .default({ url: "" })
+    .prefault({ url: "" })
 );
 
 export const textDisplaySchema = z.object({
@@ -403,7 +419,7 @@ export const containerSchema = z.object({
       )
       .default([])
   ),
-  accent_color: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  accent_color: embedColor,
   spoiler: optionalBoolean,
 });
 

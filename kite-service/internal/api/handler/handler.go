@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -26,6 +27,7 @@ func APIHandler(f HandlerFunc) http.Handler {
 			if !errors.As(err, &aerr) {
 				// Special handling for validation errors
 				var verr validation.Errors
+				var derr *httputil.HTTPError
 				if errors.As(err, &verr) {
 					aerr = &Error{
 						Status:  http.StatusBadRequest,
@@ -40,6 +42,20 @@ func APIHandler(f HandlerFunc) http.Handler {
 					aerr = ErrServiceUnavailable(
 						"assets_disabled",
 						"this instance is not configured for file storage, so assets are unavailable",
+					)
+				} else if errors.As(err, &derr) && derr.Status >= 400 && derr.Status < 500 {
+					// Discord rejected the request, mostly because of something
+					// the user can fix, like missing permissions or an invalid
+					// embed. Always a 400, as a 401 or 403 from Discord is
+					// about the bot, not the caller's session. Logged, as an
+					// invalid request can also be our bug.
+					aerr = ErrBadRequest("discord_error", err.Error())
+					slog.Warn(
+						"Discord rejected request in API handler",
+						slog.String("error", err.Error()),
+						slog.Int("discord_code", int(derr.Code)),
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
 					)
 				} else {
 					aerr = ErrInternal(err.Error())
@@ -76,6 +92,10 @@ type HandlerGroup struct {
 	mux         *http.ServeMux
 	pathPrefix  string
 	middlewares []MiddlewareFunc
+	// Whether API tokens can use the group's routes. Groups inherit it.
+	allowAPIToken bool
+	// Whether the routes check the token's scope themselves.
+	apiTokenScopeUnchecked bool
 }
 
 func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {
@@ -92,6 +112,9 @@ func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewa
 	}
 	for i := len(g.middlewares) - 1; i >= 0; i-- {
 		f = g.middlewares[i](f)
+	}
+	if g.allowAPIToken {
+		f = allowAPIToken(f, g.apiTokenScopeUnchecked)
 	}
 
 	pattern := fmt.Sprintf("%s %s%s", method, g.pathPrefix, path)
@@ -126,8 +149,45 @@ func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) Ha
 	copy(combinedMiddleware[len(g.middlewares):], middlewares)
 
 	return HandlerGroup{
-		mux:         g.mux,
-		pathPrefix:  g.pathPrefix + pathPrefix,
-		middlewares: combinedMiddleware,
+		mux:                    g.mux,
+		allowAPIToken:          g.allowAPIToken,
+		apiTokenScopeUnchecked: g.apiTokenScopeUnchecked,
+		pathPrefix:             g.pathPrefix + pathPrefix,
+		middlewares:            combinedMiddleware,
+	}
+}
+
+// AllowAPIToken returns the group with API tokens allowed on its routes. All
+// other routes reject them, so a new route isn't open to tokens by accident.
+// Tokens need the kite:read scope for GET requests and kite:write for others.
+func (g HandlerGroup) AllowAPIToken() HandlerGroup {
+	g.allowAPIToken = true
+	g.apiTokenScopeUnchecked = false
+	return g
+}
+
+// AllowAPITokenWithoutScope returns the group with API tokens allowed on its
+// routes, whatever their scopes. Its routes must check the scope themselves
+// if they need one.
+func (g HandlerGroup) AllowAPITokenWithoutScope() HandlerGroup {
+	g.allowAPIToken = true
+	g.apiTokenScopeUnchecked = true
+	return g
+}
+
+// DenyAPIToken returns the group with API tokens rejected again, for routes
+// in an allowed group that tokens shouldn't use.
+func (g HandlerGroup) DenyAPIToken() HandlerGroup {
+	g.allowAPIToken = false
+	return g
+}
+
+// allowAPIToken runs before all middleware, so the session middleware knows
+// whether to accept a token and check its scope.
+func allowAPIToken(next HandlerFunc, scopeUnchecked bool) HandlerFunc {
+	return func(c *Context) error {
+		c.apiTokenAllowed = true
+		c.apiTokenScopeUnchecked = scopeUnchecked
+		return next(c)
 	}
 }

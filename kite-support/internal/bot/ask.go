@@ -109,7 +109,7 @@ func (b *Bot) runAsk(e *gateway.InteractionCreateEvent, question string, history
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
 				Flags:   discord.EphemeralMessage,
-				Content: option.NewNullableString("You're sending questions a bit too fast — give me a few seconds."),
+				Content: option.NewNullableString("You're sending questions too fast. Try again in a few seconds."),
 			},
 		})
 		return
@@ -147,7 +147,7 @@ func (b *Bot) replyAsk(e *gateway.InteractionCreateEvent, question string, histo
 	answer, err := b.llm.Answer(ctx, *b.instructions.Load(), history, question, userID.String())
 	if err != nil {
 		slog.With("err", err).Error("answer failed")
-		reply = "Something went wrong while answering. Please try again in a moment."
+		reply = "The bot couldn't answer this time. Try again in a moment."
 	} else {
 		reply = formatAnswer(answer)
 		intent = answer.Intent
@@ -299,7 +299,7 @@ func (b *Bot) handleFeedbackSubmit(e *gateway.InteractionCreateEvent, details st
 		Type: api.MessageInteractionWithSource,
 		Data: &api.InteractionResponseData{
 			Flags:   discord.EphemeralMessage,
-			Content: option.NewNullableString(fmt.Sprintf("Thanks — your feedback was sent. We'll continue in <#%s>.", thread.ID)),
+			Content: option.NewNullableString(fmt.Sprintf("Thanks, your feedback was sent. We'll continue in <#%s>.", thread.ID)),
 		},
 	})
 }

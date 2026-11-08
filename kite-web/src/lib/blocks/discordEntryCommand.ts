@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
+  id_prefix: "command",
   title: "Command",
   description: "Command entry. Drop different actions and options here!",
   icon: "square-slash",
@@ -32,7 +33,19 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(100)
         .min(1)
+        .regex(/\S/, "Can't be only spaces.")
         .describe("Description of the command shown in Discord."),
+    },
+    {
+      name: "command_argument_order",
+      schema: z
+        .array(z.string())
+        .max(25)
+        .optional()
+        .describe(
+          "IDs of the command's option_command_argument blocks in the order Discord shows them. Required arguments always come before optional ones, and arguments missing here come last."
+        ),
+      hidden_from_ai: true,
     },
   ],
   run: { kind: "custom" },

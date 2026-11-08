@@ -3,11 +3,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberRoleRemove: BlockDefinition = {
   type: "action_member_role_remove",
+  id_prefix: "member",
   title: "Remove role from member",
   description: "Remove a role from a member",
   icon: "bookmark-minus",
   category: "Roles",
   credits: 1,
+  permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   run: {
     kind: "request",

@@ -1,0 +1,74 @@
+{
+  "source": "Written by hand from https://api.erlc.gg/internal/docs/apispec.v2.json on 2026-10-01, which has no operationIds or versions. Only the v2 endpoints.",
+  "operations": [
+    {
+      "id": "get_server",
+      "method": "GET",
+      "path": "/v2/server",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "Players",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Staff",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "JoinLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Queue",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "KillLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "CommandLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "ModCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "EmergencyCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Vehicles",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "run_command",
+      "method": "POST",
+      "path": "/v2/server/command",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "command",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

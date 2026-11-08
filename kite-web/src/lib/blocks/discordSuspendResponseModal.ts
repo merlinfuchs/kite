@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { emojiDataSchema, templated } from "../flow/dataSchema";
 import {
   modalEntitySelectTypes,
   modalMaxComponents,
+  modalMaxFiles,
   modalOptionCounts,
   modalOptionInputTypes,
+  modalTextLimits,
   normalizeModalData,
 } from "../flow/modal";
 import { BlockDefinition } from "./types";
@@ -14,7 +16,7 @@ import { BlockDefinition } from "./types";
 const modalInputBase = z.object({
   custom_id: z
     .string()
-    .max(100)
+    .max(modalTextLimits.custom_id)
     .min(1)
     .describe(
       "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
@@ -24,7 +26,7 @@ const modalInputBase = z.object({
 
 const modalSelectFields = {
   placeholder: templated(
-    z.string().max(150).min(1),
+    z.string().max(modalTextLimits.select_placeholder).min(1),
     "Shown while nothing is picked. Not for radio_group and checkbox_group."
   ).optional(),
   // Discord rejects 0 for required inputs, and the service sends 0 for
@@ -70,11 +72,11 @@ const modalInputSchema = z
         .optional()
         .describe("Maximum text length."),
       value: templated(
-        z.string().max(4000).min(1),
+        z.string().max(modalTextLimits.value).min(1),
         "Pre-filled text."
       ).optional(),
       placeholder: templated(
-        z.string().max(100).min(1),
+        z.string().max(modalTextLimits.placeholder).min(1),
         "Shown while empty."
       ).optional(),
     }),
@@ -88,19 +90,25 @@ const modalInputSchema = z
       options: z
         .array(
           z.object({
-            label: templated(z.string().max(100).min(1), "Shown to the user."),
+            label: templated(
+              z.string().max(modalTextLimits.option).min(1),
+              "Shown to the user."
+            ),
             value: templated(
-              z.string().max(100),
+              z.string().max(modalTextLimits.option),
               "What input() returns. Defaults to the label. Must be unique."
             ).optional(),
             description: templated(
-              z.string().max(100),
+              z.string().max(modalTextLimits.option),
               "Smaller text below the label."
             ).optional(),
             default: z
               .boolean()
               .optional()
               .describe("Picked when the modal opens."),
+            emoji: emojiDataSchema
+              .optional()
+              .describe("Shown next to the label. string_select only."),
           })
         )
         .min(1)
@@ -111,7 +119,7 @@ const modalInputSchema = z
       type: z
         .enum(modalEntitySelectTypes)
         .describe(
-          "A select menu of the server's members, roles, both, or channels. input() returns an ID."
+          "A select menu of the server's members, roles, both, or channels. input() returns an ID, picked() the member, role or channel, e.g. picked('custom_id').name."
         ),
       ...modalSelectFields,
       channel_types: z
@@ -120,6 +128,27 @@ const modalInputSchema = z
         .describe(
           "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
         ),
+    }),
+    modalInputBase.extend({
+      type: z
+        .literal("file_upload")
+        .describe(
+          "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
+        ),
+      min_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Minimum files."),
+      max_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Maximum files. Defaults to 1."),
     }),
     z.object({
       type: z
@@ -141,6 +170,13 @@ const modalInputSchema = z
       return;
     }
     if (input.type === "checkbox") return;
+    if (input.type === "file_upload") {
+      const max = input.max_values ?? 1;
+      if ((input.min_values ?? 0) > max) {
+        issue(["min_values"], `Can't be more than the maximum of ${max}.`);
+      }
+      return;
+    }
 
     if (input.type === "radio_group" || input.type === "checkbox_group") {
       if (input.placeholder) {
@@ -176,6 +212,12 @@ const modalInputSchema = z
 
       const values = new Set<string>();
       options.forEach((o, i) => {
+        if (input.type !== "string_select" && (o.emoji?.id || o.emoji?.name)) {
+          issue(
+            ["options", i, "emoji"],
+            `Only the options of a string_select can have an emoji.`
+          );
+        }
         // An option without a value submits its label.
         const value = o.value || o.label;
         if (values.has(value)) {
@@ -215,11 +257,13 @@ const modalInputSchema = z
 
 export const discordSuspendResponseModal: BlockDefinition = {
   type: "suspend_response_modal",
+  id_prefix: "modal",
   title: "Show Modal",
   description:
     "Show a modal to the user and suspend the flow until the user submits the modal.",
   icon: "picture-in-picture-2",
   category: "Responses",
+  needs_interaction: true,
   component: "suspend",
   requires: ["discord"],
   fields: [
@@ -229,7 +273,10 @@ export const discordSuspendResponseModal: BlockDefinition = {
         .preprocess(
           (v) => (v && typeof v === "object" ? normalizeModalData(v) : v),
           z.object({
-            title: templated(z.string().max(45).min(1), "Title of the modal."),
+            title: templated(
+              z.string().max(modalTextLimits.title).min(1),
+              "Title of the modal."
+            ),
             components: z
               .array(
                 z.discriminatedUnion("type", [
@@ -238,11 +285,11 @@ export const discordSuspendResponseModal: BlockDefinition = {
                       .literal("label")
                       .describe("A label with one input."),
                     label: templated(
-                      z.string().max(45).min(1),
+                      z.string().max(modalTextLimits.label).min(1),
                       "Shown above the input."
                     ),
                     description: templated(
-                      z.string().max(100),
+                      z.string().max(modalTextLimits.description),
                       "Smaller text below the label."
                     ).optional(),
                     components: z
@@ -254,7 +301,7 @@ export const discordSuspendResponseModal: BlockDefinition = {
                   z.object({
                     type: z.literal("text_display").describe("Markdown text."),
                     content: templated(
-                      z.string().max(4000).min(1),
+                      z.string().max(modalTextLimits.content).min(1),
                       "The markdown."
                     ),
                   }),

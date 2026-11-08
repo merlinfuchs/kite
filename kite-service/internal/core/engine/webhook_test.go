@@ -54,12 +54,15 @@ func TestWebhookRunnerRunsFlow(t *testing.T) {
 		t.Fatalf("WebhookSecret = %q, %v", secret, ok)
 	}
 
-	err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{
+	responder, err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{
 		Headers: map[string]string{"x-event": "push"},
 		Body:    `{"repository":"kite"}`,
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if responder != nil {
+		t.Fatal("a flow without a respond block keeps the request waiting")
 	}
 
 	select {
@@ -94,7 +97,7 @@ func TestWebhookRunnerOnlyRunsWebhookListeners(t *testing.T) {
 		t.Fatal("found the listener under another app")
 	}
 
-	err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{})
+	_, err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{})
 	if !errors.Is(err, ErrWebhookListenerNotFound) {
 		t.Fatalf("err = %v, want ErrWebhookListenerNotFound", err)
 	}
@@ -112,8 +115,43 @@ func TestWebhookRunnerNeedsSession(t *testing.T) {
 
 	r := e.WebhookRunner(&flakySessions{})
 
-	err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{})
+	_, err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{})
 	if !errors.Is(err, ErrWebhookAppOffline) {
 		t.Fatalf("err = %v, want ErrWebhookAppOffline", err)
+	}
+}
+
+func TestWebhookRunnerWaitsForResponse(t *testing.T) {
+	listener := webhookListener()
+	listener.FlowSource.Nodes[1] = flow.FlowNode{ID: "respond", Type: flow.FlowNodeTypeActionWebhookResponseCreate, Data: flow.FlowNodeData{
+		WebhookResponseStatus: "401",
+		WebhookResponseBody:   "{{webhook.data.repository}}",
+	}}
+	listener.FlowSource.Edges = []flow.FlowEdge{{Source: "entry", Target: "respond"}}
+
+	listeners := &fakeScheduleListenerStore{
+		lastRuns:  make(map[string]time.Time),
+		listeners: []*model.EventListener{listener},
+	}
+	logs := &fakeLogStore{entries: make(chan model.LogEntry, 1)}
+
+	e := newScheduleTestEngine(listeners, logs)
+	e.populate(context.Background())
+
+	r := e.WebhookRunner(fakeSessions{})
+
+	responder, err := r.RunWebhook(context.Background(), "app", "listener", &webhook.Event{
+		Body: `{"repository":"kite"}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if responder == nil {
+		t.Fatal("a flow with a respond block doesn't keep the request waiting")
+	}
+
+	resp := responder.Wait(context.Background(), 5*time.Second)
+	if resp == nil || resp.Status != 401 || resp.Body != "kite" {
+		t.Fatalf("response = %+v", resp)
 	}
 }

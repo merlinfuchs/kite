@@ -1,0 +1,112 @@
+import LandingPage, {
+  LandingPageContent,
+} from "@/components/landing/LandingPage";
+import { aiBuilderPoint, noCodeFaq } from "@/components/landing/copy";
+import { askAiFlow } from "@/components/landing/flows";
+import env from "@/lib/env/client";
+
+const content: LandingPageContent = {
+  title: "Make a free AI Discord bot",
+  description:
+    "Make your own AI Discord bot for free with Kite. Answer questions with /ask, reply when someone mentions the bot, and search the web, all without writing code.",
+  heading: "Make your own AI Discord bot",
+  intro:
+    "Build an AI chatbot for your Discord server with your own name, avatar, and personality. Start with the Ask AI template, or describe a command and let Flow AI, the AI assistant in the editor, build it. You don't need to write code or get an API key.",
+  secondaryAction: {
+    label: "Read the AI guide",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
+  },
+  showcase: {
+    flow: askAiFlow,
+    command: "ask",
+    reply:
+      "A Discord bot is an app that runs in your server. It can answer commands, post messages and manage roles.",
+  },
+  sections: [
+    {
+      heading: "Start with the Ask AI template",
+      body: "The template adds a command and an event listener to your bot. You give the AI a personality when you add it.",
+      points: [
+        {
+          title: "/ask",
+          description:
+            "Members ask a question with the /ask command and the bot answers.",
+        },
+        {
+          title: "Reply when mentioned",
+          description:
+            "When someone mentions your bot in a message, it answers in the channel.",
+        },
+        {
+          title: "Your own personality",
+          description:
+            "Tell the AI how to answer, for example as a helpful support agent or as a character from your community.",
+        },
+      ],
+    },
+    {
+      heading: "Let AI make decisions",
+      body: "These blocks don't write text. They decide what your bot does next. They run on Jev, a model by TypeSafe that answers with how likely each option is instead of generating text, so each decision costs only 1 credit.",
+      points: [
+        {
+          title: "AI Check",
+          description:
+            "Answer a yes or no question, like whether a message is spam, and run the Yes, No, or Unsure branch. You set how sure the AI has to be.",
+        },
+        {
+          title: "AI Choice",
+          description:
+            "Pick one of the options you add, like the team a support question goes to, and run that option's actions.",
+        },
+        {
+          title: "AI Score",
+          description:
+            "Rate something on a scale you describe, like how urgent a ticket is, and ping a moderator when it's high.",
+        },
+      ],
+    },
+    {
+      heading: "More you can build with AI",
+      points: [
+        {
+          title: "Search the Web",
+          description:
+            "The Search the Web block finds current information, so your bot can answer questions about recent events.",
+        },
+        {
+          title: "Choose the model",
+          description:
+            "Pick Fast for quick and cheap answers, or Balanced and Smartest for harder questions.",
+        },
+        {
+          title: "Combine AI with actions",
+          description:
+            "Use the AI's answer in other blocks, for example to post it in another channel or save it in a variable.",
+        },
+        { ...aiBuilderPoint, href: "/ai-discord-bot-maker" },
+      ],
+    },
+  ],
+  faqs: [
+    {
+      question: "Do I need an OpenAI API key?",
+      answer:
+        "No. The AI blocks work without your own API key. They use your bot's credits instead.",
+    },
+    {
+      question: "How many credits does the AI use?",
+      answer:
+        "An answer from the Ask AI block costs 5 credits with the Fast model, 20 with Balanced, and 100 with Smartest. A web search costs 25 credits with the Fast model. AI Check, AI Choice, and AI Score cost 1 credit each. The free plan includes 10,000 credits per month.",
+    },
+    {
+      question: "Can I change how the AI answers?",
+      answer:
+        "Yes. You set a personality when you add the template, and you can change the instructions in the Ask AI block at any time.",
+    },
+    noCodeFaq,
+  ],
+};
+
+export default function AIDiscordBotPage() {
+  return <LandingPage content={content} />;
+}

@@ -193,8 +193,8 @@ type fakeFeatures struct {
 	minIntervalSeconds int
 }
 
-func (f fakeFeatures) AppFeatures(ctx context.Context, appID string) model.Features {
-	return model.Features{MinScheduleIntervalSeconds: f.minIntervalSeconds}
+func (f fakeFeatures) AppFeatures(ctx context.Context, appID string) (model.Features, error) {
+	return model.Features{MinScheduleIntervalSeconds: f.minIntervalSeconds}, nil
 }
 
 func (f fakeFeatures) AppFeaturesForApps(ctx context.Context, appIDs []string) (map[string]model.Features, error) {

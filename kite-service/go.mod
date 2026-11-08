@@ -1,12 +1,13 @@
 module github.com/kitecloud/kite/kite-service
 
-go 1.25.0
+go 1.26.10
 
 require (
 	github.com/NdoleStudio/lemonsqueezy-go v1.2.4
 	github.com/cyrusaf/ctxlog v1.3.2
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/diamondburned/arikawa/v3 v3.4.0
+	github.com/diamondburned/oggreader v0.0.0-20201118014549-87df9534b647
 	github.com/eko/gocache/lib/v4 v4.2.0
 	github.com/eko/gocache/store/ristretto/v4 v4.2.2
 	github.com/endobit/clog v0.4.0
@@ -31,9 +32,11 @@ require (
 	github.com/rs/cors v1.11.0
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/stretchr/testify v1.11.1
+	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/oauth2 v0.27.0
+	golang.org/x/sync v0.23.0
 	golang.org/x/time v0.15.0
 	gopkg.in/guregu/null.v4 v4.0.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -45,6 +48,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/disgoorg/godave v0.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
@@ -81,6 +85,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/thomas-vilte/mls-go v1.6.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -89,16 +94,15 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20260923185323-eff44a04d6a7
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08

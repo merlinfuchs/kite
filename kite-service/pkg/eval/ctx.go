@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -23,12 +26,19 @@ import (
 type Context struct {
 	Env      Env
 	Patchers []ast.Visitor
+	// Raw keeps results as they are, without turning \n into a newline, for
+	// templates that have to match exactly, like the message a signature signs.
+	Raw bool
+	// KeepUnresolved keeps placeholders that fail or are empty as they are
+	// written, for messages sent without an interaction or event to fill them.
+	KeepUnresolved bool
 }
 
 type Env map[string]any
 
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
+	picked      map[string]pickedInput
 
 	ID         string                   `expr:"id" json:"id"`
 	Channel    *CurrentChannelEnv       `expr:"channel" json:"channel"`
@@ -37,7 +47,8 @@ type InteractionEnv struct {
 	Member     any                      `expr:"member" json:"member"`
 	Command    *CommandEnv              `expr:"command" json:"command"`
 	Components map[string]*ComponentEnv `expr:"components" json:"components"`
-	// Values are the options picked in a select menu, Value is the first of them.
+	// Values are the options picked in a select menu, or the IDs of the users,
+	// roles or channels picked in the other selects. Value is the first of them.
 	Values []string `expr:"values" json:"values"`
 	Value  string   `expr:"value" json:"value"`
 }
@@ -49,6 +60,7 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 
 	e := &InteractionEnv{
 		interaction: i,
+		picked:      newPickedInputs(i, guild),
 
 		ID:         i.ID.String(),
 		Channel:    currentChannelEnv(session, i.ChannelID, i.Channel),
@@ -71,14 +83,40 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 		e.Command = newCommandEnv(i, guild)
 	}
 
-	if data, ok := i.Data.(*discord.StringSelectInteraction); ok {
-		e.Values = data.Values
-		if len(data.Values) > 0 {
-			e.Value = data.Values[0]
+	if values, ok := selectedValues(i.Data); ok {
+		e.Values = values
+		if len(values) > 0 {
+			e.Value = values[0]
 		}
 	}
 
 	return e
+}
+
+// selectedValues returns what was picked in a select menu: the option values
+// of a string select, or the IDs of the users, roles or channels of the others.
+func selectedValues(data discord.InteractionData) ([]string, bool) {
+	switch d := data.(type) {
+	case *discord.StringSelectInteraction:
+		return d.Values, true
+	case *discord.UserSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.RoleSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.MentionableSelectInteraction:
+		return stringValues(d.Values), true
+	case *discord.ChannelSelectInteraction:
+		return stringValues(d.Values), true
+	}
+	return nil, false
+}
+
+func stringValues[T fmt.Stringer](values []T) []string {
+	res := make([]string, len(values))
+	for i, v := range values {
+		res[i] = v.String()
+	}
+	return res
 }
 
 func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {
@@ -118,6 +156,25 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 
 				if component, ok := interactionEnv.Components[customID]; ok {
 					return component.Values
+				}
+				return nil
+			},
+			// picked() and pickedAll() are like input() and inputs(), but return
+			// the users, roles or channels picked in a select, or the uploaded
+			// files, instead of their IDs.
+			"picked": func(customID string) any {
+				p, ok := interactionEnv.picked[customID]
+				if !ok {
+					return nil
+				}
+				if len(p.envs) == 0 {
+					return p.none
+				}
+				return p.envs[0]
+			},
+			"pickedAll": func(customID string) any {
+				if p, ok := interactionEnv.picked[customID]; ok {
+					return p.envs
 				}
 				return nil
 			},
@@ -213,8 +270,9 @@ type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
 	// Values, which inputs() returns, are the options picked in a select menu
-	// or checkbox group, or the one value of other inputs, if any. Value, which
-	// input() returns, is the first of them, like interaction.value.
+	// or checkbox group, the IDs of uploaded files, or the one value of other
+	// inputs, if any. Value, which input() returns, is the first of them, like
+	// interaction.value.
 	Values []string `expr:"values" json:"values"`
 }
 
@@ -249,6 +307,105 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	return components
 }
 
+// pickedInput is what was picked in a user, role, mentionable or channel select
+// of a modal, or uploaded to a file upload. none is what picked() returns if nothing was picked: a typed nil,
+// so its fields are empty and earlier modals aren't looked at instead.
+type pickedInput struct {
+	envs []any
+	none any
+}
+
+// newPickedInputs returns the picks of a modal's selects by custom ID, filled
+// in from the resolved data Discord sends with the submission.
+func newPickedInputs(i *discord.InteractionEvent, guild guildLookup) map[string]pickedInput {
+	res := make(map[string]pickedInput)
+
+	data, ok := i.Data.(*discord.ModalInteraction)
+	if !ok {
+		return res
+	}
+	resolved := data.Resolved
+
+	user := func(id discord.UserID) any {
+		user, ok := resolved.Users[id]
+		if !ok {
+			user = discord.User{ID: id}
+		}
+		if member, ok := resolved.Members[id]; ok {
+			member.User = user
+			return guild.memberEnv(member)
+		}
+		return NewUserEnv(user)
+	}
+	role := func(id discord.RoleID) any {
+		role, ok := resolved.Roles[id]
+		if !ok {
+			role = discord.Role{ID: id}
+		}
+		return NewRoleEnv(role)
+	}
+	channel := func(id discord.ChannelID) any {
+		var fallback *discord.Channel
+		if channel, ok := resolved.Channels[id]; ok {
+			fallback = &channel
+		}
+		return channelEnv(guild.session, id, fallback)
+	}
+	attachment := func(id discord.Snowflake) any {
+		attachment, ok := resolved.Attachments[discord.AttachmentID(id)]
+		if !ok {
+			attachment = discord.Attachment{ID: discord.AttachmentID(id)}
+		}
+		return NewAttachmentEnv(&attachment)
+	}
+	// A mentionable select picks users and roles, which Discord tells apart
+	// only by where it puts them in the resolved data.
+	mentionable := func(id discord.Snowflake) any {
+		if _, ok := resolved.Roles[discord.RoleID(id)]; ok {
+			return role(discord.RoleID(id))
+		}
+		return user(discord.UserID(id))
+	}
+
+	add := func(component discord.Component) {
+		switch c := component.(type) {
+		case *discord.UserSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, user), none: (*UserEnv)(nil)}
+		case *discord.RoleSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, role), none: (*RoleEnv)(nil)}
+		case *discord.MentionableSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, mentionable), none: (*UserEnv)(nil)}
+		case *discord.ChannelSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, channel), none: (*ChannelEnv)(nil)}
+		case *discord.FileUploadComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, attachment), none: (*AttachmentEnv)(nil)}
+		}
+	}
+
+	for _, row := range data.Components {
+		switch row := row.(type) {
+		case *discord.ActionRowComponent:
+			for _, component := range *row {
+				add(component)
+			}
+		case *discord.LabelComponent:
+			if row.Component != nil {
+				add(row.Component)
+			}
+		}
+	}
+
+	return res
+}
+
+func mapEnvs[T any](values []T, env func(T) any) []any {
+	res := make([]any, len(values))
+	for i, v := range values {
+		res[i] = env(v)
+	}
+	return res
+}
+
 func NewComponentEnv(component discord.Component) *ComponentEnv {
 	switch c := component.(type) {
 	case *discord.TextInputComponent:
@@ -269,6 +426,8 @@ func NewComponentEnv(component discord.Component) *ComponentEnv {
 		return newComponentEnv(c.CustomID, optionalValue(c.Value))
 	case *discord.CheckboxComponent:
 		return newComponentEnv(c.CustomID, []string{strconv.FormatBool(c.Value)})
+	case *discord.FileUploadComponent:
+		return newComponentEnv(c.CustomID, c.Values)
 	}
 
 	return nil
@@ -311,6 +470,7 @@ type EventEnv struct {
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
+	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
 }
 
 type ScheduleEnv struct {
@@ -328,6 +488,59 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+// AuditLogEnv is an entry of a server's audit log. Whoever did it is the user
+// of the event.
+type AuditLogEnv struct {
+	ID string `expr:"id" json:"id"`
+	// Action is what happened, like member_ban_add, as the Event Filter
+	// matches it.
+	Action string `expr:"action" json:"action"`
+	Reason string `expr:"reason" json:"reason"`
+	// Target is the mention of the member, role or channel the action was
+	// done to, and the ID of other targets.
+	Target   string `expr:"target" json:"target"`
+	TargetID string `expr:"target_id" json:"target_id"`
+	// Changes lists what changed, one setting per line.
+	Changes      string `expr:"changes" json:"changes"`
+	RolesAdded   string `expr:"roles_added" json:"roles_added"`
+	RolesRemoved string `expr:"roles_removed" json:"roles_removed"`
+	// TimeoutUntil is when a timeout ends as a Unix timestamp, 0 if the
+	// action isn't a timeout.
+	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
+}
+
+func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
+	res := &AuditLogEnv{
+		ID:           e.ID.String(),
+		Action:       auditlog.Action(e),
+		Reason:       e.Reason,
+		Changes:      auditlog.Changes(e),
+		RolesAdded:   auditlog.RoleNames(auditlog.RolesAdded(e)),
+		RolesRemoved: auditlog.RoleNames(auditlog.RolesRemoved(e)),
+	}
+	if e.TargetID.IsValid() {
+		res.TargetID = e.TargetID.String()
+		switch auditlog.Target(e) {
+		case auditlog.TargetUser:
+			res.Target = discord.UserID(e.TargetID).Mention()
+		case auditlog.TargetRole:
+			res.Target = discord.RoleID(e.TargetID).Mention()
+		case auditlog.TargetChannel:
+			res.Target = discord.ChannelID(e.TargetID).Mention()
+		default:
+			res.Target = res.TargetID
+		}
+	}
+	if until := auditlog.TimeoutUntil(e); !until.IsZero() {
+		res.TimeoutUntil = until.Unix()
+	}
+	return res
+}
+
+func (e AuditLogEnv) String() string {
+	return e.Action
 }
 
 type WebhookEnv struct {
@@ -420,10 +633,24 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
 		env.Message = NewMessageEnv(e.Message)
-	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(discord.Message{
-			ID: e.ID,
-		})
+	case *guildevent.MessageDelete:
+		// Discord only sends the IDs, the rest is known if the bot saw the
+		// message before it was deleted.
+		msg := discord.Message{ID: e.ID, ChannelID: e.ChannelID}
+		if e.Message != nil {
+			msg = *e.Message
+			if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
+				// The message doesn't keep the member of its author, but the
+				// state caches it when the message is created.
+				member.User = msg.Author
+				env.Member = guild(e.GuildID).memberEnv(member)
+				env.User = env.Member
+			} else {
+				env.User = NewUserEnv(msg.Author)
+				env.Member = env.User
+			}
+		}
+		env.Message = NewMessageEnv(msg)
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
@@ -435,6 +662,16 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	case *gateway.GuildMemberRemoveEvent:
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
+		env.Guild = guild(e.GuildID).guildEnv()
+	case *guildevent.BoostRemove:
+		// The cache keeps when the member joined, which the event leaves out.
+		// It never updates when they started boosting, so that's cleared, as
+		// they aren't boosting anymore.
+		member, _ := guild(e.GuildID).member(e.User.ID)
+		e.UpdateMember(&member)
+		member.BoostedSince = discord.Timestamp{}
+		env.Member = guild(e.GuildID).memberEnv(member)
+		env.User = env.Member
 		env.Guild = guild(e.GuildID).guildEnv()
 	case *gateway.MessageReactionAddEvent:
 		if e.Member != nil {
@@ -450,7 +687,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *gateway.MessageReactionRemoveEvent:
 		// MESSAGE_REACTION_REMOVE never includes member/user data, only the ID.
@@ -460,7 +697,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *state.GuildJoinEvent:
 		joined := e.Guild
@@ -471,6 +708,18 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		if id := auditlog.ChannelID(e.AuditLogEntry); id.IsValid() {
+			env.Channel = currentChannelEnv(session, id, nil)
+		}
+		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -486,17 +735,23 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
-// only exist on one kind of interaction, so arg(), input() and inputs() fall
-// back to earlier ones, newest first.
+// only exist on one kind of interaction, so arg(), input(), inputs(), picked()
+// and pickedAll() fall back to earlier ones, newest first. Without earlier
+// ones, origin and previous are the current interaction or event, so they work
+// before a resume point too.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
+		// A copy, so the env doesn't contain itself.
+		env := map[string]any(maps.Clone(c.Env))
+		c.Env["origin"] = env
+		c.Env["previous"] = env
 		return
 	}
 
 	c.Env["origin"] = map[string]any(earlier[0].Env)
 	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
 
-	for _, name := range []string{"arg", "input", "inputs"} {
+	for _, name := range []string{"arg", "input", "inputs", "picked", "pickedAll"} {
 		var lookups []func(string) any
 		if fn, ok := c.Env[name].(func(string) any); ok {
 			lookups = append(lookups, fn)
@@ -528,17 +783,18 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
-			"event":    env,
-			"user":     env.User,
-			"member":   env.Member,
-			"channel":  env.Channel,
-			"guild":    env.Guild,
-			"server":   env.Guild,
-			"message":  env.Message,
-			"emoji":    env.Emoji,
-			"schedule": env.Schedule,
-			"webhook":  env.Webhook,
-			"app":      NewAppEnv(session),
+			"event":     env,
+			"user":      env.User,
+			"member":    env.Member,
+			"channel":   env.Channel,
+			"guild":     env.Guild,
+			"server":    env.Guild,
+			"message":   env.Message,
+			"emoji":     env.Emoji,
+			"schedule":  env.Schedule,
+			"webhook":   env.Webhook,
+			"audit_log": env.AuditLog,
+			"app":       NewAppEnv(session),
 		},
 	}
 }
@@ -549,28 +805,30 @@ type UserEnv struct {
 	ID            string `expr:"id" json:"id"`
 	Username      string `expr:"username" json:"username"`
 	Discriminator string `expr:"discriminator" json:"discriminator"`
-	DisplayName   string `expr:"display_name" json:"display_name"`
-	Name          string `expr:"name" json:"name"`
+	DisplayName   string `expr:"display_name" json:"display_name" desc:"The display name of the account, or the username without one"`
+	Name          string `expr:"name" json:"name" desc:"Same as display_name"`
 	Mention       string `expr:"mention" json:"mention"`
 	AvatarURL     string `expr:"avatar_url" json:"avatar_url"`
-	BannerURL     string `expr:"banner_url" json:"banner_url"`
+	BannerURL     string `expr:"banner_url" json:"banner_url" desc:"Empty if the user has no banner"`
 	IsBot         bool   `expr:"is_bot" json:"is_bot"`
 	// CreatedAt and JoinedAt are Unix timestamps in seconds, so they can be
 	// compared with now().Unix() and put into a Discord timestamp.
-	CreatedAt int64 `expr:"created_at" json:"created_at"`
+	CreatedAt int64 `expr:"created_at" json:"created_at" desc:"When the account was created, as a Unix timestamp in seconds"`
 
 	// The fields below are only filled for members of a server. They are part
 	// of every user so a placeholder using them is empty outside of a server
 	// instead of failing the flow. The ones that need the roles of the server
-	// are in lazyField.
-	JoinedAt  int64 `expr:"joined_at" json:"joined_at"`
-	RoleCount int   `expr:"role_count" json:"role_count"`
+	// are in lazyField. scope:"member" leaves them out of the user type of the
+	// editor, as they are always empty for users from a block result.
+	Nick      string   `expr:"nick" json:"nick" scope:"member" desc:"The nickname in the server, empty without one"`
+	RoleIDs   []string `expr:"role_ids" json:"role_ids" scope:"member"`
+	JoinedAt  int64    `expr:"joined_at" json:"joined_at" scope:"member" desc:"When the user joined the server, as a Unix timestamp in seconds"`
+	RoleCount int      `expr:"role_count" json:"role_count" scope:"member"`
 
-	IsBooster     bool  `expr:"is_booster" json:"is_booster"`
-	BoostingSince int64 `expr:"boosting_since" json:"boosting_since"`
-	// TimeoutUntil is 0 unless the member is timed out right now.
-	IsTimedOut   bool  `expr:"is_timed_out" json:"is_timed_out"`
-	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
+	IsBooster     bool  `expr:"is_booster" json:"is_booster" scope:"member"`
+	BoostingSince int64 `expr:"boosting_since" json:"boosting_since" scope:"member" desc:"Unix timestamp in seconds, 0 if the user isn't boosting"`
+	IsTimedOut    bool  `expr:"is_timed_out" json:"is_timed_out" scope:"member"`
+	TimeoutUntil  int64 `expr:"timeout_until" json:"timeout_until" scope:"member" desc:"Unix timestamp in seconds, 0 if the user isn't timed out"`
 }
 
 func (u UserEnv) Thing() thing.Thing {
@@ -581,9 +839,26 @@ func (u UserEnv) String() string {
 	return u.ID
 }
 
+// userLazyFields are the fields of lazyField of a user and a member.
+// scope:"server" marks those that fail for a member from a block result, as
+// it doesn't know its server.
+type userLazyFields struct {
+	TopRole      *RoleEnv `expr:"top_role" scope:"server" desc:"The highest role of the user, or @everyone without roles"`
+	RoleMentions string   `expr:"role_mentions" scope:"member" desc:"Mentions of all roles of the user, highest first"`
+	RoleNames    string   `expr:"role_names" scope:"server" desc:"Names of all roles of the user, highest first, separated by commas"`
+	Color        string   `expr:"color" scope:"server" desc:"Color of the highest role that has one, like #5865f2"`
+	IsOwner      bool     `expr:"is_owner" scope:"server" desc:"Whether the user owns the server"`
+	IsAdmin      bool     `expr:"is_admin" scope:"server" desc:"Whether the user owns the server or has the Administrator permission"`
+	Permissions  []string `expr:"permissions" scope:"server" desc:"Lowercased permission names, like ban_members or manage_messages"`
+}
+
+func (u UserEnv) lazyFields() any {
+	return userLazyFields{}
+}
+
 // lazyField has the member fields that need the roles of the server, which
 // are empty for a user outside of a server.
-func (u *UserEnv) lazyField(name string) (any, bool, error) {
+func (u UserEnv) lazyField(name string) (any, bool, error) {
 	switch name {
 	case "top_role":
 		return &RoleEnv{}, true, nil
@@ -616,6 +891,7 @@ func NewUserEnv(user discord.User) *UserEnv {
 		BannerURL:     user.BannerURL(),
 		IsBot:         user.Bot,
 		CreatedAt:     snowflakeUnix(discord.Snowflake(user.ID)),
+		RoleIDs:       []string{},
 	}
 }
 
@@ -628,6 +904,7 @@ func NewUserIDEnv(id discord.UserID) *UserEnv {
 		ID:        id.String(),
 		Mention:   fmt.Sprintf("<@%s>", id.String()),
 		CreatedAt: snowflakeUnix(discord.Snowflake(id)),
+		RoleIDs:   []string{},
 	}
 }
 
@@ -643,9 +920,6 @@ type MemberEnv struct {
 	og discord.Member
 
 	UserEnv
-
-	Nick    string   `expr:"nick" json:"nick"`
-	RoleIDs []string `expr:"role_ids" json:"role_ids"`
 
 	// roles is only called when a placeholder needs the roles of the server,
 	// as it copies all of them from the cache.
@@ -690,11 +964,10 @@ func newMemberEnv(member discord.Member, roles func() (memberRoles, error)) *Mem
 
 		UserEnv: *NewUserEnv(member.User),
 
-		Nick:    member.Nick,
-		RoleIDs: roleIDs,
-
 		roles: roles,
 	}
+	env.Nick = member.Nick
+	env.RoleIDs = roleIDs
 
 	if member.Joined.IsValid() {
 		env.JoinedAt = member.Joined.Time().Unix()
@@ -718,7 +991,7 @@ func newMemberEnv(member discord.Member, roles func() (memberRoles, error)) *Mem
 // top role of a member without roles is @everyone. The owner of the server and
 // administrators have every permission, whatever their roles are. Permissions
 // that a channel grants or denies aren't part of permissions.
-func (m *MemberEnv) lazyField(name string) (any, bool, error) {
+func (m MemberEnv) lazyField(name string) (any, bool, error) {
 	switch name {
 	case "top_role", "role_mentions", "role_names", "color", "is_owner", "is_admin", "permissions":
 	default:
@@ -770,8 +1043,8 @@ func (m *MemberEnv) lazyField(name string) (any, bool, error) {
 	case "color":
 		// The color of the highest role that has one, like #5865f2.
 		for _, role := range res.roles {
-			if role.Color > 0 {
-				return fmt.Sprintf("#%06x", role.Color.Uint32()), true, nil
+			if color := roleColor(role); color != "" {
+				return color, true, nil
 			}
 		}
 		return "", true, nil
@@ -906,7 +1179,7 @@ func (l guildLookup) guildExtra(guild discord.Guild) guildExtra {
 	if channels, err := l.session.Cabinet.Channels(l.guildID); err == nil {
 		for _, channel := range channels {
 			// Categories and threads aren't what people count as channels.
-			if channel.Type != discord.GuildCategory && !isThread(channel.Type) {
+			if channel.Type != discord.GuildCategory && !IsThread(channel.Type) {
 				res.channelCount++
 			}
 		}
@@ -919,6 +1192,17 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 		return &ChannelEnv{}
 	}
 	return channelEnv(l.session, id, nil)
+}
+
+func (l guildLookup) member(userID discord.UserID) (discord.Member, bool) {
+	if !l.cached() || !userID.IsValid() {
+		return discord.Member{}, false
+	}
+	member, err := l.session.Cabinet.Member(l.guildID, userID)
+	if err != nil {
+		return discord.Member{}, false
+	}
+	return *member, true
 }
 
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {
@@ -979,8 +1263,8 @@ type ChannelEnv struct {
 	ID      string `expr:"id" json:"id"`
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
-	// Type is a word like text, voice or thread, and empty if it isn't known.
-	Type string `expr:"type" json:"type"`
+	Type    string `expr:"type" json:"type" desc:"text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"`
+	GuildID string `expr:"guild_id" json:"guild_id" desc:"The ID of the server the channel is in, empty for direct messages and if it isn't known"`
 
 	// category is only called when a placeholder needs the category, as it
 	// can take two more cache lookups.
@@ -1013,6 +1297,10 @@ func newChannelEnv(session *state.State, channel discord.Channel) *ChannelEnv {
 		}),
 	}
 
+	if channel.GuildID.IsValid() {
+		env.GuildID = channel.GuildID.String()
+	}
+
 	// A channel that only has an ID would otherwise claim to be a text
 	// channel, as that's type 0.
 	if channel.Name != "" || channel.Type != discord.GuildText {
@@ -1021,7 +1309,16 @@ func newChannelEnv(session *state.State, channel discord.Channel) *ChannelEnv {
 	return env
 }
 
-func (c *ChannelEnv) lazyField(name string) (any, bool, error) {
+type channelLazyFields struct {
+	CategoryID   string `expr:"category_id" desc:"Empty outside of a category, for a thread the category of its channel"`
+	CategoryName string `expr:"category_name"`
+}
+
+func (c ChannelEnv) lazyFields() any {
+	return channelLazyFields{}
+}
+
+func (c ChannelEnv) lazyField(name string) (any, bool, error) {
 	if name != "category_id" && name != "category_name" {
 		return nil, false, nil
 	}
@@ -1036,7 +1333,8 @@ func (c *ChannelEnv) lazyField(name string) (any, bool, error) {
 	return category.name, true, nil
 }
 
-func isThread(t discord.ChannelType) bool {
+// IsThread reports whether channels of the type are threads.
+func IsThread(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
 		return true
@@ -1102,7 +1400,7 @@ func channelEnv(session *state.State, id discord.ChannelID, fallback *discord.Ch
 
 func lookupCategory(session *state.State, channel discord.Channel) channelCategory {
 	categoryID := channel.ParentID
-	if isThread(channel.Type) {
+	if IsThread(channel.Type) {
 		categoryID = 0
 		if parent, ok := cachedChannel(session, channel.ParentID); ok {
 			categoryID = parent.ParentID
@@ -1148,19 +1446,32 @@ func (c ChannelEnv) String() string {
 type RoleEnv struct {
 	og discord.Role
 
-	ID      string `expr:"id" json:"id"`
-	Name    string `expr:"name" json:"name"`
-	Mention string `expr:"mention" json:"mention"`
+	ID          string `expr:"id" json:"id"`
+	Name        string `expr:"name" json:"name"`
+	Mention     string `expr:"mention" json:"mention"`
+	Color       string `expr:"color" json:"color" desc:"Like #5865f2, empty if the role has no color"`
+	Hoist       bool   `expr:"hoist" json:"hoist" desc:"Whether the role is shown separately in the member list"`
+	Mentionable bool   `expr:"mentionable" json:"mentionable"`
 }
 
 func NewRoleEnv(role discord.Role) *RoleEnv {
 	return &RoleEnv{
 		og: role,
 
-		ID:      role.ID.String(),
-		Name:    role.Name,
-		Mention: fmt.Sprintf("<@&%s>", role.ID.String()),
+		ID:          role.ID.String(),
+		Name:        role.Name,
+		Mention:     fmt.Sprintf("<@&%s>", role.ID.String()),
+		Color:       roleColor(role),
+		Hoist:       role.Hoist,
+		Mentionable: role.Mentionable,
 	}
+}
+
+func roleColor(role discord.Role) string {
+	if role.Color <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("#%06x", role.Color.Uint32())
 }
 
 func (r RoleEnv) Thing() thing.Thing {
@@ -1178,17 +1489,45 @@ func (r RoleEnv) String() string {
 type MessageEnv struct {
 	og discord.Message
 
-	ID      string `expr:"id" json:"id"`
-	Content string `expr:"content" json:"content"`
+	ID        string `expr:"id" json:"id"`
+	ChannelID string `expr:"channel_id" json:"channel_id"`
+	Content   string `expr:"content" json:"content"`
+	// Author is nil if only the ID of the message is known, like for a
+	// reaction, but its fields are empty instead of failing, see fetchField.
+	Author    *UserEnv       `expr:"author" json:"author" desc:"Empty if only the ID of the message is known, like for reactions"`
+	Reactions []*ReactionEnv `expr:"reactions" json:"reactions" desc:"Empty for the message of an event, get the message with a block to count its reactions"`
+	Mentions  []*UserEnv     `expr:"mentions" json:"mentions" desc:"Users the message pings, including the author of the message it replies to if the reply pings them"`
 }
 
 func NewMessageEnv(msg discord.Message) *MessageEnv {
-	return &MessageEnv{
+	env := &MessageEnv{
 		og: msg,
 
-		ID:      msg.ID.String(),
-		Content: msg.Content,
+		ID:        msg.ID.String(),
+		ChannelID: msg.ChannelID.String(),
+		Content:   msg.Content,
+		Reactions: make([]*ReactionEnv, len(msg.Reactions)),
+		Mentions:  make([]*UserEnv, len(msg.Mentions)),
 	}
+	if msg.Author.ID.IsValid() {
+		env.Author = NewUserEnv(msg.Author)
+	}
+	for i, r := range msg.Reactions {
+		env.Reactions[i] = &ReactionEnv{Emoji: NewEmojiEnv(r.Emoji), Count: r.Count}
+	}
+	for i, u := range msg.Mentions {
+		env.Mentions[i] = NewUserEnv(u.User)
+	}
+	return env
+}
+
+type ReactionEnv struct {
+	Emoji *EmojiEnv `expr:"emoji" json:"emoji"`
+	Count int       `expr:"count" json:"count" desc:"How many users reacted with the emoji"`
+}
+
+func (r ReactionEnv) String() string {
+	return r.Emoji.String()
 }
 
 func (m MessageEnv) Thing() thing.Thing {
@@ -1202,20 +1541,17 @@ func (m MessageEnv) String() string {
 type GuildEnv struct {
 	og discord.Guild
 
-	ID      string `expr:"id" json:"id"`
-	Name    string `expr:"name" json:"name"`
-	IconURL string `expr:"icon_url" json:"icon_url"`
-	OwnerID string `expr:"owner_id" json:"owner_id"`
-	// MemberCount is 0 if the count isn't known.
-	MemberCount int `expr:"member_count" json:"member_count"`
-	BoostCount  int `expr:"boost_count" json:"boost_count"`
-	// BoostLevel is 0 to 3.
-	BoostLevel  int    `expr:"boost_level" json:"boost_level"`
-	CreatedAt   int64  `expr:"created_at" json:"created_at"`
-	BannerURL   string `expr:"banner_url" json:"banner_url"`
+	ID          string `expr:"id" json:"id"`
+	Name        string `expr:"name" json:"name"`
+	IconURL     string `expr:"icon_url" json:"icon_url" desc:"Empty if the server has no icon"`
+	OwnerID     string `expr:"owner_id" json:"owner_id" desc:"The ID of the user that owns the server"`
+	MemberCount int    `expr:"member_count" json:"member_count" desc:"0 if the count isn't known"`
+	BoostCount  int    `expr:"boost_count" json:"boost_count"`
+	BoostLevel  int    `expr:"boost_level" json:"boost_level" desc:"0 to 3"`
+	CreatedAt   int64  `expr:"created_at" json:"created_at" desc:"When the server was created, as a Unix timestamp in seconds"`
+	BannerURL   string `expr:"banner_url" json:"banner_url" desc:"Empty if the server has no banner"`
 	Description string `expr:"description" json:"description"`
-	// VanityURL is the custom invite link of the server, if it has one.
-	VanityURL string `expr:"vanity_url" json:"vanity_url"`
+	VanityURL   string `expr:"vanity_url" json:"vanity_url" desc:"The custom invite link, empty if the server has none"`
 
 	// extra is only called when a placeholder needs it, as it copies all
 	// roles and channels of the server from the cache.
@@ -1267,7 +1603,19 @@ func (l guildLookup) newGuildEnv(guild discord.Guild) *GuildEnv {
 	return env
 }
 
-func (g *GuildEnv) lazyField(name string) (any, bool, error) {
+type guildLazyFields struct {
+	RoleCount     int         `expr:"role_count" desc:"Without @everyone"`
+	ChannelCount  int         `expr:"channel_count" desc:"Without categories and threads"`
+	EmojiCount    int         `expr:"emoji_count"`
+	RulesChannel  *ChannelEnv `expr:"rules_channel" desc:"Empty if the server has no rules channel"`
+	SystemChannel *ChannelEnv `expr:"system_channel" desc:"Where Discord posts join and boost messages, empty if turned off"`
+}
+
+func (g GuildEnv) lazyFields() any {
+	return guildLazyFields{}
+}
+
+func (g GuildEnv) lazyField(name string) (any, bool, error) {
 	extra := func() guildExtra {
 		if g.extra == nil {
 			return guildExtra{rulesChannel: &ChannelEnv{}, systemChannel: &ChannelEnv{}}
@@ -1319,18 +1667,22 @@ func (g CurrentGuildEnv) Thing() thing.Thing {
 }
 
 type AttachmentEnv struct {
-	ID       string `expr:"id" json:"id"`
-	URL      string `expr:"url" json:"url"`
-	ProxyURL string `expr:"proxy_url" json:"proxy_url"`
-	Filename string `expr:"filename" json:"filename"`
+	ID          string `expr:"id" json:"id"`
+	URL         string `expr:"url" json:"url"`
+	ProxyURL    string `expr:"proxy_url" json:"proxy_url"`
+	Filename    string `expr:"filename" json:"filename"`
+	ContentType string `expr:"content_type" json:"content_type" desc:"Like image/png"`
+	Size        uint64 `expr:"size" json:"size" desc:"In bytes"`
 }
 
 func NewAttachmentEnv(attachment *discord.Attachment) *AttachmentEnv {
 	return &AttachmentEnv{
-		ID:       attachment.ID.String(),
-		URL:      attachment.URL,
-		ProxyURL: attachment.Proxy,
-		Filename: attachment.Filename,
+		ID:          attachment.ID.String(),
+		URL:         attachment.URL,
+		ProxyURL:    attachment.Proxy,
+		Filename:    attachment.Filename,
+		ContentType: attachment.ContentType,
+		Size:        attachment.Size,
 	}
 }
 
@@ -1341,12 +1693,10 @@ func (a AttachmentEnv) String() string {
 type EmojiEnv struct {
 	og discord.Emoji
 
-	ID       string `expr:"id" json:"id"`
+	ID       string `expr:"id" json:"id" desc:"Empty for a unicode emoji"`
 	Name     string `expr:"name" json:"name"`
 	Animated bool   `expr:"animated" json:"animated"`
-	// Mention is the emoji formatted the way Discord clients render it, e.g.
-	// "🔥" for a unicode emoji or "<:name:id>" for a custom one.
-	Mention string `expr:"mention" json:"mention"`
+	Mention  string `expr:"mention" json:"mention" desc:"The emoji the way Discord shows it, like 🔥 or <:name:id>"`
 }
 
 func NewEmojiEnv(emoji discord.Emoji) *EmojiEnv {
@@ -1386,10 +1736,10 @@ func (s SnowflakeEnv) String() string {
 type HTTPResponseEnv struct {
 	og thing.HTTPResponseValue
 
-	Status     string                 `expr:"status" json:"status"`
+	Status     string                 `expr:"status" json:"status" desc:"Status line, like 200 OK"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
-	BodyFunc   func() (string, error) `expr:"body" json:"-"`
-	DataFunc   func() (any, error)    `expr:"data" json:"-"`
+	BodyFunc   func() (string, error) `expr:"body" json:"-" desc:"Body of the response as text"`
+	DataFunc   func() (any, error)    `expr:"data" json:"-" desc:"Body of the response parsed as JSON"`
 }
 
 func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
@@ -1465,15 +1815,103 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
+	session      *state.State
+	guilds       func() appGuilds
+	userInstalls func() (int, error)
+
 	User *UserEnv `expr:"user" json:"user"`
 }
 
 func NewAppEnv(session *state.State) *AppEnv {
-	user := session.Ready().User
+	return newAppEnv(session, session.Ready().User)
+}
 
+func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
+		session: session,
+		guilds: sync.OnceValue(func() appGuilds {
+			return countAppGuilds(session)
+		}),
+
 		User: NewUserEnv(user),
 	}
+}
+
+// SetUserInstallCount sets where user_install_count comes from. fn is only
+// called once, when an expression first reads it.
+func (a *AppEnv) SetUserInstallCount(fn func() (int, error)) {
+	a.userInstalls = sync.OnceValues(fn)
+}
+
+type appGuilds struct {
+	count   int
+	members int
+}
+
+// countAppGuilds counts the servers of the app and their members from the
+// cache, which keeps the member count of each server.
+func countAppGuilds(session *state.State) appGuilds {
+	guilds, err := session.Cabinet.Guilds()
+	if err != nil {
+		// The cache returns an error when it has no servers.
+		return appGuilds{}
+	}
+
+	res := appGuilds{count: len(guilds)}
+	for _, guild := range guilds {
+		res.members += int(guild.ApproximateMembers)
+	}
+	return res
+}
+
+type appLazyFields struct {
+	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
+	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
+	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+
+	UserInstallCount int `expr:"user_install_count" desc:"Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"`
+}
+
+func (a AppEnv) lazyFields() any {
+	return appLazyFields{}
+}
+
+// lazyField has the stats of the app. The server and member counts go over
+// every server in the cache, so they are only counted when a flow uses them.
+func (a AppEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "guild_count", "member_count":
+		var guilds appGuilds
+		if a.guilds != nil {
+			guilds = a.guilds()
+		}
+		if name == "guild_count" {
+			return guilds.count, true, nil
+		}
+		return guilds.members, true, nil
+	case "latency":
+		return a.latency().Milliseconds(), true, nil
+	case "user_install_count":
+		if a.userInstalls == nil {
+			return 0, true, nil
+		}
+		count, err := a.userInstalls()
+		return count, true, err
+	}
+	return nil, false, nil
+}
+
+// latency is 0 between Hello and Ready. From Ready until the first heartbeat
+// ack, it's how long Discord took to send Ready.
+func (a *AppEnv) latency() time.Duration {
+	if a.session == nil || a.session.Session == nil {
+		return 0
+	}
+	gw := a.session.Gateway()
+	if gw == nil {
+		return 0
+	}
+	return max(gw.Latency(), 0)
 }
 
 type RobloxUserEnv struct {
@@ -1483,10 +1921,11 @@ type RobloxUserEnv struct {
 	Name                   string `expr:"name" json:"name"`
 	DisplayName            string `expr:"display_name" json:"display_name"`
 	Description            string `expr:"description" json:"description"`
-	CreatedAt              string `expr:"created_at" json:"created_at"`
+	CreatedAt              string `expr:"created_at" json:"created_at" desc:"When the account was created, as an ISO 8601 date"`
 	IsBanned               bool   `expr:"is_banned" json:"is_banned"`
 	HasVerifiedBadge       bool   `expr:"has_verified_badge" json:"has_verified_badge"`
 	ExternalAppDisplayName string `expr:"external_app_display_name" json:"external_app_display_name"`
+	AvatarURL              string `expr:"avatar_url" json:"avatar_url" desc:"URL of a 150x150 PNG of the avatar's head, empty if Roblox has none. Expires after about 30 days"`
 }
 
 func (r RobloxUserEnv) String() string {
@@ -1505,5 +1944,6 @@ func NewRobloxUserEnv(user thing.RobloxUserValue) *RobloxUserEnv {
 		IsBanned:               user.IsBanned,
 		HasVerifiedBadge:       user.HasVerifiedBadge,
 		ExternalAppDisplayName: user.ExternalAppDisplayName,
+		AvatarURL:              user.AvatarURL,
 	}
 }

@@ -2,13 +2,35 @@ import logo from "@/assets/logo/orange@1024.png";
 import Link from "next/link";
 import env from "@/lib/env/client";
 
+const botLinks = [
+  { label: "Bot hosting", href: "/discord-bot-hosting" },
+  { label: "Moderation bot", href: "/discord-moderation-bot" },
+  { label: "Welcome bot", href: "/discord-welcome-bot" },
+  { label: "Leveling bot", href: "/discord-leveling-bot" },
+  { label: "AI bot", href: "/ai-discord-bot" },
+  { label: "AI bot maker", href: "/ai-discord-bot-maker" },
+  { label: "ER:LC bot", href: "/erlc-discord-bot" },
+  { label: "MCP server", href: "/discord-mcp-server" },
+  { label: "Cookie API bot", href: "/cookie-api" },
+];
+
+const compareLinks = [
+  { label: "vs. BotGhost", href: "/alternatives/botghost" },
+  { label: "vs. inventor.bot", href: "/alternatives/inventor" },
+  { label: "vs. BotWiz", href: "/alternatives/botwiz" },
+  { label: "vs. BDFD", href: "/alternatives/bdfd" },
+  { label: "All comparisons", href: "/alternatives" },
+];
+
 export default function HomeFooter() {
   return (
     <footer id="footer">
-      <hr className="w-11/12 mx-auto" />
+      <div className="container">
+        <hr />
+      </div>
 
-      <section className="container py-20 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
-        <div className="col-span-full xl:col-span-2">
+      <section className="container py-20 grid grid-cols-2 md:grid-cols-5 gap-x-12 gap-y-8">
+        <div className="col-span-full">
           <Link
             rel="noreferrer noopener"
             href="/"
@@ -28,7 +50,7 @@ export default function HomeFooter() {
               target="_blank"
               className="opacity-60 hover:opacity-100"
             >
-              Github
+              GitHub
             </a>
           </div>
 
@@ -56,6 +78,28 @@ export default function HomeFooter() {
         </div>
 
         <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-lg">Discord bots</h3>
+          {botLinks.map((link) => (
+            <div key={link.href}>
+              <Link href={link.href} className="opacity-60 hover:opacity-100">
+                {link.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-lg">Compare</h3>
+          {compareLinks.map((link) => (
+            <div key={link.href}>
+              <Link href={link.href} className="opacity-60 hover:opacity-100">
+                {link.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">Resources</h3>
           <div>
             <a
@@ -65,6 +109,31 @@ export default function HomeFooter() {
             >
               Documentation
             </a>
+          </div>
+          <div>
+            <Link href="/features" className="opacity-60 hover:opacity-100">
+              Features
+            </Link>
+          </div>
+          <div>
+            <Link href="/changelog" className="opacity-60 hover:opacity-100">
+              What&apos;s new
+            </Link>
+          </div>
+          <div>
+            <Link href="/guides" className="opacity-60 hover:opacity-100">
+              Guides
+            </Link>
+          </div>
+          <div>
+            <Link href="/tools" className="opacity-60 hover:opacity-100">
+              Discord tools
+            </Link>
+          </div>
+          <div>
+            <Link href="/marketplace" className="opacity-60 hover:opacity-100">
+              Bot templates
+            </Link>
           </div>
         </div>
 
@@ -87,6 +156,12 @@ export default function HomeFooter() {
               Refund Policy
             </Link>
           </div>
+
+          <div>
+            <Link href="/imprint" className="opacity-60 hover:opacity-100">
+              Legal Notice
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -95,7 +170,7 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
-            href="https://merlin.gg"
+            href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             Merlin Fuchs

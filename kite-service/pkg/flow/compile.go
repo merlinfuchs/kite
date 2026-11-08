@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
@@ -16,6 +15,20 @@ type FlowCompiler struct{}
 
 func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
 	return compile(data, FlowNodeTypeEntryCommand)
+}
+
+// CheckCommandArguments reports problems with the arguments of a command that
+// Discord rejects. Saving checks it, not compiling, so commands saved before
+// keep running.
+func (n *CompiledFlowNode) CheckCommandArguments() error {
+	names := make(map[string]bool)
+	for _, node := range n.commandArgumentNodes() {
+		if names[node.Data.Name] {
+			return fmt.Errorf("more than one argument is named %s", node.Data.Name)
+		}
+		names[node.Data.Name] = true
+	}
+	return nil
 }
 
 func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
@@ -44,6 +57,17 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	}
 
 	return entry, nil
+}
+
+// CheckInteractionBlocks reports blocks that respond to an interaction before
+// a button sent by the flow is used, which event listeners have none of.
+// Saving checks it, not compiling, so Discord event listeners saved before
+// keep running.
+func (n *CompiledFlowNode) CheckInteractionBlocks() error {
+	if node := firstWithoutInteraction(n, isInteractionOnly); node != nil {
+		return fmt.Errorf("block %s can't be used in event listeners outside of button branches", node.Type)
+	}
+	return nil
 }
 
 // firstWithoutInteraction returns the first node matching match that runs
@@ -112,17 +136,25 @@ func isInteractionOnly(t FlowNodeType) bool {
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
+	var params map[string]any
+	if len(data.Parameters) > 0 {
+		params = data.ParameterEnv()
+	}
 	for _, node := range data.Nodes {
 		compiledNode := &CompiledFlowNode{
-			ID:   node.ID,
-			Type: node.Type,
-			Data: node.Data,
+			ID:         node.ID,
+			Type:       node.Type,
+			Data:       node.Data,
+			Parameters: params,
 			Parents: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
 			Children: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
+		}
+		if compiledNode.IsEventFilter() {
+			compiledNode.Data.EventFilterValue = withParameters(node.Data.EventFilterValue, params)
 		}
 		nodeMap[node.ID] = compiledNode
 
@@ -180,6 +212,9 @@ type CompiledFlowNode struct {
 	Data     FlowNodeData
 	Parents  ConnectedFlowNodes
 	Children ConnectedFlowNodes
+	// Parameters are the values of the flow's parameters, shared by all of
+	// its nodes, so a flow resumed at any node has them. Nil without any.
+	Parameters map[string]any
 }
 
 type ConnectedFlowNodes struct {
@@ -306,152 +341,180 @@ func (n *CompiledFlowNode) CommandDescription() string {
 
 func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
 	res := make(discord.CommandOptions, 0)
-	for _, node := range n.Parents.Default {
-		if node.IsCommandArgument() {
-			var o discord.CommandOption
+	for _, node := range n.commandArgumentNodes() {
+		var o discord.CommandOption
 
-			switch node.Data.CommandArgumentType {
-			case CommandArgumentTypeString:
-				var maxLength option.Int
-				if node.Data.CommandArgumentMaxLength != 0 {
-					maxLength = option.NewInt(node.Data.CommandArgumentMaxLength)
-				}
-
-				var choices []discord.StringChoice
-				for _, choice := range node.Data.CommandArgumentChoices {
-					if choice.Name == "" || choice.Value == "" {
-						continue
-					}
-
-					choices = append(choices, discord.StringChoice{
-						Name:  choice.Name,
-						Value: choice.Value,
-					})
-				}
-
-				o = &discord.StringOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-					MaxLength:   maxLength,
-					Choices:     choices,
-				}
-			case CommandArgumentTypeInteger:
-				var minValue option.Int
-				if node.Data.CommandArgumentMinValue != 0 {
-					minValue = option.NewInt(int(node.Data.CommandArgumentMinValue))
-				}
-
-				var maxValue option.Int
-				if node.Data.CommandArgumentMaxValue != 0 {
-					maxValue = option.NewInt(int(node.Data.CommandArgumentMaxValue))
-				}
-
-				var choices []discord.IntegerChoice
-				for _, choice := range node.Data.CommandArgumentChoices {
-					if choice.Name == "" || choice.Value == "" {
-						continue
-					}
-
-					value, _ := strconv.ParseInt(choice.Value, 10, 64)
-
-					choices = append(choices, discord.IntegerChoice{
-						Name:  choice.Name,
-						Value: int(value),
-					})
-				}
-
-				o = &discord.IntegerOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-					Min:         minValue,
-					Max:         maxValue,
-					Choices:     choices,
-				}
-			case CommandArgumentTypeBoolean:
-				o = &discord.BooleanOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
-			case CommandArgumentTypeUser:
-				o = &discord.UserOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
-			case CommandArgumentTypeChannel:
-				o = &discord.ChannelOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
-			case CommandArgumentTypeRole:
-				o = &discord.RoleOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
-			case CommandArgumentTypeMentionable:
-				o = &discord.MentionableOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
-			case CommandArgumentTypeNumber:
-				var minValue option.Float
-				if node.Data.CommandArgumentMinValue != 0 {
-					minValue = option.NewFloat(node.Data.CommandArgumentMinValue)
-				}
-
-				var maxValue option.Float
-				if node.Data.CommandArgumentMaxValue != 0 {
-					maxValue = option.NewFloat(node.Data.CommandArgumentMaxValue)
-				}
-
-				var choices []discord.NumberChoice
-				for _, choice := range node.Data.CommandArgumentChoices {
-					if choice.Name == "" || choice.Value == "" {
-						continue
-					}
-
-					value, _ := strconv.ParseFloat(choice.Value, 64)
-
-					choices = append(choices, discord.NumberChoice{
-						Name:  choice.Name,
-						Value: value,
-					})
-				}
-
-				o = &discord.NumberOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-					Min:         minValue,
-					Max:         maxValue,
-					Choices:     choices,
-				}
-			case CommandArgumentTypeAttachment:
-				o = &discord.AttachmentOption{
-					OptionName:  node.Data.Name,
-					Description: node.Data.Description,
-					Required:    node.Data.CommandArgumentRequired,
-				}
+		switch node.Data.CommandArgumentType {
+		case CommandArgumentTypeString:
+			var maxLength option.Int
+			if node.Data.CommandArgumentMaxLength != 0 {
+				maxLength = option.NewInt(node.Data.CommandArgumentMaxLength)
 			}
 
-			if o != nil {
-				// Required arguments should be the first in the list
-				if node.Data.CommandArgumentRequired {
-					res = append([]discord.CommandOption{o}, res...)
-				} else {
-					res = append(res, o)
+			var choices []discord.StringChoice
+			for _, choice := range node.Data.CommandArgumentChoices {
+				if choice.Name == "" || choice.Value == "" {
+					continue
 				}
+
+				choices = append(choices, discord.StringChoice{
+					Name:  choice.Name,
+					Value: choice.Value,
+				})
 			}
+
+			o = &discord.StringOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+				MaxLength:   maxLength,
+				Choices:     choices,
+			}
+		case CommandArgumentTypeInteger:
+			var minValue option.Int
+			if node.Data.CommandArgumentMinValue != 0 {
+				minValue = option.NewInt(int(node.Data.CommandArgumentMinValue))
+			}
+
+			var maxValue option.Int
+			if node.Data.CommandArgumentMaxValue != 0 {
+				maxValue = option.NewInt(int(node.Data.CommandArgumentMaxValue))
+			}
+
+			var choices []discord.IntegerChoice
+			for _, choice := range node.Data.CommandArgumentChoices {
+				if choice.Name == "" || choice.Value == "" {
+					continue
+				}
+
+				value, _ := strconv.ParseInt(choice.Value, 10, 64)
+
+				choices = append(choices, discord.IntegerChoice{
+					Name:  choice.Name,
+					Value: int(value),
+				})
+			}
+
+			o = &discord.IntegerOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+				Min:         minValue,
+				Max:         maxValue,
+				Choices:     choices,
+			}
+		case CommandArgumentTypeBoolean:
+			o = &discord.BooleanOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		case CommandArgumentTypeUser:
+			o = &discord.UserOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		case CommandArgumentTypeChannel:
+			o = &discord.ChannelOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		case CommandArgumentTypeRole:
+			o = &discord.RoleOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		case CommandArgumentTypeMentionable:
+			o = &discord.MentionableOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		case CommandArgumentTypeNumber:
+			var minValue option.Float
+			if node.Data.CommandArgumentMinValue != 0 {
+				minValue = option.NewFloat(node.Data.CommandArgumentMinValue)
+			}
+
+			var maxValue option.Float
+			if node.Data.CommandArgumentMaxValue != 0 {
+				maxValue = option.NewFloat(node.Data.CommandArgumentMaxValue)
+			}
+
+			var choices []discord.NumberChoice
+			for _, choice := range node.Data.CommandArgumentChoices {
+				if choice.Name == "" || choice.Value == "" {
+					continue
+				}
+
+				value, _ := strconv.ParseFloat(choice.Value, 64)
+
+				choices = append(choices, discord.NumberChoice{
+					Name:  choice.Name,
+					Value: value,
+				})
+			}
+
+			o = &discord.NumberOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+				Min:         minValue,
+				Max:         maxValue,
+				Choices:     choices,
+			}
+		case CommandArgumentTypeAttachment:
+			o = &discord.AttachmentOption{
+				OptionName:  node.Data.Name,
+				Description: node.Data.Description,
+				Required:    node.Data.CommandArgumentRequired,
+			}
+		}
+
+		if o != nil {
+			res = append(res, o)
 		}
 	}
 
 	return res
+}
+
+// commandArgumentNodes returns the argument blocks of a command in the order
+// they are shown in Discord. Required arguments always come first, as Discord
+// rejects commands with a required argument after an optional one. Within
+// that, arguments follow CommandArgumentOrder of the command, and arguments
+// missing from it come last.
+func (n *CompiledFlowNode) commandArgumentNodes() []*CompiledFlowNode {
+	var required, optional []*CompiledFlowNode
+	for _, node := range n.Parents.Default {
+		if !node.IsCommandArgument() {
+			continue
+		}
+
+		if node.Data.CommandArgumentRequired {
+			// Without an order the last connected required argument is first
+			required = append([]*CompiledFlowNode{node}, required...)
+		} else {
+			optional = append(optional, node)
+		}
+	}
+
+	rank := func(node *CompiledFlowNode) int {
+		if i := slices.Index(n.Data.CommandArgumentOrder, node.ID); i != -1 {
+			return i
+		}
+		return len(n.Data.CommandArgumentOrder)
+	}
+	byRank := func(a, b *CompiledFlowNode) int {
+		return rank(a) - rank(b)
+	}
+	slices.SortStableFunc(required, byRank)
+	slices.SortStableFunc(optional, byRank)
+
+	return append(required, optional...)
 }
 
 func (n *CompiledFlowNode) CommandPermissions() *discord.Permissions {
@@ -542,58 +605,6 @@ func (n *CompiledFlowNode) EventScheduleCron() string {
 	return n.Data.EventScheduleCron
 }
 
-func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
-	if len(n.Parents.Default) == 0 {
-		return true, nil
-	}
-
-	for _, node := range n.Parents.Default {
-		if node.IsEventFilter() {
-			var target string
-
-			switch node.Data.EventFilterTarget {
-			case EventFilterTypeMessageContent:
-				if msg, ok := ctx.Data.Event().(*gateway.MessageCreateEvent); ok {
-					target = msg.Content
-				}
-			case EventFilterTypeUserID:
-				target = ctx.Data.UserID().String()
-			case EventFilterTypeGuildID:
-				target = ctx.Data.GuildID().String()
-			case EventFilterTypeChannelID:
-				target = ctx.Data.ChannelID().String()
-			case EventFilterTypeMessageID:
-				target = ctx.Data.MessageID().String()
-			}
-
-			switch node.Data.EventFilterMode {
-			case ComparsionModeEqual:
-				if target != node.Data.EventFilterValue {
-					return false, nil
-				}
-			case ComparsionModeNotEqual:
-				if target == node.Data.EventFilterValue {
-					return false, nil
-				}
-			case ComparsionModeContains:
-				if !strings.Contains(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			case ComparsionModeStartsWith:
-				if !strings.HasPrefix(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			case ComparsionModeEndsWith:
-				if !strings.HasSuffix(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			}
-		}
-	}
-
-	return true, nil
-}
-
 func (n *CompiledFlowNode) EventDescription() string {
 	if !n.IsEventListenerEntry() {
 		return ""
@@ -603,6 +614,10 @@ func (n *CompiledFlowNode) EventDescription() string {
 
 func (n *CompiledFlowNode) IsAction() bool {
 	return strings.HasPrefix(string(n.Type), "action_")
+}
+
+func (n *CompiledFlowNode) IsConditionItem() bool {
+	return strings.HasPrefix(string(n.Type), "control_condition_item_")
 }
 
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {

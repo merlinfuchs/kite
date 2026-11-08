@@ -1,22 +1,20 @@
-import { CheckIcon, InfinityIcon } from "lucide-react";
+import PlanCards from "../common/PlanCards";
+import Link from "next/link";
+import { HeartIcon } from "lucide-react";
 import { Button } from "../ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
-import { ReactNode, useMemo } from "react";
+import { BillingPlan } from "@/lib/types/wire.gen";
+import { useMemo, useState } from "react";
 import {
+  useDonationCheckout,
   useLemonSqueezyCheckout,
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
-import { formatInterval, formatNumber } from "@/lib/utils";
+import env from "@/lib/env/client";
 import ConfirmDialog from "../common/ConfirmDialog";
+import PlanIntervalToggle from "../common/PlanIntervalToggle";
+import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -27,23 +25,46 @@ export default function AppPricingList() {
   );
 
   const plans = useBillingPlans();
+  const visiblePlans = useMemo(
+    () =>
+      plans?.filter((plan): plan is BillingPlan => !!plan && !plan.hidden) ??
+      [],
+    [plans]
+  );
+  const yearlyAvailable = plansHaveYearly(visiblePlans);
+
+  // Monthly by default, unless the app already pays yearly, so its current
+  // plan shows as such.
+  const [chosenInterval, setChosenInterval] = useState<BillingInterval>();
+  const paysYearly = activeSubscriptions?.some((subscription) =>
+    visiblePlans.some(
+      (plan) =>
+        planVariantId(plan, "yearly") === subscription!.lemonsqueezy_variant_id
+    )
+  );
+  const interval: BillingInterval = !yearlyAvailable
+    ? "monthly"
+    : chosenInterval ?? (paysYearly ? "yearly" : "monthly");
 
   const pricings = useMemo(() => {
-    return (
-      plans
-        ?.filter((plan) => !plan!.hidden)
-        .map((plan) => {
-          return {
-            ...plan!,
-            current: activeSubscriptions?.some(
+    return visiblePlans.map((plan) => {
+      return {
+        ...plan,
+        current: plan.default
+          ? activeSubscriptions?.length === 0
+          : activeSubscriptions?.some(
               (subscription) =>
                 subscription!.lemonsqueezy_product_id ===
-                plan!.lemonsqueezy_product_id
+                  plan.lemonsqueezy_product_id &&
+                // Monthly and yearly are variants of the same product, so
+                // switching between them is a plan switch too.
+                (!yearlyAvailable ||
+                  subscription!.lemonsqueezy_variant_id ===
+                    planVariantId(plan, interval))
             ),
-          };
-        }) ?? []
-    );
-  }, [activeSubscriptions, plans]);
+      };
+    });
+  }, [activeSubscriptions, visiblePlans, yearlyAvailable, interval]);
 
   // Switching plans updates the existing subscription instead of buying a
   // second one. We can only do that for a subscription the current user owns.
@@ -54,110 +75,60 @@ export default function AppPricingList() {
     !switchableSubscription && !!activeSubscriptions?.length;
 
   const checkout = useLemonSqueezyCheckout();
+  const donate = useDonationCheckout();
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
-    <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
-      {pricings.map((pricing) => (
-        <Card
-          key={pricing.title}
-          className={
-            pricing.popular
-              ? "drop-shadow-xl shadow-black/10 dark:shadow-white/10"
-              : "xl:my-8 "
-          }
+    <div>
+      {yearlyAvailable && (
+        <div className="mb-8">
+          <PlanIntervalToggle
+            plans={visiblePlans}
+            value={interval}
+            onChange={setChosenInterval}
+          />
+        </div>
+      )}
+      <PlanCards
+        plans={pricings}
+        interval={interval}
+        badge={(pricing) =>
+          pricing.current && <Badge className="text-sm">Current</Badge>
+        }
+        button={(pricing) => (
+          <PricingButton
+            pricing={pricing}
+            interval={yearlyAvailable ? interval : undefined}
+            blockedByOtherOwner={blockedByOtherOwner}
+            canSwitch={!!switchableSubscription && !pricing.current}
+            onCheckout={() => checkout(pricing, interval)}
+            onSwitch={() => switchPlan(pricing, interval)}
+          />
+        )}
+      />
+      <div className="text-center mt-6">
+        <Link
+          href="/pricing#compare"
+          className="text-sm font-medium text-primary hover:underline"
         >
-          <CardHeader>
-            <CardTitle className="flex item-center justify-between">
-              {pricing.title}
-              {pricing.popular ? (
-                <Badge variant="secondary" className="text-sm text-primary">
-                  Best Value
-                </Badge>
-              ) : null}
-            </CardTitle>
-            <div>
-              <span className="text-3xl font-bold">${pricing.price}</span>
-              <span className="text-muted-foreground"> /month</span>
+          Compare all limits
+        </Link>
+      </div>
+      {env.NEXT_PUBLIC_DONATION_VARIANT_ID && (
+        <div className="mt-10 rounded-xl border bg-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <div className="font-medium">Want to support Kite?</div>
+            <div className="text-sm text-muted-foreground">
+              Don&apos;t need a bigger plan? You can still support Kite with a
+              one-time donation of any amount.
             </div>
-
-            <CardDescription>{pricing.description}</CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <PricingButton
-              pricing={pricing}
-              blockedByOtherOwner={blockedByOtherOwner}
-              canSwitch={!!switchableSubscription && !pricing.current}
-              onCheckout={() => checkout(pricing.lemonsqueezy_variant_id)}
-              onSwitch={() => switchPlan(pricing.lemonsqueezy_variant_id)}
-            />
-          </CardContent>
-
-          <hr className="w-4/5 m-auto mb-4" />
-
-          <CardFooter className="flex">
-            <div className="space-y-4">
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_collaborators} Collaborator
-                  {pricing.feature_max_collaborators === 1 ? "" : "s"}
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {formatNumber(pricing.feature_usage_credits_per_month)}{" "}
-                  Credits / month
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">{pricing.feature_max_guilds} Servers</h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_commands} Commands & Variables
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_event_listeners} Event Listeners
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {/* 0 means no limit, like every other limit. */}
-                  {pricing.feature_max_scheduled_event_listeners ||
-                    "Unlimited"}{" "}
-                  Schedules, every{" "}
-                  {formatInterval(
-                    pricing.feature_min_schedule_interval_seconds
-                  )}
-                </h3>
-              </span>
-              {pricing.feature_rotating_status && (
-                <span className="flex">
-                  <CheckIcon className="text-green-500" />{" "}
-                  <h3 className="ml-2">Rotating & flow-controlled status</h3>
-                </span>
-              )}
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_priority_support
-                    ? "Priority support"
-                    : "Community support"}
-                </h3>
-              </span>
-            </div>
-          </CardFooter>
-        </Card>
-      ))}
+          </div>
+          <Button variant="outline" onClick={donate}>
+            <HeartIcon className="mr-2 h-4 w-4 text-primary" />
+            Donate
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -166,6 +137,7 @@ export default function AppPricingList() {
 // it in a confirmation, because it charges the customer straight away.
 function PricingButton({
   pricing,
+  interval,
   canSwitch,
   blockedByOtherOwner,
   onCheckout,
@@ -177,6 +149,8 @@ function PricingButton({
     popular: boolean;
     current?: boolean;
   };
+  // Only named in the confirmation when there's a choice of interval.
+  interval?: BillingInterval;
   canSwitch: boolean;
   blockedByOtherOwner: boolean;
   onCheckout: () => void;
@@ -193,12 +167,12 @@ function PricingButton({
       onClick={canSwitch ? undefined : onCheckout}
     >
       {canSwitch
-        ? "Switch Plan"
+        ? "Switch plan"
         : pricing.current
-        ? "Current Plan"
+        ? "Current plan"
         : blockedByOtherOwner
         ? "Managed by another user"
-        : "Get Started"}
+        : "Get started"}
     </Button>
   );
 
@@ -206,7 +180,7 @@ function PricingButton({
 
   return (
     <ConfirmDialog
-      title={`Switch to ${pricing.title}?`}
+      title={`Switch to ${pricing.title}${interval ? ` (${interval})` : ""}?`}
       description={
         "Your subscription changes to this plan straight away. " +
         "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."

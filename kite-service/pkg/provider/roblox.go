@@ -9,4 +9,5 @@ import (
 type RobloxProvider interface {
 	UserByID(ctx context.Context, id int64) (*thing.RobloxUserValue, error)
 	UsersByUsername(ctx context.Context, username string) ([]thing.RobloxUserValue, error)
+	UserAvatarURL(ctx context.Context, id int64) (string, error)
 }

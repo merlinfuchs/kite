@@ -77,6 +77,30 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds,
 		},
 		{
+			// A boost arrives as a system message, so it doesn't need the
+			// privileged guild members intent.
+			name: "boost listener adds guild messages but not guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildBoost,
+				},
+			},
+			flags: GATEWAY_GUILD_MEMBERS,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
+		},
+		{
+			// A boost removal is the booster role being taken away, which
+			// only arrives with the guild members intent.
+			name: "boost remove listener adds guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildBoostRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
+		},
+		{
 			name: "bot joined and left server listeners need guilds only",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
@@ -86,6 +110,28 @@ func TestIntentsForRequirements(t *testing.T) {
 			},
 			flags: allPrivilegedFlags,
 			want:  gateway.IntentGuilds,
+		},
+		{
+			name: "direct message listeners need direct messages intent",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordDirectMessageCreate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentDirectMessages,
+		},
+		{
+			name: "message listeners don't get direct messages",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordMessageCreate,
+					model.EventListenerTypeDiscordMessageUpdate,
+					model.EventListenerTypeDiscordMessageDelete,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent,
 		},
 		{
 			// Reactions used to be requested unconditionally for every app.
@@ -99,6 +145,24 @@ func TestIntentsForRequirements(t *testing.T) {
 			},
 			flags: allPrivilegedFlags,
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
+		},
+		{
+			name: "audit log listeners add moderation",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
+		},
+		{
+			name: "flows that play audio add voice states",
+			reqs: model.AppGatewayRequirements{
+				UsesVoice: true,
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
 		},
 		{
 			name: "starboard plugin adds reactions but not messages",
@@ -160,6 +224,7 @@ func TestIntentsAlwaysIncludeGuilds(t *testing.T) {
 		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageDelete}},
 		{PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"}},
 		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordMessageReactionRemove}},
+		{EventListenerTypes: []model.EventListenerType{model.EventListenerTypeDiscordDirectMessageCreate}},
 	}
 
 	for i, r := range reqs {
@@ -177,7 +242,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)
@@ -194,5 +259,13 @@ func TestAllPermittedIntentsRespectsFlags(t *testing.T) {
 	}
 	if got&gateway.IntentGuildMembers != 0 {
 		t.Error("guild members granted without the portal flag")
+	}
+}
+
+// DMs only reach apps with a direct message listener, also when requirements
+// can't be loaded, or apps without one would get every DM sent to their bot.
+func TestAllPermittedIntentsExcludesDirectMessages(t *testing.T) {
+	if got := allPermittedIntents(allPrivilegedFlags); got&gateway.IntentDirectMessages != 0 {
+		t.Error("direct messages granted to an app without a direct message listener")
 	}
 }

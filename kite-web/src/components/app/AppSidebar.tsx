@@ -31,6 +31,7 @@ import AppSidebarMainNav from "./AppSidebarMainNav";
 import AppSidebarSupportCard from "./AppSidebarSupportCard";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
+import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
@@ -44,7 +45,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const isDashboardActive = router.pathname === "/apps/[appId]";
   const isCommandsActive = router.pathname.startsWith("/apps/[appId]/commands");
-  const isEventsActive = router.pathname.startsWith("/apps/[appId]/events");
+  const isEventsActive = eventSources.some((source) =>
+    router.pathname.startsWith(eventSourceName(source).path)
+  );
 
   const isOtherActive =
     !isDashboardActive && !isCommandsActive && !isEventsActive;
@@ -71,7 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       {appId && (
         <nav
-          aria-label="Mobile Navigation"
+          aria-label="Mobile navigation"
           className="z-40 block md:hidden select-none fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border shadow-lg pb-[env(safe-area-inset-bottom)]"
         >
           <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
@@ -156,7 +159,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           )}
         >
           <DrawerHeader className="sr-only">
-            <DrawerTitle>Navigation Menu</DrawerTitle>
+            <DrawerTitle>Navigation menu</DrawerTitle>
             <DrawerDescription>
               Mobile navigation options for Kite
             </DrawerDescription>

@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import "@/styles/shadow.css";
 import "@/styles/message-preview.css";
+import "@/styles/modal-preview.css";
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
 import { useEffect, type ReactElement, type ReactNode } from "react";
@@ -11,6 +12,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
+import KiteBanDialog from "@/components/common/KiteBanDialog";
+import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
 
 function ServiceWorkerRegistration() {
   useEffect(() => {
@@ -93,6 +96,8 @@ type AppPropsWithLayout = AppProps & {
   Component: NextPageWithLayout;
 };
 
+const noIconSvgs = {};
+
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);
 
@@ -108,10 +113,17 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
           <ThemeMetaSync />
           <ServiceWorkerRegistration />
           <TooltipProvider delayDuration={200}>
-            {getLayout(<Component {...pageProps} />)}
+            {/* Pages with templates rendered on the server pass the SVGs of
+            their icons, see templateIconSvgs. */}
+            <TemplateIconSvgsContext.Provider
+              value={pageProps.templateIconSvgs ?? noIconSvgs}
+            >
+              {getLayout(<Component {...pageProps} />)}
+            </TemplateIconSvgsContext.Provider>
             <Toaster position="top-right" richColors={true} />
 
             <AnalyticsProvider />
+            <KiteBanDialog />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>

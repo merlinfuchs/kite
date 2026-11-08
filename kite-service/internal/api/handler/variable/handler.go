@@ -74,36 +74,65 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 	return wire.VariableToWire(variable), nil
 }
 
-func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.VariablesImportRequest) (*wire.VariablesImportResponse, error) {
-	if c.Features.MaxVariables != 0 {
-		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count variables: %w", err)
-		}
-
-		newVariableCount := variableCount + len(req.Variables)
-
-		if newVariableCount > c.Features.MaxVariables {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", c.Features.MaxVariables))
-		}
+// PrepareImport checks that the variables can be added to the app and returns
+// them with their IDs set, without saving them. Names the app already uses get
+// a number, as a name can only be used once.
+func (h *VariableHandler) PrepareImport(c *handler.Context, reqs []wire.VariableCreateRequest) ([]*model.Variable, error) {
+	if len(reqs) == 0 {
+		return nil, nil
 	}
 
-	res := make([]*wire.Variable, len(req.Variables))
+	existing, err := h.variableStore.VariablesByAppWithoutTotals(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
+	if c.Features.MaxVariables != 0 && len(existing)+len(reqs) > c.Features.MaxVariables {
+		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", c.Features.MaxVariables))
+	}
 
-	for i, v := range req.Variables {
-		variable, err := h.variableStore.CreateVariable(c.Context(), &model.Variable{
+	taken := make(map[string]bool, len(existing)+len(reqs))
+	for _, v := range existing {
+		taken[v.Name] = true
+	}
+
+	variables := make([]*model.Variable, len(reqs))
+	for i, req := range reqs {
+		if err := req.Validate(); err != nil {
+			return nil, err
+		}
+		name := req.Name
+		for n := 2; taken[name]; n++ {
+			suffix := fmt.Sprintf("_%d", n)
+			name = req.Name[:min(len(req.Name), 100-len(suffix))] + suffix
+		}
+		taken[name] = true
+
+		variables[i] = &model.Variable{
 			ID:        util.UniqueID(),
-			Name:      v.Name,
-			Scoped:    v.Scoped,
+			Name:      name,
+			Scoped:    req.Scoped,
 			AppID:     c.App.ID,
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
-		})
+		}
+	}
+
+	return variables, nil
+}
+
+func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.VariablesImportRequest) (*wire.VariablesImportResponse, error) {
+	variables, err := h.PrepareImport(c, req.Variables)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.Variable, len(variables))
+	for i, variable := range variables {
+		created, err := h.variableStore.CreateVariable(c.Context(), variable)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create variable: %w", err)
 		}
-
-		res[i] = wire.VariableToWire(variable)
+		res[i] = wire.VariableToWire(created)
 	}
 
 	return &res, nil

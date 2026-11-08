@@ -3,11 +3,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageBulkDelete: BlockDefinition = {
   type: "action_message_bulk_delete",
+  id_prefix: "message",
   title: "Bulk delete messages",
   description: "Delete 2 to 100 messages of a channel at once",
   icon: "trash-2",
   category: "Messages",
   credits: 1,
+  permissions: ["MANAGE_MESSAGES"],
   audit_log_reason: true,
   // Destructive, but Discord only deletes up to 100 messages that are less
   // than 2 weeks old, and only the ones given by ID.

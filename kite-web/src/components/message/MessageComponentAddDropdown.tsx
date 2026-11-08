@@ -1,5 +1,6 @@
 import { ChevronDownIcon } from "lucide-react";
 import { MessageNode, NewNode, NodeId } from "@/lib/message/document";
+import { selectMenuTypes } from "@/lib/message/selectMenu";
 import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
@@ -17,15 +18,18 @@ const componentTypes: {
   /** A component to put inside the new one, like the select menu of its row. */
   child?: NewNode;
 }[] = [
-  { label: "Button Row", node: { type: "actionRow" } },
-  {
-    label: "Select Menu",
-    node: { type: "actionRow" },
-    child: { type: "selectMenu" },
-  },
+  { label: "Button row", node: { type: "actionRow" } },
+  ...selectMenuTypes.map((t) => ({
+    label: t.label,
+    node: { type: "actionRow" } as NewNode,
+    child: {
+      type: "selectMenu",
+      select_type: t.type === 3 ? undefined : t.type,
+    } as NewNode,
+  })),
   { label: "Section", node: { type: "section" } },
-  { label: "Text Display", node: { type: "textDisplay", content: "" } },
-  { label: "Media Gallery", node: { type: "mediaGallery" } },
+  { label: "Text display", node: { type: "textDisplay", content: "" } },
+  { label: "Media gallery", node: { type: "mediaGallery" } },
   {
     label: "File",
     node: { type: "file", file: { url: "" } },
@@ -64,7 +68,7 @@ export default function MessageComponentAddDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled}>
         <Button size={size} className="space-x-2">
-          <div>Add Component</div>
+          <div>Add component</div>
           <ChevronDownIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

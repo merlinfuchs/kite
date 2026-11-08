@@ -110,6 +110,24 @@ test("inserting a button gives it its own flow source", () => {
   expect(button.flow_source_id).not.toBe("button-flow");
 });
 
+test("only string selects get a first option", () => {
+  const rowId = state().insert(state().rootId, "components", "end", {
+    type: "actionRow",
+  });
+  const stringSelectId = state().insert(rowId, "components", "end", {
+    type: "selectMenu",
+  });
+  const channelSelectId = state().insert(rowId, "components", "end", {
+    type: "selectMenu",
+    select_type: 8,
+  });
+
+  expect(state().nodes[stringSelectId]).toMatchObject({
+    optionIds: [expect.any(String)],
+  });
+  expect(state().nodes[channelSelectId]).toMatchObject({ optionIds: [] });
+});
+
 test("inserting into the accessory slot replaces the old accessory", () => {
   const [sectionId] = nodeIdsOfType("section");
   const oldAccessoryId = (state().nodes[sectionId] as SectionNode).accessoryId;

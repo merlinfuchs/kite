@@ -16,9 +16,12 @@ export default function MessageCollapsibleSection({
   actions,
   className,
   animate = true,
+  count,
 }: {
   children: ReactNode;
   title: string;
+  // Shown next to the title like the counter of an input, e.g. "3 / 10".
+  count?: ReactNode;
   defaultOpen?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
   validation?: ValidationScope;
@@ -61,6 +64,11 @@ export default function MessageCollapsibleSection({
             )}
           />
           <div>{title}</div>
+          {count !== undefined && (
+            <div className="pl-1 text-sm italic font-light text-muted-foreground">
+              {count}
+            </div>
+          )}
           {validation && (
             <div className="pl-1">
               <MessageValidationErrorIndicator scope={validation} />

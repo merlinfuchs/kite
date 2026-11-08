@@ -1,10 +1,14 @@
 package plan
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 func testManager() *PlanManager {
@@ -69,5 +73,43 @@ func TestPlansFromConfigDefaultsMinScheduleInterval(t *testing.T) {
 	}
 	if got := plans[1].FeatureMinScheduleIntervalSeconds; got != 1 {
 		t.Errorf("configured interval = %d, want 1", got)
+	}
+}
+
+// Switching to a yearly variant must resolve to the same plan, and the empty
+// yearly ID of a monthly-only plan must not match an empty request.
+func TestPlanByLemonSqueezyVariantID(t *testing.T) {
+	m := &PlanManager{plans: []model.Plan{
+		{ID: "basic", Default: true},
+		{ID: "pro", LemonSqueezyVariantID: "1", LemonSqueezyYearlyVariantID: "2"},
+	}}
+
+	for variantID, want := range map[string]string{"1": "pro", "2": "pro", "3": "", "": ""} {
+		got := ""
+		if plan := m.PlanByLemonSqueezyVariantID(variantID); plan != nil {
+			got = plan.ID
+		}
+		if got != want {
+			t.Errorf("variant %q resolved to plan %q, want %q", variantID, got, want)
+		}
+	}
+}
+
+type brokenEntitlementStore struct {
+	store.EntitlementStore
+}
+
+func (brokenEntitlementStore) ActiveEntitlements(context.Context, string, time.Time) ([]*model.Entitlement, error) {
+	return nil, errors.New("database unavailable")
+}
+
+// Falling back to the default plan would treat paid apps as free ones, like
+// saving their settings without the premium features they pay for.
+func TestAppFeaturesFailsWhenEntitlementsFail(t *testing.T) {
+	m := testManager()
+	m.entitlementStore = brokenEntitlementStore{}
+
+	if _, err := m.AppFeatures(context.Background(), "app"); err == nil {
+		t.Error("expected an error")
 	}
 }

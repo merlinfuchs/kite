@@ -1,4 +1,5 @@
 import { z } from "zod";
+import "../zodConfig";
 import { getUniqueId } from "@/lib/utils";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
@@ -171,7 +172,15 @@ export const embedTimestampSchema = z.optional(z.string());
 
 export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
-export const embedColor = z.optional(z.number().max(16777215));
+// A color with placeholders, like {{arg('color')}}, that flows fill in.
+// Messages sent without a flow leave it out.
+const colorTemplateSchema = z
+  .string()
+  .regex(VARIABLE_RE, "Must be a placeholder like {{arg('color')}}");
+
+export const embedColor = z.optional(
+  z.union([z.number().max(16777215), colorTemplateSchema])
+);
 
 export type EmbedColor = z.infer<typeof embedColor>;
 
@@ -182,6 +191,7 @@ export const embedSchema = z
     description: embedDescriptionSchema,
     url: embedUrlSchema,
     timestamp: embedTimestampSchema,
+    timestamp_now: z.optional(z.boolean()),
     color: embedColor,
     footer: embedFooterSchema,
     author: embedAuthorSchema,
@@ -283,15 +293,29 @@ export type MessageComponentSelectMenuOption = z.infer<
   typeof selectMenuOptionSchema
 >;
 
+// String selects list their own options, Discord fills in the others with
+// users, roles, users and roles (mentionable) or channels.
+export const selectMenuTypeSchema = z
+  .literal(3)
+  .or(z.literal(5))
+  .or(z.literal(6))
+  .or(z.literal(7))
+  .or(z.literal(8));
+
+export type MessageComponentSelectMenuType = z.infer<
+  typeof selectMenuTypeSchema
+>;
+
 export const selectMenuSchema = z
   .object({
     id: uniqueIdSchema.default(() => getUniqueId()),
-    type: z.literal(3),
+    type: selectMenuTypeSchema,
     placeholder: z.optional(z.string().max(150)),
     min_values: z.optional(z.number().int().min(0).max(25)),
     max_values: z.optional(z.number().int().min(1).max(25)),
     disabled: z.optional(z.boolean()),
-    options: z.array(selectMenuOptionSchema).min(1).max(25),
+    options: z.array(selectMenuOptionSchema).max(25).default([]),
+    channel_types: z.optional(z.array(z.number().int())),
     flow_source_id: z.string().default(() => getUniqueId().toString()),
   })
   .superRefine((data, ctx) => {
@@ -302,6 +326,16 @@ export const selectMenuSchema = z
         code: z.ZodIssueCode.custom,
         path: ["max_values"],
         message: "Maximum can't be lower than the minimum",
+      });
+    }
+
+    if (data.type !== 3) return;
+
+    if (data.options.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["options"],
+        message: "A select menu needs at least one option",
       });
     }
     if (max > data.options.length) {
@@ -336,7 +370,7 @@ export const actionRowSchema = z.object({
     .max(5)
     .refine(
       (components) =>
-        components.length === 1 || components.every((c) => c.type !== 3),
+        components.length === 1 || components.every((c) => c.type === 2),
       "A select menu has to be alone in its row"
     ),
 });
@@ -452,7 +486,9 @@ export const containerSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(17),
   components: z.array(containerChildSchema).min(1),
-  accent_color: z.optional(z.number().int().min(0).max(0xffffff)),
+  accent_color: z.optional(
+    z.union([z.number().int().min(0).max(0xffffff), colorTemplateSchema])
+  ),
   spoiler: z.optional(z.boolean()),
 });
 
@@ -548,6 +584,39 @@ function countComponents(components: unknown[]): {
   return { count, text };
 }
 
+// Discord's limit for the text of all embeds of a message together.
+export const MAX_EMBEDS_TEXT = 6000;
+
+const VARIABLE_RE_GLOBAL = new RegExp(VARIABLE_RE.source, "g");
+
+/**
+ * The length of the text Discord counts towards MAX_EMBEDS_TEXT, without
+ * placeholders. They're only filled in when the message is sent, so this is
+ * the least the message can come to.
+ */
+export function embedsTextLength(
+  embeds: {
+    title?: string;
+    description?: string;
+    footer?: { text?: string };
+    author?: { name?: string };
+    fields?: { name?: string; value?: string }[];
+  }[]
+): number {
+  const len = (s: string | undefined) =>
+    s ? s.replace(VARIABLE_RE_GLOBAL, "").length : 0;
+
+  let total = 0;
+  for (const embed of embeds) {
+    total += len(embed.title) + len(embed.description);
+    total += len(embed.footer?.text) + len(embed.author?.name);
+    for (const field of embed.fields ?? []) {
+      total += len(field.name) + len(field.value);
+    }
+  }
+  return total;
+}
+
 export const messageSchema = z
   .object({
     content: messageContentSchema.default(""),
@@ -606,6 +675,14 @@ export const messageSchema = z
         });
       }
     });
+
+    if (embedsTextLength(data.embeds) > MAX_EMBEDS_TEXT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["embeds"],
+        message: `Text across all embeds can be at most ${MAX_EMBEDS_TEXT} characters`,
+      });
+    }
 
     // this currently doesn't take attachments into account
     if (!data.content && !data.embeds.length && !data.components.length) {

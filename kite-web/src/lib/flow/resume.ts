@@ -4,7 +4,11 @@ import {
   ComponentData,
   ComponentTypeActionRow,
   ComponentTypeButton,
+  ComponentTypeChannelSelect,
+  ComponentTypeMentionableSelect,
+  ComponentTypeRoleSelect,
   ComponentTypeStringSelect,
+  ComponentTypeUserSelect,
 } from "../types/message.gen";
 
 // The format has to match the backend for the resume point to work.
@@ -12,6 +16,18 @@ const componentHandlePrefix = "component_";
 
 export function componentHandleId(componentId: number | undefined) {
   return `${componentHandlePrefix}${componentId}`;
+}
+
+const selectMenuComponentTypes = [
+  ComponentTypeStringSelect,
+  ComponentTypeUserSelect,
+  ComponentTypeRoleSelect,
+  ComponentTypeMentionableSelect,
+  ComponentTypeChannelSelect,
+];
+
+export function isSelectMenu(c: ComponentData) {
+  return selectMenuComponentTypes.includes(c.type ?? 0);
 }
 
 // isResumeEdge reports whether the flow suspends between the edge's source and
@@ -30,7 +46,7 @@ export function collectComponentGroups(
   const groups: ComponentData[][] = [];
 
   const isInteractive = (c: ComponentData) =>
-    c.type === ComponentTypeStringSelect ||
+    isSelectMenu(c) ||
     (c.type === ComponentTypeButton && c.style !== ButtonStyleLink);
 
   const walk = (c: ComponentData) => {

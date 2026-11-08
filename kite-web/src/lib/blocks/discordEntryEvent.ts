@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryEvent: BlockDefinition = {
   type: "entry_event",
+  id_prefix: "event",
   title: "Listen for Event",
   description:
     "Listens for an event to trigger the flow. Drop different actions here!",
@@ -26,11 +27,15 @@ export const discordEntryEvent: BlockDefinition = {
           "message_reaction_remove",
           "guild_create",
           "guild_delete",
+          "direct_message_create",
+          "guild_boost",
+          "guild_boost_remove",
+          "guild_audit_log_entry_create",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
         ),
     },
     {
