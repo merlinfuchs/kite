@@ -4026,8 +4026,8 @@ function ChannelEditDataInput(props: InputProps) {
       <BaseInput
         type="text"
         field="channel_data.applied_tags"
-        title="Forum Post Tags"
-        description="Only for forum and media posts. Names of up to 5 of the channel's tags, separated by commas. Leave empty to keep its current tags."
+        title="Post tags"
+        description="Only for forum and media posts. Names or IDs of up to 5 of the forum's tags, separated by commas. Leave empty to keep the post's current tags."
         value={data.channel_data?.applied_tags || ""}
         updateValue={(v) =>
           updateData({

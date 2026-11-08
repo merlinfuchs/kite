@@ -326,13 +326,17 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 		return nil, fmt.Errorf("a post can have at most %d tags, got %d", maxForumPostTags, len(names))
 	}
 
+	notForum := fmt.Errorf("channel %s is not a forum or media channel", channelID)
 	if isPost {
+		// Posts are threads, but so are threads of text channels, which have
+		// no tags.
+		notForum = fmt.Errorf("only forum and media posts have tags, channel %s isn't one", channelID)
 		post, err := ctx.Discord.Channel(ctx, channelID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get post channel: %w", err)
 		}
-		if post == nil || !post.ParentID.IsValid() {
-			return nil, fmt.Errorf("channel %s is not a forum or media post", channelID)
+		if post == nil || post.Type != discord.GuildPublicThread {
+			return nil, notForum
 		}
 		channelID = post.ParentID
 	}
@@ -342,7 +346,7 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 		return nil, fmt.Errorf("failed to get forum channel: %w", err)
 	}
 	if channel == nil || channel.Type != discord.GuildForum && channel.Type != guildMediaChannel {
-		return nil, fmt.Errorf("channel %s is not a forum or media channel", channelID)
+		return nil, notForum
 	}
 
 	tags := make([]discord.TagID, 0, len(names))

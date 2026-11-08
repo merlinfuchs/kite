@@ -275,6 +275,11 @@ func TestChannelEditAppliedTags(t *testing.T) {
 				ID:   5,
 				Type: discord.GuildText,
 			},
+			7: {
+				ID:       7,
+				Type:     discord.GuildPublicThread,
+				ParentID: 5,
+			},
 		},
 	}
 
@@ -296,10 +301,12 @@ func TestChannelEditAppliedTags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, p.edit.AppliedTags)
 
-	// Non-post channel with tags should return an error.
-	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
-		"channel_target": "5",
-		"channel_data": {"applied_tags": "resolved"}
-	}`)
-	require.ErrorContains(t, err, "is not a forum or media post")
+	// Channels and threads that aren't posts have no tags.
+	for _, channel := range []string{"5", "7"} {
+		_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+			"channel_target": "`+channel+`",
+			"channel_data": {"applied_tags": "resolved"}
+		}`)
+		require.ErrorContains(t, err, "only forum and media posts have tags, channel "+channel+" isn't one")
+	}
 }

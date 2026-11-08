@@ -27,7 +27,7 @@ The `Edit channel` block is used to edit a channel in a chosen category.
 >
 > `Lock thread` Only for threads. Only moderators can unarchive a locked thread. Archive and lock a thread to close it, like a ticket, and keep its messages. Discord doesn't allow other changes to an archived thread, so unarchive it in the same block to change it.
 >
-> `Forum post tags` Only for forum and media posts. Names or IDs of up to 5 of the channel's tags, separated by commas. Leave empty to keep its current tags.
+> `Post tags` Only for forum and media posts. Names or IDs of up to 5 of the forum's tags, separated by commas. Leave empty to keep the post's current tags.
 
 ### Permission overwrites
 
