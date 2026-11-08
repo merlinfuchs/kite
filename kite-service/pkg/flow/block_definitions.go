@@ -683,6 +683,28 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 	return data, nil
 }
 
+// integrationJSONRequest sends a request like integrationRequest, with body
+// as JSON if it isn't nil, and parses the response into res.
+func integrationJSONRequest(ctx *FlowContext, integration Integration, method string, path string, body any, res any) error {
+	var data []byte
+	if body != nil {
+		var err error
+		data, err = json.Marshal(body)
+		if err != nil {
+			return err
+		}
+	}
+
+	resp, err := integrationRequest(ctx, integration, method, path, data)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(resp, res); err != nil {
+		return fmt.Errorf("failed to parse %s's response: %w", integration.Name, err)
+	}
+	return nil
+}
+
 func integrationCredential(ctx *FlowContext, integration Integration) (string, error) {
 	if ctx.Integration == nil {
 		return "", notEnabledError(integration)

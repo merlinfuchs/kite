@@ -16,7 +16,7 @@ export const robloxUserGet: BlockDefinition = {
       name: "roblox_user_target",
       schema: templated(
         z.string(),
-        "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom."
+        "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member."
       ),
     },
     {
