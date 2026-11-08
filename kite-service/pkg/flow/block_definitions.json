@@ -16,7 +16,7 @@
       "auth": {
         "type": "none"
       },
-      "availability": "default"
+      "availability": "always"
     },
     {
       "id": "cookie_api",
