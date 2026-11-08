@@ -85,7 +85,9 @@ const [channel, messages] = await Promise.all([
 return `${channel.name} has ${messages.length} recent messages`;
 ```
 
-The names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. The argument is an object with the endpoint's parameters by name, like `channel_id` and `limit`.
+For Discord, the names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. ER:LC has `erlc.getServer`, with the parameters `Players`, `Staff`, `JoinLogs`, `Queue`, `KillLogs`, `CommandLogs`, `ModCalls`, `EmergencyCalls` and `Vehicles` written like that. Cookie API has `cookieApi.getCaptcha` with `captcha_id`, `cookieApi.getMinecraftUser` with `code`, and `cookieApi.getCurrentTime`.
+
+The argument is an object with the endpoint's parameters by name, like `{ channel_id: "123", limit: 50 }` or `{ Players: true }`. A call with a wrong parameter fails without being sent or billed.
 
 The result is the JSON the API returns, with its own field names. A member has `nick` and `user.global_name`, not the `display_name` of placeholders.
 

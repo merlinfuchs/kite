@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -182,24 +183,52 @@ type javaScriptHost struct {
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
 	integration, id, _ := strings.Cut(name, ".")
 	op, ok := operations[integration][id]
-	if !ok || op.Method != http.MethodGet {
+	// Operations of the interaction are all writes.
+	if !ok || op.Method != http.MethodGet || op.Interaction {
 		return nil
 	}
 
 	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
-		h.mu.Lock()
-		err := h.ctx.checkIntegration(op.Integration)
-		if err == nil {
-			err = h.ctx.increaseCredits(op.Policy.Credits)
+		path, body, err := operationRequest(op, arg)
+		if err != nil {
+			return nil, err
 		}
+
 		// A copy that's canceled with the call, which only reads ctx.
+		h.mu.Lock()
 		c := *h.ctx
+		h.mu.Unlock()
+		c.Context = callCtx
+
+		if err := c.checkIntegration(op.Integration); err != nil {
+			return nil, err
+		}
+		if c.Test != nil && op.Integration != "discord" {
+			return nil, errors.New("test runs don't send requests outside of Discord")
+		}
+
+		h.mu.Lock()
+		err = h.ctx.increaseOperations()
+		// Unlike for a block, a call over the limit isn't billed, as code can
+		// catch the error and keep calling.
+		if err == nil {
+			if err = h.ctx.ensureCredits(op.Policy.Credits); err == nil {
+				err = h.ctx.increaseCredits(op.Policy.Credits)
+			}
+		}
 		h.mu.Unlock()
 		if err != nil {
 			return nil, err
 		}
-		c.Context = callCtx
-		return c.runOperation(op, arg)
+
+		res, err := c.sendOperation(op, path, body, "")
+		if err != nil {
+			return nil, err
+		}
+		if len(bytes.TrimSpace(res)) == 0 {
+			return json.RawMessage("null"), nil
+		}
+		return res, nil
 	}
 }
 

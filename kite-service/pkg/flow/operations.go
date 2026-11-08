@@ -109,21 +109,15 @@ func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, re
 	return integrationRequest(ctx, integration, op.Method, path, body, secrets...)
 }
 
-// runOperation runs op for code with arg, a JSON object with its path and
-// query parameters by name and the fields of its body, like
-// {"channel_id": "1", "content": "Hi"}, and returns the JSON of the response.
-func (ctx *FlowContext) runOperation(op operation, arg json.RawMessage) (json.RawMessage, error) {
+// operationRequest builds the path and body of a call of op from code with
+// arg, a JSON object with its path and query parameters by name and the
+// fields of its body, like {"channel_id": "1", "content": "Hi"}.
+func operationRequest(op operation, arg json.RawMessage) (path string, body []byte, err error) {
 	params := map[string]json.RawMessage{}
 	if arg = bytes.TrimSpace(arg); len(arg) > 0 && string(arg) != "null" {
 		if err := json.Unmarshal(arg, &params); err != nil {
-			return nil, fmt.Errorf("the argument must be an object of its parameters")
+			return "", nil, fmt.Errorf("the argument must be an object of its parameters")
 		}
-	}
-
-	// Operations of the interaction, which need its ID and token, are writes,
-	// which code can't call yet.
-	if op.Interaction {
-		return nil, fmt.Errorf("it isn't available")
 	}
 
 	take := func(list []apiParam) map[string]thing.Thing {
@@ -138,28 +132,18 @@ func (ctx *FlowContext) runOperation(op operation, arg json.RawMessage) (json.Ra
 	}
 	pathParams := take(op.PathParams)
 	query := take(op.QueryParams)
-	path, err := operationPath(op, pathParams, query, nil)
-	if err != nil {
-		return nil, err
+	if path, err = operationPath(op, pathParams, query, nil); err != nil {
+		return "", nil, err
 	}
 
-	var body []byte
 	if len(params) > 0 {
 		if !op.HasBody {
 			names := slices.Sorted(maps.Keys(params))
-			return nil, fmt.Errorf("it has no parameter %s", names[0])
+			return "", nil, fmt.Errorf("it has no parameter %s", names[0])
 		}
 		if body, err = json.Marshal(params); err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
-
-	res, err := ctx.sendOperation(op, path, body, "")
-	if err != nil {
-		return nil, err
-	}
-	if len(bytes.TrimSpace(res)) == 0 {
-		return json.RawMessage("null"), nil
-	}
-	return res, nil
+	return path, body, nil
 }

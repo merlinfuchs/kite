@@ -5878,7 +5878,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 4000,
-                "description": "JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. It can use await. There's no network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
+                "description": "JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit, up to 20 per run. It can't change anything, and has no fetch, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
               },
               "inputs": {
                 "description": "Values the code gets from the flow.",

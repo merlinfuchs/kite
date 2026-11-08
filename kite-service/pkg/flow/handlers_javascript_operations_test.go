@@ -106,6 +106,38 @@ return errors`, p, 15)
 	require.NoError(t, err)
 	assert.JSONEq(t, `["discord.getPaidThing: credits limit exceeded: 15"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.Len(t, p.paths, 1)
+	// Only the call that was sent is billed.
+	assert.Equal(t, 13, c.CreditsUsed())
+
+	// So is a call with an argument it can't send.
+	c, err = runJavaScriptOperations(t, `try { await discord.getPaidThing({foo: 1}) } catch {} return 1`, p, 1000)
+	require.NoError(t, err)
+	assert.Equal(t, 10, c.CreditsUsed())
+}
+
+func TestJavaScriptRunOperationsLimit(t *testing.T) {
+	c := javaScriptTestContext(t, FlowProviders{Discord: &operationsTestProvider{}, Log: &provider.MockLogProvider{}}, 1000, eval.Env{})
+	// The block itself is one operation.
+	c.MaxOperations = 2
+	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: `
+await discord.getChannel({channel_id: "5"})
+try { await discord.getChannel({channel_id: "5"}) } catch (e) { return e.message }`}}}
+	require.NoError(t, node.Execute(c))
+	assert.Equal(t, "discord.getChannel: operations limit exceeded: 2", c.GetNodeResult("js_1").String())
+}
+
+func TestJavaScriptRunOperationsInTestRuns(t *testing.T) {
+	c := javaScriptTestContext(t, FlowProviders{
+		Discord:     &operationsTestProvider{responses: map[string]string{"/channels/5": `{"name":"general"}`}},
+		Log:         &provider.MockLogProvider{},
+		Integration: &integrationTestProvider{choices: map[string]bool{"erlc": true}},
+	}, 1000, eval.Env{})
+	c.Test = NewTestRun(nil)
+	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: `
+const channel = await discord.getChannel({channel_id: "5"})
+try { await erlc.getServer() } catch (e) { return [channel.name, e.message] }`}}}
+	require.NoError(t, node.Execute(c))
+	assert.JSONEq(t, `["general","erlc.getServer: test runs don't send requests outside of Discord"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 }
 
 func toJSON(t *testing.T, v any) string {
