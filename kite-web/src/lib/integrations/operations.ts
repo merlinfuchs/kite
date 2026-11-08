@@ -1,0 +1,58 @@
+import { ApiOperation } from "./api";
+import { integrationApis } from "./apis";
+
+// What the service checks and charges when code calls an operation. Blocks
+// keep their own credits. See "Operations for code" in
+// design/integrations.md.
+export interface OperationPolicy {
+  // Credits a call costs: Discord reads are free like the get blocks, other
+  // calls cost 1 like most actions.
+  credits: number;
+  // What the call acts on, so the service can check it's in the app's server
+  // once apps can share a bot: guild, channel, webhook, interaction, user or
+  // none. Not checked yet, apps with their own bot can act anywhere it is.
+  target: string;
+  // It deletes or removes something, or acts on many things at once.
+  destructive: boolean;
+}
+
+export interface Operation extends ApiOperation {
+  integration: string;
+  policy: OperationPolicy;
+}
+
+export function operationPolicy(
+  integration: string,
+  op: ApiOperation
+): OperationPolicy {
+  const discord = integration === "discord";
+  return {
+    credits: discord && op.method === "GET" ? 0 : 1,
+    target: discord ? discordTarget(op) : "none",
+    destructive:
+      op.method === "DELETE" ||
+      (op.method === "PUT" && op.path.includes("/bans/")) ||
+      (op.method === "POST" && /bulk-(delete|ban)|\/prune/.test(op.path)),
+  };
+}
+
+function discordTarget(op: ApiOperation): string {
+  if (op.interaction) return "interaction";
+  if (op.path.includes("{guild_id}")) return "guild";
+  if (op.path.includes("{channel_id}")) return "channel";
+  if (op.path.includes("{webhook_id}")) return "webhook";
+  if (op.path.startsWith("/users/")) return "user";
+  return "none";
+}
+
+// Every operation of every integration, which the service embeds as
+// kite-service/pkg/flow/operations.json.
+export function allOperations(): Operation[] {
+  return Object.entries(integrationApis).flatMap(([integration, api]) =>
+    api.operations.map((op) => ({
+      integration,
+      ...op,
+      policy: operationPolicy(integration, op),
+    }))
+  );
+}

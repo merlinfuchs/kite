@@ -1,7 +1,7 @@
 {
-  "source": "https://github.com/discord/discord-api-spec/blob/bb8eb1ec745a3dfc1e06c40b6e641c9738393df6/specs/openapi.json",
   "operations": [
     {
+      "integration": "discord",
       "id": "action_guild_join_request",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/requests/{request_id}",
@@ -30,9 +30,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_group_dm_user",
       "method": "PUT",
       "path": "/channels/{channel_id}/recipients/{user_id}",
@@ -61,9 +67,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_guild_member",
       "method": "PUT",
       "path": "/guilds/{guild_id}/members/{user_id}",
@@ -112,9 +124,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_guild_member_role",
       "method": "PUT",
       "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
@@ -136,9 +154,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_invite_target_user",
       "method": "PUT",
       "path": "/invites/{code}/target-users/{user_id}",
@@ -155,9 +179,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_lobby_member",
       "method": "PUT",
       "path": "/lobbies/{lobby_id}/members/{user_id}",
@@ -191,9 +221,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_my_message_reaction",
       "method": "PUT",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
@@ -215,9 +251,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "add_thread_member",
       "method": "PUT",
       "path": "/channels/{channel_id}/thread-members/{user_id}",
@@ -234,9 +276,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "applications_get_activity_instance",
       "method": "GET",
       "path": "/applications/{application_id}/activity-instances/{instance_id}",
@@ -253,9 +301,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "ban_user_from_guild",
       "method": "PUT",
       "path": "/guilds/{guild_id}/bans/{user_id}",
@@ -284,9 +338,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "bot_partner_sdk_token",
       "method": "POST",
       "path": "/partner-sdk/token/bot",
@@ -309,9 +369,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "bot_partner_sdk_unmerge_provisional_account",
       "method": "POST",
       "path": "/partner-sdk/provisional-accounts/unmerge/bot",
@@ -324,9 +390,15 @@
           "type": "string",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_add_invite_target_users",
       "method": "POST",
       "path": "/invites/{code}/target-users/bulk-add",
@@ -345,9 +417,15 @@
           "type": "array",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_ban_users_from_guild",
       "method": "POST",
       "path": "/guilds/{guild_id}/bulk-ban",
@@ -372,9 +450,15 @@
           "required": false
         }
       ],
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_delete_messages",
       "method": "POST",
       "path": "/channels/{channel_id}/messages/bulk-delete",
@@ -394,9 +478,15 @@
           "required": true
         }
       ],
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_remove_invite_target_users",
       "method": "POST",
       "path": "/invites/{code}/target-users/bulk-delete",
@@ -415,9 +505,15 @@
           "type": "array",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_update_guild_channels",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/channels",
@@ -429,9 +525,15 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_update_guild_roles",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/roles",
@@ -443,9 +545,15 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "bulk_update_lobby_members",
       "method": "POST",
       "path": "/lobbies/{lobby_id}/members/bulk",
@@ -457,9 +565,15 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "count_guild_scheduled_event_users",
       "method": "GET",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users/counts",
@@ -482,9 +596,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_auto_moderation_rule",
       "method": "POST",
       "path": "/guilds/{guild_id}/auto-moderation/rules",
@@ -538,9 +658,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_channel_invite",
       "method": "POST",
       "path": "/channels/{channel_id}/invites",
@@ -599,9 +725,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_dm",
       "method": "POST",
       "path": "/users/@me/channels",
@@ -624,9 +756,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "user",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_followup_message",
       "method": "POST",
       "path": "/webhooks/{application_id}/{interaction_token}",
@@ -695,9 +833,15 @@
           "required": false
         }
       ],
-      "interaction": true
+      "interaction": true,
+      "policy": {
+        "credits": 1,
+        "target": "interaction",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_channel",
       "method": "POST",
       "path": "/guilds/{guild_id}/channels",
@@ -806,9 +950,15 @@
           "type": "array",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_emoji",
       "method": "POST",
       "path": "/guilds/{guild_id}/emojis",
@@ -837,9 +987,15 @@
           "type": "array",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_role",
       "method": "POST",
       "path": "/guilds/{guild_id}/roles",
@@ -893,9 +1049,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_scheduled_event",
       "method": "POST",
       "path": "/guilds/{guild_id}/scheduled-events",
@@ -959,9 +1121,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_scheduled_event_exception",
       "method": "POST",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions",
@@ -1000,9 +1168,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_soundboard_sound",
       "method": "POST",
       "path": "/guilds/{guild_id}/soundboard-sounds",
@@ -1041,9 +1215,15 @@
           "type": "string",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_guild_template",
       "method": "POST",
       "path": "/guilds/{guild_id}/templates",
@@ -1067,9 +1247,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_self",
       "method": "POST",
       "path": "/lobbies/{lobby_id}/members/@me/invites",
@@ -1081,9 +1267,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_user",
       "method": "POST",
       "path": "/lobbies/{lobby_id}/members/{user_id}/invites",
@@ -1100,9 +1292,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_lobby",
       "method": "POST",
       "path": "/lobbies",
@@ -1135,9 +1333,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_lobby_message",
       "method": "POST",
       "path": "/lobbies/{lobby_id}/messages",
@@ -1216,9 +1420,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_message",
       "method": "POST",
       "path": "/channels/{channel_id}/messages",
@@ -1297,9 +1507,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_or_join_lobby",
       "method": "PUT",
       "path": "/lobbies",
@@ -1332,9 +1548,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_pin",
       "method": "PUT",
       "path": "/channels/{channel_id}/messages/pins/{message_id}",
@@ -1351,9 +1573,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_stage_instance",
       "method": "POST",
       "path": "/stage-instances",
@@ -1386,9 +1614,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_thread",
       "method": "POST",
       "path": "/channels/{channel_id}/threads",
@@ -1437,9 +1671,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_thread_from_message",
       "method": "POST",
       "path": "/channels/{channel_id}/messages/{message_id}/threads",
@@ -1473,9 +1713,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "create_webhook",
       "method": "POST",
       "path": "/channels/{channel_id}/webhooks",
@@ -1499,9 +1745,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "crosspost_message",
       "method": "POST",
       "path": "/channels/{channel_id}/messages/{message_id}/crosspost",
@@ -1518,9 +1770,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_all_message_reactions",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions",
@@ -1537,9 +1795,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_all_message_reactions_by_emoji",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}",
@@ -1561,9 +1825,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_auto_moderation_rule",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
@@ -1580,9 +1850,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_channel",
       "method": "DELETE",
       "path": "/channels/{channel_id}",
@@ -1594,9 +1870,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_channel_permission_overwrite",
       "method": "DELETE",
       "path": "/channels/{channel_id}/permissions/{overwrite_id}",
@@ -1613,9 +1895,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_group_dm_user",
       "method": "DELETE",
       "path": "/channels/{channel_id}/recipients/{user_id}",
@@ -1632,9 +1920,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_emoji",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/emojis/{emoji_id}",
@@ -1651,9 +1945,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_integration",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/integrations/{integration_id}",
@@ -1670,9 +1970,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_member",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/members/{user_id}",
@@ -1689,9 +1995,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_member_role",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
@@ -1713,9 +2025,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_role",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/roles/{role_id}",
@@ -1732,9 +2050,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_scheduled_event",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
@@ -1751,9 +2075,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_scheduled_event_exception",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}",
@@ -1775,9 +2105,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_soundboard_sound",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
@@ -1794,9 +2130,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_sticker",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/stickers/{sticker_id}",
@@ -1813,9 +2155,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_guild_template",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/templates/{code}",
@@ -1832,9 +2180,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_lobby",
       "method": "DELETE",
       "path": "/lobbies/{lobby_id}",
@@ -1846,9 +2200,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_lobby_member",
       "method": "DELETE",
       "path": "/lobbies/{lobby_id}/members/{user_id}",
@@ -1865,9 +2225,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_message",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/{message_id}",
@@ -1884,9 +2250,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_my_message_reaction",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
@@ -1908,9 +2280,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_pin",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/pins/{message_id}",
@@ -1927,9 +2305,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_stage_instance",
       "method": "DELETE",
       "path": "/stage-instances/{channel_id}",
@@ -1941,9 +2325,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_thread_member",
       "method": "DELETE",
       "path": "/channels/{channel_id}/thread-members/{user_id}",
@@ -1960,9 +2350,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_user_message_reaction",
       "method": "DELETE",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/{user_id}",
@@ -1989,9 +2385,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "delete_webhook",
       "method": "DELETE",
       "path": "/webhooks/{webhook_id}",
@@ -2003,9 +2405,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "webhook",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "deprecated_create_pin",
       "method": "PUT",
       "path": "/channels/{channel_id}/pins/{message_id}",
@@ -2022,9 +2430,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "deprecated_delete_pin",
       "method": "DELETE",
       "path": "/channels/{channel_id}/pins/{message_id}",
@@ -2041,9 +2455,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "deprecated_list_pins",
       "method": "GET",
       "path": "/channels/{channel_id}/pins",
@@ -2055,9 +2475,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "edit_lobby",
       "method": "PATCH",
       "path": "/lobbies/{lobby_id}",
@@ -2096,9 +2522,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "edit_lobby_channel_link",
       "method": "PATCH",
       "path": "/lobbies/{lobby_id}/channel-linking",
@@ -2117,9 +2549,15 @@
           "type": "snowflake",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "follow_channel",
       "method": "POST",
       "path": "/channels/{channel_id}/followers",
@@ -2138,9 +2576,15 @@
           "type": "snowflake",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_active_guild_threads",
       "method": "GET",
       "path": "/guilds/{guild_id}/threads/active",
@@ -2152,9 +2596,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_answer_voters",
       "method": "GET",
       "path": "/channels/{channel_id}/polls/{message_id}/answers/{answer_id}",
@@ -2187,9 +2637,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_application",
       "method": "GET",
       "path": "/applications/{application_id}",
@@ -2201,9 +2657,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_application_command",
       "method": "GET",
       "path": "/applications/{application_id}/commands/{command_id}",
@@ -2220,9 +2682,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_application_emoji",
       "method": "GET",
       "path": "/applications/{application_id}/emojis/{emoji_id}",
@@ -2239,9 +2707,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_application_role_connections_metadata",
       "method": "GET",
       "path": "/applications/{application_id}/role-connections/metadata",
@@ -2253,9 +2727,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_auto_moderation_rule",
       "method": "GET",
       "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
@@ -2272,17 +2752,29 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_bot_gateway",
       "method": "GET",
       "path": "/gateway/bot",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_channel",
       "method": "GET",
       "path": "/channels/{channel_id}",
@@ -2294,9 +2786,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_entitlement",
       "method": "GET",
       "path": "/applications/{application_id}/entitlements/{entitlement_id}",
@@ -2313,9 +2811,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_entitlements",
       "method": "GET",
       "path": "/applications/{application_id}/entitlements",
@@ -2373,17 +2877,29 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_gateway",
       "method": "GET",
       "path": "/gateway",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild",
       "method": "GET",
       "path": "/guilds/{guild_id}",
@@ -2401,9 +2917,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_application_command",
       "method": "GET",
       "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}",
@@ -2425,9 +2947,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_application_command_permissions",
       "method": "GET",
       "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions",
@@ -2449,9 +2977,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_ban",
       "method": "GET",
       "path": "/guilds/{guild_id}/bans/{user_id}",
@@ -2468,9 +3002,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_emoji",
       "method": "GET",
       "path": "/guilds/{guild_id}/emojis/{emoji_id}",
@@ -2487,9 +3027,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_join_requests",
       "method": "GET",
       "path": "/guilds/{guild_id}/requests",
@@ -2522,9 +3068,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_member",
       "method": "GET",
       "path": "/guilds/{guild_id}/members/{user_id}",
@@ -2541,9 +3093,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_new_member_welcome",
       "method": "GET",
       "path": "/guilds/{guild_id}/new-member-welcome",
@@ -2555,9 +3113,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_preview",
       "method": "GET",
       "path": "/guilds/{guild_id}/preview",
@@ -2569,9 +3133,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_role",
       "method": "GET",
       "path": "/guilds/{guild_id}/roles/{role_id}",
@@ -2588,9 +3158,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_scheduled_event",
       "method": "GET",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
@@ -2613,9 +3189,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_soundboard_sound",
       "method": "GET",
       "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
@@ -2632,9 +3214,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_sticker",
       "method": "GET",
       "path": "/guilds/{guild_id}/stickers/{sticker_id}",
@@ -2651,9 +3239,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_template",
       "method": "GET",
       "path": "/guilds/templates/{code}",
@@ -2665,9 +3259,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_vanity_url",
       "method": "GET",
       "path": "/guilds/{guild_id}/vanity-url",
@@ -2679,9 +3279,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_webhooks",
       "method": "GET",
       "path": "/guilds/{guild_id}/webhooks",
@@ -2694,9 +3300,15 @@
       ],
       "query_params": [],
       "has_body": false,
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_welcome_screen",
       "method": "GET",
       "path": "/guilds/{guild_id}/welcome-screen",
@@ -2708,9 +3320,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_widget",
       "method": "GET",
       "path": "/guilds/{guild_id}/widget.json",
@@ -2722,9 +3340,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_widget_png",
       "method": "GET",
       "path": "/guilds/{guild_id}/widget.png",
@@ -2742,9 +3366,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guild_widget_settings",
       "method": "GET",
       "path": "/guilds/{guild_id}/widget",
@@ -2756,9 +3386,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_guilds_onboarding",
       "method": "GET",
       "path": "/guilds/{guild_id}/onboarding",
@@ -2770,9 +3406,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_invite_target_users",
       "method": "GET",
       "path": "/invites/{code}/target-users",
@@ -2784,9 +3426,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_invite_target_users_job_status",
       "method": "GET",
       "path": "/invites/{code}/target-users/job-status",
@@ -2798,9 +3446,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_lobby",
       "method": "GET",
       "path": "/lobbies/{lobby_id}",
@@ -2812,9 +3466,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_lobby_messages",
       "method": "GET",
       "path": "/lobbies/{lobby_id}/messages",
@@ -2832,9 +3492,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_message",
       "method": "GET",
       "path": "/channels/{channel_id}/messages/{message_id}",
@@ -2851,57 +3517,99 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_my_application",
       "method": "GET",
       "path": "/applications/@me",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_my_oauth2_application",
       "method": "GET",
       "path": "/oauth2/applications/@me",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_my_oauth2_authorization",
       "method": "GET",
       "path": "/oauth2/@me",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_my_user",
       "method": "GET",
       "path": "/users/@me",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "user",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_openid_connect_userinfo",
       "method": "GET",
       "path": "/oauth2/userinfo",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_public_keys",
       "method": "GET",
       "path": "/oauth2/keys",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_self_voice_state",
       "method": "GET",
       "path": "/guilds/{guild_id}/voice-states/@me",
@@ -2913,9 +3621,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_sku_subscription",
       "method": "GET",
       "path": "/skus/{sku_id}/subscriptions/{subscription_id}",
@@ -2938,9 +3652,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_sku_subscriptions",
       "method": "GET",
       "path": "/skus/{sku_id}/subscriptions",
@@ -2973,17 +3693,29 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_soundboard_default_sounds",
       "method": "GET",
       "path": "/soundboard-default-sounds",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_stage_instance",
       "method": "GET",
       "path": "/stage-instances/{channel_id}",
@@ -2995,9 +3727,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_sticker",
       "method": "GET",
       "path": "/stickers/{sticker_id}",
@@ -3009,9 +3747,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_sticker_pack",
       "method": "GET",
       "path": "/sticker-packs/{pack_id}",
@@ -3023,9 +3767,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_thread_member",
       "method": "GET",
       "path": "/channels/{channel_id}/thread-members/{user_id}",
@@ -3048,9 +3798,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_user",
       "method": "GET",
       "path": "/users/{user_id}",
@@ -3062,9 +3818,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "user",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_voice_state",
       "method": "GET",
       "path": "/guilds/{guild_id}/voice-states/{user_id}",
@@ -3081,9 +3843,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "get_webhook",
       "method": "GET",
       "path": "/webhooks/{webhook_id}",
@@ -3096,9 +3864,15 @@
       ],
       "query_params": [],
       "has_body": false,
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 0,
+        "target": "webhook",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "guild_role_member_counts",
       "method": "GET",
       "path": "/guilds/{guild_id}/roles/member-counts",
@@ -3110,9 +3884,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "guild_search",
       "method": "GET",
       "path": "/guilds/{guild_id}/messages/search",
@@ -3245,9 +4025,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "invite_resolve",
       "method": "GET",
       "path": "/invites/{code}",
@@ -3280,9 +4066,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "invite_revoke",
       "method": "DELETE",
       "path": "/invites/{code}",
@@ -3294,9 +4086,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "join_thread",
       "method": "PUT",
       "path": "/channels/{channel_id}/thread-members/@me",
@@ -3308,9 +4106,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "leave_guild",
       "method": "DELETE",
       "path": "/users/@me/guilds/{guild_id}",
@@ -3323,9 +4127,15 @@
       ],
       "query_params": [],
       "has_body": false,
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "leave_lobby",
       "method": "DELETE",
       "path": "/lobbies/{lobby_id}/members/@me",
@@ -3337,9 +4147,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "leave_thread",
       "method": "DELETE",
       "path": "/channels/{channel_id}/thread-members/@me",
@@ -3351,9 +4167,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "list_application_commands",
       "method": "GET",
       "path": "/applications/{application_id}/commands",
@@ -3371,9 +4193,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_application_emojis",
       "method": "GET",
       "path": "/applications/{application_id}/emojis",
@@ -3385,9 +4213,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_auto_moderation_rules",
       "method": "GET",
       "path": "/guilds/{guild_id}/auto-moderation/rules",
@@ -3399,9 +4233,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_channel_invites",
       "method": "GET",
       "path": "/channels/{channel_id}/invites",
@@ -3413,9 +4253,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_channel_webhooks",
       "method": "GET",
       "path": "/channels/{channel_id}/webhooks",
@@ -3428,9 +4274,15 @@
       ],
       "query_params": [],
       "has_body": false,
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_application_command_permissions",
       "method": "GET",
       "path": "/applications/{application_id}/guilds/{guild_id}/commands/permissions",
@@ -3447,9 +4299,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_application_commands",
       "method": "GET",
       "path": "/applications/{application_id}/guilds/{guild_id}/commands",
@@ -3472,9 +4330,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_audit_log_entries",
       "method": "GET",
       "path": "/guilds/{guild_id}/audit-logs",
@@ -3517,9 +4381,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_bans",
       "method": "GET",
       "path": "/guilds/{guild_id}/bans",
@@ -3547,9 +4417,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_channels",
       "method": "GET",
       "path": "/guilds/{guild_id}/channels",
@@ -3561,9 +4437,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_emojis",
       "method": "GET",
       "path": "/guilds/{guild_id}/emojis",
@@ -3575,9 +4457,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_integrations",
       "method": "GET",
       "path": "/guilds/{guild_id}/integrations",
@@ -3589,9 +4477,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_invites",
       "method": "GET",
       "path": "/guilds/{guild_id}/invites",
@@ -3603,9 +4497,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_members",
       "method": "GET",
       "path": "/guilds/{guild_id}/members",
@@ -3628,9 +4528,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_roles",
       "method": "GET",
       "path": "/guilds/{guild_id}/roles",
@@ -3642,9 +4548,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_scheduled_event_exception_users",
       "method": "GET",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/{guild_scheduled_event_exception_id}/users",
@@ -3687,9 +4599,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_scheduled_event_users",
       "method": "GET",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users",
@@ -3727,9 +4645,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_scheduled_events",
       "method": "GET",
       "path": "/guilds/{guild_id}/scheduled-events",
@@ -3747,9 +4671,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_soundboard_sounds",
       "method": "GET",
       "path": "/guilds/{guild_id}/soundboard-sounds",
@@ -3761,9 +4691,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_stickers",
       "method": "GET",
       "path": "/guilds/{guild_id}/stickers",
@@ -3775,9 +4711,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_templates",
       "method": "GET",
       "path": "/guilds/{guild_id}/templates",
@@ -3789,9 +4731,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_guild_voice_regions",
       "method": "GET",
       "path": "/guilds/{guild_id}/regions",
@@ -3803,9 +4751,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_message_reactions_by_emoji",
       "method": "GET",
       "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}",
@@ -3843,9 +4797,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_messages",
       "method": "GET",
       "path": "/channels/{channel_id}/messages",
@@ -3878,17 +4838,29 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_my_connections",
       "method": "GET",
       "path": "/users/@me/connections",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "user",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_my_guilds",
       "method": "GET",
       "path": "/users/@me/guilds",
@@ -3920,9 +4892,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "user",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_my_private_archived_threads",
       "method": "GET",
       "path": "/channels/{channel_id}/users/@me/threads/archived/private",
@@ -3945,9 +4923,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_pins",
       "method": "GET",
       "path": "/channels/{channel_id}/messages/pins",
@@ -3970,9 +4954,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_private_archived_threads",
       "method": "GET",
       "path": "/channels/{channel_id}/threads/archived/private",
@@ -3995,9 +4985,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_public_archived_threads",
       "method": "GET",
       "path": "/channels/{channel_id}/threads/archived/public",
@@ -4020,17 +5016,29 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_sticker_packs",
       "method": "GET",
       "path": "/sticker-packs",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_thread_members",
       "method": "GET",
       "path": "/channels/{channel_id}/thread-members",
@@ -4058,17 +5066,29 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "list_voice_regions",
       "method": "GET",
       "path": "/voice/regions",
       "path_params": [],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "partner_sdk_token",
       "method": "POST",
       "path": "/partner-sdk/token",
@@ -4096,9 +5116,15 @@
           "type": "string",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "partner_sdk_unmerge_provisional_account",
       "method": "POST",
       "path": "/partner-sdk/provisional-accounts/unmerge",
@@ -4126,9 +5152,15 @@
           "type": "string",
           "required": true
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "poll_expire",
       "method": "POST",
       "path": "/channels/{channel_id}/polls/{message_id}/expire",
@@ -4145,9 +5177,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "preview_prune_guild",
       "method": "GET",
       "path": "/guilds/{guild_id}/prune",
@@ -4170,9 +5208,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "prune_guild",
       "method": "POST",
       "path": "/guilds/{guild_id}/prune",
@@ -4202,9 +5246,15 @@
           "required": false
         }
       ],
-      "flow_only": true
+      "flow_only": true,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "put_guilds_onboarding",
       "method": "PUT",
       "path": "/guilds/{guild_id}/onboarding",
@@ -4238,9 +5288,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "remove_invite_target_user",
       "method": "DELETE",
       "path": "/invites/{code}/target-users/{user_id}",
@@ -4257,9 +5313,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "search_guild_members",
       "method": "GET",
       "path": "/guilds/{guild_id}/members/search",
@@ -4282,9 +5344,15 @@
           "required": true
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "send_soundboard_sound",
       "method": "POST",
       "path": "/channels/{channel_id}/send-soundboard-sound",
@@ -4308,9 +5376,15 @@
           "type": "snowflake",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "set_channel_permission_overwrite",
       "method": "PUT",
       "path": "/channels/{channel_id}/permissions/{overwrite_id}",
@@ -4344,9 +5418,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "sync_guild_template",
       "method": "PUT",
       "path": "/guilds/{guild_id}/templates/{code}",
@@ -4363,9 +5443,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "thread_search",
       "method": "GET",
       "path": "/channels/{channel_id}/threads/search",
@@ -4433,9 +5519,15 @@
           "required": false
         }
       ],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 0,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "trigger_typing_indicator",
       "method": "POST",
       "path": "/channels/{channel_id}/typing",
@@ -4447,9 +5539,15 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "unban_user_from_guild",
       "method": "DELETE",
       "path": "/guilds/{guild_id}/bans/{user_id}",
@@ -4467,9 +5565,15 @@
       ],
       "query_params": [],
       "has_body": true,
-      "body_params": []
+      "body_params": [],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": true
+      }
     },
     {
+      "integration": "discord",
       "id": "update_auto_moderation_rule",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
@@ -4528,9 +5632,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_channel",
       "method": "PATCH",
       "path": "/channels/{channel_id}",
@@ -4674,9 +5784,15 @@
           "type": "array",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_followup_message",
       "method": "PATCH",
       "path": "/webhooks/{application_id}/{interaction_token}/messages/{message_id}",
@@ -4726,9 +5842,15 @@
           "required": false
         }
       ],
-      "interaction": true
+      "interaction": true,
+      "policy": {
+        "credits": 1,
+        "target": "interaction",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild",
       "method": "PATCH",
       "path": "/guilds/{guild_id}",
@@ -4847,9 +5969,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_emoji",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/emojis/{emoji_id}",
@@ -4878,9 +6006,15 @@
           "type": "array",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_incident_actions",
       "method": "PUT",
       "path": "/guilds/{guild_id}/incident-actions",
@@ -4904,9 +6038,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_member",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/members/{user_id}",
@@ -4960,9 +6100,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_role",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/roles/{role_id}",
@@ -5021,9 +6167,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_scheduled_event",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
@@ -5097,9 +6249,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_scheduled_event_exception",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}",
@@ -5138,9 +6296,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_soundboard_sound",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
@@ -5179,9 +6343,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_sticker",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/stickers/{sticker_id}",
@@ -5215,9 +6385,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_template",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/templates/{code}",
@@ -5246,9 +6422,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_welcome_screen",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/welcome-screen",
@@ -5277,9 +6459,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_guild_widget_settings",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/widget",
@@ -5303,9 +6491,15 @@
           "type": "boolean",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_lobby_message_external_moderation_metadata",
       "method": "PUT",
       "path": "/lobbies/{lobby_id}/messages/{message_id}/moderation-metadata",
@@ -5322,9 +6516,15 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_message",
       "method": "PATCH",
       "path": "/channels/{channel_id}/messages/{message_id}",
@@ -5378,9 +6578,15 @@
           "type": "array",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_original_interaction_response",
       "method": "PATCH",
       "path": "/webhooks/{application_id}/{interaction_token}/messages/@original",
@@ -5424,9 +6630,15 @@
           "required": false
         }
       ],
-      "interaction": true
+      "interaction": true,
+      "policy": {
+        "credits": 1,
+        "target": "interaction",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_self_voice_state",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/voice-states/@me",
@@ -5455,9 +6667,15 @@
           "type": "snowflake",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_stage_instance",
       "method": "PATCH",
       "path": "/stage-instances/{channel_id}",
@@ -5481,9 +6699,15 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_user_message_external_moderation_metadata",
       "method": "PUT",
       "path": "/partner-sdk/dms/{user_id_1}/{user_id_2}/messages/{message_id}/moderation-metadata",
@@ -5505,9 +6729,15 @@
         }
       ],
       "query_params": [],
-      "has_body": true
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_voice_channel_status",
       "method": "PUT",
       "path": "/channels/{channel_id}/voice-status",
@@ -5526,9 +6756,15 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "channel",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_voice_state",
       "method": "PATCH",
       "path": "/guilds/{guild_id}/voice-states/{user_id}",
@@ -5557,9 +6793,15 @@
           "type": "snowflake",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "guild",
+        "destructive": false
+      }
     },
     {
+      "integration": "discord",
       "id": "update_webhook",
       "method": "PATCH",
       "path": "/webhooks/{webhook_id}",
@@ -5588,7 +6830,313 @@
           "type": "snowflake",
           "required": false
         }
-      ]
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "webhook",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "create_transcript",
+      "method": "POST",
+      "path": "/api/transcript",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "bot_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "gtag",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "favicon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image_restore",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "create_card",
+      "method": "POST",
+      "path": "/api/cards/card-builder/build",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "dev",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "base64",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": true,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "create_qr_code",
+      "method": "POST",
+      "path": "/api/images/qr-code",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "style",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "standart",
+            "dots"
+          ]
+        },
+        {
+          "name": "border",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "center_image_url",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "create_captcha",
+      "method": "POST",
+      "path": "/api/security/captcha/create",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_provider",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "Cloudflare",
+            "Google"
+          ]
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "font",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "expires",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "get_captcha",
+      "method": "GET",
+      "path": "/api/security/captcha/get-captcha",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "get_minecraft_user",
+      "method": "GET",
+      "path": "/api/minecraft/get-user",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "cookie_api",
+      "id": "get_current_time",
+      "method": "GET",
+      "path": "/api/time/current-time",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "erlc",
+      "id": "get_server",
+      "method": "GET",
+      "path": "/v2/server",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "Players",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Staff",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "JoinLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Queue",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "KillLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "CommandLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "ModCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "EmergencyCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Vehicles",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "integration": "erlc",
+      "id": "run_command",
+      "method": "POST",
+      "path": "/v2/server/command",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "command",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "credits": 1,
+        "target": "none",
+        "destructive": false
+      }
     }
   ]
 }

@@ -153,7 +153,7 @@ func TestDiscordAPIPath(t *testing.T) {
 			op, ok := discordAPIOperations[tt.op]
 			require.True(t, ok)
 
-			path, err := discordAPIPath(op, tt.path, tt.query, tt.filled)
+			path, err := operationPath(op, tt.path, tt.query, tt.filled)
 			if tt.err != "" {
 				assert.EqualError(t, err, tt.err)
 				return

@@ -68,14 +68,18 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 		Type:     "action_test_api_thing_get",
 		Credits:  intPtr(2),
 		Requires: []string{"test_api"},
-		Run:      blockRequest{Kind: "request", Integration: "test_api", Method: "GET", Path: "/things/{id}"},
+		Run:      blockRequest{Kind: "request", Integration: "test_api", Operation: "get_thing"},
 		Fields:   []blockField{{Name: "thing_id", In: "path", Target: "id", Type: "string"}},
 		Result: &struct {
 			Thing string `json:"thing"`
 			List  bool   `json:"list"`
 		}{},
 	}
+	operations["test_api"] = map[string]Operation{
+		"get_thing": {Integration: "test_api", ID: "get_thing", Method: "GET", Path: "/things/{id}"},
+	}
 	t.Cleanup(func() {
+		delete(operations, "test_api")
 		delete(integrations, "test_api")
 		delete(blockDefinitions, "action_test_api_thing_get")
 	})

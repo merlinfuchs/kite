@@ -52,14 +52,13 @@ type blockField struct {
 	Options []string `json:"options"`
 }
 
-// blockRequest is how a block runs: a request to the API of an integration
-// for kind "request", or the handler in nodeHandlers for kind "custom".
+// blockRequest is how a block runs: a request to an operation of an
+// integration for kind "request", see operations.go, or the handler in
+// nodeHandlers for kind "custom".
 type blockRequest struct {
 	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
 	Operation   string `json:"operation"`
-	Method      string `json:"method"`
-	Path        string `json:"path"`
 	// Values Kite adds to the request, which aren't settings.
 	Inject []blockRequestInject `json:"inject"`
 }
@@ -274,9 +273,9 @@ func BlockIntegrations(nodeType FlowNodeType) []string {
 var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
-	integration, ok := integrations[block.Run.Integration]
+	op, ok := operations[block.Run.Integration][block.Run.Operation]
 	if block.Run.Kind != "request" || !ok {
-		return fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration)
+		return fmt.Errorf("unsupported block run: %s %s %s", block.Run.Kind, block.Run.Integration, block.Run.Operation)
 	}
 
 	pathParams := make(map[string]string)
@@ -355,7 +354,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		hasBody = true
 	}
 
-	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
+	path := pathParamRe.ReplaceAllStringFunc(op.Path, func(m string) string {
 		return pathParams[m[1:len(m)-1]]
 	})
 	if len(query) > 0 {
@@ -363,7 +362,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	}
 
 	var reqBody []byte
-	if hasBody && block.Run.Method != http.MethodGet {
+	if hasBody && op.Method != http.MethodGet {
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
@@ -380,18 +379,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 	}
 
-	var resBody []byte
-	var err error
-	if integration.Auth.Type == "discord_bot" {
-		resBody, err = ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-			Method: block.Run.Method,
-			Path:   path,
-			Body:   reqBody,
-			Reason: reason,
-		})
-	} else {
-		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody, secrets...)
-	}
+	resBody, err := ctx.sendOperation(op, path, reqBody, reason, secrets...)
 	if err != nil {
 		return err
 	}

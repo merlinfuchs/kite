@@ -1,0 +1,158 @@
+{
+  "action_channel_delete": {
+    "method": "DELETE",
+    "url": "/channels/11",
+    "reason": "reason"
+  },
+  "action_cookie_api_captcha_create": {
+    "method": "POST",
+    "url": "https://api.cookie-api.com/api/security/captcha/create?captcha_provider=Cloudflare\u0026color=text"
+  },
+  "action_cookie_api_captcha_get": {
+    "method": "GET",
+    "url": "https://api.cookie-api.com/api/security/captcha/get-captcha?captcha_id=text"
+  },
+  "action_cookie_api_card_create": {
+    "method": "POST",
+    "url": "https://api.cookie-api.com/api/cards/card-builder/build",
+    "body": "{\"note\":\"text\"}"
+  },
+  "action_cookie_api_minecraft_user_get": {
+    "method": "GET",
+    "url": "https://api.cookie-api.com/api/minecraft/get-user?code=text"
+  },
+  "action_cookie_api_qr_code_create": {
+    "method": "POST",
+    "url": "https://api.cookie-api.com/api/images/qr-code",
+    "body": "{\"border\":60,\"center_image_url\":\"text\",\"data\":\"text\",\"style\":\"standart\"}"
+  },
+  "action_cookie_api_transcript_create": {
+    "method": "POST",
+    "url": "https://api.cookie-api.com/api/transcript?channel_id=11",
+    "body": "{\"bot_token\":\"\",\"description\":\"text\",\"password\":\"text\",\"title\":\"text\"}"
+  },
+  "action_erlc_command_run": {
+    "method": "POST",
+    "url": "https://api.erlc.gg/v2/server/command",
+    "body": "{\"command\":\"text\"}"
+  },
+  "action_erlc_server_get": {
+    "method": "GET",
+    "url": "https://api.erlc.gg/v2/server?CommandLogs=true\u0026EmergencyCalls=true\u0026JoinLogs=true\u0026KillLogs=true\u0026ModCalls=true\u0026Players=true\u0026Queue=true\u0026Staff=true\u0026Vehicles=true"
+  },
+  "action_invite_create": {
+    "method": "POST",
+    "url": "/channels/11/invites",
+    "body": "{\"max_age\":60,\"max_uses\":60,\"temporary\":true,\"unique\":true}",
+    "reason": "reason"
+  },
+  "action_member_ban": {
+    "method": "PUT",
+    "url": "/guilds/11/bans/11",
+    "body": "{\"delete_message_seconds\":60}",
+    "reason": "reason"
+  },
+  "action_member_kick": {
+    "method": "DELETE",
+    "url": "/guilds/11/members/11",
+    "reason": "reason"
+  },
+  "action_member_role_add": {
+    "method": "PUT",
+    "url": "/guilds/11/members/11/roles/11",
+    "reason": "reason"
+  },
+  "action_member_role_remove": {
+    "method": "DELETE",
+    "url": "/guilds/11/members/11/roles/11",
+    "reason": "reason"
+  },
+  "action_member_timeout": {
+    "method": "PATCH",
+    "url": "/guilds/11/members/11",
+    "body": "{\"communication_disabled_until\":\"\u003ctime\u003e\"}",
+    "reason": "reason"
+  },
+  "action_member_unban": {
+    "method": "DELETE",
+    "url": "/guilds/11/bans/11",
+    "reason": "reason"
+  },
+  "action_member_voice_edit": {
+    "method": "PATCH",
+    "url": "/guilds/11/members/11",
+    "body": "{\"channel_id\":\"11\",\"deaf\":true,\"mute\":true}",
+    "reason": "reason"
+  },
+  "action_message_bulk_delete": {
+    "method": "POST",
+    "url": "/channels/11/messages/bulk-delete",
+    "body": "{\"messages\":[\"11\",\"12\"]}",
+    "reason": "reason"
+  },
+  "action_message_delete": {
+    "method": "DELETE",
+    "url": "/channels/11/messages/11",
+    "reason": "reason"
+  },
+  "action_message_list": {
+    "method": "GET",
+    "url": "/channels/11/messages?after=11\u0026before=11\u0026limit=60"
+  },
+  "action_message_pin": {
+    "method": "PUT",
+    "url": "/channels/11/pins/11",
+    "reason": "reason"
+  },
+  "action_message_publish": {
+    "method": "POST",
+    "url": "/channels/11/messages/11/crosspost"
+  },
+  "action_message_reaction_create": {
+    "method": "PUT",
+    "url": "/channels/11/messages/11/reactions/%F0%9F%91%8D/@me"
+  },
+  "action_message_reaction_delete": {
+    "method": "DELETE",
+    "url": "/channels/11/messages/11/reactions/%F0%9F%91%8D/@me"
+  },
+  "action_message_unpin": {
+    "method": "DELETE",
+    "url": "/channels/11/pins/11",
+    "reason": "reason"
+  },
+  "action_role_create": {
+    "method": "POST",
+    "url": "/guilds/11/roles",
+    "body": "{\"color\":16711680,\"hoist\":true,\"mentionable\":true,\"name\":\"text\",\"permissions\":\"text\"}",
+    "reason": "reason"
+  },
+  "action_role_delete": {
+    "method": "DELETE",
+    "url": "/guilds/11/roles/11",
+    "reason": "reason"
+  },
+  "action_role_edit": {
+    "method": "PATCH",
+    "url": "/guilds/11/roles/11",
+    "body": "{\"color\":16711680,\"hoist\":true,\"mentionable\":true,\"name\":\"text\",\"permissions\":\"text\"}",
+    "reason": "reason"
+  },
+  "action_soundboard_sound_play": {
+    "method": "POST",
+    "url": "/channels/11/send-soundboard-sound",
+    "body": "{\"sound_id\":\"11\",\"source_guild_id\":\"11\"}"
+  },
+  "action_thread_member_add": {
+    "method": "PUT",
+    "url": "/channels/11/thread-members/11"
+  },
+  "action_thread_member_remove": {
+    "method": "DELETE",
+    "url": "/channels/11/thread-members/11"
+  },
+  "action_typing_trigger": {
+    "method": "POST",
+    "url": "/channels/11/typing"
+  }
+}

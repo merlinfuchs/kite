@@ -2,7 +2,6 @@ package flow
 
 import (
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -18,65 +17,16 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-// discordAPIJSON lists the Discord API endpoints the Discord API Request block
-// can call. It's generated from Discord's OpenAPI spec, run
-// `node scripts/discord-api.mjs` and `pnpm test -u` in kite-web to update it.
-//
-//go:embed discord_api.json
-var discordAPIJSON []byte
-
-type discordAPIParamType string
-
-const (
-	discordAPIParamTypeSnowflake discordAPIParamType = "snowflake"
-	discordAPIParamTypeInteger   discordAPIParamType = "integer"
-	discordAPIParamTypeNumber    discordAPIParamType = "number"
-	discordAPIParamTypeBoolean   discordAPIParamType = "boolean"
-	discordAPIParamTypeArray     discordAPIParamType = "array"
-)
-
-type discordAPIParam struct {
-	Name     string              `json:"name"`
-	Type     discordAPIParamType `json:"type"`
-	Required bool                `json:"required"`
-}
-
-type discordAPIOperation struct {
-	ID          string            `json:"id"`
-	Method      string            `json:"method"`
-	Path        string            `json:"path"`
-	PathParams  []discordAPIParam `json:"path_params"`
-	QueryParams []discordAPIParam `json:"query_params"`
-	HasBody     bool              `json:"has_body"`
-	// Interaction is set for endpoints of the interaction the flow runs with,
-	// whose {application_id} and {interaction_token} Kite fills in.
-	Interaction bool `json:"interaction"`
-	// FlowOnly is set for endpoints that can't be called from outside of
-	// flows, like by MCP clients.
-	FlowOnly bool `json:"flow_only"`
-}
-
-var discordAPIOperations = func() map[string]discordAPIOperation {
-	var data struct {
-		Operations []discordAPIOperation `json:"operations"`
-	}
-	if err := json.Unmarshal(discordAPIJSON, &data); err != nil {
-		panic(fmt.Sprintf("failed to parse discord_api.json: %v", err))
-	}
-
-	res := make(map[string]discordAPIOperation, len(data.Operations))
-	for _, op := range data.Operations {
-		res[op.ID] = op
-	}
-	return res
-}()
+// discordAPIOperations are the Discord API endpoints the Discord API Request
+// block can call, see operations.go.
+var discordAPIOperations = operations["discord"]
 
 var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 
-// discordAPIPath builds the path of a request to op, relative to the API base
-// URL, from the evaluated path and query parameters, and the path parameters
-// Kite fills in itself.
-func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
+// operationPath builds the path of a request to op, relative to the base URL
+// of its integration, from the evaluated path and query parameters, and the
+// path parameters Kite fills in itself.
+func operationPath(op Operation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
 	params := make(map[string]string, len(op.PathParams)+len(filled))
 	for _, p := range op.PathParams {
 		value, ok := pathParams[p.Name]
@@ -84,7 +34,7 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 			return "", fmt.Errorf("missing path parameter %s", p.Name)
 		}
 
-		v, err := discordAPIParamValue(p, value)
+		v, err := apiParamValue(p, value)
 		if err != nil {
 			return "", err
 		}
@@ -119,13 +69,13 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 
 		// A list is sent as the parameter repeated for each item.
 		items := []thing.Thing{value}
-		if p.Type == discordAPIParamTypeArray {
+		if p.Type == apiParamTypeArray {
 			if list, ok := apiListItems(value); ok {
 				items = list
 			}
 		}
 		for _, item := range items {
-			v, err := discordAPIParamValue(p, item)
+			v, err := apiParamValue(p, item)
 			if err != nil {
 				return "", err
 			}
@@ -170,21 +120,21 @@ func apiListItems(value thing.Thing) ([]thing.Thing, bool) {
 	return items, true
 }
 
-func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) {
+func apiParamValue(p APIParam, value thing.Thing) (string, error) {
 	var (
 		v   string
 		err error
 	)
 	switch p.Type {
-	case discordAPIParamTypeSnowflake:
+	case apiParamTypeSnowflake:
 		v, err = discordAPISnowflake(value)
-	case discordAPIParamTypeInteger:
+	case apiParamTypeInteger:
 		v = strings.TrimSpace(value.String())
 		_, err = strconv.ParseInt(v, 10, 64)
-	case discordAPIParamTypeNumber:
+	case apiParamTypeNumber:
 		v = strings.TrimSpace(value.String())
 		_, err = strconv.ParseFloat(v, 64)
-	case discordAPIParamTypeBoolean:
+	case apiParamTypeBoolean:
 		v = strings.TrimSpace(value.String())
 		if v != "true" && v != "false" {
 			err = fmt.Errorf("must be true or false")
@@ -266,7 +216,7 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 }
 
 // DiscordAPIFlowOnly reports whether a request goes to an endpoint that can
-// only be used in flows, see discordAPIOperation.FlowOnly.
+// only be used in flows, see Operation.FlowOnly.
 func DiscordAPIFlowOnly(method string, path string) bool {
 	path, _, _ = strings.Cut(path, "?")
 	for _, op := range discordAPIFlowOnlyPaths() {
@@ -313,7 +263,7 @@ func DiscordAPIRequestOutsideFlow(operation string, pathParams map[string]json.R
 		return provider.DiscordAPIRequest{}, fmt.Errorf("the %s endpoint can only be used in flows", op.ID)
 	}
 
-	path, err := discordAPIPath(op, jsonParamThings(pathParams), jsonParamThings(query), nil)
+	path, err := operationPath(op, jsonParamThings(pathParams), jsonParamThings(query), nil)
 	if err != nil {
 		return provider.DiscordAPIRequest{}, err
 	}

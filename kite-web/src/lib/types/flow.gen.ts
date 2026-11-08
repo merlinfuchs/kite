@@ -745,6 +745,56 @@ export interface FlowEdge {
 
 
 //////////
+// source: operations.go
+
+export type APIParamType = string;
+export interface APIParam {
+  name: string;
+  type: APIParamType;
+  required: boolean;
+}
+/**
+ * Operation is an endpoint of an integration's API.
+ */
+export interface Operation {
+  integration: string;
+  id: string;
+  method: string;
+  path: string;
+  path_params: APIParam[];
+  query_params: APIParam[];
+  has_body: boolean;
+  /**
+   * Interaction is set for Discord endpoints of the interaction the flow
+   * runs with, whose {application_id} and {interaction_token} Kite fills in.
+   */
+  interaction: boolean;
+  /**
+   * FlowOnly is set for Discord endpoints that can't be called from
+   * outside of flows, like by MCP clients.
+   */
+  flow_only: boolean;
+  policy: OperationPolicy;
+}
+/**
+ * OperationPolicy is what a call of an operation from code costs and acts on.
+ * Blocks have their own credits.
+ */
+export interface OperationPolicy {
+  credits: number /* int */;
+  /**
+   * What the call acts on: guild, channel, webhook, interaction, user or
+   * none. It isn't checked yet, as every app has its own bot, which can act
+   * in any server it's in. A shared bot would have to check it's the app's.
+   */
+  target: string;
+  /**
+   * It deletes or removes something, or acts on many things at once.
+   */
+  destructive: boolean;
+}
+
+//////////
 // source: state.go
 
 export interface FlowContextState {

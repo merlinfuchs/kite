@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 func init() {
@@ -47,7 +46,7 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		return err
 	}
 
-	path, err := discordAPIPath(op, pathParams, query, interactionPathParams(interaction))
+	path, err := operationPath(op, pathParams, query, interactionPathParams(interaction))
 	if err != nil {
 		return err
 	}
@@ -75,12 +74,7 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		}
 	}
 
-	resBody, err := ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-		Method: op.Method,
-		Path:   path,
-		Body:   body,
-		Reason: auditLogReason,
-	})
+	resBody, err := ctx.sendOperation(op, path, body, auditLogReason)
 	if err != nil {
 		return err
 	}
