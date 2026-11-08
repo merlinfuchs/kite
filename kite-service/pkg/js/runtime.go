@@ -106,7 +106,7 @@ func (e *engine) newInstance(ctx context.Context) (*instance, error) {
 		}
 	}
 	mem.Write(0, e.snapshot)
-	return &instance{mod: mod}, nil
+	return &instance{mod: mod, runFn: mod.ExportedFunction("kite_run"), resolveFn: mod.ExportedFunction("kite_resolve")}, nil
 }
 
 // snapshotAllocator allocates the memory of an instance with at least
@@ -137,6 +137,9 @@ func (m *sliceMemory) Free() {}
 
 type instance struct {
 	mod api.Module
+	// kite_run and kite_resolve, as wazero sets up a function for each
+	// lookup.
+	runFn, resolveFn api.Function
 }
 
 func (i *instance) close(ctx context.Context) { i.mod.Close(ctx) }
@@ -187,30 +190,21 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte, budget *t
 	if err != nil {
 		return nil, 0, err
 	}
-	return i.call(ctx, budget, "kite_run", uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+	return i.call(ctx, budget, i.runFn, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
 }
 
 // resolve settles the promise of a call the code started with its result,
 // and continues the code. It returns like run.
 func (i *instance) resolve(ctx context.Context, r callResult, budget *time.Duration) (out []byte, status runStatus, err error) {
 	st := stateFrom(ctx)
-	n := int32(len(r.res))
-	st.pending = r.res
-	if r.err != nil {
-		msg := r.err.Error()
-		if msg == "" {
-			msg = "the call failed"
-		}
-		st.pending = []byte(msg)
-		n = -int32(len(msg))
-	}
-	return i.call(ctx, budget, "kite_resolve", uint64(uint32(r.id)), uint64(uint32(n)))
+	n := st.setPending(r.res, r.err)
+	return i.call(ctx, budget, i.resolveFn, uint64(uint32(r.id)), uint64(uint32(n)))
 }
 
 // call calls fn, which runs the code, within what's left of the time budget,
 // and takes what it used from it. Only the time code runs counts, not the
 // time it waits for calls.
-func (i *instance) call(ctx context.Context, budget *time.Duration, fn string, args ...uint64) (out []byte, status runStatus, err error) {
+func (i *instance) call(ctx context.Context, budget *time.Duration, fn api.Function, args ...uint64) (out []byte, status runStatus, err error) {
 	if *budget <= 0 {
 		return nil, 0, errTimeout
 	}
@@ -218,7 +212,7 @@ func (i *instance) call(ctx context.Context, budget *time.Duration, fn string, a
 	stateFrom(ctx).deadline = start.Add(*budget)
 	runCtx, cancel := context.WithTimeout(ctx, *budget+killGrace)
 	defer cancel()
-	res, err := i.mod.ExportedFunction(fn).Call(runCtx, args...)
+	res, err := fn.Call(runCtx, args...)
 	*budget -= time.Since(start)
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
@@ -268,15 +262,26 @@ type callResult struct {
 	err error
 }
 
-// start starts the call name of the code in the background, and returns its
-// ID for kite_resolve.
+// setPending keeps res, or the message of err, for host_take, and returns
+// their length, negative for an error, as kite.c expects.
+func (st *runState) setPending(res []byte, err error) int32 {
+	if err != nil {
+		st.pending = []byte(err.Error())
+		return -int32(len(st.pending))
+	}
+	st.pending = res
+	return int32(len(res))
+}
+
+// start starts the call the code makes as name, like discord.createMessage,
+// in the background, and returns its ID for kite_resolve.
 func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 	var fn HostFunc
 	if st.host != nil {
-		fn = st.host(name)
+		fn = st.host(snakeName(name))
 	}
 	if fn == nil {
-		return 0, fmt.Errorf("%s isn't available", jsName(name))
+		return 0, fmt.Errorf("%s isn't available", name)
 	}
 	if st.started >= MaxCalls {
 		return 0, fmt.Errorf("the code made more than %d calls", MaxCalls)
@@ -287,7 +292,7 @@ func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 	go func() {
 		res, err := runHostFunc(st.hostCtx, fn, arg)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", jsName(name), err)
+			err = fmt.Errorf("%s: %w", name, err)
 		}
 		st.results <- callResult{id: id, res: res, err: err}
 	}()
@@ -303,21 +308,16 @@ func runHostFunc(ctx context.Context, fn HostFunc, arg json.RawMessage) (res jso
 	return fn(ctx, arg)
 }
 
-// jsName is the name scripts call name by, like discord.createMessage for
-// discord.create_message.
-func jsName(name string) string {
+// snakeName is the name of the call the code makes as name, like
+// discord.create_message for discord.createMessage.
+func snakeName(name string) string {
 	var b strings.Builder
-	upper := false
 	for _, r := range name {
-		switch {
-		case r == '_':
-			upper = true
-		case upper:
-			b.WriteRune(unicode.ToUpper(r))
-			upper = false
-		default:
-			b.WriteRune(r)
+		if unicode.IsUpper(r) {
+			b.WriteByte('_')
+			r = unicode.ToLower(r)
 		}
+		b.WriteRune(r)
 	}
 	return b.String()
 }
@@ -361,8 +361,7 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 		arg, _ := m.Memory().Read(argPtr, argLen)
 		res, err := callHost(string(name), arg)
 		if err != nil {
-			st.pending = []byte(err.Error())
-			return -int32(len(st.pending))
+			return st.setPending(nil, err)
 		}
 		st.pending = res
 		return int32(len(res))
@@ -383,8 +382,7 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 		// Copied, as the call runs after the memory changed.
 		id, err := st.start(string(name), append(json.RawMessage(nil), arg...))
 		if err != nil {
-			st.pending = []byte(err.Error())
-			return -int32(len(st.pending))
+			return st.setPending(nil, err)
 		}
 		return id
 	}).Export("start").

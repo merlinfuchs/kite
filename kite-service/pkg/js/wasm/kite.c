@@ -75,45 +75,38 @@ static int with_host_args(JSContext *ctx, int argc, JSValueConst *argv, host_fn 
 }
 
 // Takes the result Go has pending: n bytes of JSON, or for a negative n an
-// error message, which it returns as an Error with *failed set.
-static JSValue take(JSContext *ctx, int32_t n, bool *failed) {
+// error message, which it throws as a TypeError for helpers like formatDate
+// and as an Error for calls.
+static JSValue take(JSContext *ctx, int32_t n, bool type_error) {
   uint32_t len = n < 0 ? -n : n;
   char *buf = js_malloc(ctx, len + 1);
   if (!buf) return JS_EXCEPTION;
   host_take(buf);
   buf[len] = 0;
 
-  *failed = n < 0;
   JSValue res;
-  if (*failed) {
-    res = JS_NewError(ctx);
-    JS_SetPropertyStr(ctx, res, "message", JS_NewStringLen(ctx, buf, len));
-  } else {
+  if (n >= 0) {
     res = JS_ParseJSON(ctx, buf, len, "<host>");
+  } else if (type_error) {
+    res = JS_ThrowTypeError(ctx, "%s", buf);
+  } else {
+    res = JS_ThrowPlainError(ctx, "%s", buf);
   }
   js_free(ctx, buf);
   return res;
 }
 
-// Helpers like formatDate throw a TypeError for an argument Go turned down.
+// Helpers like formatDate run right away.
 static JSValue js_call(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
   int32_t n;
   if (with_host_args(ctx, argc, argv, host_call, &n) < 0) return JS_EXCEPTION;
-  bool failed;
-  JSValue res = take(ctx, n, &failed);
-  if (!failed) return res;
-  JSValue msg = JS_GetPropertyStr(ctx, res, "message");
-  const char *m = JS_ToCString(ctx, msg);
-  JSValue err = m ? JS_ThrowTypeError(ctx, "%s", m) : JS_EXCEPTION;
-  if (m) JS_FreeCString(ctx, m);
-  JS_FreeValue(ctx, msg);
-  JS_FreeValue(ctx, res);
-  return err;
+  return take(ctx, n, true);
 }
 
-// The resolving functions of the calls Go hasn't answered yet, by ID.
-static JSValue (*calls)[2];
-static uint32_t calls_cap;
+// The resolving functions of the calls Go hasn't answered yet, by ID. Go
+// starts at most MAX_CALLS, from 1. Matches MaxCalls in js.go.
+#define MAX_CALLS 20
+static JSValue calls[MAX_CALLS + 1][2];
 
 // Starts a call, which Go answers with kite_resolve, and returns its promise.
 static JSValue js_start(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
@@ -124,37 +117,20 @@ static JSValue js_start(JSContext *ctx, JSValueConst this_val, int argc, JSValue
   JSValue promise = JS_NewPromiseCapability(ctx, funcs);
   if (JS_IsException(promise)) return promise;
 
-  if (id < 0) {
-    // Go turned it down, like an unknown call.
-    bool failed;
-    JSValue err = take(ctx, id, &failed);
-    JSValue r = JS_Call(ctx, funcs[1], JS_UNDEFINED, 1, &err);
-    JS_FreeValue(ctx, r);
-    JS_FreeValue(ctx, err);
-    JS_FreeValue(ctx, funcs[0]);
-    JS_FreeValue(ctx, funcs[1]);
+  if (id > 0 && id <= MAX_CALLS) {
+    calls[id][0] = funcs[0];
+    calls[id][1] = funcs[1];
     return promise;
   }
 
-  if ((uint32_t)id >= calls_cap) {
-    uint32_t cap = calls_cap ? calls_cap * 2 : 16;
-    while (cap <= (uint32_t)id) cap *= 2;
-    JSValue (*grown)[2] = realloc(calls, cap * sizeof(*calls));
-    if (!grown) {
-      JS_FreeValue(ctx, promise);
-      JS_FreeValue(ctx, funcs[0]);
-      JS_FreeValue(ctx, funcs[1]);
-      return JS_ThrowOutOfMemory(ctx);
-    }
-    for (uint32_t i = calls_cap; i < cap; i++) {
-      grown[i][0] = JS_UNDEFINED;
-      grown[i][1] = JS_UNDEFINED;
-    }
-    calls = grown;
-    calls_cap = cap;
-  }
-  calls[id][0] = funcs[0];
-  calls[id][1] = funcs[1];
+  // Go turned it down, like an unknown call.
+  JS_FreeValue(ctx, take(ctx, id, false));
+  JSValue err = JS_GetException(ctx);
+  JSValue r = JS_Call(ctx, funcs[1], JS_UNDEFINED, 1, &err);
+  JS_FreeValue(ctx, r);
+  JS_FreeValue(ctx, err);
+  JS_FreeValue(ctx, funcs[0]);
+  JS_FreeValue(ctx, funcs[1]);
   return promise;
 }
 
@@ -233,6 +209,10 @@ int32_t kite_init(uint32_t memory_limit, uint32_t stack_size, const char *prelud
   JS_SetInterruptHandler(rt, interrupt_handler, NULL);
   ctx = JS_NewContext(rt);
   if (!ctx) return -1;
+  for (int i = 0; i <= MAX_CALLS; i++) {
+    calls[i][0] = JS_UNDEFINED;
+    calls[i][1] = JS_UNDEFINED;
+  }
 
   JSValue global = JS_GetGlobalObject(ctx);
   JSValue kite = JS_NewObject(ctx);
@@ -301,8 +281,7 @@ static int32_t set_out_json(JSValue v) {
 }
 
 // The promise the code returned, while it waits for calls.
-static JSValue waiting;
-static bool has_waiting;
+static JSValue waiting = JS_UNDEFINED;
 
 // Runs the job queue, the code after each await and queueMicrotask
 // callbacks, then stores what promise settled to, and frees it. Returns 0 for
@@ -333,7 +312,6 @@ static int32_t settle(JSValue promise) {
   if (state == JS_PROMISE_NOT_A_PROMISE) return set_out_json(promise);
   if (state == JS_PROMISE_PENDING) {
     waiting = promise;
-    has_waiting = true;
     return 2;
   }
   JSValue result = JS_PromiseResult(ctx, promise);
@@ -372,18 +350,15 @@ int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_
 EXPORT("kite_resolve")
 int32_t kite_resolve(uint32_t id, int32_t n) {
   JS_UpdateStackTop(rt);
-  if (!has_waiting || id >= calls_cap || JS_IsUndefined(calls[id][0])) {
+  if (JS_IsUndefined(waiting) || id == 0 || id > MAX_CALLS || JS_IsUndefined(calls[id][0])) {
     SET_OUT_LIT("InternalError: unknown call");
     return 1;
   }
 
-  bool failed;
-  JSValue res = take(ctx, n, &failed);
-  if (JS_IsException(res)) {
-    // Like JSON Go sent that QuickJS can't read, or running out of memory.
-    res = JS_GetException(ctx);
-    failed = true;
-  }
+  JSValue res = take(ctx, n, false);
+  // A failed call, or JSON QuickJS can't read.
+  bool failed = JS_IsException(res);
+  if (failed) res = JS_GetException(ctx);
   JSValue r = JS_Call(ctx, calls[id][failed ? 1 : 0], JS_UNDEFINED, 1, &res);
   JS_FreeValue(ctx, r);
   JS_FreeValue(ctx, res);
@@ -392,6 +367,7 @@ int32_t kite_resolve(uint32_t id, int32_t n) {
   calls[id][0] = JS_UNDEFINED;
   calls[id][1] = JS_UNDEFINED;
 
-  has_waiting = false;
-  return settle(waiting);
+  JSValue p = waiting;
+  waiting = JS_UNDEFINED;
+  return settle(p);
 }

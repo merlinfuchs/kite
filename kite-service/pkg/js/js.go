@@ -219,20 +219,15 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, &budget)
 	for err == nil && status == runPending && st.inflight > 0 {
 		release()
-		var r callResult
 		select {
-		case r = <-st.results:
+		case r := <-st.results:
+			st.inflight--
+			if err = acquire(); err == nil {
+				out, status, err = inst.resolve(stateCtx, r, &budget)
+			}
 		case <-hostCtx.Done():
 			err = errWallTime
 		}
-		if err != nil {
-			break
-		}
-		st.inflight--
-		if err := acquire(); err != nil {
-			return nil, err
-		}
-		out, status, err = inst.resolve(stateCtx, r, &budget)
 	}
 	release()
 	// Calls the code didn't wait for, like a message it sent without await,

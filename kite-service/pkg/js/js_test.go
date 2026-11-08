@@ -386,9 +386,9 @@ func TestUnawaitedHostCallsFinish(t *testing.T) {
 		done.Store(true)
 		return nil, nil
 	}}
-	res, err := Run(context.Background(), Options{Code: `discord.send(); return 1`, Host: hostFrom(host)})
+	res, err := runHost(t, `discord.send(); return 1`, func(o *Options) { o.Host = hostFrom(host) })
 	require.NoError(t, err)
-	assert.Equal(t, "1", string(res))
+	assert.Equal(t, "1", res)
 	assert.True(t, done.Load())
 }
 
