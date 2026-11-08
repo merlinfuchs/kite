@@ -507,6 +507,18 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("reports a modal input of an unknown type", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [{ type: "slider", custom_id: "level", label: "Level" }],
+      },
+    });
+    expect(errors([entry, modal], [edge("entry", "modal")])).toEqual([
+      "'Show Modal' setting 'modal_data.components.0.type': Invalid discriminator value. Expected 'label' | 'text_display'",
+    ]);
+  });
+
   it("finds modal inputs", () => {
     const modal = node("modal", "suspend_response_modal", {
       modal_data: {
