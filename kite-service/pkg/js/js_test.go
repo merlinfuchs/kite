@@ -314,9 +314,13 @@ var testHost = map[string]HostFunc{
 	},
 }
 
+func hostFrom(funcs map[string]HostFunc) func(string) HostFunc {
+	return func(name string) HostFunc { return funcs[name] }
+}
+
 func runHost(t *testing.T, code string, opts ...func(*Options)) (string, error) {
 	t.Helper()
-	o := Options{Code: code, Host: testHost}
+	o := Options{Code: code, Host: hostFrom(testHost)}
 	for _, f := range opts {
 		f(&o)
 	}
@@ -333,9 +337,9 @@ func TestHostCalls(t *testing.T) {
 		{"echo", `return await discord.echo({a: 1})`, `{"a":1}`},
 		{"camel case", `return [await discord.getThing(), await cookieApi.makeCard()]`, `[{"thing":true},"card"]`},
 		{"then", `return (await discord.echo(1)) + await discord.echo(2).then((n) => n * 10)`, `21`},
-		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"Missing Permissions"`},
+		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"discord.fail: Missing Permissions"`},
 		{"unknown", `try { await discord.nope() } catch (e) { return e.message }`, `"discord.nope isn't available"`},
-		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"the call failed"`},
+		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"discord.panic: the call failed"`},
 		{"not calls", `return [typeof discord.then, typeof discord.toJSON, typeof discord.toString, JSON.stringify(discord), String(await discord === discord)]`, `["undefined","undefined","undefined","{}","true"]`},
 	}
 	for _, tt := range tests {
@@ -347,7 +351,7 @@ func TestHostCalls(t *testing.T) {
 	}
 
 	_, err := runHost(t, "await discord.fail()")
-	assert.EqualError(t, err, "Error: Missing Permissions")
+	assert.EqualError(t, err, "Error: discord.fail: Missing Permissions")
 	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
 	assert.EqualError(t, err, "Error: the code made more than 20 calls")
 }
@@ -382,7 +386,7 @@ func TestUnawaitedHostCallsFinish(t *testing.T) {
 		done.Store(true)
 		return nil, nil
 	}}
-	res, err := Run(context.Background(), Options{Code: `discord.send(); return 1`, Host: host})
+	res, err := Run(context.Background(), Options{Code: `discord.send(); return 1`, Host: hostFrom(host)})
 	require.NoError(t, err)
 	assert.Equal(t, "1", string(res))
 	assert.True(t, done.Load())

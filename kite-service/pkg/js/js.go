@@ -100,11 +100,11 @@ type Options struct {
 	// MaxLogEntries entries and MaxLogLength in total.
 	Log func(level LogLevel, message string)
 
-	// Host are the calls the code can make, by name like
-	// discord.create_message, which the code calls as
-	// discord.createMessage(arg). Each returns a promise, and runs in the
-	// background while the code waits.
-	Host map[string]HostFunc
+	// Host returns the call the code makes by a name like
+	// discord.create_message, or nil if there's none. The code calls it as
+	// discord.createMessage(arg), which returns a promise, and it runs in the
+	// background while the code waits. Every call has returned when Run does.
+	Host func(name string) HostFunc
 
 	// timeout replaces Timeout in tests, which can't rely on getting a busy
 	// CI machine's CPU for 25 ms. wallTime replaces MaxWallTime.
@@ -113,7 +113,8 @@ type Options struct {
 }
 
 // HostFunc is a call the code can make. arg is the JSON of the code's
-// argument. Its error message is what the code's promise is rejected with.
+// argument. Its error message is what the code's promise is rejected with. It
+// has to return soon once ctx is done.
 type HostFunc func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error)
 
 // Error is an error of the script, like one it threw or running out of
@@ -222,10 +223,10 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		select {
 		case r = <-st.results:
 		case <-hostCtx.Done():
-			if ctx.Err() != nil {
-				return nil, ctx.Err()
-			}
-			return nil, errWallTime
+			err = errWallTime
+		}
+		if err != nil {
+			break
 		}
 		st.inflight--
 		if err := acquire(); err != nil {
@@ -235,21 +236,16 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	release()
 	// Calls the code didn't wait for, like a message it sent without await,
-	// still finish.
-	for st.inflight > 0 {
-		select {
-		case <-st.results:
-			st.inflight--
-		case <-hostCtx.Done():
-			st.inflight = 0
-		}
+	// still finish, within the wall time. After it they're canceled.
+	for ; st.inflight > 0; st.inflight-- {
+		<-st.results
 	}
 
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if err == errTimeout {
+		if err == errTimeout || err == errWallTime {
 			return nil, err
 		}
 		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)

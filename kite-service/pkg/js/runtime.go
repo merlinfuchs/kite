@@ -253,7 +253,7 @@ type runState struct {
 
 	// The calls the code can start, see Options.Host, and the context they
 	// run in.
-	host    map[string]HostFunc
+	host    func(name string) HostFunc
 	hostCtx context.Context
 	// started counts the calls the code started, inflight those not done.
 	started  int
@@ -271,8 +271,11 @@ type callResult struct {
 // start starts the call name of the code in the background, and returns its
 // ID for kite_resolve.
 func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
-	fn, ok := st.host[name]
-	if !ok {
+	var fn HostFunc
+	if st.host != nil {
+		fn = st.host(name)
+	}
+	if fn == nil {
 		return 0, fmt.Errorf("%s isn't available", jsName(name))
 	}
 	if st.started >= MaxCalls {
@@ -283,6 +286,9 @@ func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 	id := int32(st.started)
 	go func() {
 		res, err := runHostFunc(st.hostCtx, fn, arg)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", jsName(name), err)
+		}
 		st.results <- callResult{id: id, res: res, err: err}
 	}()
 	return id, nil
