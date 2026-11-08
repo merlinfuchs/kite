@@ -1,14 +1,13 @@
 {
   "name": "Kite",
   "short_name": "Kite",
-  "description": "Create Discord bots for free with no coding required.",
+  "description": "A free Discord bot maker. Build commands and event listeners by connecting blocks, and Kite hosts the bot 24/7.",
   "id": "/apps",
   "start_url": "/apps",
   "scope": "/",
   "display": "standalone",
   "background_color": "#141211",
   "theme_color": "#141211",
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
