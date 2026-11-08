@@ -110,12 +110,18 @@ static JSValue calls[MAX_CALLS + 1][2];
 
 // Starts a call, which Go answers with kite_resolve, and returns its promise.
 static JSValue js_start(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
-  int32_t id;
-  if (with_host_args(ctx, argc, argv, host_start, &id) < 0) return JS_EXCEPTION;
-
+  // Before Go starts the call, so it can always be answered.
   JSValue funcs[2];
   JSValue promise = JS_NewPromiseCapability(ctx, funcs);
   if (JS_IsException(promise)) return promise;
+
+  int32_t id;
+  if (with_host_args(ctx, argc, argv, host_start, &id) < 0) {
+    JS_FreeValue(ctx, promise);
+    JS_FreeValue(ctx, funcs[0]);
+    JS_FreeValue(ctx, funcs[1]);
+    return JS_EXCEPTION;
+  }
 
   if (id > 0 && id <= MAX_CALLS) {
     calls[id][0] = funcs[0];

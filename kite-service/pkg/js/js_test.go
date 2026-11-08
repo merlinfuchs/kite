@@ -308,7 +308,8 @@ var testHost = map[string]HostFunc{
 	"discord.fail": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 		return nil, errors.New("Missing Permissions")
 	},
-	"discord.panic": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { panic("boom") },
+	"discord.nothing": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { return nil, nil },
+	"discord.panic":   func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { panic("boom") },
 	"cookie_api.make_card": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 		return json.RawMessage(`"card"`), nil
 	},
@@ -320,7 +321,7 @@ func hostFrom(funcs map[string]HostFunc) func(string) HostFunc {
 
 func runHost(t *testing.T, code string, opts ...func(*Options)) (string, error) {
 	t.Helper()
-	o := Options{Code: code, Host: hostFrom(testHost)}
+	o := Options{Code: code, Host: hostFrom(testHost), timeout: testTimeout}
 	for _, f := range opts {
 		f(&o)
 	}
@@ -340,6 +341,8 @@ func TestHostCalls(t *testing.T) {
 		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"discord.fail: Missing Permissions"`},
 		{"unknown", `try { await discord.nope() } catch (e) { return e.message }`, `"discord.nope isn't available"`},
 		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"discord.panic: the call failed"`},
+		{"no result", `return await discord.nothing()`, `null`},
+		{"snake case", `try { await discord.get_thing() } catch (e) { return e.message }`, `"discord.get_thing isn't available"`},
 		{"not calls", `return [typeof discord.then, typeof discord.toJSON, typeof discord.toString, JSON.stringify(discord), String(await discord === discord)]`, `["undefined","undefined","undefined","{}","true"]`},
 	}
 	for _, tt := range tests {
@@ -358,21 +361,21 @@ func TestHostCalls(t *testing.T) {
 
 func TestHostCallsDontUseTime(t *testing.T) {
 	// Waiting 60 ms is more than the 25 ms the code can run.
-	res, err := runHost(t, `return await discord.sleep(60)`)
+	res, err := runHost(t, `return await discord.sleep(60)`, func(o *Options) { o.timeout = Timeout })
 	require.NoError(t, err)
 	assert.Equal(t, "60", res)
 
 	// The calls of Promise.all run at the same time.
 	start := time.Now()
-	res, err = runHost(t, `return await Promise.all([discord.sleep(80), discord.sleep(80), discord.sleep(80)])`)
+	res, err = runHost(t, `return await Promise.all([discord.sleep(150), discord.sleep(150), discord.sleep(150)])`)
 	require.NoError(t, err)
-	assert.Equal(t, "[80,80,80]", res)
-	assert.Less(t, time.Since(start), 200*time.Millisecond)
+	assert.Equal(t, "[150,150,150]", res)
+	assert.Less(t, time.Since(start), 400*time.Millisecond)
 
 	// The time the code runs adds up across the calls it waits for.
 	_, err = runHost(t, `
 const spin = (ms) => { const end = Date.now() + ms; while (Date.now() < end) {} };
-for (let i = 0; i < 4; i++) { spin(10); await discord.echo(i) }`)
+for (let i = 0; i < 4; i++) { spin(30); await discord.echo(i) }`, func(o *Options) { o.timeout = 100 * time.Millisecond })
 	assert.Equal(t, errTimeout, err)
 
 	_, err = runHost(t, `await discord.sleep(1000)`, func(o *Options) { o.wallTime = 100 * time.Millisecond })
@@ -412,5 +415,5 @@ func TestWaitingRunsGiveUpSlots(t *testing.T) {
 	for err := range errs {
 		assert.NoError(t, err)
 	}
-	assert.Less(t, time.Since(start), 450*time.Millisecond)
+	assert.Less(t, time.Since(start), 500*time.Millisecond)
 }

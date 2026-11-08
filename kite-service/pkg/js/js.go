@@ -60,6 +60,14 @@ var (
 // scripts can't delay the gateways and everything else. Scripts past it wait.
 var slots = make(chan struct{}, max(1, runtime.GOMAXPROCS(0)/2))
 
+// liveRuns caps the runs that have an instance, also the ones that wait for
+// calls without a slot. An instance holds 1.5 MB of memory, up to 16 MB.
+var liveRuns = make(chan struct{}, 128)
+
+// callGrace is how long Run waits for calls to return after they were
+// canceled, before it gives up on them.
+const callGrace = 5 * time.Second
+
 func getEngine() (*engine, error) {
 	engineOnce.Do(func() {
 		engineInst, engineErr = newEngine(context.Background())
@@ -158,9 +166,16 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		return nil, err
 	}
 
+	select {
+	case liveRuns <- struct{}{}:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+	defer func() { <-liveRuns }()
+
 	// The run gives up its slot while it waits for calls.
 	held := false
-	acquire := func() error {
+	acquire := func(ctx context.Context) error {
 		select {
 		case slots <- struct{}{}:
 			held = true
@@ -176,7 +191,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		}
 	}
 	defer release()
-	if err := acquire(); err != nil {
+	if err := acquire(ctx); err != nil {
 		return nil, err
 	}
 
@@ -222,7 +237,9 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		select {
 		case r := <-st.results:
 			st.inflight--
-			if err = acquire(); err == nil {
+			if acquire(hostCtx) != nil {
+				err = errWallTime
+			} else {
 				out, status, err = inst.resolve(stateCtx, r, &budget)
 			}
 		case <-hostCtx.Done():
@@ -231,9 +248,21 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	release()
 	// Calls the code didn't wait for, like a message it sent without await,
-	// still finish, within the wall time. After it they're canceled.
-	for ; st.inflight > 0; st.inflight-- {
-		<-st.results
+	// still finish, within the wall time. After it they're canceled, and Run
+	// gives up on them after callGrace.
+	done := hostCtx.Done()
+	var giveUp <-chan time.Time
+	for st.inflight > 0 {
+		select {
+		case <-st.results:
+			st.inflight--
+		case <-done:
+			done = nil
+			giveUp = time.After(callGrace)
+		case <-giveUp:
+			slog.Error("Script calls didn't return after they were canceled", slog.Int("calls", st.inflight))
+			st.inflight = 0
+		}
 	}
 
 	if err != nil {

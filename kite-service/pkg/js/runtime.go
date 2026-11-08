@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -269,6 +271,10 @@ func (st *runState) setPending(res []byte, err error) int32 {
 		st.pending = []byte(err.Error())
 		return -int32(len(st.pending))
 	}
+	// Like a call without a result.
+	if len(res) == 0 {
+		res = []byte("null")
+	}
 	st.pending = res
 	return int32(len(res))
 }
@@ -277,7 +283,9 @@ func (st *runState) setPending(res []byte, err error) int32 {
 // in the background, and returns its ID for kite_resolve.
 func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 	var fn HostFunc
-	if st.host != nil {
+	// Only the camel case names, discord.create_message is no other way to
+	// call discord.createMessage.
+	if _, op, _ := strings.Cut(name, "."); st.host != nil && !strings.Contains(op, "_") {
 		fn = st.host(snakeName(name))
 	}
 	if fn == nil {
@@ -302,6 +310,7 @@ func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 func runHostFunc(ctx context.Context, fn HostFunc, arg json.RawMessage) (res json.RawMessage, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			slog.Error("Script call panicked", slog.Any("panic", r), slog.String("stack", string(debug.Stack())))
 			err = errors.New("the call failed")
 		}
 	}()
@@ -359,12 +368,7 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 		}
 		name, _ := m.Memory().Read(namePtr, nameLen)
 		arg, _ := m.Memory().Read(argPtr, argLen)
-		res, err := callHost(string(name), arg)
-		if err != nil {
-			return st.setPending(nil, err)
-		}
-		st.pending = res
-		return int32(len(res))
+		return st.setPending(callHost(string(name), arg))
 	}).Export("call").
 		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, dst uint32) {
 		if st := stateFrom(ctx); st != nil {
