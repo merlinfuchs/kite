@@ -15,19 +15,19 @@ You can add several filters to the same event listener. The flow only runs when 
 
 ## Filter targets
 
-| Target                 | Value                                                        | Events                                                                                |
-| ---------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Message content        | Text, compared with the filter mode                          | Message create, Message update, Message delete, Direct message received               |
-| User ID                | A user ID                                                    | All except Bot joined server and Bot left server                                      |
-| Server ID              | A server ID                                                  | All except Direct message received                                                    |
-| Channel ID             | A channel ID                                                 | Messages, reactions, Server boost, Audit log entry                                    |
-| Message ID             | A message ID                                                 | Messages, reactions, Server boost                                                     |
-| Member role            | A role ID or mention, with `Has role` or `Doesn't have role` | Message create, Message update, Message reaction add, Server member add, Server boost |
-| Reaction emoji         | An emoji, picked with the emoji picker                       | Message reaction add, Message reaction remove                                         |
-| Message has attachment | Yes or No                                                    | Message create, Message update, Direct message received                               |
-| Message mentions bot   | Yes or No, whether the message pings your bot                | Message create, Message update, Direct message received                               |
-| User is bot            | Yes or No. Choose No to ignore bots                          | Server member add, Server member remove, Message reaction add                         |
-| Audit log action       | The actions, picked from a list                              | Audit log entry                                                                       |
+| Target                 | Value                                                        | Events                                                                                                     |
+| ---------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Message content        | Text, compared with the filter mode                          | Message create, Message update, Message delete, Direct message received                                    |
+| User ID                | A user ID                                                    | All except Bot joined server and Bot left server                                                           |
+| Server ID              | A server ID                                                  | All except Direct message received                                                                         |
+| Channel ID             | A channel ID                                                 | Messages, reactions, Server boost, Audit log entry                                                         |
+| Message ID             | A message ID                                                 | Messages, reactions, Server boost                                                                          |
+| Member role            | A role ID or mention, with `Has role` or `Doesn't have role` | Message create, Message update, Message reaction add, Server member add, Server boost, Server boost remove |
+| Reaction emoji         | An emoji, picked with the emoji picker                       | Message reaction add, Message reaction remove                                                              |
+| Message has attachment | Yes or No                                                    | Message create, Message update, Direct message received                                                    |
+| Message mentions bot   | Yes or No, whether the message pings your bot                | Message create, Message update, Direct message received                                                    |
+| User is bot            | Yes or No. Choose No to ignore bots                          | Server member add, Server member remove, Message reaction add                                              |
+| Audit log action       | The actions, picked from a list                              | Audit log entry                                                                                            |
 
 The editor only offers the targets the event of your listener has. A filter on something the event doesn't have, like the message content of a Member Join, would stop the listener from ever running, so it can't be saved. Messages from bots are always ignored, which is why User is bot isn't offered for message events.
 
