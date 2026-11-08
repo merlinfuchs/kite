@@ -99,6 +99,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Utility blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
+- [Run JavaScript](./actions/action_javascript_run.md) - Run a short piece of JavaScript and use what it returns
 - [Generate Random Value](./actions/action_random_generate.md) - Generate random numbers or pick random items from a list
 - [Lookup Value](./actions/action_value_lookup.md) - Find the value for a key in a table
 - [Log Message](./actions/action_log.md) - Log messages for debugging

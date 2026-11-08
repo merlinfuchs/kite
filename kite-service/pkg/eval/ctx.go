@@ -1871,6 +1871,45 @@ func NewThingEnv(t thing.Thing) any {
 	}
 }
 
+// ThingJSON encodes a thing with the fields its placeholders have, like the
+// display_name of a user, where thing.JSONValue gives Discord objects as
+// their ID. Fields that are only computed when a placeholder reads them, like
+// user.role_names, are left out, as the envs only tag the others for JSON.
+func ThingJSON(t thing.Thing) (json.RawMessage, error) {
+	return json.Marshal(jsonEnv(t))
+}
+
+// jsonEnv is NewThingEnv with the body and data of HTTP responses, which
+// their env only reads when a placeholder uses them. It isn't a MarshalJSON
+// of the env, which would change what toJSON gives in placeholders.
+func jsonEnv(t thing.Thing) any {
+	switch t.Type {
+	case thing.TypeHTTPResponse:
+		env := NewHTTPResponseEnv(t.HTTPResponse())
+		body, _ := env.BodyFunc()
+		data, _ := env.DataFunc()
+		return map[string]any{
+			"status":      env.Status,
+			"status_code": env.StatusCode,
+			"body":        body,
+			"data":        data,
+		}
+	case thing.TypeArray:
+		res := make([]any, len(t.Array()))
+		for i, v := range t.Array() {
+			res[i] = jsonEnv(v)
+		}
+		return res
+	case thing.TypeObject:
+		res := make(map[string]any, len(t.Object()))
+		for k, v := range t.Object() {
+			res[k] = jsonEnv(v)
+		}
+		return res
+	}
+	return NewThingEnv(t)
+}
+
 type AppEnv struct {
 	session      *state.State
 	guilds       func() appGuilds

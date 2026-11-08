@@ -5843,6 +5843,85 @@
         "description": "The value the expression evaluates to."
       }
     },
+    "action_javascript_run": {
+      "title": "Run JavaScript",
+      "description": "Run a short piece of JavaScript and use what it returns later",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "javascript_data": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "JavaScript that runs as the body of a function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. There's no async, network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
+              },
+              "inputs": {
+                "description": "Values the code gets from the flow.",
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name of the input, read in the code as input.name."
+                    },
+                    "value": {
+                      "description": "Value of the input, like {{arg('amount')}}. A single placeholder keeps its type, like a number or a list. Users, members, channels, roles and messages become objects with the fields of their placeholders, like input.user.display_name, but without user.role_names, permissions, is_admin, is_owner, top_role and color, the category of a channel, and the counts and channels of a server. {{guild}} and {{channel}} are the ID of the server and channel the flow runs in, so pass the fields you need. A response of a Send API Request block has status_code, body and data.",
+                      "x-templated": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "description": "The code to run and the values it gets.",
+            "additionalProperties": false
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "javascript_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "What the code returns, like a number, text, list or object."
+      }
+    },
     "action_random_generate": {
       "title": "Generate Random Value",
       "description": "Generate a random number or pick random items from a list",

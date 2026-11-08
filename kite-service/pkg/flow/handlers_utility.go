@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -10,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -17,6 +20,7 @@ func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
 		FlowNodeTypeActionRandomGenerate:     executeActionRandomGenerate,
 		FlowNodeTypeActionExpressionEvaluate: executeActionExpressionEvaluate,
+		FlowNodeTypeActionJavaScriptRun:      executeActionJavaScriptRun,
 		FlowNodeTypeActionLog:                executeActionLog,
 		FlowNodeTypeActionValueLookup:        executeActionValueLookup,
 	})
@@ -160,6 +164,63 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	}
 
 	ctx.StoreNodeResult(n, res)
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
+	data := n.Data.JavaScriptData
+	if data == nil {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "javascript_data is nil",
+		}
+	}
+
+	// Discord objects get the fields of their placeholders. {{guild}} and
+	// {{channel}} are the ID of the server and channel the flow runs in, like
+	// in text.
+	input := make(map[string]json.RawMessage, len(data.Inputs))
+	for _, in := range data.Inputs {
+		v, err := ctx.EvalTemplate(in.Value)
+		if err != nil {
+			return err
+		}
+		if input[in.Name], err = eval.ThingJSON(v); err != nil {
+			return fmt.Errorf("failed to pass input %s: %w", in.Name, err)
+		}
+	}
+
+	// Logs are written after the run, so a script that logs doesn't wait
+	// for the database while it holds a slot and its time runs out. Lines in
+	// a row with the same level become one entry, so it's one insert usually.
+	type logEntry struct {
+		level js.LogLevel
+		lines []string
+	}
+	var logs []logEntry
+	res, runErr := js.Run(ctx, js.Options{
+		Code:  data.Code,
+		Input: input,
+		Log: func(level js.LogLevel, message string) {
+			if n := len(logs); n > 0 && logs[n-1].level == level {
+				logs[n-1].lines = append(logs[n-1].lines, message)
+				return
+			}
+			logs = append(logs, logEntry{level, []string{message}})
+		},
+	})
+	for _, l := range logs {
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevel(l.level), strings.Join(l.lines, "\n"))
+	}
+	if runErr != nil {
+		return runErr
+	}
+
+	var v any
+	if err := json.Unmarshal(res, &v); err != nil {
+		return fmt.Errorf("failed to read the result: %w", err)
+	}
+	ctx.StoreNodeResult(n, thing.NewFromJSONValue(v))
 	return n.ExecuteChildren(ctx)
 }
 

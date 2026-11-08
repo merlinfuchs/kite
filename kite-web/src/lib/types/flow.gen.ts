@@ -95,6 +95,7 @@ export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
+export const FlowNodeTypeActionJavaScriptRun: FlowNodeType = "action_javascript_run";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
@@ -371,6 +372,10 @@ export interface FlowNodeData {
    * Expression Evaluate
    */
   expression?: string;
+  /**
+   * Run JavaScript
+   */
+  javascript_data?: JavaScriptData;
   /**
    * Value Lookup
    */
@@ -687,6 +692,22 @@ export interface AIDecisionData {
    * Score: the levels, lowest first.
    */
   levels?: string[];
+}
+export interface JavaScriptData {
+  /**
+   * The body of a function with the parameter input. Placeholders in it
+   * aren't evaluated, they would let anyone who can put text in them run
+   * code. Values go in through inputs.
+   */
+  code?: string;
+  inputs?: JavaScriptInput[];
+}
+export interface JavaScriptInput {
+  /**
+   * Property of input in the code.
+   */
+  name: string;
+  value?: string;
 }
 export interface AITranslateData {
   text?: string;

@@ -2697,6 +2697,21 @@
       }
     },
     {
+      "type": "action_javascript_run",
+      "title": "Run JavaScript",
+      "credits": 10,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_random_generate",
       "title": "Generate Random Value",
       "credits": 1,
