@@ -28,7 +28,7 @@ export const discordMemberVoiceEdit: BlockDefinition = {
   id_prefix: "member",
   title: "Edit voice state",
   description: "Server-mute, deafen or move a member to another voice channel",
-  icon: "audio-lines",
+  icon: "mic-off",
   category: "Voice",
   credits: 1,
   permissions: (data) => [
