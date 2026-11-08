@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
 import { onlyPlainSecrets } from "../flow/templateSecrets";
+import { values } from "./fields";
 import { errorColor } from "./colors";
 import { BlockDefinition, SettingsSchema } from "./types";
 
@@ -48,10 +49,6 @@ export const webhookVerifyEncodings = [
   { value: "hex", label: "Hex" },
   { value: "base64", label: "Base64" },
 ] as const;
-
-function values<T extends string>(options: readonly { value: T }[]) {
-  return options.map((o) => o.value) as [T, ...T[]];
-}
 
 export const controlWebhookVerify: BlockDefinition = {
   type: "control_webhook_verify",
