@@ -481,7 +481,11 @@ function getMessageIssues(message: NodeData["message_data"]) {
 // type and style, matched, with the fewest issues.
 function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
   return issues.flatMap((issue) => {
-    if (issue.code !== "invalid_union") return [issue];
+    // A discriminated union whose discriminator matched no variant, like a
+    // modal input of an unknown type, has no variant issues to pick from.
+    if (issue.code !== "invalid_union" || issue.errors.length === 0) {
+      return [issue];
+    }
 
     // The paths of the variants' issues are relative to the union.
     const variants = issue.errors.map((e) =>
