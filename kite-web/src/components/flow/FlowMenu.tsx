@@ -97,9 +97,7 @@ export default function FlowMenu({
           <Tab
             id="logs"
             icon={MessageSquareWarningIcon}
-            title={logs?.length ? `Logs (${logs.length})` : "Logs"}
-            badge={logs?.length}
-            badgeClassName="bg-primary text-primary-foreground"
+            title="Logs"
             tab={tab}
             setTab={wrappedSetTab}
           />
@@ -128,14 +126,12 @@ function Tab({
   tab,
   setTab,
   badge,
-  badgeClassName,
 }: {
   id: Tab;
   icon: LucideIcon;
   title: string;
   // Shown on the icon unless it's 0.
   badge?: number;
-  badgeClassName?: string;
   tab: Tab;
   setTab: (tab: Tab) => void;
 }) {
@@ -155,13 +151,8 @@ function Tab({
           <div className="relative">
             <Icon className="size-8" />
             {!!badge && (
-              <span
-                className={cn(
-                  "absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-[10px] font-semibold leading-4 text-white text-center",
-                  badgeClassName
-                )}
-              >
-                {badge > 99 ? "99+" : badge}
+              <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-[10px] font-semibold leading-4 text-white text-center">
+                {badge}
               </span>
             )}
           </div>
