@@ -117,6 +117,7 @@ func (e *Error) Error() string {
 
 var (
 	errTimeout = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
+	errPending = &Error{Message: "the code waited for something that never finished"}
 	errMemory  = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
 )
 
@@ -172,7 +173,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	if opts.timeout > 0 {
 		timeout = opts.timeout
 	}
-	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
+	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -182,8 +183,12 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		}
 		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
 	}
-	if !ok {
+	switch status {
+	case runError:
 		return nil, scriptError(string(out))
+	case runPending:
+		// No timers or host calls can settle it yet.
+		return nil, errPending
 	}
 	if len(out) > MaxResultLength {
 		return nil, &Error{Message: fmt.Sprintf("the result is %d KB, more than the limit of %d KB", len(out)>>10, MaxResultLength>>10)}

@@ -174,18 +174,18 @@ func (i *instance) output(ctx context.Context) ([]byte, error) {
 	return append([]byte(nil), out...), nil
 }
 
-// run returns the JSON of the script's return value, or ok false and the
-// error message the script threw. An error means the instance is dead. The
+// run returns the JSON of the script's return value, or the error message the
+// script threw for runError. An error means the instance is dead. The
 // time limit starts when the script does, so a slow start on a busy machine
 // doesn't count against it.
-func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout time.Duration) (out []byte, ok bool, err error) {
+func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout time.Duration) (out []byte, status runStatus, err error) {
 	codePtr, err := i.write(ctx, code)
 	if err != nil {
-		return nil, false, err
+		return nil, 0, err
 	}
 	inputPtr, err := i.write(ctx, input)
 	if err != nil {
-		return nil, false, err
+		return nil, 0, err
 	}
 
 	stateFrom(ctx).deadline = time.Now().Add(timeout)
@@ -194,16 +194,27 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout t
 	res, err := i.mod.ExportedFunction("kite_run").Call(runCtx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
-			return nil, false, errTimeout
+			return nil, 0, errTimeout
 		}
-		return nil, false, err
+		return nil, 0, err
 	}
 	out, err = i.output(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, 0, err
 	}
-	return out, int32(res[0]) == 0, nil
+	return out, runStatus(res[0]), nil
 }
+
+// runStatus is what kite_run returns.
+type runStatus int32
+
+const (
+	runResult runStatus = iota
+	runError
+	// The promise the code returned is still pending, with nothing left to
+	// run.
+	runPending
+)
 
 // runState is what the host functions of one run see, passed in the context
 // of the calls into the instance.
