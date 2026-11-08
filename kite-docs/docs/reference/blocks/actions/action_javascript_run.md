@@ -35,9 +35,23 @@ Placeholders in the code itself aren't filled in. Otherwise anyone who can put t
 
 ## What the code can use
 
-The code can use JavaScript itself, including `Math`, `Date`, `JSON` and regular expressions. `console.log`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
+The code can use the JavaScript language up to ES2023 and a few newer additions:
 
-It can't send requests, wait, use timers or reach anything outside the block. Use the other blocks for that, before or after this one. `async` code isn't supported.
+- `Object`, `Array`, `String`, `Number`, `Math`, `Date`, `JSON`, `RegExp`, `Symbol` and `BigInt`
+- `Map`, `Set`, `WeakMap`, `WeakSet` and `WeakRef`
+- Typed arrays like `Uint8Array`, `ArrayBuffer` and `DataView`
+- `Proxy`, `Reflect`, generators and iterator helpers
+- Newer methods like `toSorted`, `findLast`, `Object.groupBy` and `Set` methods like `union`
+- `parseInt`, `parseFloat`, `encodeURIComponent`, `decodeURIComponent`, `atob` and `btoa`
+- `performance.now()`
+
+Regular expressions support named groups, lookbehind and Unicode properties like `\p{L}`, but not the `v` flag. A pattern that backtracks for too long stops at the time limit.
+
+`console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
+
+The code can't send requests, wait, use timers or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+
+`async` code isn't supported. The block fails if the code returns a Promise, and code after an `await` or in `queueMicrotask` never runs.
 
 There's no `Intl`, so `toLocaleString` on dates ignores the language and time zone, and dates are in UTC. Numbers get commas, like `1,234.5`. To show a date in a time zone, use `formatDate(date, format, timeZone)`. The date can be a `Date`, a timestamp in milliseconds or text like `2026-01-01T12:00:00Z`.
 
