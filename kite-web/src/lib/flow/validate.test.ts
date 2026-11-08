@@ -58,6 +58,25 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("accepts contextual command names without slash descriptions", () => {
+    for (const [command_type, name] of [
+      ["user", "View User"],
+      ["message", "Summarize Message"],
+    ]) {
+      expect(
+        errors(
+          [
+            node("entry", "entry_command", {
+              name,
+              command_type,
+            }),
+          ],
+          []
+        )
+      ).toEqual([]);
+    }
+  });
+
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
       const flows = [

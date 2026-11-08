@@ -19,12 +19,8 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(32)
         .min(1)
-        .regex(
-          /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
-          "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
-        )
         .describe(
-          "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+          "Name of a slash command (lowercase letters, numbers, hyphens and underscores; up to three words) or the text shown for a context menu command."
         ),
     },
     {
@@ -32,9 +28,21 @@ export const discordEntryCommand: BlockDefinition = {
       schema: z
         .string()
         .max(100)
-        .min(1)
-        .regex(/\S/, "Can't be only spaces.")
-        .describe("Description of the command shown in Discord."),
+        .optional()
+        .describe(
+          "Description shown in Discord. Required for slash commands; unused by context menu commands."
+        ),
+    },
+    {
+      name: "command_type",
+      input: "command_type",
+      schema: z
+        .enum(["chat_input", "user", "message"])
+        .optional()
+        .describe(
+          "Slash command, User context menu command, or Message context menu command."
+        ),
+      hidden_from_ai: true,
     },
     {
       name: "command_argument_order",
@@ -48,5 +56,38 @@ export const discordEntryCommand: BlockDefinition = {
       hidden_from_ai: true,
     },
   ],
+  refine: (schema) =>
+    schema.superRefine((data, ctx) => {
+      const isContextual =
+        data.command_type === "user" || data.command_type === "message";
+      if (typeof data.name === "string") {
+        const validName = isContextual
+          ? data.name.trim().length > 0
+          : /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/.test(data.name);
+        if (!validName) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["name"],
+            message: isContextual
+              ? "Can't be only spaces."
+              : "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words",
+          });
+        }
+      }
+
+      if (
+        !isContextual &&
+        (typeof data.description !== "string" || !data.description.trim())
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["description"],
+          message:
+            typeof data.description === "string"
+              ? "Can't be only spaces."
+              : "A slash command needs a description.",
+        });
+      }
+    }),
   run: { kind: "custom" },
 };

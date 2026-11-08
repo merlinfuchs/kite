@@ -190,8 +190,10 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string         `expr:"id" json:"id"`
-	Args map[string]any `expr:"args" json:"args"`
+	ID            string         `expr:"id" json:"id"`
+	Args          map[string]any `expr:"args" json:"args"`
+	TargetUser    any            `expr:"target_user" json:"target_user"`
+	TargetMessage *MessageEnv    `expr:"target_message" json:"target_message"`
 }
 
 func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
@@ -253,9 +255,33 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		addArg(option)
 	}
 
+	var targetUser any
+	if targetID := data.TargetUserID(); targetID.IsValid() {
+		user, userExists := data.Resolved.Users[targetID]
+		member, memberExists := data.Resolved.Members[targetID]
+		if memberExists {
+			if !userExists {
+				user = discord.User{ID: targetID}
+			}
+			member.User = user
+			targetUser = guild.memberEnv(member)
+		} else if userExists {
+			targetUser = NewUserEnv(user)
+		}
+	}
+
+	var targetMessage *MessageEnv
+	if targetID := data.TargetMessageID(); targetID.IsValid() {
+		if msg, ok := data.Resolved.Messages[targetID]; ok {
+			targetMessage = NewMessageEnv(msg)
+		}
+	}
+
 	return &CommandEnv{
-		interaction: i,
-		cmd:         data,
+		interaction:   i,
+		cmd:           data,
+		TargetUser:    targetUser,
+		TargetMessage: targetMessage,
 
 		ID:   data.ID.String(),
 		Args: args,

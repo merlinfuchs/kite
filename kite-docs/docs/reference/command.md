@@ -4,7 +4,13 @@ sidebar_position: 1
 
 # Custom command
 
-Custom commands are the primary way for users to interact with your bot. Once you create your first command, users will be able to use it by typing `/` into the Discord chat.
+Custom slash commands are the primary way for users to interact with your bot. Members can invoke one by typing `/` into the Discord chat.
+
+## Context menu commands
+
+You can also create a User or Message context menu command. In Discord, members open the menu on a user or message and choose your command. In the flow, use `interaction.command.target_user` for the selected user or `interaction.command.target_message` for the selected message. The message's author is available as `interaction.command.target_message.author`.
+
+If a button or modal resumes the flow, the original target is available at `origin.interaction.command.target_user` or `origin.interaction.command.target_message`.
 
 ## Sub-commands
 

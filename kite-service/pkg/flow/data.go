@@ -315,7 +315,8 @@ type FlowNodeData struct {
 	TemporaryName string `json:"temporary_name,omitempty"`
 
 	// Command Entry
-	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+	CommandType          CommandType `json:"command_type,omitempty"`
+	CommandArgumentOrder []string    `json:"command_argument_order,omitempty"`
 
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
@@ -630,11 +631,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// Command Entry
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 32),
-			validation.Match(commandNameRe).
-				Error("must be lowercase without special characters and up to two spaces"),
+			validation.When(
+				d.CommandType == "" || d.CommandType == CommandTypeChatInput,
+				validation.Match(commandNameRe).
+					Error("must be lowercase without special characters and up to two spaces"),
+			),
 		)),
-		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
+		validation.Field(&d.CommandType, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.In("", CommandTypeChatInput, CommandTypeUser, CommandTypeMessage),
+		)),
+		validation.Field(&d.Description, validation.When(
+			nodeType == FlowNodeTypeEntryCommand &&
+				(d.CommandType == "" || d.CommandType == CommandTypeChatInput),
 			validation.Required,
 			notBlank,
 			validation.Length(1, 100),
@@ -870,6 +880,14 @@ const (
 	CommandContextTypeGuild          CommandContextType = "guild"
 	CommandContextTypeBotDM          CommandContextType = "bot_dm"
 	CommandContextTypePrivateChannel CommandContextType = "private_channel"
+)
+
+type CommandType string
+
+const (
+	CommandTypeChatInput CommandType = "chat_input"
+	CommandTypeUser      CommandType = "user"
+	CommandTypeMessage   CommandType = "message"
 )
 
 type CommandDisabledIntegrationType string

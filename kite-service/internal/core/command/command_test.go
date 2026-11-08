@@ -99,6 +99,24 @@ func TestMergeCommandsKeepsOrder(t *testing.T) {
 	}
 }
 
+func TestMergeCommandsKeepsCommandTypesSeparate(t *testing.T) {
+	commands := []api.CreateCommandData{
+		{Name: "inspect", Type: discord.ChatInputCommand, Description: "Inspect"},
+		{Name: "inspect", Type: discord.UserCommand},
+		{Name: "inspect", Type: discord.MessageCommand},
+	}
+
+	merged := mergeCommands(commands)
+	if len(merged) != len(commands) {
+		t.Fatalf("got %d commands, want %d", len(merged), len(commands))
+	}
+	for i, command := range merged {
+		if command.Type != commands[i].Type {
+			t.Errorf("command %d has type %d, want %d", i, command.Type, commands[i].Type)
+		}
+	}
+}
+
 func TestDiscordDeployError(t *testing.T) {
 	cmdData := []api.CreateCommandData{
 		{Name: "ping", Description: "Ping"},

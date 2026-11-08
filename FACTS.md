@@ -24,7 +24,7 @@ Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 ser
 
 Features (feature | what it means for the user | free or paid):
 - Visual flow editor | build a command by connecting blocks, and see every step | free
-- Slash commands, buttons, select menus, and modals | members use the bot like any other Discord bot | free
+- Slash and context menu commands, buttons, select menus, and modals | members use the bot like any other Discord bot | free
 - Event listeners for messages, new members, reactions, boosts, and more | the bot reacts without a command | free
 - Scheduled tasks | run a flow on a schedule | free, every 5 minutes at most, every minute on Kite Premium
 - Webhooks | start a flow from another website or service | free

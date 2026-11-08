@@ -51,6 +51,42 @@ describe("getAvailablePlaceholders", () => {
     expect(values()[0]).toEqual(["Command", ["arg('user')"]]);
   });
 
+  it("lists the selected contextual target and preserves it after a resume", () => {
+    const userNodes = [
+      node("entry", "entry_command", { command_type: "user" }),
+      ...nodes.slice(1),
+    ];
+    const groups = getAvailablePlaceholders("log", userNodes, edges, "command");
+    const command = groups.find((g) => g.label === "Command")!;
+    const original = groups.find((g) => g.label === "Original Command")!;
+
+    expect(command.placeholders.map((p) => p.value)).toContain(
+      "interaction.command.target_user"
+    );
+    expect(original.placeholders.map((p) => p.value)).toContain(
+      "origin.interaction.command.target_user"
+    );
+
+    const messageNodes = [
+      node("entry", "entry_command", { command_type: "message" }),
+      ...nodes.slice(1),
+    ];
+    const messageGroups = getAvailablePlaceholders(
+      "log",
+      messageNodes,
+      edges,
+      "command"
+    );
+    const messageCommand = messageGroups.find((g) => g.label === "Command")!;
+
+    expect(messageCommand.placeholders.map((p) => p.value)).toContain(
+      "interaction.command.target_message"
+    );
+    expect(messageCommand.placeholders.map((p) => p.value)).not.toContain(
+      "interaction.command.target_user"
+    );
+  });
+
   it("lists the app placeholders", () => {
     const groups = Object.fromEntries(values());
     expect(groups["App"]).toEqual([

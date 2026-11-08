@@ -206,6 +206,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_type: CommandTypeInput,
   command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
@@ -708,6 +709,24 @@ function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
       ]}
       value={data.command_argument_type || ""}
       updateValue={(v) => updateData({ command_argument_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_type"
+      title="Command type"
+      type="select"
+      options={[
+        { value: "chat_input", label: "Slash command" },
+        { value: "user", label: "User context menu" },
+        { value: "message", label: "Message context menu" },
+      ]}
+      value={data.command_type || "chat_input"}
+      updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />
   );

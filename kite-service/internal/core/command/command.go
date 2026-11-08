@@ -248,6 +248,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 
 		data := node.CommandData()
 		res = append(res, api.CreateCommandData{
+			Type:                     data.Type,
 			Name:                     data.Name,
 			Description:              data.Description,
 			Options:                  data.Options,
@@ -389,15 +390,24 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 // too.
 func mergeCommands(commands []api.CreateCommandData) []api.CreateCommandData {
 	res := make([]api.CreateCommandData, 0, len(commands))
-	rootIndexes := make(map[string]int)
+	type commandKey struct {
+		name string
+		kind discord.CommandType
+	}
+	rootIndexes := make(map[commandKey]int)
 
 	// Merge root commands
 	for _, command := range commands {
 		// TODO: think about how to handle different configs for root cmd
-		if i, ok := rootIndexes[command.Name]; ok {
+		kind := command.Type
+		if kind == 0 {
+			kind = discord.ChatInputCommand
+		}
+		key := commandKey{name: command.Name, kind: kind}
+		if i, ok := rootIndexes[key]; ok {
 			res[i].Options = append(res[i].Options, command.Options...)
 		} else {
-			rootIndexes[command.Name] = len(res)
+			rootIndexes[key] = len(res)
 			// Don't append to the options of the given command.
 			command.Options = slices.Clone(command.Options)
 			res = append(res, command)

@@ -9,9 +9,11 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 <EmbedFlowNode type="entry_command" />
 
-The `Command` block is the entry point for slash commands. This is where your command flow begins when a user invokes your slash command.
+The `Command` block is the entry point for slash and context menu commands. This is where your command flow begins when someone invokes the command.
 
-You can configure the command name and description directly in this block. Kite adds the command to Discord a few seconds after you save it.
+You can configure the command type and name directly in this block. Slash commands also need a description. Kite adds the command to Discord a few seconds after you save it.
+
+For a User context menu command, use `interaction.command.target_user` to access the selected user. For a Message context menu command, use `interaction.command.target_message` to access the selected message and `interaction.command.target_message.author` for its author. After a button or modal resumes the flow, use `origin.interaction.command.target_user` or `origin.interaction.command.target_message`.
 
 ## Argument order
 

@@ -8096,20 +8096,16 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 32,
-            "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
-            "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+            "description": "Name of a slash command (lowercase letters, numbers, hyphens and underscores; up to three words) or the text shown for a context menu command."
           },
           "description": {
+            "description": "Description shown in Discord. Required for slash commands; unused by context menu commands.",
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "\\S",
-            "description": "Description of the command shown in Discord."
+            "maxLength": 100
           }
         },
         "required": [
-          "name",
-          "description"
+          "name"
         ],
         "additionalProperties": false
       },
