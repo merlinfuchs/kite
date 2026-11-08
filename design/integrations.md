@@ -310,11 +310,13 @@ Scripts call operations, not blocks. Blocks are presets of operations for the ed
 
 **Operation kinds.** Today an operation is a request: a method, a path and parameters, sent to the integration's base URL with its auth. A second kind names a Go handler instead, with a JSON Schema for its parameters and its result. Reading a member from the gateway cache, stored variables, AI and voice are that kind. The executor runs both kinds, and credits, logs, limits and the generated SDK work the same for them. Some costs depend on the input, like AI by its tokens, so a handler can compute its cost, like `CreditsCost` does for blocks.
 
-**Built-in integrations.** Kite's own features are integrations too, one per feature group, like `variables`, `ai` and `voice`. A group is what an SDK namespace, a docs page, a plan limit and a section of the flow AI's catalog follow, which one `kite` integration would mix together. They have the availability `always` and aren't on the Integrations page, as there's nothing to enable or enter. A group a plan doesn't include, like voice without Kite Plus, says so where it's used, like the Paid badge in the block explorer.
+**Built-in integrations.** Kite's own features are integrations too, one per feature group, like `variables`, `ai`, `voice` and `http`, whose one operation sends a request to any URL like the HTTP Request block. A group is what an SDK namespace, a docs page, a plan limit and a section of the flow AI's catalog follow, which one `kite` integration would mix together. They have the availability `always` and aren't on the Integrations page, as there's nothing to enable or enter. A group a plan doesn't include, like voice without Kite Plus, says so where it's used, like the Paid badge in the block explorer.
 
 Discord's operations without a request stay in the Discord integration. Reading a member from the cache sits next to `GET /guilds/{guild.id}/members/{user.id}`, not in a Kite group.
 
 **Read at runtime.** Calls from scripts name an operation, so the service needs a table of operations, generated like `block_definitions.json`. Each entry has the operation's credits, how its target is proven to be in the app's server, and limits for destructive operations. Blocks keep running from their definitions, and both go through the same executor.
+
+Once scripts call them, an `api.json` is the list of what code may do, and changes to it are changes to what apps can do. It leaves out operations that would break how Kite manages an app, like registering Discord application commands or editing the application. Names of operations are fixed once scripts can call them, and a renamed operation keeps its old name as an alias. Targets and credits are derived where they can be, from the path and from reads being free, with a short list written by hand for fields in bodies, like a forwarded message reference.
 
 ## Future: platform integrations
 
