@@ -202,7 +202,8 @@ export const robloxRankFlow = column([
     type: "action_response_create",
     data: {
       message_data: {
-        content: "Ranked {{ result('1').name }} to {{ result('2').role }}!",
+        content:
+          "Changed the role of {{ result('1').name }} to {{ result('2').role }}.",
       },
     },
   },

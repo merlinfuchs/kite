@@ -5595,7 +5595,7 @@
     "parameters": [
       {
         "key": "group_id",
-        "label": "Roblox Group ID",
+        "label": "Roblox group ID",
         "description": "The number in your group's link, like 123456 in roblox.com/communities/123456/name.",
         "type": "text",
         "required": true

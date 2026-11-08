@@ -6,25 +6,25 @@ import { robloxRankFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
-  title: "Make a Free Roblox Ranking Discord Bot",
+  title: "Make a free Roblox ranking bot for Discord",
   description:
-    "Make your own Roblox ranking bot for Discord with Kite. Rank group members, show their rank and accept join requests from Discord, without a cookie and without writing code.",
-  heading: "Make Your Own Roblox Ranking Bot",
+    "Make your own Roblox ranking bot for Discord with Kite. Rank group members, show their rank, and accept join requests from Discord, without a cookie and without writing code.",
+  heading: "Make your own Roblox ranking bot",
   intro:
     "Connect your Roblox group to a Discord bot with your own name and avatar. Staff rank members with a slash command, and members verified with Bloxlink let themselves into the group. You don't need to write code or give the bot your cookie.",
   secondaryAction: {
-    label: "Read the Guide",
+    label: "Read the guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/roblox-ranking`,
   },
   showcase: {
     flow: robloxRankFlow,
     command: "setrank",
-    reply: "Ranked builderman to Moderator!",
+    reply: "Changed the role of builderman to Moderator.",
   },
   sections: [
     {
-      heading: "Start With the Roblox Ranking Template",
-      body: "Enable Bloxlink and Roblox Open Cloud with their keys, enter your group's ID and import the template. Your bot gets three slash commands.",
+      heading: "Start with the Roblox Ranking template",
+      body: "Enable Bloxlink and Roblox Open Cloud with their keys, enter your group's ID, and add the template. Your bot gets three slash commands.",
       points: [
         {
           title: "/setrank",
@@ -43,37 +43,37 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "Build the Bot Your Group Needs",
+      heading: "Build the bot your group needs",
       points: [
         {
-          title: "Ranks for Milestones",
+          title: "Ranks for milestones",
           description:
             "Rank members when they reach a goal you track in Kite, like a number of messages or events attended.",
         },
         {
-          title: "Discord Roles From Ranks",
+          title: "Discord roles from ranks",
           description:
             "Give members the Discord role that matches their rank in the group.",
         },
         {
-          title: "Several Roles per Member",
+          title: "Several roles per member",
           description:
             "Give or take single roles and keep the others, for groups that use more than one role per member.",
         },
         {
-          title: "Rank Logs",
+          title: "Rank logs",
           description:
             "Post every rank change with who made it to a staff channel.",
         },
         {
-          title: "Your Own Branding",
+          title: "Your group's name and avatar",
           description:
             "Give the bot your group's name and avatar, and send replies as embeds in your colors.",
         },
         {
-          title: "Let AI Build It",
+          title: "Let Flow AI build it",
           description:
-            "Describe the command you want, like a /verify command that gives verified members the Member role in the group, and Kite's AI builds it.",
+            "Describe the command you want, like a /verify command that gives verified members the Member role in the group, and Flow AI, the AI assistant that builds your bot, adds the blocks for it.",
         },
       ],
     },
@@ -82,7 +82,7 @@ const content: LandingPageContent = {
     {
       question: "Is the ranking bot free?",
       answer:
-        "Yes. You can build and host your ranking bot on Kite for free. Looking up a member with Bloxlink and changing their role costs 1 credit each, out of 10,000 free credits per month.",
+        "Yes. You can build and host your ranking bot on Kite for free. Looking up a member with Bloxlink and changing their role cost 1 credit each, out of 10,000 free credits a month.",
     },
     {
       question: "Do I need to give the bot my Roblox cookie?",
@@ -92,7 +92,7 @@ const content: LandingPageContent = {
     {
       question: "Why do members need Bloxlink?",
       answer:
-        "Roblox doesn't know which Discord account belongs to whom. Bloxlink does, once members verified with it, so the bot asks Bloxlink for their Roblox account.",
+        "Roblox doesn't know which Discord account belongs to whom. Bloxlink does, once members have verified with it, so the bot asks Bloxlink for their Roblox account.",
     },
     {
       question: "Is Kite made by Roblox?",
