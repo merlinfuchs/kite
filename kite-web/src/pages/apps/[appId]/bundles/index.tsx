@@ -14,6 +14,7 @@ import InstalledBundleList from "@/components/app/InstalledBundleList";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import TemplateIcon from "@/components/app/TemplateIcon";
 import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
@@ -184,7 +185,14 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         className="flex items-center gap-3 group min-w-0"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
-          <PackageIcon className="h-5 w-5 text-primary" />
+          {bundle.page.icon ? (
+            <TemplateIcon
+              name={bundle.page.icon}
+              className="h-5 w-5 text-primary"
+            />
+          ) : (
+            <PackageIcon className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
