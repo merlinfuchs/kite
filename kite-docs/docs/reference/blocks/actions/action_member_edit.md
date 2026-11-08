@@ -5,7 +5,7 @@ sidebar_position: 25
 import EmbedFlowNode from "../../../../src/components/EmbedFlowNode";
 import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
-# Edit member
+# Edit member nickname
 
 <EmbedFlowNode type="action_member_edit" />
 

@@ -14,9 +14,15 @@ interface Props {
   logs?: LogEntry[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onShowNode: (id: string) => void;
 }
 
-export default function FlowLogsDrawer({ logs, open, onOpenChange }: Props) {
+export default function FlowLogsDrawer({
+  logs,
+  open,
+  onOpenChange,
+  onShowNode,
+}: Props) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85dvh] h-[85dvh] flex flex-col after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-96 after:bg-background">
@@ -39,7 +45,7 @@ export default function FlowLogsDrawer({ logs, open, onOpenChange }: Props) {
           </DrawerClose>
         </div>
         <div className="flex-1 min-h-0 overflow-hidden">
-          <FlowLogList logs={logs} hideHeader />
+          <FlowLogList logs={logs} hideHeader onShowNode={onShowNode} />
         </div>
       </DrawerContent>
     </Drawer>

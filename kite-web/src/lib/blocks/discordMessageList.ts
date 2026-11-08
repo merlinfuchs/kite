@@ -8,7 +8,8 @@ export const discordMessageList: BlockDefinition = {
   description: "Get the latest messages of a channel",
   icon: "messages-square",
   category: "Messages",
-  credits: 1,
+  credits: 0,
+  permissions: ["READ_MESSAGE_HISTORY"],
   strict_settings: true,
   run: {
     kind: "request",

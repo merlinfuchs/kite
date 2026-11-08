@@ -1,585 +1,306 @@
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import { formatLegalDate, legalUpdatedAt } from "@/lib/legal";
+import Link from "next/link";
 
 export default function PrivacyPolicyPage() {
   return (
     <HomeLayout title="Privacy Policy" noindex>
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
+      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-4xl px-5">
         <h1>Privacy Policy</h1>
-        <p>Last updated: September 24, 2025</p>
+        <p>Last updated: {formatLegalDate(legalUpdatedAt)}</p>
         <p>
-          This Privacy Policy describes Our policies and procedures on the
-          collection, use and disclosure of Your information when You use the
-          Service and tells You about Your privacy rights and how the law
-          protects You.
+          Kite is a no-code Discord bot builder. This policy explains which
+          personal data we process when you use kite.onl and when Kite runs a
+          bot, why we process it, and how long we keep it.
+        </p>
+
+        <h2 id="controller">1. Who is responsible</h2>
+        <p>
+          Merlin Fuchs
+          <br />
+          Alte Str. 5, 04229 Leipzig, Germany
+          <br />
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>
         </p>
         <p>
-          We use Your Personal data to provide and improve the Service. By using
-          the Service, You agree to the collection and use of information in
-          accordance with this Privacy Policy.
+          For the data of your Kite account and your use of kite.onl, we are the
+          controller. For the data of people on Discord that a bot built with
+          Kite processes, the owner of that bot is the controller, and we
+          process the data on their behalf (see{" "}
+          <a href="#bot-data">section 6</a>).
         </p>
-        <h2>Interpretation and Definitions</h2>
-        <h3>Interpretation</h3>
+
+        <h2 id="website">2. Visiting kite.onl</h2>
         <p>
-          The words of which the initial letter is capitalized have meanings
-          defined under the following conditions. The following definitions
-          shall have the same meaning regardless of whether they appear in
-          singular or in plural.
+          When you open kite.onl, our server receives your IP address, the page
+          you request, the time, your browser&apos;s user agent and the
+          referring page. We need this to deliver the website and to protect it
+          against attacks (Art. 6(1)(f) GDPR). Server logs are deleted after 14
+          days. Logs of our services contain technical data like app and Discord
+          IDs, and are deleted after 30 days.
         </p>
-        <h3>Definitions</h3>
-        <p>For the purposes of this Privacy Policy:</p>
+        <p>
+          kite.onl, its API and its docs are delivered through Cloudflare, which
+          protects them against attacks. Every request passes through
+          Cloudflare&apos;s network, including your IP address and what you send
+          to Kite (Art. 6(1)(f) GDPR).
+        </p>
+        <p>
+          Avatars and emojis from Discord are loaded directly from
+          Discord&apos;s servers, which receive your IP address. Our bot
+          building guide has a video from YouTube (youtube-nocookie.com). It
+          only loads when you click play, and YouTube then receives your IP
+          address.
+        </p>
+        <p>
+          We measure how kite.onl and the dashboard are used with OpenPanel,
+          which we run ourselves on a server in Germany. It records page views
+          and actions like creating a command or using the flow AI, together
+          with your browser, device type and the country derived from your IP
+          address. It doesn&apos;t use cookies, and it doesn&apos;t keep your IP
+          address. When you are logged in, we link these events to your account
+          and send OpenPanel your user ID, Discord username and display name, so
+          we can see where people get stuck and improve Kite (Art. 6(1)(f)
+          GDPR). You can object at any time by emailing us.
+        </p>
+
+        <h2 id="storage">3. Cookies and local storage</h2>
+        <p>
+          When you log in, we set a session cookie that keeps you logged in. It
+          expires after 7 days without use. Your browser&apos;s local storage
+          keeps settings like your theme, the position of the flow editor and
+          the notices you dismissed. Both are necessary for the features you use
+          (&sect; 25(2) no. 2 TDDDG) and never leave your device except the
+          session cookie, which is sent to our API.
+        </p>
+
+        <h2 id="account">4. Your account and apps</h2>
+        <p>
+          You log in with Discord. Discord gives us your Discord user ID,
+          username, display name, avatar and email address. We use them to
+          create your account, show who you are to collaborators of your apps,
+          and contact you about your account and important changes. We keep them
+          until you delete your account.
+        </p>
+        <p>
+          For your apps, we store what you create in Kite: the bot token, name,
+          description and avatar of the bot, your commands, event listeners,
+          messages, variables, images, secrets, integration settings and the
+          collaborators you invite. Everything is stored on encrypted disks in
+          Germany, and bot tokens and secrets are encrypted once more. Images
+          are stored encrypted with an object storage provider in Germany. This
+          data is kept until you delete the app.
+        </p>
+        <p>While an app runs, we also keep records with shorter lifetimes:</p>
         <ul>
+          <li>logs of your flows: 30 days;</li>
+          <li>credit usage records: 40 days;</li>
           <li>
-            <p>
-              <strong>Account</strong> means a unique account created for You to
-              access our Service or parts of our Service.
-            </p>
+            waiting flows, like timers and buttons that continue a flow: up to
+            90 days;
           </li>
           <li>
-            <p>
-              <strong>Affiliate</strong> means an entity that controls, is
-              controlled by or is under common control with a party, where
-              &quot;control&quot; means ownership of 50% or more of the shares,
-              equity interest or other securities entitled to vote for election
-              of directors or other managing authority.
-            </p>
+            references to messages your bot sent, so it can edit them later: 90
+            days, or 360 days for messages sent from the dashboard;
           </li>
-          <li>
-            <p>
-              <strong>Company</strong> (referred to as either &quot;the
-              Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot;
-              in this Agreement) refers to Merlin Fuchs, Alte Str. 5, 04229
-              Leipzig, Germany.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Cookies</strong> are small files that are placed on Your
-              computer, mobile device or any other device by a website,
-              containing the details of Your browsing history on that website
-              among its many uses.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Country</strong> refers to: Sachsen, Germany
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Device</strong> means any device that can access the
-              Service such as a computer, a cellphone or a digital tablet.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Personal Data</strong> is any information that relates to
-              an identified or identifiable individual.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Service</strong> refers to the Website.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Service Provider</strong> means any natural or legal
-              person who processes the data on behalf of the Company. It refers
-              to third-party companies or individuals employed by the Company to
-              facilitate the Service, to provide the Service on behalf of the
-              Company, to perform services related to the Service or to assist
-              the Company in analyzing how the Service is used.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Third-party Social Media Service</strong> refers to any
-              website or any social network website through which a User can log
-              in or create an account to use the Service.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Usage Data</strong> refers to data collected
-              automatically, either generated by the use of the Service or from
-              the Service infrastructure itself (for example, the duration of a
-              page visit).
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Website</strong> refers to Kite, accessible from{" "}
-              <a
-                href="https://kite.onl"
-                rel="external nofollow noopener"
-                target="_blank"
-              >
-                https://kite.onl
-              </a>
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>You</strong> means the individual accessing or using the
-              Service, or the company, or other legal entity on behalf of which
-              such individual is accessing or using the Service, as applicable.
-            </p>
-          </li>
-        </ul>
-        <h2>Collecting and Using Your Personal Data</h2>
-        <h3>Types of Data Collected</h3>
-        <h4>Personal Data</h4>
-        <p>
-          While using Our Service, We may ask You to provide Us with certain
-          personally identifiable information that can be used to contact or
-          identify You. Personally identifiable information may include, but is
-          not limited to:
-        </p>
-        <ul>
-          <li>
-            <p>Email address</p>
-          </li>
-          <li>
-            <p>Payment information (processed by Lemon Squeezy)</p>
-          </li>
-          <li>
-            <p>Usage Data</p>
-          </li>
-        </ul>
-        <h4>Usage Data</h4>
-        <p>Usage Data is collected automatically when using the Service.</p>
-        <p>
-          Usage Data may include information such as Your Device&apos;s Internet
-          Protocol address (e.g. IP address), browser type, browser version, the
-          pages of our Service that You visit, the time and date of Your visit,
-          the time spent on those pages, unique device identifiers and other
-          diagnostic data.
-        </p>
-        <p>
-          When You access the Service by or through a mobile device, We may
-          collect certain information automatically, including, but not limited
-          to, the type of mobile device You use, Your mobile device unique ID,
-          the IP address of Your mobile device, Your mobile operating system,
-          the type of mobile Internet browser You use, unique device identifiers
-          and other diagnostic data.
-        </p>
-        <p>
-          We may also collect information that Your browser sends whenever You
-          visit our Service or when You access the Service by or through a
-          mobile device.
-        </p>
-        <h4>Information from Third-Party Social Media Services</h4>
-        <p>
-          The Company allows You to create an account and log in to use the
-          Service through the following Third-party Social Media Services:
-        </p>
-        <ul>
-          <li>Discord</li>
+          <li>share codes: 90 days.</li>
         </ul>
         <p>
-          If You decide to register through or otherwise grant us access to a
-          Third-Party Social Media Service, We may collect Personal data that is
-          already associated with Your Third-Party Social Media Service&apos;s
-          account, such as Your name, Your email address, Your activities or
-          Your contact list associated with that account.
+          When you ask the flow AI to edit a flow, we store your prompt, the
+          model and the number of tokens it used, to count it towards your
+          plan&apos;s limit. Prompts are deleted with the app.
         </p>
         <p>
-          You may also have the option of sharing additional information with
-          the Company through Your Third-Party Social Media Service&apos;s
-          account. If You choose to provide such information and Personal Data,
-          during registration or otherwise, You are giving the Company
-          permission to use, share, and store it in a manner consistent with
-          this Privacy Policy.
+          We process this data to provide Kite to you (Art. 6(1)(b) GDPR).
+          Encrypted backups of the database are stored with an object storage
+          provider in Germany and overwritten within five weeks.
         </p>
-        <h4>Payment Information</h4>
+
+        <h2 id="templates">5. Templates and the marketplace</h2>
         <p>
-          When You subscribe to our premium services, payment processing is
-          handled by Lemon Squeezy, our third-party payment processor. When You
-          make a payment, You will be redirected to Lemon Squeezy&apos;s secure
-          website where You will enter Your payment information directly. We do
-          not store Your payment card details on our servers.
+          Anyone with the link to a template you make can see it, together with
+          your Discord display name, username, avatar and user ID. Content you
+          share with a share code is visible to everyone who has the code.
         </p>
         <p>
-          Lemon Squeezy may collect and process the following information from
-          You:
+          When you list a template in the marketplace, it is public and search
+          engines can index it. Its page shows your Discord display name,
+          username and avatar, and links to a creator page at
+          kite.onl/marketplace/creators/ followed by your Discord user ID, which
+          lists your templates in the marketplace. You choose to list a
+          template, so the legal basis is Art. 6(1)(b) GDPR. When you remove
+          your last template from the marketplace, your creator page goes away.
+          Search engines may still show it for a while.
+        </p>
+        <p>
+          When you submit a template, we keep the submitted version and our
+          decision, including the reason if we reject it. When you report a
+          template, we keep your account, the reason and the details you wrote.
+          Only the people who review reports see them, and we don&apos;t tell
+          the creator who reported their template. We keep reviews and reports
+          until the template is deleted, and reports also until you delete your
+          account. We process them to moderate the marketplace, as the EU
+          Digital Services Act requires (Art. 6(1)(c) and (f) GDPR).
+        </p>
+
+        <h2 id="bot-data">6. Data processed by bots built with Kite</h2>
+        <p>
+          Bots built with Kite receive data from Discord, like the user IDs,
+          names, roles and messages of the people in the servers they are in,
+          and run the flows their owner built. They may store this data in
+          variables and logs or send it to other services, depending on how the
+          bot is built. Kite processes this data only on behalf of the
+          bot&apos;s owner, who decides what it is used for (Art. 28 GDPR). Our{" "}
+          <Link href="/terms#data-processing">Terms of Service</Link> contain
+          the data processing agreement with bot owners.
+        </p>
+        <p>
+          If you have questions about how a bot uses your data, or want it
+          deleted, contact the bot&apos;s owner. If you can&apos;t reach them,
+          email us and we&apos;ll forward your request. When a bot&apos;s owner
+          deletes the app in Kite, we delete its data.
+        </p>
+        <p>
+          Flows can send HTTP requests to services their owner chooses. These
+          requests go through a proxy server we run ourselves in Germany.
+        </p>
+
+        <h2 id="ai">7. AI features</h2>
+        <p>
+          Some features send data to AI models: the flow AI that edits flows, AI
+          blocks in flows, and the support bot in our Discord server.
         </p>
         <ul>
-          <li>Payment card information (card number, expiry date, CVV)</li>
-          <li>Billing address and contact information</li>
-          <li>Transaction details and payment history</li>
+          <li>
+            The flow AI sends your prompt, the earlier messages of the
+            conversation, the flow you are editing and the names of your
+            app&apos;s variables to OpenAI.
+          </li>
+          <li>
+            AI blocks send what their flow puts into the prompt to OpenAI. The
+            AI Choice, Check and Score blocks send it to OpenRouter, which
+            forwards it to the provider of the model. Which data that is depends
+            on how the bot is built, and it can include Discord messages.
+          </li>
+          <li>
+            The support bot sends your question, and the earlier questions and
+            answers of the conversation, to OpenAI. We don&apos;t store them.
+          </li>
         </ul>
         <p>
-          We share Your user ID and subscription details with Lemon Squeezy to
-          facilitate the payment process and manage Your subscription. Lemon
-          Squeezy has its own privacy policy and terms of service that govern
-          how they handle Your payment information. We encourage You to review
-          Lemon Squeezy&apos;s privacy policy at{" "}
+          We tell OpenAI not to store these requests, and we&apos;ve set up
+          OpenAI and OpenRouter so that they and the model providers don&apos;t
+          use them to train models. Providers may keep requests for a limited
+          time to detect abuse. For the flow AI and support bot, the legal basis
+          is Art. 6(1)(b) GDPR. For AI blocks, it is the instruction of the
+          bot&apos;s owner (see <a href="#bot-data">section 6</a>).
+        </p>
+
+        <h2 id="payments">8. Payments</h2>
+        <p>
+          Subscriptions are sold by Lemon Squeezy as merchant of record. Lemon
+          Squeezy processes your payment and billing details as its own
+          controller under its{" "}
           <a
             href="https://www.lemonsqueezy.com/privacy"
-            rel="external nofollow noopener"
             target="_blank"
+            rel="noreferrer"
           >
-            https://www.lemonsqueezy.com/privacy
+            privacy policy
+          </a>
+          . We never see your payment details. We send Lemon Squeezy your user
+          ID and the app the subscription is for, and receive the status and
+          plan of your subscription, to give your app the features it paid for
+          (Art. 6(1)(b) GDPR). If you are in our Discord server, your Discord
+          account gets a role for your plan there.
+        </p>
+
+        <h2 id="support">9. Support</h2>
+        <p>
+          When you email us, we use your email address and message to answer you
+          (Art. 6(1)(b) or (f) GDPR) and delete them when they are no longer
+          needed. Our support server on Discord is subject to{" "}
+          <a
+            href="https://discord.com/privacy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Discord&apos;s privacy policy
           </a>
           .
         </p>
-        <h4>Tracking Technologies and Cookies</h4>
+
+        <h2 id="recipients">10. Who we share data with</h2>
         <p>
-          We use Cookies and similar tracking technologies to track the activity
-          on Our Service and store certain information. Tracking technologies
-          used are beacons, tags, and scripts to collect and track information
-          and to improve and analyze Our Service. The technologies We use may
-          include:
+          We don&apos;t sell personal data or use it for advertising. We only
+          share it with these providers, who process it for us:
         </p>
         <ul>
           <li>
-            <strong>Cookies or Browser Cookies.</strong> A cookie is a small
-            file placed on Your Device. You can instruct Your browser to refuse
-            all Cookies or to indicate when a Cookie is being sent. However, if
-            You do not accept Cookies, You may not be able to use some parts of
-            our Service. Unless you have adjusted Your browser setting so that
-            it will refuse Cookies, our Service may use Cookies.
+            Hosting providers in Germany, currently Hetzner Online GmbH and
+            netcup GmbH: servers, database and storage.
           </li>
           <li>
-            <strong>Web Beacons.</strong> Certain sections of our Service and
-            our emails may contain small electronic files known as web beacons
-            (also referred to as clear gifs, pixel tags, and single-pixel gifs)
-            that permit the Company, for example, to count users who have
-            visited those pages or opened an email and for other related website
-            statistics (for example, recording the popularity of a certain
-            section and verifying system and server integrity).
+            Cloudflare, Inc., USA: delivers kite.onl, its API and its docs and
+            protects them against attacks.
+          </li>
+          <li>OpenAI, USA: flow AI, AI blocks and the support bot.</li>
+          <li>
+            OpenRouter, USA, and the providers of the models it routes to: the
+            AI Choice, Check and Score blocks.
           </li>
         </ul>
         <p>
-          Cookies can be &quot;Persistent&quot; or &quot;Session&quot; Cookies.
-          Persistent Cookies remain on Your personal computer or mobile device
-          when You go offline, while Session Cookies are deleted as soon as You
-          close Your web browser. You can learn more about cookies on{" "}
-          <a
-            href="https://www.termsfeed.com/blog/cookies/#What_Are_Cookies"
-            target="_blank"
-          >
-            TermsFeed website
-          </a>{" "}
-          article.
+          Lemon Squeezy (USA) processes payment data as its own controller, see{" "}
+          <a href="#payments">section 8</a>. Bots built with Kite also send data
+          to Discord and to the services their owner chooses. We disclose data
+          to authorities only when the law requires it.
         </p>
         <p>
-          We use both Session and Persistent Cookies for the purposes set out
-          below:
+          Transfers to the USA are based on the EU-US Data Privacy Framework
+          where the provider is certified under it, and otherwise on the
+          European Commission&apos;s Standard Contractual Clauses (Art. 46(2)(c)
+          GDPR).
         </p>
+
+        <h2 id="rights">11. Your rights</h2>
+        <p>Under the GDPR, you have the right to:</p>
         <ul>
+          <li>get a copy of the data we have about you (Art. 15);</li>
+          <li>have wrong data corrected (Art. 16);</li>
+          <li>have your data deleted (Art. 17);</li>
+          <li>have its processing restricted (Art. 18);</li>
+          <li>receive your data in a machine-readable format (Art. 20);</li>
           <li>
-            <p>
-              <strong>Necessary / Essential Cookies</strong>
-            </p>
-            <p>Type: Session Cookies</p>
-            <p>Administered by: Us</p>
-            <p>
-              Purpose: These Cookies are essential to provide You with services
-              available through the Website and to enable You to use some of its
-              features. They help to authenticate users and prevent fraudulent
-              use of user accounts. Without these Cookies, the services that You
-              have asked for cannot be provided, and We only use these Cookies
-              to provide You with those services.
-            </p>
+            object to processing based on Art. 6(1)(f) GDPR, for reasons that
+            arise from your situation (Art. 21);
           </li>
           <li>
-            <p>
-              <strong>Cookies Policy / Notice Acceptance Cookies</strong>
-            </p>
-            <p>Type: Persistent Cookies</p>
-            <p>Administered by: Us</p>
-            <p>
-              Purpose: These Cookies identify if users have accepted the use of
-              cookies on the Website.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Functionality Cookies</strong>
-            </p>
-            <p>Type: Persistent Cookies</p>
-            <p>Administered by: Us</p>
-            <p>
-              Purpose: These Cookies allow us to remember choices You make when
-              You use the Website, such as remembering your login details or
-              language preference. The purpose of these Cookies is to provide
-              You with a more personal experience and to avoid You having to
-              re-enter your preferences every time You use the Website.
-            </p>
+            complain to a data protection authority (Art. 77), for example ours:
+            Sächsische Datenschutz- und Transparenzbeauftragte, Devrientstraße
+            5, 01067 Dresden, Germany.
           </li>
         </ul>
         <p>
-          For more information about the cookies we use and your choices
-          regarding cookies, please visit our Cookies Policy or the Cookies
-          section of our Privacy Policy.
+          You can delete apps yourself in their settings, which deletes their
+          data, including the bot token. For everything else, including deleting
+          your account, email us at{" "}
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>. We answer
+          within one month.
         </p>
-        <h3>Use of Your Personal Data</h3>
-        <p>The Company may use Personal Data for the following purposes:</p>
-        <ul>
-          <li>
-            <p>
-              <strong>To provide and maintain our Service</strong>, including to
-              monitor the usage of our Service.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>To manage Your Account:</strong> to manage Your
-              registration as a user of the Service. The Personal Data You
-              provide can give You access to different functionalities of the
-              Service that are available to You as a registered user.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>For the performance of a contract:</strong> the
-              development, compliance and undertaking of the purchase contract
-              for the products, items or services You have purchased or of any
-              other contract with Us through the Service, including processing
-              payments and managing subscriptions through our payment processor,
-              Lemon Squeezy.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>To contact You:</strong> To contact You by email,
-              telephone calls, SMS, or other equivalent forms of electronic
-              communication, such as a mobile application&apos;s push
-              notifications regarding updates or informative communications
-              related to the functionalities, products or contracted services,
-              including the security updates, when necessary or reasonable for
-              their implementation.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>To provide You</strong> with news, special offers and
-              general information about other goods, services and events which
-              we offer that are similar to those that you have already purchased
-              or enquired about unless You have opted not to receive such
-              information.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>To manage Your requests:</strong> To attend and manage
-              Your requests to Us.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>For business transfers:</strong> We may use Your
-              information to evaluate or conduct a merger, divestiture,
-              restructuring, reorganization, dissolution, or other sale or
-              transfer of some or all of Our assets, whether as a going concern
-              or as part of bankruptcy, liquidation, or similar proceeding, in
-              which Personal Data held by Us about our Service users is among
-              the assets transferred.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>For other purposes</strong>: We may use Your information
-              for other purposes, such as data analysis, identifying usage
-              trends, determining the effectiveness of our promotional campaigns
-              and to evaluate and improve our Service, products, services,
-              marketing and your experience.
-            </p>
-          </li>
-        </ul>
+
+        <h2 id="other">12. Other information</h2>
         <p>
-          We may share Your personal information in the following situations:
-        </p>
-        <ul>
-          <li>
-            <strong>With Service Providers:</strong> We may share Your personal
-            information with Service Providers to monitor and analyze the use of
-            our Service, to contact You, and to process payments. We share Your
-            user ID and payment information with Lemon Squeezy, our payment
-            processor, to facilitate subscription services.
-          </li>
-          <li>
-            <strong>For business transfers:</strong> We may share or transfer
-            Your personal information in connection with, or during negotiations
-            of, any merger, sale of Company assets, financing, or acquisition of
-            all or a portion of Our business to another company.
-          </li>
-          <li>
-            <strong>With Affiliates:</strong> We may share Your information with
-            Our affiliates, in which case we will require those affiliates to
-            honor this Privacy Policy. Affiliates include Our parent company and
-            any other subsidiaries, joint venture partners or other companies
-            that We control or that are under common control with Us.
-          </li>
-          <li>
-            <strong>With business partners:</strong> We may share Your
-            information with Our business partners to offer You certain
-            products, services or promotions.
-          </li>
-          <li>
-            <strong>With other users:</strong> when You share personal
-            information or otherwise interact in the public areas with other
-            users, such information may be viewed by all users and may be
-            publicly distributed outside. If You interact with other users or
-            register through a Third-Party Social Media Service, Your contacts
-            on the Third-Party Social Media Service may see Your name, profile,
-            pictures and description of Your activity. Similarly, other users
-            will be able to view descriptions of Your activity, communicate with
-            You and view Your profile.
-          </li>
-          <li>
-            <strong>With Your consent</strong>: We may disclose Your personal
-            information for any other purpose with Your consent.
-          </li>
-        </ul>
-        <h3>Retention of Your Personal Data</h3>
-        <p>
-          The Company will retain Your Personal Data only for as long as is
-          necessary for the purposes set out in this Privacy Policy. We will
-          retain and use Your Personal Data to the extent necessary to comply
-          with our legal obligations (for example, if we are required to retain
-          your data to comply with applicable laws), resolve disputes, and
-          enforce our legal agreements and policies.
+          Kite is only for people who are at least 18 years old. We don&apos;t
+          make decisions about you based solely on automated processing.
+          Providing your data is required to use Kite, but you aren&apos;t
+          legally obliged to use it.
         </p>
         <p>
-          The Company will also retain Usage Data for internal analysis
-          purposes. Usage Data is generally retained for a shorter period of
-          time, except when this data is used to strengthen the security or to
-          improve the functionality of Our Service, or We are legally obligated
-          to retain this data for longer time periods.
+          We&apos;ll update this policy when we change how we process data. The
+          current version is always on this page.
         </p>
-        <h3>Transfer of Your Personal Data</h3>
-        <p>
-          Your information, including Personal Data, is processed at the
-          Company&apos;s operating offices and in any other places where the
-          parties involved in the processing are located. It means that this
-          information may be transferred to — and maintained on — computers
-          located outside of Your state, province, country or other governmental
-          jurisdiction where the data protection laws may differ than those from
-          Your jurisdiction.
-        </p>
-        <p>
-          Your consent to this Privacy Policy followed by Your submission of
-          such information represents Your agreement to that transfer.
-        </p>
-        <p>
-          The Company will take all steps reasonably necessary to ensure that
-          Your data is treated securely and in accordance with this Privacy
-          Policy and no transfer of Your Personal Data will take place to an
-          organization or a country unless there are adequate controls in place
-          including the security of Your data and other personal information.
-        </p>
-        <h3>Delete Your Personal Data</h3>
-        <p>
-          You have the right to delete or request that We assist in deleting the
-          Personal Data that We have collected about You.
-        </p>
-        <p>
-          Our Service may give You the ability to delete certain information
-          about You from within the Service.
-        </p>
-        <p>
-          You may update, amend, or delete Your information at any time by
-          signing in to Your Account, if you have one, and visiting the account
-          settings section that allows you to manage Your personal information.
-          You may also contact Us to request access to, correct, or delete any
-          personal information that You have provided to Us.
-        </p>
-        <p>
-          Please note, however, that We may need to retain certain information
-          when we have a legal obligation or lawful basis to do so.
-        </p>
-        <h3>Disclosure of Your Personal Data</h3>
-        <h4>Business Transactions</h4>
-        <p>
-          If the Company is involved in a merger, acquisition or asset sale,
-          Your Personal Data may be transferred. We will provide notice before
-          Your Personal Data is transferred and becomes subject to a different
-          Privacy Policy.
-        </p>
-        <h4>Law enforcement</h4>
-        <p>
-          Under certain circumstances, the Company may be required to disclose
-          Your Personal Data if required to do so by law or in response to valid
-          requests by public authorities (e.g. a court or a government agency).
-        </p>
-        <h4>Other legal requirements</h4>
-        <p>
-          The Company may disclose Your Personal Data in the good faith belief
-          that such action is necessary to:
-        </p>
-        <ul>
-          <li>Comply with a legal obligation</li>
-          <li>Protect and defend the rights or property of the Company</li>
-          <li>
-            Prevent or investigate possible wrongdoing in connection with the
-            Service
-          </li>
-          <li>
-            Protect the personal safety of Users of the Service or the public
-          </li>
-          <li>Protect against legal liability</li>
-        </ul>
-        <h3>Security of Your Personal Data</h3>
-        <p>
-          The security of Your Personal Data is important to Us, but remember
-          that no method of transmission over the Internet, or method of
-          electronic storage is 100% secure. While We strive to use commercially
-          acceptable means to protect Your Personal Data, We cannot guarantee
-          its absolute security.
-        </p>
-        <h2>Children&apos;s Privacy</h2>
-        <p>
-          Our Service does not address anyone under the age of 13. We do not
-          knowingly collect personally identifiable information from anyone
-          under the age of 13. If You are a parent or guardian and You are aware
-          that Your child has provided Us with Personal Data, please contact Us.
-          If We become aware that We have collected Personal Data from anyone
-          under the age of 13 without verification of parental consent, We take
-          steps to remove that information from Our servers.
-        </p>
-        <p>
-          If We need to rely on consent as a legal basis for processing Your
-          information and Your country requires consent from a parent, We may
-          require Your parent&apos;s consent before We collect and use that
-          information.
-        </p>
-        <h2>Links to Other Websites</h2>
-        <p>
-          Our Service may contain links to other websites that are not operated
-          by Us. If You click on a third party link, You will be directed to
-          that third party&apos;s site. We strongly advise You to review the
-          Privacy Policy of every site You visit.
-        </p>
-        <p>
-          We have no control over and assume no responsibility for the content,
-          privacy policies or practices of any third party sites or services.
-        </p>
-        <h2>Changes to this Privacy Policy</h2>
-        <p>
-          We may update Our Privacy Policy from time to time. We will notify You
-          of any changes by posting the new Privacy Policy on this page.
-        </p>
-        <p>
-          We will let You know via email and/or a prominent notice on Our
-          Service, prior to the change becoming effective and update the
-          &quot;Last updated&quot; date at the top of this Privacy Policy.
-        </p>
-        <p>
-          You are advised to review this Privacy Policy periodically for any
-          changes. Changes to this Privacy Policy are effective when they are
-          posted on this page.
-        </p>
-        <h2>Contact Us</h2>
-        <p>
-          If you have any questions about this Privacy Policy, You can contact
-          us:
-        </p>
-        <ul>
-          <li>By email: contact@kite.onl</li>
-        </ul>
       </div>
 
       <HomeFooter />

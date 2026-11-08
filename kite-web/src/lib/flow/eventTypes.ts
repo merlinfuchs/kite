@@ -44,6 +44,9 @@ export interface DiscordEventType {
   placeholders: EventGroup[];
   // Shown once the event is picked, for things worth knowing up front.
   note?: string;
+  // What one is called, for events that can happen many times a minute in a
+  // busy server, where a listener that costs credits on every one adds up.
+  frequent?: string;
 }
 
 const membersIntent = "Needs the Server Members Intent.";
@@ -53,59 +56,64 @@ const membersIntent = "Needs the Server Members Intent.";
 export const discordEventTypes: DiscordEventType[] = [
   {
     value: "message_create",
-    label: "Message Create",
+    label: "Message create",
     description: "A message is sent",
     icon: MessageSquareIcon,
     category: "Messages",
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "message",
   },
   {
     value: "direct_message_create",
-    label: "Direct Message Received",
+    label: "Direct message received",
     description: "A user sends your bot a direct message",
     icon: MailIcon,
     category: "Messages",
     placeholders: ["user_account", "channel", "message"],
-    note: "Message Create, Update and Delete only run for messages in servers.",
+    note: "Message create, update, and delete only run for messages in servers.",
   },
   {
     value: "message_update",
-    label: "Message Update",
+    label: "Message update",
     description: "A message is edited",
     icon: MessageSquareDiffIcon,
     category: "Messages",
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "edited message",
   },
   {
     value: "message_delete",
-    label: "Message Delete",
+    label: "Message delete",
     description: "A message is deleted",
     icon: MessageSquareXIcon,
     category: "Messages",
     // The message and its author are only known if the bot saw the message
     // before it was deleted.
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "deleted message",
   },
   {
     value: "message_reaction_add",
-    label: "Message Reaction Add",
+    label: "Message reaction add",
     description: "A reaction is added to a message",
     icon: SmilePlusIcon,
     category: "Reactions",
     placeholders: ["user", "server", "channel", "message_id", "emoji"],
+    frequent: "reaction",
   },
   {
     value: "message_reaction_remove",
-    label: "Message Reaction Remove",
+    label: "Message reaction remove",
     description: "A reaction is removed from a message",
     icon: SmileIcon,
     category: "Reactions",
     // Discord only sends the ID of the user who removed the reaction.
     placeholders: ["user_id", "server", "channel", "message_id", "emoji"],
+    frequent: "removed reaction",
   },
   {
     value: "guild_member_add",
-    label: "Server Member Add",
+    label: "Server member add",
     description: "A member joins the server",
     icon: LogInIcon,
     category: "Members",
@@ -114,7 +122,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_member_remove",
-    label: "Server Member Remove",
+    label: "Server member remove",
     description: "A member leaves the server",
     icon: LogOutIcon,
     category: "Members",
@@ -123,7 +131,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_boost",
-    label: "Server Boost",
+    label: "Server boost",
     description: "A member boosts the server",
     icon: GemIcon,
     category: "Members",
@@ -132,7 +140,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_boost_remove",
-    label: "Server Boost Remove",
+    label: "Server boost remove",
     description: "A member stops boosting the server",
     icon: GemIcon,
     category: "Members",
@@ -141,7 +149,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_audit_log_entry_create",
-    label: "Audit Log Entry",
+    label: "Audit log entry",
     description: "Something is logged in the server's audit log",
     icon: ScrollTextIcon,
     category: "Moderation",
@@ -151,7 +159,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_create",
-    label: "Bot Joined Server",
+    label: "Bot joined server",
     description: "Your bot is added to a server",
     icon: ServerIcon,
     category: "Bot",
@@ -159,7 +167,7 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "guild_delete",
-    label: "Bot Left Server",
+    label: "Bot left server",
     description: "Your bot is removed from a server",
     icon: ServerCrashIcon,
     category: "Bot",
@@ -226,15 +234,15 @@ export interface EventSourceName {
 const eventSourceNames: Record<EventListenerSource, EventSourceName> = {
   discord: {
     singular: "event listener",
-    title: "Event Listener",
-    plural: "Event Listeners",
+    title: "Event listener",
+    plural: "Event listeners",
     path: "/apps/[appId]/events",
     icon: SatelliteDishIcon,
   },
   schedule: {
     singular: "scheduled task",
-    title: "Scheduled Task",
-    plural: "Scheduled Tasks",
+    title: "Scheduled task",
+    plural: "Scheduled tasks",
     path: "/apps/[appId]/schedules",
     icon: ClockIcon,
   },
@@ -256,6 +264,15 @@ export const eventSources = Object.keys(
 export function eventSourceName(source?: string): EventSourceName {
   return (
     eventSourceNames[source as EventListenerSource] ?? eventSourceNames.discord
+  );
+}
+
+// eventListenerLabel names an event listener by what runs it, like "Member
+// Joins" or "Webhook".
+export function eventListenerLabel(source: string, type: string) {
+  return (
+    (source === "discord" && discordEventType(type)?.label) ||
+    eventSourceName(source).title
   );
 }
 

@@ -3,6 +3,7 @@ package gateway
 import (
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -19,10 +20,11 @@ import (
 func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 	var mu sync.Mutex
 	pending := make(map[gateway.Event][]guildevent.Event)
+	edits := newEditTimes()
 
 	pre := handler.New()
 	pre.AddSyncHandler(func(e gateway.Event) {
-		derived := deriveEvents(session.Cabinet, e)
+		derived := deriveEvents(session.Cabinet, edits, e)
 		if len(derived) == 0 {
 			return
 		}
@@ -60,7 +62,7 @@ type cache interface {
 
 // deriveEvents returns the events Kite derives from a Discord event. c is the
 // cache from before the event updated it.
-func deriveEvents(c cache, e gateway.Event) []guildevent.Event {
+func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event {
 	switch e := e.(type) {
 	case *gateway.MessageDeleteEvent:
 		// Message Delete listeners only run for servers.
@@ -91,15 +93,65 @@ func deriveEvents(c cache, e gateway.Event) []guildevent.Event {
 				return []guildevent.Event{&guildevent.BoostRemove{GuildMemberUpdateEvent: *e}}
 			}
 		}
+	case *gateway.MessageUpdateEvent:
+		// Message Update listeners only run for servers.
+		if !e.GuildID.IsValid() || !isEdit(c, edits, e) {
+			return nil
+		}
+		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
 	}
 	return nil
 }
 
 // isBoosterRole reports whether a role is the server's booster role, which
-// Discord manages and gives to every member who boosts. It's told apart from
-// the other managed roles, of bots and integrations, by having neither. Discord
-// marks it with a premium_subscriber tag set to null, which decodes to false,
-// so the tag can't be used.
+// Discord manages and gives to every member who boosts.
 func isBoosterRole(role *discord.Role) bool {
-	return role.Managed && !role.Tags.BotID.IsValid() && !role.Tags.IntegrationID.IsValid()
+	return role.Tags.PremiumSubscriber
+}
+
+// isEdit reports whether a MESSAGE_UPDATE is an edit, by the time of the last
+// edit changing. Link previews and pins keep it.
+func isEdit(c cache, edits *editTimes, e *gateway.MessageUpdateEvent) bool {
+	if !e.EditedTimestamp.IsValid() {
+		return false
+	}
+	edited := e.EditedTimestamp.Time()
+	if old, err := c.Message(e.ChannelID, e.ID); err == nil {
+		return !old.EditedTimestamp.Time().Equal(edited)
+	}
+	return edits.changed(e.ID, edited)
+}
+
+// maxEditTimes bounds editTimes, which runs for every app. It mainly needs to
+// cover the seconds between an edit and its link preview. Emptying it at worst
+// counts an update of a message that isn't cached as an edit once more.
+const maxEditTimes = 100
+
+// editTimes has the time of the last edit of messages the cache doesn't have,
+// as it only keeps the latest messages of a channel and doesn't add older
+// ones when they're updated.
+type editTimes struct {
+	mu    sync.Mutex
+	times map[discord.MessageID]time.Time
+}
+
+func newEditTimes() *editTimes {
+	return &editTimes{times: make(map[discord.MessageID]time.Time)}
+}
+
+// changed records the time of the last edit of a message, and reports whether
+// it's different from the one recorded before. A message without one counts as
+// edited, as it may have been edited before Kite saw it.
+func (t *editTimes) changed(id discord.MessageID, edited time.Time) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if last, ok := t.times[id]; ok && last.Equal(edited) {
+		return false
+	}
+	if len(t.times) >= maxEditTimes {
+		// A new map frees the memory, clear() would keep it.
+		t.times = make(map[discord.MessageID]time.Time)
+	}
+	t.times[id] = edited
+	return true
 }

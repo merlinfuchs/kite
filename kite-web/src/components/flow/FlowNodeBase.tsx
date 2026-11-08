@@ -1,12 +1,12 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
-import { ReactNode } from "react";
+import { ReactNode, useContext } from "react";
 import { errorColor, primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import DynamicIcon from "../icons/DynamicIcon";
-import { useChangedByAI } from "@/lib/flow/context";
+import { FlowReadOnlyContext, useChangedByAI } from "@/lib/flow/context";
 
 interface Props extends NodeProps {
   title?: string;
@@ -30,6 +30,7 @@ export default function FlowNodeBase(props: Props) {
   const changedByAI = useChangedByAI(props.id);
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(props.type);
+  const readOnly = useContext(FlowReadOnlyContext);
 
   return (
     <div
@@ -87,7 +88,7 @@ export default function FlowNodeBase(props: Props) {
         </div>
       )}
 
-      <FlowNodeMarkers {...props} />
+      {!readOnly && <FlowNodeMarkers {...props} />}
     </div>
   );
 }

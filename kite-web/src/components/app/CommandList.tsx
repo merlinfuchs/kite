@@ -11,19 +11,21 @@ import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function CommandList() {
   const commands = useCommands();
+  const limit = usePlanLimit("max_commands", commands?.length);
 
   const commandActions = (
-    <>
+    <PlanLimitGate limit={limit} noun="commands" from="commands">
       <CommandCreateDialog>
         <Button>Create command</Button>
       </CommandCreateDialog>
       <FlowImportDialog kind="command">
         <Button variant="outline">Import command</Button>
       </FlowImportDialog>
-    </>
+    </PlanLimitGate>
   );
 
   return (
@@ -36,7 +38,7 @@ export default function CommandList() {
         </>
       ) : (
         <>
-          <CommandDeployStatus />
+          {commands.length === 0 && <CommandDeployStatus />}
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
               icon={SquareSlashIcon}
@@ -58,6 +60,17 @@ export default function CommandList() {
               )}
               placeholder="Search commands"
               actions={commandActions}
+              // The deploy status and the limit read as one group.
+              status={
+                <div className="space-y-2">
+                  <CommandDeployStatus />
+                  <PlanLimitCount
+                    limit={limit}
+                    noun="commands"
+                    from="commands"
+                  />
+                </div>
+              }
             />
           )}
         </>

@@ -12,7 +12,7 @@ import (
 )
 
 const createLogEntry = `-- name: CreateLogEntry :exec
-INSERT INTO logs (app_id, message, level, command_id, event_listener_id, message_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, app_id, message, level, created_at, command_id, event_listener_id, message_id
+INSERT INTO logs (app_id, message, level, command_id, event_listener_id, message_id, node_id, node_type, error_code, details, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, app_id, message, level, created_at, command_id, event_listener_id, message_id, node_id, node_type, error_code, details
 `
 
 type CreateLogEntryParams struct {
@@ -22,6 +22,10 @@ type CreateLogEntryParams struct {
 	CommandID       pgtype.Text
 	EventListenerID pgtype.Text
 	MessageID       pgtype.Text
+	NodeID          pgtype.Text
+	NodeType        pgtype.Text
+	ErrorCode       pgtype.Text
+	Details         []byte
 	CreatedAt       pgtype.Timestamp
 }
 
@@ -33,6 +37,10 @@ func (q *Queries) CreateLogEntry(ctx context.Context, arg CreateLogEntryParams) 
 		arg.CommandID,
 		arg.EventListenerID,
 		arg.MessageID,
+		arg.NodeID,
+		arg.NodeType,
+		arg.ErrorCode,
+		arg.Details,
 		arg.CreatedAt,
 	)
 	return err
@@ -48,7 +56,7 @@ func (q *Queries) DeleteLogEntriesBefore(ctx context.Context, beforeAt pgtype.Ti
 }
 
 const getLogEntriesByApp = `-- name: GetLogEntriesByApp :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id, node_id, node_type, error_code, details FROM logs 
 WHERE 
     app_id = $1 AND 
     ($3::bigint IS NULL OR id < $3::bigint) 
@@ -79,6 +87,10 @@ func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByApp
 			&i.CommandID,
 			&i.EventListenerID,
 			&i.MessageID,
+			&i.NodeID,
+			&i.NodeType,
+			&i.ErrorCode,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}
@@ -91,7 +103,7 @@ func (q *Queries) GetLogEntriesByApp(ctx context.Context, arg GetLogEntriesByApp
 }
 
 const getLogEntriesByCommand = `-- name: GetLogEntriesByCommand :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id, node_id, node_type, error_code, details FROM logs 
 WHERE 
     app_id = $1 AND 
     command_id = $2 AND 
@@ -129,6 +141,10 @@ func (q *Queries) GetLogEntriesByCommand(ctx context.Context, arg GetLogEntriesB
 			&i.CommandID,
 			&i.EventListenerID,
 			&i.MessageID,
+			&i.NodeID,
+			&i.NodeType,
+			&i.ErrorCode,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}
@@ -141,7 +157,7 @@ func (q *Queries) GetLogEntriesByCommand(ctx context.Context, arg GetLogEntriesB
 }
 
 const getLogEntriesByEvent = `-- name: GetLogEntriesByEvent :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs 
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id, node_id, node_type, error_code, details FROM logs 
 WHERE 
     app_id = $1 AND 
     event_listener_id = $2 AND 
@@ -179,6 +195,10 @@ func (q *Queries) GetLogEntriesByEvent(ctx context.Context, arg GetLogEntriesByE
 			&i.CommandID,
 			&i.EventListenerID,
 			&i.MessageID,
+			&i.NodeID,
+			&i.NodeType,
+			&i.ErrorCode,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}
@@ -191,7 +211,7 @@ func (q *Queries) GetLogEntriesByEvent(ctx context.Context, arg GetLogEntriesByE
 }
 
 const getLogEntriesByMessage = `-- name: GetLogEntriesByMessage :many
-SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id FROM logs WHERE app_id = $1 AND message_id = $2 AND ($4::bigint IS NULL OR id < $4::bigint) ORDER BY created_at DESC LIMIT $3
+SELECT id, app_id, message, level, created_at, command_id, event_listener_id, message_id, node_id, node_type, error_code, details FROM logs WHERE app_id = $1 AND message_id = $2 AND ($4::bigint IS NULL OR id < $4::bigint) ORDER BY created_at DESC LIMIT $3
 `
 
 type GetLogEntriesByMessageParams struct {
@@ -224,6 +244,10 @@ func (q *Queries) GetLogEntriesByMessage(ctx context.Context, arg GetLogEntriesB
 			&i.CommandID,
 			&i.EventListenerID,
 			&i.MessageID,
+			&i.NodeID,
+			&i.NodeType,
+			&i.ErrorCode,
+			&i.Details,
 		); err != nil {
 			return nil, err
 		}

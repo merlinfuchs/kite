@@ -73,6 +73,10 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 		res |= gateway.IntentGuildModeration
 	}
 
+	if reqs.NeedsGuildVoiceStates() {
+		res |= gateway.IntentGuildVoiceStates
+	}
+
 	return res
 }
 

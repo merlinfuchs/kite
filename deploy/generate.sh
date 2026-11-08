@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Generates the nginx config and the systemd unit of the service clusters from
-# deploy/config.env. Commit the result and apply it with deploy/server.sh.
+# Generates the nginx config, the systemd unit of the service clusters and the
+# one of the web server from deploy/config.env. Commit the result and apply it
+# with deploy/server.sh.
 set -euo pipefail
 
 DEPLOY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,6 +41,9 @@ render() {
   out="${out//@DOCS_DOMAIN@/$DOCS_DOMAIN}"
   out="${out//@API_DOMAIN@/$API_DOMAIN}"
   out="${out//@WEB_DIR@/$WEB_DIR}"
+  out="${out//@WEB_SERVER_DIR@/$WEB_SERVER_DIR}"
+  out="${out//@WEB_PORT@/$WEB_PORT}"
+  out="${out//@NODE_BIN@/$NODE_BIN}"
   out="${out//@DOCS_DIR@/$DOCS_DIR}"
   out="${out//@API_MAX_BODY_SIZE@/$API_MAX_BODY_SIZE}"
   out="${out//@OPENPANEL_URL@/$OPENPANEL_URL}"
@@ -62,21 +66,38 @@ set_real_ip_from 127.0.0.1;
 set_real_ip_from ::1;
 real_ip_header CF-Connecting-IP;
 
-# Rate limits per client IP, with a stricter one for writes. CORS preflights
-# only count towards the general limit, otherwise every write counts twice.
-map $request_method $kite_api_write_key {
+# Rate limits per API token, or per client IP for requests without one, with
+# a stricter one for writes. Clients like Claude and ChatGPT call for all of
+# their users from a few IPs, each user with their own token. Only headers
+# shaped like a token count as one, so others can't fill the zones with long
+# keys. CORS preflights only count towards the general limit, otherwise every
+# write counts twice.
+map $http_authorization $kite_api_key {
+        "~^Bearer (?<kite_token>kite_[A-Za-z0-9_-]{43})$" $kite_token;
         default $binary_remote_addr;
+}
+
+map $request_method $kite_api_write_key {
+        default $kite_api_key;
         GET     "";
         HEAD    "";
         OPTIONS "";
 }
 
-limit_req_zone $binary_remote_addr zone=kite_api:64m rate=10r/s;
+limit_req_zone $kite_api_key zone=kite_api:64m rate=10r/s;
 limit_req_zone $kite_api_write_key zone=kite_api_write:64m rate=2r/s;
+
+# nginx can't tell real tokens from made up ones, so every IP has a limit too,
+# high enough for all users of a client like Claude together.
+limit_req_zone $binary_remote_addr zone=kite_api_ip:16m rate=100r/s;
 
 # Webhooks get their own looser limit. Senders like GitHub and Stripe deliver
 # for everyone from a few shared IPs, and the service limits each app itself.
 limit_req_zone $binary_remote_addr zone=kite_webhook:16m rate=20r/s;
+
+# OAuth clients like Claude refresh the tokens of all their users from a few
+# IPs, without a token in the header, often many at once after an outage.
+limit_req_zone $binary_remote_addr zone=kite_oauth_token:16m rate=20r/s;
 
 limit_req_status 429;
 
@@ -97,6 +118,20 @@ split_clients "${kite_app_id}" $kite_cluster {
 map $kite_cluster $kite_upstream {
         default kite_cluster_0; # requests that aren't for an app
 @CLUSTERS@
+}
+
+# Users' bundles aren't moderated, so search engines shouldn't list them. The
+# page also has a robots meta tag. add_header skips empty values.
+map $uri $kite_web_robots {
+        ~^/bundles/ noindex;
+        default "";
+}
+
+# Link preview images set their own Cache-Control. Everything else the web
+# server renders is checked on every load.
+map $uri $kite_web_cache_control {
+        ~^/api/og/ $upstream_http_cache_control;
+        default "no-cache";
 }
 
 map $http_upgrade $kite_connection_upgrade {
@@ -123,6 +158,9 @@ server {
         send_timeout 60s;
 
         location / {
+                # First, so floods are rejected before they make keys in the
+                # other zones.
+                limit_req zone=kite_api_ip burst=200 nodelay;
                 limit_req zone=kite_api burst=50 delay=10;
                 limit_req zone=kite_api_write burst=5;
 
@@ -131,6 +169,12 @@ server {
 
         location /v1/webhooks/ {
                 limit_req zone=kite_webhook burst=100 nodelay;
+
+                proxy_pass http://$kite_upstream;
+        }
+
+        location = /v1/oauth/token {
+                limit_req zone=kite_oauth_token burst=100 nodelay;
 
                 proxy_pass http://$kite_upstream;
         }
@@ -147,20 +191,24 @@ server {
         listen 127.0.0.1:80;
         server_name @WEB_DOMAIN@;
 
-        root @WEB_DIR@;
+        # public/ of the running build. Everything else is rendered by the
+        # Next.js server.
+        root @WEB_SERVER_DIR@/public;
         absolute_redirect off;
 
         # Pages have no trailing slash, so /tools/ redirects to /tools, the
         # canonical URL.
         rewrite ^/(.+)/$ /$1 permanent;
 
-        # Pages are checked with the server on every load, so a deploy shows
-        # up right away. Without it, browsers guess how long to reuse them
-        # from when they were last modified, which can be hours after a
-        # deploy. Locations with their own add_header don't inherit it.
+        # Files are checked with the server on every load, so a deploy shows
+        # up right away. Locations with their own add_header don't inherit it.
         add_header Cache-Control "no-cache";
 
+        # Served from disk instead of by the server, which only has the files
+        # of the current build. Old ones are never deleted, so tabs still open
+        # on the previous version can load their chunks.
         location /_next/static/ {
+                root @WEB_DIR@;
                 add_header Cache-Control "public, max-age=31536000, immutable";
         }
 
@@ -180,39 +228,23 @@ server {
                 proxy_set_header Cookie "";
         }
 
-        # Written by kite-web/scripts/export-node-info.ts, read by the docs.
-        location ~ ^/api/flow/nodes/([^/]+)$ {
-                add_header Access-Control-Allow-Origin https://@DOCS_DOMAIN@;
-                add_header Cache-Control "no-cache";
-                default_type application/json;
-                try_files /api/flow/nodes/$1.json =404;
-        }
-
-        # The export writes dynamic routes to literal files like apps/[appId].html.
-        location ~ ^/apps/[^/]+/?$ {
-                try_files "/apps/[appId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/commands/[^/]+/?$ {
-                try_files "/apps/[appId]/commands/[cmdId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/events/[^/]+/?$ {
-                try_files "/apps/[appId]/events/[eventId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/messages/[^/]+/?$ {
-                try_files "/apps/[appId]/messages/[messageId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/variables/[^/]+/?$ {
-                try_files "/apps/[appId]/variables/[variableId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/([^/]+)/?$ {
-                try_files "/apps/[appId]/$1.html" =404;
-        }
-
         location / {
-                try_files $uri $uri.html $uri/ =404;
+                try_files $uri @web;
         }
 
-        error_page 404 /404.html;
+        location @web {
+                proxy_pass http://127.0.0.1:@WEB_PORT@;
+                proxy_set_header Host $host;
+                # The MCP server passes the client IP on to the API.
+                proxy_set_header X-Real-IP $remote_addr;
+
+                # Pages are checked on every load too. Next.js marks prerendered
+                # ones as cacheable for a year by shared caches, which
+                # Cloudflare would follow if it ever cached HTML.
+                proxy_hide_header Cache-Control;
+                add_header Cache-Control $kite_web_cache_control always;
+                add_header X-Robots-Tag $kite_web_robots always;
+        }
 }
 
 server {
@@ -267,4 +299,34 @@ WantedBy=multi-user.target
 EOF
 render "$unit_template" >"$DEPLOY/kite-service@.service"
 
-echo "Generated deploy/nginx.conf and deploy/kite-service@.service for $CLUSTER_COUNT clusters."
+# DynamicUser runs the server as a throwaway user that can't write anywhere,
+# so it can't change its own files. Next.js then only fails to cache rendered
+# pages, which it reads from the build anyway.
+read -r -d '' web_unit_template <<'EOF' || true
+# Generated by deploy/generate.sh from deploy/config.env, don't edit.
+#
+# The Next.js server of @WEB_DOMAIN@, deployed to @WEB_SERVER_DIR@ by
+# deploy/web.sh. nginx serves /_next/static and public/ itself.
+[Unit]
+Description=Kite web
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=@WEB_SERVER_DIR@
+Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
+# The API server of nginx is its default server, so the MCP server reaches it
+# without the Cloudflare round trip.
+Environment=API_INTERNAL_BASE_URL=http://127.0.0.1
+ExecStart=@NODE_BIN@ server.js
+# Node exits with 128 + SIGTERM when stopped.
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+DynamicUser=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+render "$web_unit_template" >"$DEPLOY/kite-web.service"
+
+echo "Generated deploy/nginx.conf, deploy/kite-service@.service and deploy/kite-web.service for $CLUSTER_COUNT clusters."

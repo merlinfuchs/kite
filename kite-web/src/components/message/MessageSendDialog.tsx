@@ -95,10 +95,8 @@ export default function MessageSendDialog({
     enabled: open && tab === "flow",
   });
   const instances = tab === "flow" ? flowInstances : manualInstances;
-  const createMutation = useMessageInstanceCreateMutation(
-    useAppId(),
-    useMessageId()
-  );
+  const messageId = useMessageId();
+  const createMutation = useMessageInstanceCreateMutation(useAppId());
 
   const createInstance = useCallback(() => {
     if (createMutation.isPending || !guildId || !channelId) return;
@@ -115,6 +113,7 @@ export default function MessageSendDialog({
 
     createMutation.mutate(
       {
+        messageId,
         discord_guild_id: guildId,
         discord_channel_id: channelId,
         ...(isForum ? { thread_name: title, applied_tags: postTags } : {}),
@@ -124,11 +123,11 @@ export default function MessageSendDialog({
           if (res.success) {
             track("message_sent", { forum: isForum });
             if (isForum) {
-              toast.success("Forum post created!");
+              toast.success("Forum post created.");
               setPostTitle("");
               setPostTags([]);
             } else {
-              toast.success("Message sent!");
+              toast.success("Message sent.");
             }
           } else {
             toast.error(
@@ -140,6 +139,7 @@ export default function MessageSendDialog({
     );
   }, [
     createMutation,
+    messageId,
     channelId,
     guildId,
     channel,
@@ -154,7 +154,7 @@ export default function MessageSendDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Send Message</DialogTitle>
+          <DialogTitle>Send message</DialogTitle>
           <DialogDescription>
             Send the message to the selected channel. The bot must be in the
             server and have the &quot;Manage Webhooks&quot; permission. Switch
@@ -192,11 +192,11 @@ export default function MessageSendDialog({
           <TabsList className="w-full">
             <TabsTrigger value="message" className="flex-1 gap-1.5">
               <HashIcon className="h-4 w-4" />
-              Channel Message
+              Channel message
             </TabsTrigger>
             <TabsTrigger value="forum" className="flex-1 gap-1.5">
               <MessagesSquareIcon className="h-4 w-4" />
-              Forum Post
+              Forum post
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -215,14 +215,14 @@ export default function MessageSendDialog({
             onClick={createInstance}
             loading={createMutation.isPending}
           >
-            {isForum ? "Create Post" : "Send"}
+            {isForum ? "Create post" : "Send"}
           </LoadingButton>
         </div>
 
         {isForum && (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="forum-post-title">Post Title</Label>
+              <Label htmlFor="forum-post-title">Post title</Label>
               <Input
                 id="forum-post-title"
                 value={postTitle}

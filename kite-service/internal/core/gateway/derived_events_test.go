@@ -45,24 +45,29 @@ func (c fakeCache) Role(guildID discord.GuildID, id discord.RoleID) (*discord.Ro
 }
 
 const (
-	boosterRole = discord.RoleID(30)
-	botRole     = discord.RoleID(31)
-	plainRole   = discord.RoleID(32)
+	boosterRole      = discord.RoleID(30)
+	botRole          = discord.RoleID(31)
+	plainRole        = discord.RoleID(32)
+	subscriptionRole = discord.RoleID(33)
 )
 
 func TestDeriveEvents(t *testing.T) {
+	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
 		messages: map[discord.MessageID]discord.Message{
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
+			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
 		},
 		members: map[discord.UserID]discord.Member{
 			40: {User: discord.User{ID: 40}, RoleIDs: []discord.RoleID{boosterRole, plainRole}},
 			41: {User: discord.User{ID: 41}, RoleIDs: []discord.RoleID{botRole, plainRole}},
+			43: {User: discord.User{ID: 43}, RoleIDs: []discord.RoleID{subscriptionRole}},
 		},
 		roles: map[discord.RoleID]discord.Role{
-			boosterRole: {ID: boosterRole, Managed: true},
-			botRole:     {ID: botRole, Managed: true, Tags: discord.RoleTags{BotID: 99}},
-			plainRole:   {ID: plainRole},
+			boosterRole:      {ID: boosterRole, Managed: true, Tags: discord.RoleTags{PremiumSubscriber: true}},
+			botRole:          {ID: botRole, Managed: true, Tags: discord.RoleTags{BotID: 99}},
+			plainRole:        {ID: plainRole},
+			subscriptionRole: {ID: subscriptionRole, Managed: true},
 		},
 	}
 
@@ -81,19 +86,27 @@ func TestDeriveEvents(t *testing.T) {
 		// Message Delete listeners don't run for DMs and bulk deletes.
 		{"message deleted in DM", &gateway.MessageDeleteEvent{ID: 7, ChannelID: 5}, nil},
 		{"messages deleted in bulk", &gateway.MessageDeleteBulkEvent{IDs: []discord.MessageID{7}, ChannelID: 5, GuildID: 2}, nil},
+		{"cached message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited}}, []ws.EventType{"MESSAGE_UPDATE"}},
+		{"unknown message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 8, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, []ws.EventType{"MESSAGE_UPDATE"}},
+		// Link previews and pins update the message without editing it.
+		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
+		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
+		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 		{"booster role taken away", memberUpdate(40, plainRole), []ws.EventType{guildevent.BoostRemoveType}},
 		{"booster role kept", memberUpdate(40, boosterRole), nil},
 		{"other role taken away", memberUpdate(40, boosterRole, plainRole), nil},
 		// Bot and integration roles are managed too, but aren't the booster role.
 		{"bot role taken away", memberUpdate(41, plainRole), nil},
+		// Role subscriptions have managed roles without a bot or integration.
+		{"subscription role taken away", memberUpdate(43), nil},
 		// Without the cached member there's nothing to compare with.
 		{"uncached member", memberUpdate(42), nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := deriveEvents(c, tt.event)
+			got := deriveEvents(c, newEditTimes(), tt.event)
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d events, want %d", len(got), len(tt.want))
 			}
@@ -174,7 +187,7 @@ func TestTrackDerivedEventsBoostRemove(t *testing.T) {
 		ID: guildID,
 		Roles: []discord.Role{
 			{ID: discord.RoleID(guildID), Name: "@everyone"},
-			{ID: boosterRole, Name: "Server Booster", Managed: true},
+			{ID: boosterRole, Name: "Server Booster", Managed: true, Tags: discord.RoleTags{PremiumSubscriber: true}},
 		},
 	}})
 	dispatch(&gateway.GuildMemberAddEvent{GuildID: guildID, Member: discord.Member{
@@ -205,5 +218,59 @@ func TestTrackDerivedEventsBoostRemove(t *testing.T) {
 	case e := <-derived:
 		t.Fatalf("derived %T from a member that wasn't boosting", e)
 	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestTrackDerivedEventsOnlyEdits(t *testing.T) {
+	session := state.New("Bot token")
+	derived := make(chan gateway.Event, 3)
+	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	dispatch := func(e any) { session.Session.Handler.Call(e) }
+
+	msg := discord.Message{ID: 1000, ChannelID: 10, GuildID: 20, Author: discord.User{ID: 5}, Content: "hello"}
+	dispatch(&gateway.MessageCreateEvent{Message: msg})
+
+	// The link preview of the message, then an edit and the link preview of
+	// the edited content, which keeps the time of the edit.
+	dispatch(&gateway.MessageUpdateEvent{Message: msg})
+	msg.Content = "hello, edited"
+	msg.EditedTimestamp = discord.NewTimestamp(time.Now())
+	dispatch(&gateway.MessageUpdateEvent{Message: msg})
+	dispatch(&gateway.MessageUpdateEvent{Message: msg})
+
+	select {
+	case e := <-derived:
+		edit, ok := e.(*guildevent.MessageEdit)
+		if !ok || edit.Content != "hello, edited" {
+			t.Fatalf("got %+v, want the edit", e)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("no event derived from the edit")
+	}
+	select {
+	case e := <-derived:
+		t.Fatalf("got %+v, want only the edit", e)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
+	edits := newEditTimes()
+	update := func(edited time.Time) []guildevent.Event {
+		return deriveEvents(fakeCache{}, edits, &gateway.MessageUpdateEvent{Message: discord.Message{
+			ID: 8, ChannelID: 5, GuildID: 2, EditedTimestamp: discord.NewTimestamp(edited),
+		}})
+	}
+
+	first := time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)
+	if len(update(first)) != 1 {
+		t.Fatal("edit of an uncached message isn't an edit")
+	}
+	// The link preview of the edited content keeps the time of the edit.
+	if len(update(first)) != 0 {
+		t.Fatal("link preview after the edit is an edit")
+	}
+	if len(update(first.Add(time.Minute))) != 1 {
+		t.Fatal("second edit isn't an edit")
 	}
 }

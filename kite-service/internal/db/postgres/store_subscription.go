@@ -95,6 +95,9 @@ func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.S
 		LemonsqueezyVariantID:      pgtype.Text{String: sub.LemonsqueezyVariantID.String, Valid: sub.LemonsqueezyVariantID.Valid},
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrOutdated
+		}
 		return nil, err
 	}
 

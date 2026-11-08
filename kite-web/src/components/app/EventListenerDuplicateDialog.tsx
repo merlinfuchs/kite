@@ -79,7 +79,7 @@ export default function EventListenerDuplicateDialog({
               type: listener.type,
               source: "duplicate",
             });
-            toast.success(`${capitalize(name.singular)} duplicated!`);
+            toast.success(`${capitalize(name.singular)} duplicated.`);
             setOpen(false);
 
             setTimeout(
@@ -142,6 +142,7 @@ export default function EventListenerDuplicateDialog({
 
 function updateFlowData(flowData: FlowData, description: string) {
   return {
+    ...flowData,
     nodes: flowData.nodes.map((node) => {
       if (node.type === "entry_event") {
         return {

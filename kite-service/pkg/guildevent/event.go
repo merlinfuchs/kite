@@ -4,7 +4,8 @@
 // updated it.
 //
 // They're gateway events, so they go through the same execution path as the
-// Discord events they come from.
+// Discord events they come from. MessageEdit only decides which updates run
+// listeners, which get Discord's event inside it.
 package guildevent
 
 import (
@@ -45,7 +46,7 @@ func (e *MessageDelete) derived()                {}
 // BoostRemove is the GUILD_MEMBER_UPDATE of a member who stopped boosting the
 // server. Discord takes the server's booster role away once the member's last
 // boost ends, so it's derived from the cached member losing that role. It's
-// only known for members that are cached, see the Server Boost Remove docs.
+// only known for members that are cached, see the Server boost remove docs.
 type BoostRemove struct {
 	gateway.GuildMemberUpdateEvent
 }
@@ -53,6 +54,16 @@ type BoostRemove struct {
 func (e *BoostRemove) Op() ws.OpCode           { return 0 }
 func (e *BoostRemove) EventType() ws.EventType { return BoostRemoveType }
 func (e *BoostRemove) derived()                {}
+
+// MessageEdit is Discord's MESSAGE_UPDATE when the message was edited. Discord
+// also sends MESSAGE_UPDATE when it adds a link preview or the message is
+// pinned, which must not run Message Update listeners again. It has the type
+// of Discord's event.
+type MessageEdit struct {
+	gateway.MessageUpdateEvent
+}
+
+func (e *MessageEdit) derived() {}
 
 // New returns an empty event of a type of this package, nil for other types.
 // Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so

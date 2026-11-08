@@ -82,23 +82,46 @@ func (h *MessageHandler) HandleMessageCreate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.MessagesImportRequest) (*wire.MessagesImportResponse, error) {
+	messages, err := h.PrepareImport(c, req.Messages)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.CreateMessages(c, messages); err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.Message, len(messages))
+	for i, message := range messages {
+		res[i] = wire.MessageToWire(message)
+	}
+
+	return &res, nil
+}
+
+// PrepareImport checks that the messages can be added to the app and returns
+// them with their IDs set, without saving them.
+func (h *MessageHandler) PrepareImport(c *handler.Context, reqs []wire.MessageCreateRequest) ([]*model.Message, error) {
+	if len(reqs) == 0 {
+		return nil, nil
+	}
+
 	if c.Features.MaxMessages != 0 {
 		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count messages: %w", err)
 		}
 
-		newMessageCount := messageCount + len(req.Messages)
+		newMessageCount := messageCount + len(reqs)
 
 		if newMessageCount > c.Features.MaxMessages {
 			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of messages (%d) reached", c.Features.MaxMessages))
 		}
 	}
 
-	res := make([]*wire.Message, len(req.Messages))
-
-	for i, msg := range req.Messages {
-		message, err := h.messageStore.CreateMessage(c.Context(), &model.Message{
+	messages := make([]*model.Message, len(reqs))
+	for i, msg := range reqs {
+		messages[i] = &model.Message{
 			ID:            util.UniqueID(),
 			Name:          msg.Name,
 			Description:   msg.Description,
@@ -108,18 +131,28 @@ func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.Messa
 			FlowSources:   msg.FlowSources,
 			CreatedAt:     time.Now().UTC(),
 			UpdatedAt:     time.Now().UTC(),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create message: %w", err)
 		}
-
-		res[i] = wire.MessageToWire(message)
 	}
 
-	return &res, nil
+	return messages, nil
+}
+
+// CreateMessages saves the messages from PrepareImport.
+func (h *MessageHandler) CreateMessages(c *handler.Context, messages []*model.Message) error {
+	for i, message := range messages {
+		created, err := h.messageStore.CreateMessage(c.Context(), message)
+		if err != nil {
+			return fmt.Errorf("failed to create message: %w", err)
+		}
+		messages[i] = created
+	}
+
+	return nil
 }
 
 func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.MessageUpdateRequest) (*wire.MessageUpdateResponse, error) {
+	change := c.ItemChange(req.EditorSession)
+	change.BaseVersion = req.BaseVersion
 	message, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
 		ID:          c.Message.ID,
 		Name:        req.Name,
@@ -128,10 +161,13 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 		Data:        req.Data,
 		FlowSources: req.FlowSources,
 		UpdatedAt:   time.Now().UTC(),
-	})
+	}, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update message: %w", err)
 	}
@@ -140,7 +176,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessageDelete(c *handler.Context) (*wire.MessageDeleteResponse, error) {
-	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID)
+	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")

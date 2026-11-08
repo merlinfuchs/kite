@@ -23,14 +23,20 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { useAppPlan, usePluginInstances } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
 export default function AppSidebarMainNav() {
   const appId = useAppId();
   const router = useRouter();
+  // Plugins are replaced by templates, only apps that use one still see them.
+  const hasPlugins = !!usePluginInstances()?.length;
+  const plan = useAppPlan();
 
   const isActive = useCallback(
     (path: string, exact = false) => {
@@ -52,8 +58,10 @@ export default function AppSidebarMainNav() {
         active: isActive("/apps/[appId]", true),
       },
       {
-        title: "Premium",
+        // Paid apps manage their plan here, the rest are asked to upgrade.
+        title: plan && !plan.default ? "Plan" : "Upgrade",
         url: "/apps/[appId]/premium",
+        upsell: !!plan?.default,
         icon: CrownIcon,
         active: isActive("/apps/[appId]/premium"),
       },
@@ -63,12 +71,16 @@ export default function AppSidebarMainNav() {
         icon: Settings2Icon,
         active: isActive("/apps/[appId]/settings"),
       },
-      {
-        title: "Plugins",
-        url: "/apps/[appId]/plugins",
-        icon: BlocksIcon,
-        active: isActive("/apps/[appId]/plugins"),
-      },
+      ...(hasPlugins
+        ? [
+            {
+              title: "Plugins",
+              url: "/apps/[appId]/plugins",
+              icon: BlocksIcon,
+              active: isActive("/apps/[appId]/plugins"),
+            },
+          ]
+        : []),
       {
         title: "Logs",
         url: "/apps/[appId]/logs",
@@ -95,11 +107,11 @@ export default function AppSidebarMainNav() {
         ],
       },
     ];
-  }, [isActive]);
+  }, [isActive, hasPlugins, plan]);
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>My App</SidebarGroupLabel>
+      <SidebarGroupLabel>My app</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) =>
           item.items ? (
@@ -145,6 +157,10 @@ export default function AppSidebarMainNav() {
                 tooltip={item.title}
                 asChild
                 isActive={item.active}
+                className={cn(
+                  item.upsell &&
+                    "text-primary hover:text-primary active:text-primary data-[active=true]:text-primary"
+                )}
               >
                 <Link
                   href={{
@@ -153,6 +169,11 @@ export default function AppSidebarMainNav() {
                       appId,
                     },
                   }}
+                  onClick={
+                    item.upsell
+                      ? () => track("upsell_clicked", { from: "sidebar" })
+                      : undefined
+                  }
                 >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>

@@ -1,3 +1,4 @@
+import { withoutParameterValues } from "@/lib/flow/parameters";
 import {
   useEventListenerDeleteMutation,
   useEventListenerUpdateEnabledMutation,
@@ -22,6 +23,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "../common/ConfirmDialog";
+import BundleInstallBadge from "./BundleInstallBadge";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -91,7 +93,7 @@ export default function EventListenerListEntry({
 
     navigator.clipboard
       .writeText(webhookUrl)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy to clipboard"));
   }, [webhookUrl]);
 
@@ -106,7 +108,7 @@ export default function EventListenerListEntry({
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success(`${capitalize(name.singular)} deleted!`);
+          toast.success(`${capitalize(name.singular)} deleted.`);
         } else {
           toast.error(
             `Failed to delete ${name.singular}: ${res.error.message} (${res.error.code})`
@@ -143,7 +145,7 @@ export default function EventListenerListEntry({
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
-        <CardTitle className="text-base flex items-center space-x-2">
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <Icon className="h-5 w-5 text-muted-foreground" />
           <div>{title}</div>
           {isSchedule && scheduleCron && (
@@ -151,6 +153,7 @@ export default function EventListenerListEntry({
               {scheduleCron}
             </code>
           )}
+          <BundleInstallBadge bundleInstallId={listener.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           {!isWebhook && listener.description}
@@ -202,7 +205,7 @@ export default function EventListenerListEntry({
               {webhookUrl && (
                 <DropdownMenuItem onSelect={copyWebhookUrl}>
                   <LinkIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Copy Webhook URL
+                  Copy webhook URL
                 </DropdownMenuItem>
               )}
               <FlowExportDialog
@@ -210,7 +213,7 @@ export default function EventListenerListEntry({
                 type="event_listener"
                 shareData={{
                   source: listener.source,
-                  flow_source: listener.flow_source,
+                  flow_source: withoutParameterValues(listener.flow_source),
                 }}
                 flows={[listener.flow_source]}
               >

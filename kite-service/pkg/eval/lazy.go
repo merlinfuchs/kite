@@ -13,7 +13,8 @@ import (
 // an expression reads them, like the channel count of a server, which takes
 // all of its channels from the cache. expr reads struct fields directly, so
 // fieldPatcher turns reading a field into a call of fetchField, which asks
-// lazyField first.
+// lazyField first. Implement it on the value, not the pointer, as ?? in
+// (arg('user') ?? user).role_mentions dereferences the env.
 type lazyFielder interface {
 	// lazyField returns false for fields it doesn't compute.
 	lazyField(name string) (any, bool, error)

@@ -9,7 +9,7 @@ export const discordRoleGet: BlockDefinition = {
   icon: "bookmark",
   category: "Roles",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
   fields: [guildTargetSetting, roleTargetSetting],
   result: { thing: "discord_role" },
   run: { kind: "custom" },

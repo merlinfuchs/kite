@@ -36,7 +36,7 @@ export function useFlowHistory({
   setNodes: Dispatch<SetStateAction<Node<NodeData>[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   onChange: () => void;
-  containerRef: RefObject<HTMLElement>;
+  containerRef: RefObject<HTMLElement | null>;
 }) {
   const current = useRef<FlowSnapshot>({ nodes, edges });
   current.current = { nodes, edges };

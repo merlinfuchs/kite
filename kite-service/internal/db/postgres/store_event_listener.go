@@ -74,6 +74,15 @@ func (c *Client) EventListener(ctx context.Context, id string) (*model.EventList
 }
 
 func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventListener) (*model.EventListener, error) {
+	return c.createEventListenerWithTx(ctx, nil, listener)
+}
+
+func (c *Client) createEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener) (*model.EventListener, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(listener.FlowSource)
 	if err != nil {
 		return nil, err
@@ -87,16 +96,16 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 		}
 	}
 
-	row, err := c.Q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
+	row, err := q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
 		ID:          listener.ID,
 		Source:      string(listener.Source),
 		Type:        string(listener.Type),
 		Description: listener.Description,
 		Enabled:     listener.Enabled,
 		AppID:       listener.AppID,
-		ModuleID: pgtype.Text{
-			String: listener.ModuleID.String,
-			Valid:  listener.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: listener.BundleInstallID.String,
+			Valid:  listener.BundleInstallID.Valid,
 		},
 		CreatorUserID: listener.CreatorUserID,
 		Filter:        rawFilter,
@@ -115,7 +124,54 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 	return rowToEventListener(row)
 }
 
-func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener) (*model.EventListener, error) {
+func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updated, err := c.updateEventListenerWithTx(ctx, tx, listener, change)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) UpdateEventListenerEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.EventListener, error) {
+	row, err := c.Q.UpdateEventListenerEnabled(ctx, pgmodel.UpdateEventListenerEnabledParams{
+		ID:        id,
+		Enabled:   enabled,
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToEventListener(row)
+}
+
+func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
+	q := c.Q.WithTx(tx)
+
+	previous, err := q.GetEventListenerForUpdate(ctx, listener.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	if err := checkBaseVersion(eventListenerVersion(previous), change); err != nil {
+		return nil, err
+	}
+
 	flowSource, err := json.Marshal(listener.FlowSource)
 	if err != nil {
 		return nil, err
@@ -129,9 +185,8 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 		}
 	}
 
-	row, err := c.Q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
+	row, err := q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
 		ID:          listener.ID,
-		Enabled:     listener.Enabled,
 		Type:        string(listener.Type),
 		Description: listener.Description,
 		Filter:      rawFilter,
@@ -142,6 +197,12 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
+		return nil, err
+	}
+
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: row.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt.Time, row.FlowSource, change)
+	if err != nil {
 		return nil, err
 	}
 
@@ -186,17 +247,52 @@ func (c *Client) EnabledEventListenerIDs(ctx context.Context) ([]string, error) 
 	return c.Q.GetEnabledEventListenerIDs(ctx)
 }
 
-func (c *Client) DeleteEventListener(ctx context.Context, id string) error {
-	err := c.Q.DeleteEventListener(ctx, id)
+func (c *Client) DeleteEventListener(ctx context.Context, id string, userID string) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	row, err := q.DeleteEventListener(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
-
+		return err
+	}
+	if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
+		return err
+	}
+	if err := deleteEmptyBundleInstall(ctx, q, row.BundleInstallID); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
+}
+
+// deletedEventListenerData is what's needed besides the flow to restore a
+// deleted event listener. Webhook listeners get a new secret instead of
+// their old one.
+type deletedEventListenerData struct {
+	Source      string          `json:"source"`
+	Type        string          `json:"type"`
+	Description string          `json:"description"`
+	Enabled     bool            `json:"enabled"`
+	Filter      json.RawMessage `json:"filter,omitempty"`
+}
+
+func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.EventListener, userID string) error {
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: row.ID}
+	data := deletedEventListenerData{
+		Source:      row.Source,
+		Type:        row.Type,
+		Description: row.Description,
+		Enabled:     row.Enabled,
+		Filter:      row.Filter,
+	}
+	return recordItemDelete(ctx, q, target, row.FlowSource, data, userID)
 }
 
 func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error) {
@@ -213,19 +309,20 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 	}
 
 	return &model.EventListener{
-		ID:            row.ID,
-		Source:        model.EventSource(row.Source),
-		Type:          model.EventListenerType(row.Type),
-		Description:   row.Description,
-		Enabled:       row.Enabled,
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		Filter:        filter,
-		FlowSource:    flowSource,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
-		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
-		WebhookSecret: null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
+		ID:              row.ID,
+		Source:          model.EventSource(row.Source),
+		Type:            model.EventListenerType(row.Type),
+		Description:     row.Description,
+		Enabled:         row.Enabled,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		Filter:          filter,
+		FlowSource:      flowSource,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		LastRunAt:       null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		WebhookSecret:   null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
+		ContentVersion:  eventListenerVersion(row),
 	}, nil
 }

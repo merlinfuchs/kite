@@ -4,8 +4,8 @@ app_id = ""
 
 [openai]
 api_key = ""
-model = "gpt-5-mini"
-reasoning_effort = "low"
+model = "gpt-6-luna"
+reasoning_effort = "medium"
 max_output_tokens = 4000
 
 [knowledge]

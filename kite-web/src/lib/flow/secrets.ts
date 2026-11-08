@@ -18,3 +18,15 @@ export function getReferencedSecretNames(flow: FlowData) {
   }
   return Array.from(names);
 }
+
+// missingSecretNames are the secrets the flows reference that aren't among
+// the names.
+export function missingSecretNames(
+  flows: FlowData[],
+  names: (string | undefined)[]
+) {
+  const have = new Set(names);
+  return Array.from(
+    new Set(flows.flatMap((f) => getReferencedSecretNames(f)))
+  ).filter((name) => !have.has(name));
+}

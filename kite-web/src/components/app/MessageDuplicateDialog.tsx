@@ -66,7 +66,7 @@ export default function MessageCreateDialog({
         onSuccess(res) {
           if (res.success) {
             track("message_created", { source: "duplicate" });
-            toast.success("Message duplicated!");
+            toast.success("Message duplicated.");
             setOpen(false);
 
             if (onMessageCreated) {

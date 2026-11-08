@@ -68,7 +68,7 @@ export default function CommandDuplicateDialog({
         onSuccess(res) {
           if (res.success) {
             track("command_created", { source: "duplicate" });
-            toast.success("Command duplicated!");
+            toast.success("Command duplicated.");
             setOpen(false);
 
             setTimeout(
@@ -94,7 +94,7 @@ export default function CommandDuplicateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Duplicate Command</DialogTitle>
+          <DialogTitle>Duplicate command</DialogTitle>
           <DialogDescription>
             Duplicate this command with a new name and description.
           </DialogDescription>
@@ -141,6 +141,7 @@ export default function CommandDuplicateDialog({
 
 function updateFlowData(flowData: FlowData, name: string, description: string) {
   return {
+    ...flowData,
     nodes: flowData.nodes.map((node) => {
       if (node.type === "entry_command") {
         return {

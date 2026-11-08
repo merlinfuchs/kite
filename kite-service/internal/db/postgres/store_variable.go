@@ -85,14 +85,23 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 }
 
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
-	row, err := c.Q.CreateVariable(ctx, pgmodel.CreateVariableParams{
+	return c.createVariableWithTx(ctx, nil, variable)
+}
+
+func (c *Client) createVariableWithTx(ctx context.Context, tx pgx.Tx, variable *model.Variable) (*model.Variable, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
+	row, err := q.CreateVariable(ctx, pgmodel.CreateVariableParams{
 		ID:     variable.ID,
 		Name:   variable.Name,
 		Scoped: variable.Scoped,
 		AppID:  variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatedAt: pgtype.Timestamp{
 			Time:  variable.CreatedAt.UTC(),
@@ -131,26 +140,36 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 }
 
 func (c *Client) DeleteVariable(ctx context.Context, id string) error {
-	err := c.Q.DeleteVariable(ctx, id)
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	installID, err := q.DeleteVariable(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		return err
 	}
+	if err := deleteEmptyBundleInstall(ctx, q, installID); err != nil {
+		return err
+	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func rowToVariable(row pgmodel.Variable) *model.Variable {
 	return &model.Variable{
-		ID:        row.ID,
-		Name:      row.Name,
-		Scoped:    row.Scoped,
-		AppID:     row.AppID,
-		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Scoped:          row.Scoped,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}
 }
 
@@ -208,6 +227,31 @@ func (c *Client) SearchVariableValues(ctx context.Context, appID string, variabl
 	return values, int(total), nil
 }
 
+func (c *Client) ListVariableValues(ctx context.Context, appID string, variableID string, scopePrefix string, sort string, limit int, offset int) ([]*model.VariableValue, error) {
+	rows, err := c.Q.ListVariableValues(ctx, pgmodel.ListVariableValuesParams{
+		VariableID:  variableID,
+		AppID:       appID,
+		ScopePrefix: scopePrefix,
+		Sort:        sort,
+		RowLimit:    int32(limit),
+		RowOffset:   int32(offset),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([]*model.VariableValue, 0, len(rows))
+	for _, row := range rows {
+		v, err := rowToVariableValue(row)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, &v)
+	}
+
+	return values, nil
+}
+
 func (c *Client) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {
 	row, err := c.Q.GetVariableValue(ctx, pgmodel.GetVariableValueParams{
 		VariableID: variableID,
@@ -249,7 +293,8 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Current trasaction is rolled back, we set the value outside of the transaction
+			// Current transaction is rolled back, we set the value outside of the transaction
+			value.Data = firstVariableValue(operation, value.Data)
 			return c.setVariableValueWithTx(ctx, nil, appID, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
@@ -383,4 +428,14 @@ func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) 
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 	}, nil
+}
+
+// firstVariableValue is the value an operation stores when the variable has no
+// value yet. A missing value counts as 0 for decrement, so taking 50 from it
+// stores -50 instead of 50. The other operations store the value as it is.
+func firstVariableValue(operation model.VariableValueOperation, data thing.Thing) thing.Thing {
+	if operation == provider.VariableOperationDecrement {
+		return thing.NewInt(0).Sub(data)
+	}
+	return data
 }

@@ -1,5 +1,5 @@
-import { AnyZodObject, z } from "zod";
-import { BlockDefinition } from "./types";
+import { z } from "zod";
+import { BlockDefinition, SettingsSchema } from "./types";
 import {
   booleanEventFilterTargets,
   getEventFilterModes,
@@ -7,7 +7,7 @@ import {
 
 // Yes or no filters have no value, every other filter needs one, and some
 // targets only take some modes, see getEventFilterModes.
-function refineEventFilter(schema: AnyZodObject) {
+function refineEventFilter(schema: SettingsSchema) {
   return schema
     .refine(
       (data) =>
@@ -18,18 +18,16 @@ function refineEventFilter(schema: AnyZodObject) {
         path: ["event_filter_value"],
       }
     )
-    .refine(
-      (data) =>
-        getEventFilterModes(data.event_filter_target)?.includes(
-          data.event_filter_mode
-        ) ?? true,
-      (data) => ({
-        message: `Has to be ${getEventFilterModes(
-          data.event_filter_target
-        )?.join(" or ")} for this filter target`,
-        path: ["event_filter_mode"],
-      })
-    )
+    .superRefine((data, ctx) => {
+      const modes = getEventFilterModes(data.event_filter_target);
+      if (modes && !modes.includes(data.event_filter_mode)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Has to be ${modes.join(" or ")} for this filter target`,
+          path: ["event_filter_mode"],
+        });
+      }
+    })
     .describe(
       "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
     );
@@ -91,7 +89,7 @@ export const discordOptionEventFilter: BlockDefinition = {
         .min(1)
         .optional()
         .describe(
-          "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
+          "Value to compare against. This is fixed text, the only placeholders it can use are the flow's parameters, like {{params.staff_role}}. Yes or no targets have none."
         ),
     },
     {

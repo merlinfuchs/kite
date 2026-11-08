@@ -10,7 +10,8 @@ export const discordMessageGet: BlockDefinition = {
   icon: "mail-search",
   category: "Messages",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
+  permissions: ["READ_MESSAGE_HISTORY"],
   fields: [
     {
       name: "channel_target",

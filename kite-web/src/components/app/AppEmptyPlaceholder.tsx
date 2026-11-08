@@ -45,7 +45,7 @@ export function AppEmptyTemplatesLink() {
     <>
       Or{" "}
       <Link
-        href={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+        href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
         className="underline hover:text-foreground"
       >
         start from a template

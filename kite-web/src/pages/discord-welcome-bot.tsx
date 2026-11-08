@@ -3,18 +3,17 @@ import LandingPage, {
 } from "@/components/landing/LandingPage";
 import { noCodeFaq } from "@/components/landing/copy";
 import { welcomeFlow } from "@/components/landing/flows";
-import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
-  title: "Make a Free Discord Welcome Bot",
+  title: "Make a free Discord welcome bot",
   description:
     "Make your own Discord welcome bot for free with Kite. Greet new members, give them a role and send them a direct message, without writing code.",
-  heading: "Make Your Own Discord Welcome Bot",
+  heading: "Make your own Discord welcome bot",
   intro:
     "Build a welcome bot for free, with your own name and avatar. Start with the welcome template, then change the message or add more steps. You don't need to write code.",
   secondaryAction: {
-    label: "View Templates",
-    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+    label: "View the template",
+    href: "/marketplace/welcomer",
   },
   showcase: {
     flow: welcomeFlow,
@@ -23,30 +22,30 @@ const content: LandingPageContent = {
   },
   sections: [
     {
-      heading: "What Your Welcome Bot Can Do",
+      heading: "What your welcome bot can do",
       points: [
         {
-          title: "Welcome Messages",
+          title: "Welcome messages",
           description:
             "Post a message in a channel when someone joins. Mention the new member and show the member count of your server.",
         },
         {
-          title: "Embeds and Buttons",
+          title: "Embeds and buttons",
           description:
             "Design the welcome message in the message editor, with embeds, images and buttons.",
         },
         {
-          title: "Auto Roles",
+          title: "Auto roles",
           description:
             "Give new members a role as soon as they join, for example a Member or Unverified role.",
         },
         {
-          title: "Direct Messages",
+          title: "Direct messages",
           description:
             "Send new members a private message with your rules or links, if they allow messages from the server.",
         },
         {
-          title: "Goodbye Messages",
+          title: "Goodbye messages",
           description: "Post a message when a member leaves the server.",
         },
         {
@@ -57,20 +56,20 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "How to Set It Up",
+      heading: "How to set it up",
       points: [
         {
-          title: "1. Create Your Bot",
+          title: "1. Create your bot",
           description:
-            "Create a Discord application, add its token to Kite and invite the bot to your server.",
+            "Create a Discord application, add its token to Kite, and invite the bot to your server.",
         },
         {
-          title: "2. Import the Template",
+          title: "2. Add the template",
           description:
-            "Open Templates in your app, choose Welcomer and enter the ID of your welcome channel.",
+            "Open the Marketplace in your app, choose Welcomer, and pick your welcome channel.",
         },
         {
-          title: "3. Change the Message",
+          title: "3. Change the message",
           description:
             "Open the event listener and change the text, or add blocks like Add role.",
         },

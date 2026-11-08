@@ -8,7 +8,7 @@ export const controlLoopExit: BlockDefinition = {
   icon: "log-out",
   category: "Loops",
   outputs: [],
-  component: "control_loop_exit",
+  component: "terminal",
   custom_label: false,
   run: { kind: "custom" },
 };

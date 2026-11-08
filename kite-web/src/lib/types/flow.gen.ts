@@ -8,11 +8,44 @@ type StringIndexable = Record<string, unknown>;
 export interface FlowData {
   nodes: FlowNode[];
   edges: FlowEdge[];
+  /**
+   * Parameters are the values blocks use as {{params.<key>}}, which are set
+   * next to the flow instead of in each block.
+   */
+  parameters?: FlowParameter[];
+}
+export type FlowParameterType = string;
+export const FlowParameterTypeText: FlowParameterType = "text";
+export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
+export const FlowParameterTypeChannel: FlowParameterType = "channel";
+export const FlowParameterTypeRole: FlowParameterType = "role";
+/**
+ * Yes or no, picked from a menu. The value is true or false.
+ */
+export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
+/**
+ * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+ */
+export interface FlowParameter {
+  key: string;
+  label?: string;
+  description?: string;
+  type: FlowParameterType;
+  required?: boolean;
+  /**
+   * Value is the ID of the channel or role for those types.
+   */
+  value: string;
 }
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+/**
+ * Notes are text the editor puts on the canvas. They aren't blocks:
+ * nothing connects to them, so they never run.
+ */
+export const FlowNodeTypeNote: FlowNodeType = "note";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -32,6 +65,7 @@ export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
+export const FlowNodeTypeActionMessageForward: FlowNodeType = "action_message_forward";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -58,16 +92,23 @@ export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
+export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
+export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionVariableList: FlowNodeType = "action_variable_list";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
+export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
+export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
+export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -77,11 +118,13 @@ export const FlowNodeTypeControlConditionItemChannel: FlowNodeType = "control_co
 export const FlowNodeTypeControlConditionRole: FlowNodeType = "control_condition_role";
 export const FlowNodeTypeControlConditionItemRole: FlowNodeType = "control_condition_item_role";
 export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlIf: FlowNodeType = "control_if";
 export const FlowNodeTypeControlErrorHandler: FlowNodeType = "control_error_handler";
 export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlFlowEnd: FlowNodeType = "control_flow_end";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";
@@ -103,6 +146,11 @@ export interface FlowNode {
   type?: FlowNodeType;
   data: FlowNodeData & StringIndexable;
   position: FlowNodePosition;
+  /**
+   * Only notes have a size, other nodes are as large as their content.
+   */
+  width?: number /* float64 */;
+  height?: number /* float64 */;
 }
 export interface FlowNodeData {
   /**
@@ -160,6 +208,11 @@ export interface FlowNodeData {
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
+   * Persona Message Create
+   */
+  persona_name?: string;
+  persona_avatar_url?: string;
+  /**
    * Message Reaction Create, Delete
    */
   emoji_data?: EmojiData;
@@ -167,6 +220,10 @@ export interface FlowNodeData {
    * Poll Create
    */
   poll_data?: PollData;
+  /**
+   * Message Forward
+   */
+  forward_channel_target?: string;
   /**
    * Modal
    */
@@ -189,9 +246,18 @@ export interface FlowNodeData {
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
   /**
+   * Voice Audio Play
+   */
+  audio_asset_id?: string;
+  audio_leave_after?: boolean;
+  /**
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Server Profile Edit
+   */
+  server_profile_data?: ServerProfileData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -209,6 +275,13 @@ export interface FlowNodeData {
   variable_scope?: string;
   variable_value?: string;
   variable_operation?: any /* provider.VariableOperation */;
+  /**
+   * Variable List
+   */
+  variable_sort?: any /* provider.VariableListSort */;
+  variable_scope_prefix?: string;
+  variable_limit?: string;
+  variable_skip?: string;
   /**
    * HTTP Request
    */
@@ -246,10 +319,23 @@ export interface FlowNodeData {
   ai_choice_name?: string;
   ai_choice_description?: string;
   /**
+   * AI Translate
+   */
+  ai_translate_data?: AITranslateData;
+  /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
+  /**
+   * Items of the item and items modes, one per line, or a list placeholder.
+   */
+  random_items?: string;
+  /**
+   * How many different items the items mode picks.
+   */
+  random_count?: string;
   /**
    * Event Entry
    */
@@ -272,12 +358,21 @@ export interface FlowNodeData {
    */
   expression?: string;
   /**
+   * Value Lookup
+   */
+  lookup_value?: string;
+  lookup_mode?: ComparsionMode;
+  lookup_ignore_case?: boolean;
+  lookup_rows?: LookupRow[];
+  lookup_default?: string;
+  /**
    * Condition
    */
   condition_base_value?: string;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
+  condition_item_ignore_case?: boolean;
   /**
    * Loop
    */
@@ -302,10 +397,12 @@ export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
- * Event filter, with the values separated by commas
+ * Lists of values, separated by commas in event filters and by lines in
+ * compare conditions
  */
 export const ComparsionModeOneOf: ComparsionMode = "one_of";
 export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+export const ComparsionModeContainsAny: ComparsionMode = "contains_any";
 /**
  * User condition
  */
@@ -345,9 +442,28 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
+/**
+ * Several different items, see randomItems.
+ */
+export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+/**
+ * LookupRow is a row of a lookup block's table, mapping a key to the value
+ * the block returns when the key matches.
+ */
+export interface LookupRow {
+  key: string;
+  value: string;
+}
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
@@ -358,6 +474,21 @@ export interface StatusData {
   activity_name?: string;
   activity_state?: string;
   activity_url?: string;
+}
+/**
+ * ServerProfileData is the bot's profile in one server. A field that isn't set
+ * stays as it is, and one that's empty resets to the bot's own profile.
+ */
+export interface ServerProfileData {
+  nick?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  bio?: string;
+  /**
+   * Reset resets the whole profile to the bot's own, the other fields are
+   * ignored then.
+   */
+  reset?: boolean;
 }
 export interface ChannelData {
   name?: string;
@@ -371,9 +502,14 @@ export interface ChannelData {
   rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
-   * Thread specific
+   * Thread specific, nil for Discord's default, which is invitable
    */
   invitable?: boolean;
+  /**
+   * Thread specific, for editing a thread, nil leaves them as they are
+   */
+  archived?: boolean;
+  locked?: boolean;
   /**
    * Forum post specific, names or IDs of the forum's tags separated by
    * commas
@@ -527,6 +663,13 @@ export interface AIDecisionData {
    */
   levels?: string[];
 }
+export interface AITranslateData {
+  text?: string;
+  /**
+   * A code of aiTranslateLanguages, or a placeholder that becomes one.
+   */
+  language?: string;
+}
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";
 export const AIModelLarge = "large";
@@ -542,6 +685,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: hash.go
+
 
 //////////
 // source: integration_limits.go

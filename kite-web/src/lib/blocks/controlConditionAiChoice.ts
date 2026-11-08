@@ -15,6 +15,7 @@ export const controlConditionAiChoice: BlockDefinition = {
   category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_ai_choice"],
+  continues_from: "control_condition_item_ai_choice",
   component: "condition",
   credits: 1,
   strict_settings: true,

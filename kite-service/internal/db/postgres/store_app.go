@@ -72,6 +72,18 @@ func (c *Client) App(ctx context.Context, id string) (*model.App, error) {
 	return rowToApp(row)
 }
 
+func (c *Client) AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error) {
+	count, err := c.Q.GetAppDiscordUserInstallCount(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return null.Int{}, store.ErrNotFound
+		}
+		return null.Int{}, err
+	}
+
+	return null.NewInt(int64(count.Int32), count.Valid), nil
+}
+
 func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error) {
 	row, err := c.Q.GetAppCredentials(ctx, id)
 	if err != nil {
@@ -147,8 +159,8 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 	return rowToApp(row)
 }
 
-func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) error {
-	return c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
+func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
+	n, err := c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
 		ID: opts.ID,
 		DisabledReason: pgtype.Text{
 			String: opts.DisabledReason.String,
@@ -156,6 +168,27 @@ func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) erro
 		},
 		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
+	return n > 0, err
+}
+
+func (c *Client) PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	n, err := c.Q.PauseAppForCredits(ctx, pgmodel.PauseAppForCreditsParams{
+		ID:       appID,
+		PausedAt: pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	n, err := c.Q.UnpauseAppForCredits(ctx, pgmodel.UnpauseAppForCreditsParams{
+		ID:        appID,
+		UpdatedAt: pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetCreditsPausedAppIDs(ctx)
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
@@ -188,6 +221,7 @@ func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*sto
 		EventListenerTypes:  listenerTypes,
 		PluginResources:     row.PluginResources,
 		HasMessageInstances: row.HasMessageInstances,
+		UsesVoice:           row.UsesVoice,
 	}, nil
 }
 
@@ -275,6 +309,10 @@ func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, e
 	return raw, nil
 }
 
+func (c *Client) HasAppFlows(ctx context.Context, appID string) (bool, error) {
+	return c.Q.HasAppFlows(ctx, appID)
+}
+
 func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
 	rows, err := c.Q.GetAppEntities(ctx, appID)
 	if err != nil {
@@ -291,6 +329,22 @@ func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEnt
 	}
 
 	return entities, nil
+}
+
+func (c *Client) UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error) {
+	row, err := c.Q.UpdateAppCreditNotices(ctx, pgmodel.UpdateAppCreditNoticesParams{
+		ID:                   appID,
+		CreditNoticesEnabled: enabled,
+		UpdatedAt:            pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToApp(row)
 }
 
 func rowToApp(row pgmodel.App) (*model.App, error) {
@@ -332,5 +386,8 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
 		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
 		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
+
+		CreditsPausedAt:      null.NewTime(row.CreditsPausedAt.Time, row.CreditsPausedAt.Valid),
+		CreditNoticesEnabled: row.CreditNoticesEnabled,
 	}, nil
 }

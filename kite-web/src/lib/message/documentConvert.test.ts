@@ -473,3 +473,15 @@ describe("embed text limit", () => {
     ).toBe(true);
   });
 });
+
+test("hex colors load as numbers and placeholders as text", () => {
+  const restored = parse({
+    embeds: [
+      { description: "a", color: "#ff0000" },
+      { description: "b", color: "{{arg('color')}}" },
+    ],
+  });
+  expect(restored.embeds[0].color).toBe(0xff0000);
+  expect(restored.embeds[1].color).toBe("{{arg('color')}}");
+  expect(messageSchema.safeParse(restored).success).toBe(true);
+});

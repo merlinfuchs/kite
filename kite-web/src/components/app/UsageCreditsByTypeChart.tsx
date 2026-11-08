@@ -17,7 +17,7 @@ import { useMemo } from "react";
 
 const chartConfig = {
   credits_used: {
-    label: "Credits Used",
+    label: "Credits used",
   },
   command_flow_execution: {
     label: "Commands",
@@ -34,7 +34,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const typeNames: Record<string, string> = {
-  credits_used: "Credits Used",
+  credits_used: "Credits used",
   command_flow_execution: "Commands",
   event_listener_flow_execution: "Events",
   message_flow_execution: "Messages",
@@ -56,7 +56,7 @@ export default function UsageCreditsByTypeChart() {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Usage by Type</CardDescription>
+        <CardDescription>Usage by type</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mt-4 h-[150px] sm:h-[200px]">

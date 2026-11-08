@@ -222,6 +222,7 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
     lemonsqueezy_order_id = EXCLUDED.lemonsqueezy_order_id,
     lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
     lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id
+WHERE subscriptions.updated_at <= EXCLUDED.updated_at
 RETURNING id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id
 `
 
@@ -244,6 +245,7 @@ type UpsertLemonSqueezySubscriptionParams struct {
 	LemonsqueezyVariantID      pgtype.Text
 }
 
+// Webhooks can arrive out of order, an older state must not overwrite a newer one
 func (q *Queries) UpsertLemonSqueezySubscription(ctx context.Context, arg UpsertLemonSqueezySubscriptionParams) (Subscription, error) {
 	row := q.db.QueryRow(ctx, upsertLemonSqueezySubscription,
 		arg.ID,

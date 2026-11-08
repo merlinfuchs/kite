@@ -13,10 +13,10 @@ export default function FlowNodeEntryComponentButton(props: NodeProps) {
       {...props}
       highlight={true}
       showConnectedMarker={false}
-      title={selectMenu ? "Select Menu" : undefined}
+      title={selectMenu ? "Select menu" : undefined}
       description={
         selectMenu
-          ? "This gets triggered when a user picks an option, available as {{interaction.value}}. Drop different actions here!"
+          ? "This gets triggered when a user picks an option, available as {{interaction.value}}. Drop actions here."
           : undefined
       }
     >

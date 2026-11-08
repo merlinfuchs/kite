@@ -27,6 +27,7 @@ type Env struct {
 	AppStore             store.AppStore
 	FeatureProvider      FeatureProvider
 	BlockRateLimiter     *BlockRateLimiter
+	WebhookCache         *WebhookCache
 	LogStore             store.LogStore
 	UsageStore           store.UsageStore
 	MessageStore         store.MessageStore
@@ -36,6 +37,7 @@ type Env struct {
 	PluginInstanceStore  store.PluginInstanceStore
 	PluginValueStore     store.PluginValueStore
 	PluginRegistry       *plugin.Registry
+	VariableStore        store.VariableStore
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
 	AppSecretStore       store.AppSecretStore
@@ -45,6 +47,9 @@ type Env struct {
 	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// Voice keeps the voice connections that play audio. Without it, flows
+	// can't play audio.
+	Voice *VoiceManager
 }
 
 type entityLinks struct {
@@ -66,6 +71,12 @@ func (l entityLinks) usageRecordType() model.UsageRecordType {
 	}
 }
 
+// FlowProviders returns the providers flows of the app run with, for test
+// runs to wrap.
+func (s Env) FlowProviders(appID string, session *state.State) flow.FlowProviders {
+	return s.flowProviders(appID, session, entityLinks{})
+}
+
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
 	var aiProvider provider.AIProvider = &provider.MockAIProvider{}
 	if s.OpenaiClient != nil {
@@ -83,7 +94,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,
@@ -94,7 +105,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		AI:              aiProvider,
 		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
-		Variable:        NewVariableProvider(appID, s.VariableValueStore),
+		Variable:        NewVariableProvider(appID, s.VariableStore, s.VariableValueStore),
 		Cooldown:        cooldownProvider,
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
@@ -105,6 +116,11 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
 		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.AppIntegrationStore, s.TokenCrypt),
 	}
+}
+
+// FlowContextData is the trigger of a flow, for test runs.
+func FlowContextData(event gateway.Event) flow.FlowContextData {
+	return flowContextData(event)
 }
 
 func flowContextData(event gateway.Event) flow.FlowContextData {
@@ -121,9 +137,22 @@ func (s Env) flowContext(
 	data flow.FlowContextData,
 	links entityLinks,
 	state *flow.FlowContextState,
+	node *flow.CompiledFlowNode,
 ) *flow.FlowContext {
-	providers := s.flowProviders(appID, session, links)
+	return s.FlowContextWithProviders(ctx, appID, session, data, s.flowProviders(appID, session, links), state, node)
+}
 
+// FlowContextWithProviders is flowContext with other providers, like the ones
+// of test runs.
+func (s Env) FlowContextWithProviders(
+	ctx context.Context,
+	appID string,
+	session *state.State,
+	data flow.FlowContextData,
+	providers flow.FlowProviders,
+	state *flow.FlowContextState,
+	node *flow.CompiledFlowNode,
+) *flow.FlowContext {
 	var evalCtx eval.Context
 	if i := data.Interaction(); i != nil {
 		evalCtx = eval.NewContextFromInteraction(i, session)
@@ -138,9 +167,24 @@ func (s Env) flowContext(
 			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
 		}
 	}
+
+	// Earlier interactions and events are of the same app.
+	app, _ := evalCtx.Env["app"].(*eval.AppEnv)
+	if app != nil {
+		for _, c := range earlier {
+			c.Env["app"] = app
+		}
+	}
 	evalCtx.SetResumeContext(earlier)
 
-	return flow.NewContext(
+	// Every node of a flow has its parameters, also when it's resumed.
+	params := map[string]any{}
+	if node != nil && node.Parameters != nil {
+		params = node.Parameters
+	}
+	evalCtx.Env["params"] = params
+
+	fCtx := flow.NewContext(
 		ctx,
 		30*time.Second,
 		data,
@@ -153,6 +197,21 @@ func (s Env) flowContext(
 		evalCtx,
 		state,
 	)
+
+	// The install count is only loaded when a flow uses it, within the
+	// timeout of the flow.
+	if app != nil {
+		appStore := s.AppStore
+		app.SetUserInstallCount(func() (int, error) {
+			count, err := appStore.AppDiscordUserInstallCount(fCtx, appID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to get app user install count: %w", err)
+			}
+			return int(count.Int64), nil
+		})
+	}
+
+	return fCtx
 }
 
 func triggerEvalContext(trigger *flow.FlowTrigger, session *state.State) eval.Context {
@@ -188,7 +247,7 @@ func (s Env) executeFlowEvent(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, data, links, state)
+	fCtx := s.flowContext(ctx, appID, session, data, links, state, node)
 	defer fCtx.Cancel()
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
@@ -210,7 +269,7 @@ func (s Env) executeFlowAfterSleep(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state)
+	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state, node)
 	defer fCtx.Cancel()
 
 	// The sleep acknowledged the interaction before suspending, so responses
@@ -225,12 +284,15 @@ func (s Env) executeFlowAfterSleep(
 // finishFlowRun records the error and usage of a flow execution.
 func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowContext, err error, errMessage string) {
 	if err != nil {
-		s.createLogEntry(
-			appID,
-			model.LogLevelError,
-			fmt.Sprintf("%s: %v", errMessage, err),
-			links,
-		)
+		entry := newLogEntry(appID, model.LogLevelError, fmt.Sprintf("%s: %v", errMessage, err), links)
+
+		info := flow.DescribeError(err)
+		entry.NodeID = null.NewString(info.NodeID, info.NodeID != "")
+		entry.NodeType = null.NewString(string(info.NodeType), info.NodeType != "")
+		entry.ErrorCode = null.StringFrom(string(info.Code))
+		entry.Details = info.Details
+
+		s.storeLogEntry(entry)
 	}
 
 	s.createUsageRecord(
@@ -241,11 +303,11 @@ func (s Env) finishFlowRun(appID string, links entityLinks, fCtx *flow.FlowConte
 }
 
 func (s Env) createLogEntry(appID string, level model.LogLevel, message string, links entityLinks) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
+	s.storeLogEntry(newLogEntry(appID, level, message, links))
+}
 
-	// Create log entry which will be displayed in the dashboard
-	err := s.LogStore.CreateLogEntry(ctx, model.LogEntry{
+func newLogEntry(appID string, level model.LogLevel, message string, links entityLinks) model.LogEntry {
+	return model.LogEntry{
 		AppID:           appID,
 		Level:           level,
 		Message:         message,
@@ -253,9 +315,17 @@ func (s Env) createLogEntry(appID string, level model.LogLevel, message string, 
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,
 		CreatedAt:       time.Now().UTC(),
-	})
+	}
+}
+
+func (s Env) storeLogEntry(entry model.LogEntry) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	// Create log entry which will be displayed in the dashboard
+	err := s.LogStore.CreateLogEntry(ctx, entry)
 	if err != nil {
-		slog.With("error", err).With("app_id", appID).Error("Failed to create log entry from engine")
+		slog.With("error", err).With("app_id", entry.AppID).Error("Failed to create log entry from engine")
 	}
 }
 

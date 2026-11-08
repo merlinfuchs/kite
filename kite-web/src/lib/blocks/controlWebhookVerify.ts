@@ -1,8 +1,8 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import { templated } from "../flow/dataSchema";
 import { onlyPlainSecrets } from "../flow/templateSecrets";
 import { errorColor } from "./colors";
-import { BlockDefinition } from "./types";
+import { BlockDefinition, SettingsSchema } from "./types";
 
 // The services the block knows how they sign, and what their key is. Their
 // verification is in the service's pkg/webhook/verify.go.
@@ -121,7 +121,7 @@ export const controlWebhookVerify: BlockDefinition = {
         .describe("Encoding of a custom signature. Defaults to hex."),
     },
   ],
-  refine: (schema: AnyZodObject) =>
+  refine: (schema: SettingsSchema) =>
     schema.superRefine((data, ctx) => {
       const preset = webhookVerifyPresets.find(
         (p) => p.value === data.webhook_verify_preset

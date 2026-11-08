@@ -13,7 +13,19 @@ const maxColor = 0xFFFFFF
 
 // Color is a color as Discord sends it, a number like 0x5865F2. It can also be
 // read from text like "#5865F2", which the flow AI and other tools write.
-type Color int
+type Color struct {
+	Value int
+	// Template is a color with placeholders, like {{arg('color')}}, and Value
+	// is 0 until a flow fills it in. Messages sent without one have no color.
+	Template string
+}
+
+func (c Color) MarshalJSON() ([]byte, error) {
+	if c.Template != "" {
+		return json.Marshal(c.Template)
+	}
+	return json.Marshal(c.Value)
+}
 
 func (c *Color) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 || b[0] != '"' {
@@ -23,7 +35,7 @@ func (c *Color) UnmarshalJSON(b []byte) error {
 		if err := json.Unmarshal(b, &f); err != nil || f != math.Trunc(f) || math.Abs(f) >= math.MaxInt64 {
 			return fmt.Errorf("color must be a number or a hex color like #5865F2")
 		}
-		*c = Color(f)
+		*c = Color{Value: int(f)}
 		return nil
 	}
 
@@ -32,12 +44,43 @@ func (c *Color) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	v, err := ParseColor(strings.TrimSpace(s))
+	s = strings.TrimSpace(s)
+	if strings.Contains(s, "{{") {
+		*c = Color{Template: s}
+		return nil
+	}
+
+	v, err := ParseColor(s)
 	if err != nil {
 		return err
 	}
-	*c = Color(v)
+	*c = Color{Value: int(v)}
 	return nil
+}
+
+// fill sets the color to what its template evaluates to, and returns false if
+// that's empty.
+func (c *Color) fill(eval func(template string) (string, error)) (bool, error) {
+	if c.Template == "" {
+		return true, nil
+	}
+
+	filled, err := eval(c.Template)
+	if err != nil {
+		return false, err
+	}
+	filled = strings.TrimSpace(filled)
+	if filled == "" {
+		*c = Color{}
+		return false, nil
+	}
+
+	v, err := ParseColor(filled)
+	if err != nil {
+		return false, err
+	}
+	*c = Color{Value: int(v)}
+	return true, nil
 }
 
 // ParseColor reads "#5865F2", "#fff", "0x5865F2" or "5793266".

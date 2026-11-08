@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { MessageEmbed } from "@/lib/message/schema";
 import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
-import { colorIntToHex } from "@/tools/common/utils/color";
+import { colorToHex } from "@/tools/common/utils/color";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
 import MessagePreviewLink from "./MessagePreviewLink";
 
@@ -13,7 +13,7 @@ export default function MessagePreviewEmbed({
   embed: MessageEmbed;
 }) {
   let inlineFieldIndex = 0;
-  const hexColor = embed.color ? colorIntToHex(embed.color) : "#1f2225";
+  const hexColor = colorToHex(embed.color || undefined, "#1f2225");
 
   let timestamp = "";
   // Time of sending is previewed as the current time.

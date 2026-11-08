@@ -14,7 +14,7 @@ export default function MessageWebhookFields() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Webhook Options</CardTitle>
+        <CardTitle>Webhook options</CardTitle>
         <CardDescription>
           Set the webhook URL where you want to send the message to and other
           info.
@@ -39,7 +39,7 @@ export default function MessageWebhookFields() {
         </div>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button>Send Message</Button>
+        <Button>Send message</Button>
       </CardFooter>
     </Card>
   );

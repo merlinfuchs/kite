@@ -38,7 +38,10 @@ export function getAvailablePlaceholders(
   nodeId: string | undefined,
   nodes: Node<NodeData>[],
   edges: Edge[],
-  contextType: FlowContextType
+  contextType: FlowContextType,
+  // Leaves out results from before a button, select menu or modal, which
+  // belong to an earlier interaction.
+  sameInteraction?: boolean
 ): PlaceholderGroup[] {
   const eventType = getEventType(nodes);
   const res = [
@@ -52,15 +55,26 @@ export function getAvailablePlaceholders(
         { label: "App Server Count", value: "app.guild_count" },
         { label: "App Member Count", value: "app.member_count" },
         { label: "App Latency (ms)", value: "app.latency" },
+        { label: "App User Install Count", value: "app.user_install_count" },
       ],
     },
   ];
   if (!nodeId) return res;
 
+  // The message of a cooldown can show how long it has left.
+  if (nodes.find((n) => n.id === nodeId)?.type === "option_command_cooldown") {
+    res.push({
+      label: "Cooldown",
+      placeholders: [
+        { label: "Seconds Left", value: "var('cooldown_remaining')" },
+      ],
+    });
+  }
+
   return [
     ...res,
     ...resumePlaceholders(nodeId, nodes, edges, contextType),
-    ...upstreamPlaceholders(nodeId, nodes, edges),
+    ...upstreamPlaceholders(nodeId, nodes, edges, sameInteraction),
   ];
 }
 
@@ -417,7 +431,8 @@ function getResumeDepth(nodeId: string, nodes: Node[], edges: Edge[]) {
 function upstreamPlaceholders(
   nodeId: string,
   nodes: Node<NodeData>[],
-  edges: Edge[]
+  edges: Edge[],
+  sameInteraction?: boolean
 ): PlaceholderGroup[] {
   const groups: PlaceholderGroup[] = [
     { label: "Modal Inputs", placeholders: [] },
@@ -426,7 +441,12 @@ function upstreamPlaceholders(
   ];
   const seen = new Set<string>();
 
-  for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
+  for (const parent of getUpstreamNodes(
+    nodeId,
+    nodes,
+    edges,
+    sameInteraction
+  )) {
     for (const { group, ...placeholder } of getProvidedPlaceholders(parent)) {
       // The nearest block wins if several store the same variable.
       if (seen.has(placeholder.value)) continue;
@@ -528,7 +548,8 @@ const pickedNouns: Partial<
 function getUpstreamNodes(
   nodeId: string,
   nodes: Node<NodeData>[],
-  edges: Edge[]
+  edges: Edge[],
+  sameInteraction?: boolean
 ) {
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
   const { incoming, outgoing } = indexEdges(edges);
@@ -547,6 +568,8 @@ function getUpstreamNodes(
   for (let i = 0; i < queue.length; i++) {
     const current = nodesById.get(queue[i]);
     for (const edge of incoming.get(queue[i]) ?? []) {
+      const source = nodesById.get(edge.source);
+      if (sameInteraction && isResumeEdge(edge, source?.type)) continue;
       add(edge.source);
 
       let earlierBranch: Edge[] = [];

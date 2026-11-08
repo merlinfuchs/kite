@@ -11,6 +11,7 @@ export const discordThreadMemberRemove: BlockDefinition = {
   icon: "user-minus",
   category: "Channels",
   credits: 1,
+  permissions: ["MANAGE_THREADS"],
   run: {
     kind: "request",
     integration: "discord",

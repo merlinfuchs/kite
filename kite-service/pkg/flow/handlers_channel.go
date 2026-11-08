@@ -26,12 +26,12 @@ func init() {
 func executeActionChannelGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	channelID, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelID.Snowflake()))
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if channel != nil {
@@ -45,22 +45,27 @@ func executeActionChannelGet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 func executeActionChannelCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	if n.Data.ChannelData == nil {
-		return traceError(n, fmt.Errorf("channel data is required"))
+		return fmt.Errorf("channel data is required")
 	}
 
 	guildID, err := n.targetGuildID(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	channelData, err := n.Data.ChannelData.ToCreateChannelData(ctx, ctx.EvalCtx)
 	if err != nil {
-		return traceError(n, err)
+		return err
+	}
+
+	channelData.AuditLogReason, err = evalAuditLogReason(n, ctx)
+	if err != nil {
+		return err
 	}
 
 	channel, err := ctx.Discord.CreateChannel(ctx, guildID, channelData)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
@@ -69,17 +74,17 @@ func executeActionChannelCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if n.Data.ChannelData == nil {
-		return traceError(n, fmt.Errorf("channel data is required"))
+		return fmt.Errorf("channel data is required")
 	}
 
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	createData, err := n.Data.ChannelData.ToCreateChannelData(ctx, ctx.EvalCtx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	editData := api.ModifyChannelData{
@@ -95,7 +100,7 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if createData.CategoryID != discord.NullChannelID && createData.CategoryID != 0 {
 		parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		editData.CategoryID = discord.ChannelID(parentTarget.Snowflake())
@@ -112,6 +117,8 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if len(createData.Overwrites) > 0 {
 		editData.Overwrites = &createData.Overwrites
 	}
+	editData.Archived = option.Bool(n.Data.ChannelData.Archived)
+	editData.Locked = option.Bool(n.Data.ChannelData.Locked)
 
 	// Unlike the other fields, 0 is meaningful here (it turns slowmode off),
 	// so only an empty setting leaves the current slowmode alone. The type
@@ -119,45 +126,58 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	// reject channels without slowmode.
 	seconds, ok, err := n.Data.ChannelData.EvalRateLimitPerUser(ctx, ctx.EvalCtx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	if ok {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
-	err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	editData.AuditLogReason, err = evalAuditLogReason(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
-	// TODO: ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	channel, err := ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	if err != nil {
+		return err
+	}
+
+	if channel != nil {
+		ctx.StoreNodeResult(n, thing.NewDiscordChannel(*channel))
+	}
 	return n.ExecuteChildren(ctx)
 }
 
 func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	if n.Data.ChannelData == nil {
-		return traceError(n, fmt.Errorf("channel data is required"))
+		return fmt.Errorf("channel data is required")
 	}
 
 	parentTarget, err := ctx.EvalTemplate(n.Data.ChannelData.ParentID)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	channelName, err := ctx.EvalTemplate(n.Data.ChannelData.Name)
 	if err != nil {
-		return traceError(n, err)
+		return err
+	}
+
+	auditLogReason, err := evalAuditLogReason(n, ctx)
+	if err != nil {
+		return err
 	}
 
 	threadData := api.StartThreadData{
-		Name:      channelName.String(),
-		Type:      discord.ChannelType(n.Data.ChannelData.Type),
-		Invitable: n.Data.ChannelData.Invitable,
+		Name:           channelName.String(),
+		Type:           discord.ChannelType(n.Data.ChannelData.Type),
+		Invitable:      option.Bool(n.Data.ChannelData.Invitable),
+		AuditLogReason: auditLogReason,
 	}
 	if threadData.Type == 0 {
 		threadData.Type = discord.GuildPublicThread
@@ -171,7 +191,7 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 			threadData,
 		)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	} else {
 		thread, err = ctx.Discord.StartThreadWithMessage(
@@ -181,7 +201,7 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 			threadData,
 		)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -198,49 +218,49 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	if n.Data.ChannelData == nil {
-		return traceError(n, fmt.Errorf("channel data is required"))
+		return fmt.Errorf("channel data is required")
 	}
 
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	channelID := discord.ChannelID(channelTarget.Snowflake())
 	if !channelID.IsValid() {
-		return traceError(n, fmt.Errorf("invalid forum channel: %q", channelTarget.String()))
+		return fmt.Errorf("invalid forum channel: %q", channelTarget.String())
 	}
 
 	name, err := ctx.EvalTemplate(n.Data.ChannelData.Name)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	if strings.TrimSpace(name.String()) == "" {
-		return traceError(n, fmt.Errorf("post name is required"))
+		return fmt.Errorf("post name is required")
 	}
 
 	tags, err := n.forumPostTags(ctx, channelID)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
-	auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
+	auditLogReason, err := evalAuditLogReason(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	data, opts, resumePointID, err := n.prepareMessage(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	thread, err := ctx.Discord.StartThreadInForum(ctx, channelID, api.StartForumThreadData{
 		Name:           name.String(),
 		AppliedTags:    tags,
 		Message:        data.ToSendMessageData(opts),
-		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
+		AuditLogReason: auditLogReason,
 	})
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordChannel(*thread))
@@ -248,7 +268,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		// We have to create the resume point after the post has been stored
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 

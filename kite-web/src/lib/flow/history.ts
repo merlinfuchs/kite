@@ -71,13 +71,16 @@ export type FlowChangeKind = "edit" | "drag" | "ignore";
 
 // Selecting and measuring nodes doesn't change the flow. Positions only count
 // as an edit once a drag has ended, or when nodes are moved with the keyboard.
+// Resizing a note is recorded like a drag.
 export function getFlowChangeKind(
   change: NodeChange<Node<NodeData>> | EdgeChange
 ): FlowChangeKind {
   switch (change.type) {
     case "select":
-    case "dimensions":
       return "ignore";
+    case "dimensions":
+      if (change.resizing === undefined) return "ignore";
+      return change.resizing ? "drag" : "edit";
     case "position":
       return change.dragging ? "drag" : "edit";
     default:

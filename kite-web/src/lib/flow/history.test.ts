@@ -60,6 +60,12 @@ describe("getFlowChangeKind", () => {
       "ignore"
     );
     expect(getFlowChangeKind({ id: "a", type: "dimensions" })).toBe("ignore");
+    expect(
+      getFlowChangeKind({ id: "a", type: "dimensions", resizing: true })
+    ).toBe("drag");
+    expect(
+      getFlowChangeKind({ id: "a", type: "dimensions", resizing: false })
+    ).toBe("edit");
   });
 
   it("only counts positions once the drag has ended", () => {

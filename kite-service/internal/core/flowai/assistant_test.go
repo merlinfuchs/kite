@@ -147,15 +147,71 @@ func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {
 		{"op": "add_node", "ref": "$c", "type": "control_condition_compare", "id": null, "after": "entry",
 		 "before": null, "handle": null, "source": null, "target": null, "data_json": "{}",
 		 "items_json": "[{\"condition_item_mode\": \"equal\"}]", "reconnect": null},
+		{"op": "add_node", "ref": "$d", "type": "control_condition_compare", "id": null, "after": "entry",
+		 "before": null, "handle": null, "source": null, "target": null, "data_json": null,
+		 "items_json": "[\"a\"]", "reconnect": null},
 		{"op": "remove_node", "ref": null, "type": null, "id": "b", "after": null, "before": null, "handle": null,
 		 "source": null, "target": null, "data_json": null, "items_json": null, "reconnect": false}
 	]}`)
 	require.NoError(t, err)
 
-	require.Len(t, res.Edits, 3)
-	assert.Equal(t, map[string]any{"op": "update_node", "error": "data_json isn't a JSON object"}, res.Edits[0])
+	require.Len(t, res.Edits, 4)
+	assert.Equal(t, map[string]any{
+		"op":    "update_node",
+		"error": "data_json isn't a JSON object: invalid character 'o' in literal null (expecting 'u') after \"no\"",
+	}, res.Edits[0])
 	assert.Equal(t, []map[string]any{{"condition_item_mode": "equal"}}, res.Edits[1]["items"])
-	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[2])
+	assert.Equal(t, map[string]any{"op": "add_node", "error": "items_json isn't a JSON array of objects: unexpected string"}, res.Edits[2])
+	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[3])
+}
+
+func TestToEditUsesMisnamedFields(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	tests := []struct {
+		edit outputEdit
+		want map[string]any
+	}{
+		{
+			outputEdit{Op: "connect", After: ptr("a"), Before: ptr("b")},
+			map[string]any{"op": "connect", "source": "a", "target": "b", "after": "a", "before": "b"},
+		},
+		{
+			outputEdit{Op: "disconnect", After: ptr("a"), Target: ptr("c"), Before: ptr("b")},
+			map[string]any{"op": "disconnect", "source": "a", "target": "c", "after": "a", "before": "b"},
+		},
+		{
+			outputEdit{Op: "connect", Source: ptr(""), After: ptr("a"), Target: ptr("b")},
+			map[string]any{"op": "connect", "source": "a", "target": "b", "after": "a"},
+		},
+		{
+			outputEdit{Op: "disconnect", ID: ptr("a"), Target: ptr("b")},
+			map[string]any{"op": "disconnect", "source": "a", "target": "b", "id": "a"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("b"), Source: ptr("a")},
+			map[string]any{"op": "connect", "source": "a", "target": "b", "id": "b"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("b"), Target: ptr("b")},
+			map[string]any{"op": "connect", "target": "b", "id": "b"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("a"), Handle: ptr("yes")},
+			map[string]any{"op": "connect", "id": "a", "handle": "yes"},
+		},
+		{
+			outputEdit{Op: "remove_node", Ref: ptr("a")},
+			map[string]any{"op": "remove_node", "id": "a", "ref": "a"},
+		},
+	}
+	for _, tt := range tests {
+		edit, err := tt.edit.toEdit()
+		require.NoError(t, err)
+		assert.Equal(t, tt.want, edit)
+	}
+
+	_, err := outputEdit{Op: "update_node", ID: ptr("a"), After: ptr("b")}.toEdit()
+	assert.EqualError(t, err, "update_node can't move a block. Disconnect and connect it instead.")
 }
 
 func TestParseOutputWithBuildPrompt(t *testing.T) {
@@ -181,6 +237,27 @@ func TestCheckVariables(t *testing.T) {
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
 }
 
+func TestParseOutputWithCode(t *testing.T) {
+	res, err := parseOutput(`{"message": "Done.", "code": "  entry_command({}, [])\n", "build_prompt": "Do it", "fields": [], "template_id": null}`)
+	require.NoError(t, err)
+	assert.Equal(t, "entry_command({}, [])", res.Code)
+	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestCheckVariablesInCode(t *testing.T) {
+	res := &Response{Code: `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_id: 'made_up', variable_scope: "x" })`}
+	res.checkVariables([]*model.Variable{{ID: "v1"}})
+
+	assert.Equal(t, `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_scope: "x" })`, res.Code)
+}
+
+func TestOutputSchemaForCode(t *testing.T) {
+	properties := outputSchemaFor(true)["properties"].(map[string]any)
+	assert.Contains(t, properties, "code")
+	assert.NotContains(t, properties, "edits")
+	assert.Equal(t, outputSchema, outputSchemaFor(false))
+}
+
 func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
 	res, err := parseOutput(`{"message": "Done.", "edits": [
 		{"op": "remove_node", "ref": null, "type": null, "id": "a", "after": null, "before": null, "handle": null,
@@ -188,6 +265,44 @@ func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
 	], "build_prompt": "Remove a"}`)
 	require.NoError(t, err)
 	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestParseOutputWithTemplate(t *testing.T) {
+	res, err := parseOutput(`{"message": "Add the Moderation template.", "edits": [], "build_prompt": "Build it here instead",
+		"fields": [], "template_id": "moderation"}`)
+	require.NoError(t, err)
+	assert.Equal(t, "moderation", res.TemplateID)
+	assert.Equal(t, "Build it here instead", res.BuildPrompt)
+
+	// It's built already.
+	res, err = parseOutput(`{"message": "Done.", "edits": [
+		{"op": "remove_node", "ref": null, "type": null, "id": "a", "after": null, "before": null, "handle": null,
+		 "source": null, "target": null, "data_json": null, "items_json": null, "reconnect": null}
+	], "build_prompt": null, "fields": [], "template_id": "moderation"}`)
+	require.NoError(t, err)
+	assert.Empty(t, res.TemplateID)
+}
+
+func TestCheckTemplate(t *testing.T) {
+	templates := []Template{{ID: "moderation"}, {ID: "welcomer", Added: true}}
+	for id, want := range map[string]string{"moderation": "moderation", "welcomer": "welcomer", "made_up": ""} {
+		res := &Response{TemplateID: id}
+		res.checkTemplate(templates)
+		assert.Equal(t, want, res.TemplateID, id)
+	}
+}
+
+func TestDescribeTemplates(t *testing.T) {
+	assert.Equal(t, `
+
+Templates of the marketplace:
+Made by Kite:
+- moderation: "Moderation" (moderation) "Ban and kick."
+Made by other users:
+- tickets: "Tickets" (support) "Private ticket channels."`, describeTemplates([]Template{
+		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
+		{ID: "tickets", Name: "Tickets", Description: "Private ticket channels.", Category: "support", Added: true},
+	}))
 }
 
 func TestParseOutputLimitsFields(t *testing.T) {
@@ -235,4 +350,15 @@ func TestRespondTimesOut(t *testing.T) {
 	assert.Contains(t, resErr.Message, "took too long")
 	// It counts, as the model may have worked on it.
 	assert.NotNil(t, res)
+}
+
+func TestOutlineEdits(t *testing.T) {
+	assert.Equal(t,
+		"add_node ref=$ban type=action_member_ban after=$check handle=yes data; connect source=$check target=$log; update_node error",
+		outlineEdits([]map[string]any{
+			{"op": "add_node", "ref": "$ban", "type": "action_member_ban", "after": "$check", "handle": "yes", "data": map[string]any{"reason": "spam"}},
+			{"op": "connect", "source": "$check", "target": "$log"},
+			{"op": "update_node", "error": "data_json isn't a JSON object"},
+		}),
+	)
 }

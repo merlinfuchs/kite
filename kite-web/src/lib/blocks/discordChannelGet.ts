@@ -9,7 +9,7 @@ export const discordChannelGet: BlockDefinition = {
   icon: "folder-search",
   category: "Channels",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
   fields: [channelTargetSetting],
   result: { thing: "discord_channel" },
   run: { kind: "custom" },

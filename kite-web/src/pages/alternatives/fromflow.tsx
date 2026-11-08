@@ -9,12 +9,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free FromFlow Alternative",
+  title: "Free FromFlow alternative",
   description:
     "Looking for a FromFlow alternative? Kite is a free, open source Discord bot maker with a visual editor, AI help and 24/7 hosting. No trial and no credit card.",
   competitor: "FromFlow",
   lastChecked: "October 2026",
-  heading: "A Free FromFlow Alternative",
+  heading: "A free FromFlow alternative",
   intro:
     "Kite and FromFlow both let you build a Discord bot in a visual editor, with an AI assistant that can draft commands for you. FromFlow has a 3-day trial and then costs $4.99 a month. Kite has a free plan that doesn't run out, and Kite is open source.",
   chooseKite: [
@@ -23,9 +23,9 @@ const content: ComparisonPageContent = {
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
-    "You want ready-made apps like tickets, leveling, giveaways and music",
+    "You want ready-made apps like tickets, giveaways, and music",
     "You'd rather pay once for lifetime access",
-    "You need more than 25 commands per bot and are fine with paying",
+    "You need more than 15 commands per bot and are fine with paying",
   ],
   rows: [
     {
@@ -50,23 +50,23 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Commands per bot",
-      kite: "25 free, more with Premium",
+      kite: "15 free, up to 100 on paid plans",
       competitor: "Unlimited on Pro",
     },
     {
       feature: "Ready-made features",
-      kite: "A few templates and plugins",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Apps for tickets, leveling, music and more",
     },
   ],
   reasons: [
     {
-      title: "Free, Not a Trial",
+      title: "Free, not a trial",
       description:
         "FromFlow's trial lasts 3 days and starts with a $1 card check. After that, Pro costs $4.99 a month. Kite's free plan keeps your bot online with no time limit.",
     },
     {
-      title: "Up to 10 Free Bots",
+      title: "Up to 10 free bots",
       description:
         "You can make up to 10 bots on Kite without paying. Each one gets 24/7 hosting.",
     },

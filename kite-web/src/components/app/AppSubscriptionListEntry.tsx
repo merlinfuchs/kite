@@ -51,7 +51,7 @@ export default function AppSubscriptionListEntry({
       {subscription.manageable && (
         <CardFooter className="gap-3">
           <Button variant="outline" onClick={() => updatePaymentMethod()}>
-            Update Billing
+            Update billing
           </Button>
           <Button variant="outline" onClick={() => openCustomerPortal()}>
             Manage
