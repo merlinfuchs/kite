@@ -3,10 +3,13 @@ package eval
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/expr-lang/expr/ast"
+	"github.com/expr-lang/expr/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,12 +74,13 @@ func TestProgramKey(t *testing.T) {
 // uses the cached program.
 func requireCached(t *testing.T, expression string, env Env) {
 	t.Helper()
-	programs.Wait()
-	_, ok := programs.Get(programKey(expression, NewContext(env)))
+	programs().Wait()
+	_, ok := programs().Get(programKey(expression, NewContext(env)))
 	require.True(t, ok, "program not cached")
 }
 
-// The cache keeps more programs than fit if ristretto counts its own memory.
+// The cache keeps more programs than fit if ristretto adds the size of its
+// own entries to their cost.
 func TestProgramCacheSize(t *testing.T) {
 	for i := range 1000 {
 		expression := fmt.Sprintf("%d + 1", i)
@@ -86,6 +90,36 @@ func TestProgramCacheSize(t *testing.T) {
 	for i := range 1000 {
 		requireCached(t, fmt.Sprintf("%d + 1", i), Env{"ctx": proxyContext{}})
 	}
+}
+
+// programCost is at least the memory a program keeps, so the cache can't
+// grow past MaxCost.
+func TestProgramCost(t *testing.T) {
+	for _, unit := range []string{"+xp", "+guild.name", "+user.mention", `+arg("a")`, "+1"} {
+		expression := "1" + strings.Repeat(unit, (MaxExpressionLength-1)/len(unit))
+		env := benchEnv()
+		env["ctx"] = proxyContext{}
+
+		const n = 10
+		kept := make([]*vm.Program, n)
+		before := heapAlloc()
+		for i := range kept {
+			p, err := compileUncached(expression, NewContext(env))
+			require.NoError(t, err, expression)
+			kept[i] = p
+		}
+		size := (int64(heapAlloc()) - int64(before)) / n
+		runtime.KeepAlive(kept)
+
+		assert.GreaterOrEqual(t, programCost(expression), size, "%d characters of %s", len(expression), unit)
+	}
+}
+
+func heapAlloc() uint64 {
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.HeapAlloc
 }
 
 func benchEnv() Env {

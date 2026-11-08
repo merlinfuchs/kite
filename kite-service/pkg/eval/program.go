@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/expr-lang/expr"
@@ -16,14 +17,13 @@ import (
 // A compiled program only depends on the expression, the patchers and the
 // types of the env's values, which decide how fields are read, see
 // fieldPatcher. The values are read when the program runs.
-var programs = func() *ristretto.Cache {
+var programs = sync.OnceValue(func() *ristretto.Cache {
 	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 100_000,
-		// Programs, as each costs 1. One is about 4 KB, so this is up to
-		// about 40 MB in each process. The cache only keeps hashes of keys.
-		MaxCost: 10_000,
-		// Otherwise ristretto adds the size of its own entry to the cost,
-		// and the cache only keeps about 175 programs.
+		NumCounters: 300_000,
+		// Bytes, as estimated by programCost. The cache only keeps hashes of
+		// keys.
+		MaxCost: 64 << 20,
+		// Otherwise ristretto adds the size of its own entry to the cost.
 		IgnoreInternalCost: true,
 		BufferItems:        64,
 	})
@@ -31,14 +31,30 @@ var programs = func() *ristretto.Cache {
 		panic(err)
 	}
 	return cache
-}()
+})
+
+// programCost estimates the memory of a program, which grows with its
+// expression: about 2 KB for user.mention, and up to 850 KB for 10,000
+// characters of +xp+xp, as it keeps the parsed expression.
+func programCost(expression string) int64 {
+	return 1<<10 + 100*int64(len(expression))
+}
 
 func compile(expression string, c Context) (*vm.Program, error) {
 	key := programKey(expression, c)
-	if p, ok := programs.Get(key); ok {
+	if p, ok := programs().Get(key); ok {
 		return p.(*vm.Program), nil
 	}
 
+	program, err := compileUncached(expression, c)
+	if err != nil {
+		return nil, err
+	}
+	programs().Set(key, program, programCost(expression))
+	return program, nil
+}
+
+func compileUncached(expression string, c Context) (*vm.Program, error) {
 	opts := []expr.Option{
 		expr.Env(c.Env),
 		expr.AllowUndefinedVariables(),
@@ -49,12 +65,7 @@ func compile(expression string, c Context) (*vm.Program, error) {
 	}
 	opts = append(opts, patchOptions(c.Patchers)...)
 
-	program, err := expr.Compile(expression, opts...)
-	if err != nil {
-		return nil, err
-	}
-	programs.Set(key, program, 1)
-	return program, nil
+	return expr.Compile(expression, opts...)
 }
 
 // programKey is the expression with the types of the patchers and of the
