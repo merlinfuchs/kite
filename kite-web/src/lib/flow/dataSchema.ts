@@ -277,6 +277,10 @@ export const channelEditDataSchema = channelDataSchema
       .describe(
         "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set."
       ),
+    applied_tags: templated(
+      z.string(),
+      "Names or IDs of up to 5 of the forum's tags, separated by commas. Only for forum and media posts. Left as they are if not set."
+    ).optional(),
   })
   .describe("Settings of the channel or thread.");
 

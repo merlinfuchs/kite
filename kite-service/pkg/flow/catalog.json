@@ -3784,6 +3784,11 @@
               "locked": {
                 "description": "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
+              },
+              "applied_tags": {
+                "type": "string",
+                "description": "Names or IDs of up to 5 of the forum's tags, separated by commas. Only for forum and media posts. Left as they are if not set.",
+                "x-templated": true
               }
             },
             "description": "Settings of the channel or thread.",
