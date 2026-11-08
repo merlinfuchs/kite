@@ -3,6 +3,7 @@ package eval
 import (
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dgraph-io/ristretto"
@@ -20,8 +21,11 @@ var programs = func() *ristretto.Cache {
 		NumCounters: 100_000,
 		// Programs, as each costs 1. One is about 4 KB, so this is up to
 		// about 40 MB in each process. The cache only keeps hashes of keys.
-		MaxCost:     10_000,
-		BufferItems: 64,
+		MaxCost: 10_000,
+		// Otherwise ristretto adds the size of its own entry to the cost,
+		// and the cache only keeps about 175 programs.
+		IgnoreInternalCost: true,
+		BufferItems:        64,
 	})
 	if err != nil {
 		panic(err)
@@ -79,15 +83,13 @@ func programKey(expression string, c Context) string {
 	return b.String()
 }
 
+// writeType writes the address of t, which identifies it. Its name doesn't,
+// as *eval.GuildEnv has no package path. Types are never freed.
 func writeType(b *strings.Builder, t reflect.Type) {
 	if t == nil {
 		b.WriteString("nil")
 		return
 	}
-	// String alone is only the package's name, like eval.UserEnv.
-	if t.PkgPath() != "" {
-		b.WriteString(t.PkgPath())
-		b.WriteByte('.')
-	}
-	b.WriteString(t.String())
+	var buf [16]byte
+	b.Write(strconv.AppendUint(buf[:0], uint64(reflect.ValueOf(t).Pointer()), 16))
 }

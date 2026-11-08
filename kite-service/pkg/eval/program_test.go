@@ -2,8 +2,8 @@ package eval
 
 import (
 	"context"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/expr-lang/expr/ast"
@@ -21,10 +21,11 @@ func TestCachedProgramUsesNewValues(t *testing.T) {
 			"get":  func(s string) (any, error) { return s + name, nil },
 			"m":    map[string]any{"k": name},
 		}
-		res, err := Eval(context.Background(), `user.username + get("x") + m.k + string(n)`, NewContext(env))
+		expression := `user.username + get("x") + m.k + string(n)`
+		res, err := Eval(context.Background(), expression, NewContext(env))
 		require.NoError(t, err)
 		assert.Equal(t, name+"x"+name+name+"1", res.String())
-		waitForCache()
+		requireCached(t, expression, env)
 	}
 }
 
@@ -33,20 +34,23 @@ func TestCachedProgramUsesNewValues(t *testing.T) {
 func TestCachedProgramPerEnvTypes(t *testing.T) {
 	expression := `guild?.name ?? "none"`
 
-	res, err := Eval(context.Background(), expression, NewContext(Env{"guild": &GuildEnv{Name: "Kite"}}))
+	env := Env{"guild": &GuildEnv{Name: "Kite"}}
+	res, err := Eval(context.Background(), expression, NewContext(env))
 	require.NoError(t, err)
 	assert.Equal(t, "Kite", res.String())
-	waitForCache()
+	requireCached(t, expression, env)
 
-	res, err = Eval(context.Background(), expression, NewContext(Env{"guild": map[string]any{"name": "Map"}}))
+	env = Env{"guild": map[string]any{"name": "Map"}}
+	res, err = Eval(context.Background(), expression, NewContext(env))
 	require.NoError(t, err)
 	assert.Equal(t, "Map", res.String())
-	waitForCache()
+	requireCached(t, expression, env)
 
-	res, err = Eval(context.Background(), expression, NewContext(Env{"guild": nil}))
+	env = Env{"guild": nil}
+	res, err = Eval(context.Background(), expression, NewContext(env))
 	require.NoError(t, err)
 	assert.Equal(t, "none", res.String())
-	waitForCache()
+	requireCached(t, expression, env)
 
 	res, err = Eval(context.Background(), expression, NewContext(Env{}))
 	require.NoError(t, err)
@@ -63,10 +67,25 @@ func TestProgramKey(t *testing.T) {
 	assert.NotEqual(t, a, programKey("x", Context{Env: Env{"user": user, "n": 1}, Patchers: []ast.Visitor{fieldPatcher{}}}))
 }
 
-// Sets of ristretto are buffered, so a Get right after can miss.
-func waitForCache() {
+// requireCached waits for the buffered Set of ristretto, so the next Eval
+// uses the cached program.
+func requireCached(t *testing.T, expression string, env Env) {
+	t.Helper()
 	programs.Wait()
-	time.Sleep(time.Millisecond)
+	_, ok := programs.Get(programKey(expression, NewContext(env)))
+	require.True(t, ok, "program not cached")
+}
+
+// The cache keeps more programs than fit if ristretto counts its own memory.
+func TestProgramCacheSize(t *testing.T) {
+	for i := range 1000 {
+		expression := fmt.Sprintf("%d + 1", i)
+		_, err := Eval(context.Background(), expression, NewContext(Env{}))
+		require.NoError(t, err)
+	}
+	for i := range 1000 {
+		requireCached(t, fmt.Sprintf("%d + 1", i), Env{"ctx": proxyContext{}})
+	}
 }
 
 func benchEnv() Env {
