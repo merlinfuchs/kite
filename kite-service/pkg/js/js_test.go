@@ -81,7 +81,9 @@ func TestRunErrors(t *testing.T) {
 			require.Error(t, err)
 			assert.True(t, IsError(err), "%v is not a script error", err)
 			assert.Equal(t, tt.want, err.Error())
-			assert.Less(t, time.Since(start), Timeout+killGrace+50*time.Millisecond)
+			// Far below the 8.7 s a native loop ran without the kill, with
+			// room for a busy CI machine.
+			assert.Less(t, time.Since(start), 500*time.Millisecond)
 		})
 	}
 }

@@ -20,6 +20,8 @@ Supabase edge-runtime, which the Tessera spike used, was rejected for the block.
 
 Scripts that fill every core make other goroutines 25 to 60 ms late. `pkg/js` caps scripts running at once to half the cores, which kept that under 5 ms in a test with 48 spinning scripts on 12 cores. It also caps the memory scripts hold at once.
 
+Compiling the module and setting up the snapshot takes 0.23 s on an M4 Pro and about 0.9 s on kite.onl's i7-6700, in each of its 4 processes. `js.Warm` does it a minute after the server starts, once the gateways have reconnected. A script that runs before then compiles it itself. On the i7-6700 a small script runs in 0.5 to 1.2 ms, and creating 2,000 small objects takes 10 ms.
+
 Each run starts from a copy of the memory of an instance where QuickJS and the prelude are set up. That's valid because the module's only mutable global is the stack pointer, which is back at its start between calls. Starting from a copy takes about 0.15 ms, and a 2 KB string-processing script about 1.8 ms with the kill on, on an M4 Pro. Every run gets a fresh instance, so nothing a script changes carries over to the next.
 
 Each instance's memory is allocated with the capacity of the snapshot through wazero's experimental `MemoryAllocator`. By default wazero sizes it for the module's initial 18 pages, so growing it to the snapshot's 21 pages copied it again. On Linux that took a trivial run from about 265 to about 200 µs and from 2.8 to 1.5 MB of allocations.

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -55,6 +56,22 @@ func getEngine() (*engine, error) {
 		engineInst, engineErr = newEngine(context.Background(), defaultEngineConfig)
 	})
 	return engineInst, engineErr
+}
+
+// Warm compiles QuickJS in the background after delay, which takes about a
+// second on kite.onl's server, so the first script doesn't wait for it. A
+// script that runs before then compiles it itself.
+func Warm(ctx context.Context, delay time.Duration) {
+	go func() {
+		select {
+		case <-time.After(delay):
+		case <-ctx.Done():
+			return
+		}
+		if _, err := getEngine(); err != nil {
+			slog.With("error", err).Error("Failed to compile QuickJS")
+		}
+	}()
 }
 
 type LogLevel int
