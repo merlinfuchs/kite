@@ -1,3 +1,5 @@
+import env from "@/lib/env/client";
+
 // The changes users notice, newest first, for the changelog page and
 // llms.txt. Add an entry when a change ships to kite.onl.
 export interface ChangelogEntry {
@@ -5,11 +7,61 @@ export interface ChangelogEntry {
   date: string;
   title: string;
   description: string;
-  // A page with more about the change, like a landing page or template.
+  // A page with more about the change, like a landing page, a template, or
+  // the docs.
   href?: string;
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    date: "2026-11-08",
+    title: "Run JavaScript block",
+    description:
+      "Run a short piece of JavaScript with values from your flow, for calculations and text that would take many blocks. It costs 10 credits a run.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Voice event and voice blocks",
+    description:
+      "The Voice state update event runs when a member joins, leaves, or moves to another voice channel. Edit voice state mutes, deafens, or moves a member. Play soundboard sound plays a soundboard sound in a voice channel, and unlike Play audio it works on the free plan.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/event`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Server boost remove event",
+    description:
+      "Run a flow when a member stops boosting your server, like to take back a booster reward role.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/event`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Tags in Edit channel",
+    description:
+      "The Edit channel block changes the tags of a forum post, like marking a ticket as Resolved.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_channel_edit`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Install Kite as an app",
+    description:
+      "Install the dashboard on your computer or phone from Chrome, Edge, or Safari on iPhone, so it opens in its own window.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#installing-kite`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Duplicate blocks with Ctrl+D",
+    description:
+      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't enabled, you can enable it from the block.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-editor#keyboard-shortcuts`,
+  },
+  {
+    date: "2026-11-05",
+    title: "AI apps can test your flows",
+    description:
+      "Claude, ChatGPT, and other apps connected to Kite's MCP server can run a flow as a test before you use it. A test shows the messages and changes the flow would make without making them, and doesn't use credits.",
+    href: "/discord-mcp-server",
+  },
   {
     date: "2026-11-05",
     title: "Leveling template",
