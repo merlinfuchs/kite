@@ -443,8 +443,9 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	// The model sometimes uses the fields of add_node in other edits, like
 	// after and before for the blocks to connect, or ref for the block to
 	// change.
+	missing := func(field *string) bool { return field == nil || *field == "" }
 	or := func(field, fallback *string) *string {
-		if field == nil || *field == "" {
+		if missing(field) {
 			return fallback
 		}
 		return field
@@ -455,6 +456,17 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	case "connect", "disconnect":
 		e.Source = or(e.Source, e.After)
 		e.Target = or(e.Target, e.Before)
+		// It also puts the end it left out in id, like id and target to
+		// disconnect. An id that repeats the other end, or with both ends
+		// left out, can't be told apart, so it's left for the model to fix.
+		if !missing(e.ID) {
+			switch {
+			case missing(e.Source) && !missing(e.Target) && *e.Target != *e.ID:
+				e.Source = e.ID
+			case missing(e.Target) && !missing(e.Source) && *e.Source != *e.ID:
+				e.Target = e.ID
+			}
+		}
 	}
 	if e.Op == "update_node" && e.DataJSON == nil && (e.After != nil || e.Before != nil) {
 		return nil, errors.New("update_node can't move a block. Disconnect and connect it instead.")
