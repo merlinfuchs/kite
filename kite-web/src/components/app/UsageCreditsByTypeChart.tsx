@@ -31,6 +31,14 @@ const chartConfig = {
     label: "Messages",
     color: "hsl(var(--chart-5))",
   },
+  webhook_flow_execution: {
+    label: "Webhooks",
+    color: "hsl(var(--chart-6))",
+  },
+  schedule_flow_execution: {
+    label: "Schedules",
+    color: "hsl(var(--chart-7))",
+  },
 } satisfies ChartConfig;
 
 const typeNames: Record<string, string> = {
@@ -38,6 +46,8 @@ const typeNames: Record<string, string> = {
   command_flow_execution: "Commands",
   event_listener_flow_execution: "Events",
   message_flow_execution: "Messages",
+  webhook_flow_execution: "Webhooks",
+  schedule_flow_execution: "Schedules",
 };
 
 export default function UsageCreditsByTypeChart() {

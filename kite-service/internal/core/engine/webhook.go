@@ -106,6 +106,7 @@ func (l *EventListener) HandleWebhookRun(session *state.State, event *webhook.Ev
 		event,
 		entityLinks{
 			EventListenerID: null.NewString(l.listener.ID, true),
+			EventSource:     l.listener.Source,
 		},
 		nil,
 	)

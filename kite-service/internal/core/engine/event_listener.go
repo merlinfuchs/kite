@@ -75,6 +75,7 @@ func (l *EventListener) HandleScheduledRun(session *state.State, occurrence time
 		&schedule.Event{Time: occurrence},
 		entityLinks{
 			EventListenerID: null.NewString(l.listener.ID, true),
+			EventSource:     l.listener.Source,
 		},
 		nil,
 	)
@@ -83,6 +84,7 @@ func (l *EventListener) HandleScheduledRun(session *state.State, occurrence time
 func (l *EventListener) HandleEvent(appID string, session *state.State, event gateway.Event) {
 	links := entityLinks{
 		EventListenerID: null.NewString(l.listener.ID, true),
+		EventSource:     l.listener.Source,
 	}
 
 	var botID discord.UserID
