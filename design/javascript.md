@@ -129,4 +129,3 @@ Things to get right:
 - The Commands and Event listeners pages show those of modules too, marked as coming from their module and only editable there. Otherwise nobody sees what their bot does, and names that clash with flows go unnoticed.
 - A module is one more kind of item in a template, as an installed template already groups commands, event listeners and messages like a module does. That keeps the Marketplace working for code.
 - Flows stay a row per command or event listener. A module is one row with its code and the manifest Go takes from it on deploy, and routing is built from both.
-
