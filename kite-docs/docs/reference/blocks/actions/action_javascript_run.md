@@ -51,7 +51,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 The code can't send requests or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
-`await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails.
+`await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
 There's no `Intl`, so `toLocaleString` on dates ignores the language and time zone, and dates are in UTC. Numbers get commas, like `1,234.5`. To show a date in a time zone, use `formatDate(date, format, timeZone)`. The date can be a `Date`, a timestamp in milliseconds or text like `2026-01-01T12:00:00Z`.
 
