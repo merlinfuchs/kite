@@ -37,8 +37,8 @@ max_idle_conns_per_host = 128
 max_conns_per_host = 256
 
 [assistant]
-model = "gpt-5-mini"
-reasoning_effort = "low"
+model = "gpt-6-luna"
+reasoning_effort = "medium"
 max_output_tokens = 16000
 max_repairs = 2
 format = "edits"

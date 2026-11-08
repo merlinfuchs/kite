@@ -22,8 +22,8 @@ import (
 
 func main() {
 	addr := flag.String("addr", "localhost:4455", "address to listen on")
-	modelName := flag.String("model", "gpt-5-mini", "model")
-	effort := flag.String("effort", "low", "reasoning effort")
+	modelName := flag.String("model", "gpt-6-luna", "model")
+	effort := flag.String("effort", "medium", "reasoning effort")
 	format := flag.String("format", flowai.FormatEdits, "how the model changes the flow: edits or code")
 	flag.Parse()
 
