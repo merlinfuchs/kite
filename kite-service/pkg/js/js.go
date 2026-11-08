@@ -94,6 +94,10 @@ type Options struct {
 	// Log gets what the script logs with console.log, warn and error, up to
 	// MaxLogEntries entries and MaxLogLength in total.
 	Log func(level LogLevel, message string)
+
+	// timeout replaces Timeout in tests, which can't rely on getting a busy
+	// CI machine's CPU for 25 ms.
+	timeout time.Duration
 }
 
 // Error is an error of the script, like one it threw or running out of
@@ -164,7 +168,11 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	defer inst.close(context.Background())
 
-	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input)
+	timeout := Timeout
+	if opts.timeout > 0 {
+		timeout = opts.timeout
+	}
+	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
