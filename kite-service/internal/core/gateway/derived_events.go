@@ -56,6 +56,7 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 // cache is the part of the state cache deriving events reads.
 type cache interface {
 	Message(discord.ChannelID, discord.MessageID) (*discord.Message, error)
+	VoiceState(discord.GuildID, discord.UserID) (*discord.VoiceState, error)
 	Member(discord.GuildID, discord.UserID) (*discord.Member, error)
 	Role(discord.GuildID, discord.RoleID) (*discord.Role, error)
 }
@@ -99,6 +100,31 @@ func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event
 			return nil
 		}
 		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
+	case *gateway.VoiceStateUpdateEvent:
+		if !e.GuildID.IsValid() {
+			return nil
+		}
+		var oldChannelID discord.ChannelID
+		if old, err := c.VoiceState(e.GuildID, e.UserID); err == nil && old != nil {
+			oldChannelID = old.ChannelID
+		}
+		// Muting, deafening, streaming, and turning on the camera keep the
+		// channel, and would run the listener for every click.
+		if e.ChannelID == oldChannelID {
+			return nil
+		}
+		action := "move"
+		switch {
+		case !oldChannelID.IsValid():
+			action = "join"
+		case !e.ChannelID.IsValid():
+			action = "leave"
+		}
+		return []guildevent.Event{&guildevent.VoiceStateUpdate{
+			VoiceStateUpdateEvent: *e,
+			OldChannelID:          oldChannelID,
+			Action:                action,
+		}}
 	}
 	return nil
 }

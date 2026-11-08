@@ -199,7 +199,9 @@ func (r AppGatewayRequirements) NeedsGuildModeration() bool {
 
 // NeedsGuildVoiceStates reports whether the app consumes voice state events.
 func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
-	return r.UsesVoice
+	return r.UsesVoice ||
+		slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordVoiceStateUpdate) ||
+		slices.Contains(r.PluginEventTypes, "VOICE_STATE_UPDATE")
 }
 
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one

@@ -245,6 +245,17 @@ function buildInteractionPlaceholders(
         },
       ],
     },
+    voice: {
+      label: `${labelPrefix}Voice`,
+      placeholders: [
+        { label: "Action", value: `${prefix}voice.action` },
+        typedPlaceholder(
+          "Previous Channel",
+          `${prefix}voice.old_channel`,
+          "channel"
+        ),
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed

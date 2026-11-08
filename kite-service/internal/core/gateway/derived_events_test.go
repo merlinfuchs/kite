@@ -13,9 +13,10 @@ import (
 )
 
 type fakeCache struct {
-	messages map[discord.MessageID]discord.Message
-	members  map[discord.UserID]discord.Member
-	roles    map[discord.RoleID]discord.Role
+	messages    map[discord.MessageID]discord.Message
+	voiceStates map[discord.UserID]discord.VoiceState
+	members     map[discord.UserID]discord.Member
+	roles       map[discord.RoleID]discord.Role
 }
 
 var errNotCached = errors.New("not cached")
@@ -26,6 +27,14 @@ func (c fakeCache) Message(channelID discord.ChannelID, id discord.MessageID) (*
 		return nil, errNotCached
 	}
 	return &m, nil
+}
+
+func (c fakeCache) VoiceState(guildID discord.GuildID, userID discord.UserID) (*discord.VoiceState, error) {
+	v, ok := c.voiceStates[userID]
+	if !ok || v.GuildID != guildID {
+		return nil, errNotCached
+	}
+	return &v, nil
 }
 
 func (c fakeCache) Member(guildID discord.GuildID, id discord.UserID) (*discord.Member, error) {
@@ -57,6 +66,10 @@ func TestDeriveEvents(t *testing.T) {
 		messages: map[discord.MessageID]discord.Message{
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
 			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
+		},
+		voiceStates: map[discord.UserID]discord.VoiceState{
+			2: {UserID: 2, GuildID: 2, ChannelID: 5},
+			3: {UserID: 3, GuildID: 2, ChannelID: 5},
 		},
 		members: map[discord.UserID]discord.Member{
 			40: {User: discord.User{ID: 40}, RoleIDs: []discord.RoleID{boosterRole, plainRole}},
@@ -92,6 +105,11 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"voice join", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 1, GuildID: 2, ChannelID: 5}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
+		{"voice leave", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 2, GuildID: 2, ChannelID: 0}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
+		{"voice move", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 3, GuildID: 2, ChannelID: 6}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
+		// Muting and the like keep the channel.
+		{"voice mute", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 2, GuildID: 2, ChannelID: 5, SelfMute: true}}, nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 		{"booster role taken away", memberUpdate(40, plainRole), []ws.EventType{guildevent.BoostRemoveType}},
 		{"booster role kept", memberUpdate(40, boosterRole), nil},
@@ -272,5 +290,31 @@ func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
 	}
 	if len(update(first.Add(time.Minute))) != 1 {
 		t.Fatal("second edit isn't an edit")
+	}
+}
+
+func TestDeriveVoiceActions(t *testing.T) {
+	c := fakeCache{voiceStates: map[discord.UserID]discord.VoiceState{
+		2: {UserID: 2, GuildID: 2, ChannelID: 5},
+	}}
+	tests := []struct {
+		userID    discord.UserID
+		channelID discord.ChannelID
+		action    string
+		old       discord.ChannelID
+	}{
+		{1, 5, "join", 0},
+		{2, 0, "leave", 5},
+		{2, 6, "move", 5},
+	}
+	for _, tt := range tests {
+		derived := deriveEvents(c, newEditTimes(), &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: tt.userID, GuildID: 2, ChannelID: tt.channelID}})
+		if len(derived) != 1 {
+			t.Fatalf("%s: got %d events", tt.action, len(derived))
+		}
+		e := derived[0].(*guildevent.VoiceStateUpdate)
+		if e.Action != tt.action || e.OldChannelID != tt.old {
+			t.Errorf("got %s from %d, want %s from %d", e.Action, e.OldChannelID, tt.action, tt.old)
+		}
 	}
 }

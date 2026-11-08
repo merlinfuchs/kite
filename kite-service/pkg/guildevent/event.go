@@ -17,6 +17,7 @@ import (
 // MessageDeleteType is the type of Discord's own event, as MessageDelete
 // replaces that event for event listeners.
 const MessageDeleteType ws.EventType = "MESSAGE_DELETE"
+const VoiceStateUpdateType ws.EventType = "VOICE_STATE_UPDATE"
 
 // BoostRemoveType isn't a Discord event, Discord has none for a member who
 // stops boosting.
@@ -65,6 +66,16 @@ type MessageEdit struct {
 
 func (e *MessageEdit) derived() {}
 
+type VoiceStateUpdate struct {
+	gateway.VoiceStateUpdateEvent
+	OldChannelID discord.ChannelID `json:"old_channel_id,omitempty"`
+	Action       string            `json:"action"`
+}
+
+func (e *VoiceStateUpdate) Op() ws.OpCode           { return 0 }
+func (e *VoiceStateUpdate) EventType() ws.EventType { return VoiceStateUpdateType }
+func (e *VoiceStateUpdate) derived()                {}
+
 // New returns an empty event of a type of this package, nil for other types.
 // Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so
 // a stored one is always a MessageDelete.
@@ -72,6 +83,8 @@ func New(t ws.EventType) Event {
 	switch t {
 	case MessageDeleteType:
 		return new(MessageDelete)
+	case VoiceStateUpdateType:
+		return new(VoiceStateUpdate)
 	case BoostRemoveType:
 		return new(BoostRemove)
 	}

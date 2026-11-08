@@ -471,6 +471,20 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+	Voice    *VoiceEnv    `expr:"voice" json:"voice"`
+}
+
+// VoiceEnv is what changed for a member in voice. The channel of the event is
+// the one they're in now, or the one they left.
+type VoiceEnv struct {
+	// Action is join, leave or move, as the Event Filter matches it.
+	Action string `expr:"action" json:"action"`
+	// OldChannel is the channel the member was in before, nil if they joined.
+	OldChannel *CurrentChannelEnv `expr:"old_channel" json:"old_channel"`
+}
+
+func (v VoiceEnv) String() string {
+	return v.Action
 }
 
 type ScheduleEnv struct {
@@ -720,6 +734,48 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Channel = currentChannelEnv(session, id, nil)
 		}
 		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
+	case *gateway.VoiceStateUpdateEvent:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+			env.User = env.Member
+		} else if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
+		}
+		if e.GuildID != 0 {
+			env.Guild = guild(e.GuildID).guildEnv()
+		}
+		if e.ChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
+		}
+	case *guildevent.VoiceStateUpdate:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+			env.User = env.Member
+		} else if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserIDEnv(e.UserID)
+			env.Member = env.User
+		}
+		if e.GuildID != 0 {
+			env.Guild = guild(e.GuildID).guildEnv()
+		}
+		chID := e.ChannelID
+		if !chID.IsValid() && e.OldChannelID.IsValid() {
+			chID = e.OldChannelID
+		}
+		if chID.IsValid() {
+			env.Channel = currentChannelEnv(session, chID, nil)
+		}
+		env.Voice = &VoiceEnv{Action: e.Action}
+		if e.OldChannelID.IsValid() {
+			env.Voice.OldChannel = currentChannelEnv(session, e.OldChannelID, nil)
+		}
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -794,6 +850,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"schedule":  env.Schedule,
 			"webhook":   env.Webhook,
 			"audit_log": env.AuditLog,
+			"voice":     env.Voice,
 			"app":       NewAppEnv(session),
 		},
 	}
