@@ -13,10 +13,11 @@ import { Edge, Node, useReactFlow, XYPosition } from "@xyflow/react";
 import { MouseEvent, RefObject, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-// Copy, cut and paste for flow blocks. Uses the system clipboard so the blocks
-// can be pasted into other commands and event listeners. Returns a mouse move
-// handler for the flow so pasted blocks land at the cursor, and the actions
-// for the context menu, which take the IDs of the blocks they act on.
+// Copy, cut, paste and duplicate (Ctrl+D) for flow blocks. Uses the system
+// clipboard so the blocks can be pasted into other commands and event
+// listeners. Returns a mouse move handler for the flow so pasted blocks land
+// at the cursor, and the actions for the context menu, which take the IDs of
+// the blocks they act on.
 export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
   const {
     getNodes,
@@ -168,6 +169,12 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
         e.altKey ||
         shouldIgnore(e)
       ) {
+        return;
+      }
+
+      // Holding the keys down would otherwise stack a copy per key repeat.
+      if (e.repeat) {
+        e.preventDefault();
         return;
       }
 
