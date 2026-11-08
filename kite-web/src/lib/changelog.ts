@@ -20,13 +20,13 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-11-08",
     title: "Voice event and voice blocks",
     description:
-      "The Voice state update event runs when a member joins, leaves, or moves to another voice channel. Edit voice state mutes, deafens, or moves a member, and Play soundboard sound plays a sound from the soundboard on every plan.",
+      "The Voice state update event runs when a member joins, leaves, or moves to another voice channel. Edit voice state mutes, deafens, or moves a member. Play soundboard sound plays a soundboard sound in a voice channel, and unlike Play audio it works on the free plan.",
   },
   {
     date: "2026-11-08",
     title: "Server boost remove event",
     description:
-      "Run a flow when a member stops boosting your server, like to take away a booster reward.",
+      "Run a flow when a member stops boosting your server, like to take back a booster reward role.",
   },
   {
     date: "2026-11-08",
@@ -42,15 +42,15 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-08",
-    title: "Faster flow editing",
+    title: "Duplicate blocks with Ctrl+D",
     description:
-      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't turned on, you can enable it right from the block.",
+      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't enabled, you can enable it from the block.",
   },
   {
     date: "2026-11-05",
-    title: "Claude and ChatGPT test your flows",
+    title: "AI apps can test your flows",
     description:
-      "AI clients connected to the MCP server can test a flow before you use it. Tests show the messages and changes a flow would make without making them, and don't use credits.",
+      "Claude, ChatGPT, and other apps connected to Kite's MCP server can run a flow as a test before you use it. A test shows the messages and changes the flow would make without making them, and doesn't use credits.",
     href: "/discord-mcp-server",
   },
   {
