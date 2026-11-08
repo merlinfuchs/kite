@@ -32,6 +32,11 @@ const (
 	// MaxErrorLength caps the message of an error, which ends up in the
 	// logs of the app.
 	MaxErrorLength = 1000
+	// MaxCalls caps the calls of Options.Host a run can make.
+	MaxCalls = 20
+	// MaxWallTime caps how long a run takes in all, with the time it waits
+	// for calls, which doesn't count against Timeout.
+	MaxWallTime = 10 * time.Second
 )
 
 const (
@@ -95,10 +100,21 @@ type Options struct {
 	// MaxLogEntries entries and MaxLogLength in total.
 	Log func(level LogLevel, message string)
 
+	// Host are the calls the code can make, by name like
+	// discord.create_message, which the code calls as
+	// discord.createMessage(arg). Each returns a promise, and runs in the
+	// background while the code waits.
+	Host map[string]HostFunc
+
 	// timeout replaces Timeout in tests, which can't rely on getting a busy
-	// CI machine's CPU for 25 ms.
-	timeout time.Duration
+	// CI machine's CPU for 25 ms. wallTime replaces MaxWallTime.
+	timeout  time.Duration
+	wallTime time.Duration
 }
+
+// HostFunc is a call the code can make. arg is the JSON of the code's
+// argument. Its error message is what the code's promise is rejected with.
+type HostFunc func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error)
 
 // Error is an error of the script, like one it threw or running out of
 // time, with a message for the user.
@@ -116,9 +132,10 @@ func (e *Error) Error() string {
 }
 
 var (
-	errTimeout = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
-	errPending = &Error{Message: "the code waited for something that never finished"}
-	errMemory  = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
+	errTimeout  = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
+	errPending  = &Error{Message: "the code waited for something that never finished"}
+	errWallTime = &Error{Message: fmt.Sprintf("the code took longer than %d seconds", int(MaxWallTime.Seconds()))}
+	errMemory   = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
 )
 
 // Run runs opts.Code as the body of an async function with the parameter
@@ -140,15 +157,40 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		return nil, err
 	}
 
-	select {
-	case slots <- struct{}{}:
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	// The run gives up its slot while it waits for calls.
+	held := false
+	acquire := func() error {
+		select {
+		case slots <- struct{}{}:
+			held = true
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	defer func() { <-slots }()
+	release := func() {
+		if held {
+			<-slots
+			held = false
+		}
+	}
+	defer release()
+	if err := acquire(); err != nil {
+		return nil, err
+	}
+
+	wallTime := MaxWallTime
+	if opts.wallTime > 0 {
+		wallTime = opts.wallTime
+	}
+	hostCtx, cancel := context.WithTimeout(ctx, wallTime)
+	defer cancel()
 
 	logged, entries := 0, 0
 	st := &runState{
+		host:    opts.Host,
+		hostCtx: hostCtx,
+		results: make(chan callResult, MaxCalls),
 		log: func(level LogLevel, message string) {
 			if opts.Log == nil || entries >= MaxLogEntries || logged >= MaxLogLength {
 				return
@@ -169,11 +211,40 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	defer inst.close(context.Background())
 
-	timeout := Timeout
+	budget := Timeout
 	if opts.timeout > 0 {
-		timeout = opts.timeout
+		budget = opts.timeout
 	}
-	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
+	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, &budget)
+	for err == nil && status == runPending && st.inflight > 0 {
+		release()
+		var r callResult
+		select {
+		case r = <-st.results:
+		case <-hostCtx.Done():
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, errWallTime
+		}
+		st.inflight--
+		if err := acquire(); err != nil {
+			return nil, err
+		}
+		out, status, err = inst.resolve(stateCtx, r, &budget)
+	}
+	release()
+	// Calls the code didn't wait for, like a message it sent without await,
+	// still finish.
+	for st.inflight > 0 {
+		select {
+		case <-st.results:
+			st.inflight--
+		case <-hostCtx.Done():
+			st.inflight = 0
+		}
+	}
+
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()

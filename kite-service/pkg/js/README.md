@@ -30,4 +30,6 @@ Helpers that need Go, like the time zones of `formatDate`, are host functions:
 2. Wrap it in `prelude.js` with `call("name", arg)`, and give the wrapper the name scripts use.
 3. Add a test to `js_test.go`.
 
-Every helper can be called by any app's code with any argument. It must not have side effects, read anything outside its argument, or take long, as the time it takes counts against the script's 25 ms. Helpers that act on Discord or other services are step 2 in `design/javascript.md`, and need a credit cost and a check of what each app may do.
+Every helper can be called by any app's code with any argument. It must not have side effects, read anything outside its argument, or take long, as the time it takes counts against the script's 25 ms.
+
+Calls that act on Discord or other services aren't helpers. The caller of `Run` passes them in `Options.Host`, by names like `discord.create_message`, and code calls them as `discord.createMessage(arg)`, which returns a promise. Each call runs in a goroutine while the code waits, and `kite_run` returns that the code is waiting when nothing else is left to run. `Run` then gives up its slot, waits for a call to finish, and passes its result to `kite_resolve`, which continues the code. Only the time the code runs counts against the 25 ms, and a run takes 10 seconds at most in all. Calls the code doesn't wait for still finish before `Run` returns.

@@ -2,7 +2,26 @@
 // scripts get, then removes kite so scripts only use what's defined here.
 (() => {
   const call = kite.call;
+  const start = kite.start;
   delete globalThis.kite;
+
+  // discord.createMessage(arg) starts the call discord.create_message, which
+  // Go runs while the code waits for its promise. Which calls exist is up to
+  // the host of the run. Names objects have anyway, like then, which await
+  // looks for, aren't calls.
+  const snake = (s) => s.replace(/[A-Z]/g, (c) => "_" + c.toLowerCase());
+  for (const namespace of ["discord", "erlc", "cookieApi", "http", "variables"]) {
+    const prefix = snake(namespace) + ".";
+    globalThis[namespace] = new Proxy(
+      {},
+      {
+        get: (_, name) =>
+          typeof name !== "string" || name in Object.prototype || name === "then" || name === "toJSON"
+            ? undefined
+            : (arg) => start(prefix + snake(name), arg),
+      }
+    );
+  }
 
   const show = (v) => {
     if (typeof v === "string") return v;

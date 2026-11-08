@@ -3,11 +3,14 @@ package js
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -285,4 +288,125 @@ func TestRunMicrotaskError(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "1", string(res))
 	assert.Equal(t, []string{"error Error: x"}, logs)
+}
+
+var testHost = map[string]HostFunc{
+	"discord.echo": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { return arg, nil },
+	"discord.get_thing": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return json.RawMessage(`{"thing":true}`), nil
+	},
+	"discord.sleep": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		var ms int
+		json.Unmarshal(arg, &ms)
+		select {
+		case <-time.After(time.Duration(ms) * time.Millisecond):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return arg, nil
+	},
+	"discord.fail": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return nil, errors.New("Missing Permissions")
+	},
+	"discord.panic": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { panic("boom") },
+	"cookie_api.make_card": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return json.RawMessage(`"card"`), nil
+	},
+}
+
+func runHost(t *testing.T, code string, opts ...func(*Options)) (string, error) {
+	t.Helper()
+	o := Options{Code: code, Host: testHost}
+	for _, f := range opts {
+		f(&o)
+	}
+	res, err := Run(context.Background(), o)
+	return string(res), err
+}
+
+func TestHostCalls(t *testing.T) {
+	tests := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"echo", `return await discord.echo({a: 1})`, `{"a":1}`},
+		{"camel case", `return [await discord.getThing(), await cookieApi.makeCard()]`, `[{"thing":true},"card"]`},
+		{"then", `return (await discord.echo(1)) + await discord.echo(2).then((n) => n * 10)`, `21`},
+		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"Missing Permissions"`},
+		{"unknown", `try { await discord.nope() } catch (e) { return e.message }`, `"discord.nope isn't available"`},
+		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"the call failed"`},
+		{"not calls", `return [typeof discord.then, typeof discord.toJSON, typeof discord.toString, JSON.stringify(discord), String(await discord === discord)]`, `["undefined","undefined","undefined","{}","true"]`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := runHost(t, tt.code)
+			require.NoError(t, err)
+			assert.JSONEq(t, tt.want, res)
+		})
+	}
+
+	_, err := runHost(t, "await discord.fail()")
+	assert.EqualError(t, err, "Error: Missing Permissions")
+	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
+	assert.EqualError(t, err, "Error: the code made more than 20 calls")
+}
+
+func TestHostCallsDontUseTime(t *testing.T) {
+	// Waiting 60 ms is more than the 25 ms the code can run.
+	res, err := runHost(t, `return await discord.sleep(60)`)
+	require.NoError(t, err)
+	assert.Equal(t, "60", res)
+
+	// The calls of Promise.all run at the same time.
+	start := time.Now()
+	res, err = runHost(t, `return await Promise.all([discord.sleep(80), discord.sleep(80), discord.sleep(80)])`)
+	require.NoError(t, err)
+	assert.Equal(t, "[80,80,80]", res)
+	assert.Less(t, time.Since(start), 200*time.Millisecond)
+
+	// The time the code runs adds up across the calls it waits for.
+	_, err = runHost(t, `
+const spin = (ms) => { const end = Date.now() + ms; while (Date.now() < end) {} };
+for (let i = 0; i < 4; i++) { spin(10); await discord.echo(i) }`)
+	assert.Equal(t, errTimeout, err)
+
+	_, err = runHost(t, `await discord.sleep(1000)`, func(o *Options) { o.wallTime = 100 * time.Millisecond })
+	assert.Equal(t, errWallTime, err)
+}
+
+func TestUnawaitedHostCallsFinish(t *testing.T) {
+	var done atomic.Bool
+	host := map[string]HostFunc{"discord.send": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		time.Sleep(50 * time.Millisecond)
+		done.Store(true)
+		return nil, nil
+	}}
+	res, err := Run(context.Background(), Options{Code: `discord.send(); return 1`, Host: host})
+	require.NoError(t, err)
+	assert.Equal(t, "1", string(res))
+	assert.True(t, done.Load())
+}
+
+// Runs that wait for calls give up their slot, so more of them than there
+// are slots wait at the same time.
+func TestWaitingRunsGiveUpSlots(t *testing.T) {
+	n := 3*cap(slots) + 1
+	start := time.Now()
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+	for range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := runHost(t, `return await discord.sleep(150)`)
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		assert.NoError(t, err)
+	}
+	assert.Less(t, time.Since(start), 450*time.Millisecond)
 }

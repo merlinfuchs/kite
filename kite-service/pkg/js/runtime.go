@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 	// formatDate takes time zones by name, and the service image has no
 	// zoneinfo. Here, not in main, so the package works on its own.
 	_ "time/tzdata"
@@ -174,11 +176,9 @@ func (i *instance) output(ctx context.Context) ([]byte, error) {
 	return append([]byte(nil), out...), nil
 }
 
-// run returns the JSON of the script's return value, or the error message the
-// script threw for runError. An error means the instance is dead. The
-// time limit starts when the script does, so a slow start on a busy machine
-// doesn't count against it.
-func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout time.Duration) (out []byte, status runStatus, err error) {
+// run starts the code, and returns the JSON of what it returned, or for
+// runError the error it threw. An error means the instance is dead.
+func (i *instance) run(ctx context.Context, code []byte, input []byte, budget *time.Duration) (out []byte, status runStatus, err error) {
 	codePtr, err := i.write(ctx, code)
 	if err != nil {
 		return nil, 0, err
@@ -187,11 +187,39 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout t
 	if err != nil {
 		return nil, 0, err
 	}
+	return i.call(ctx, budget, "kite_run", uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+}
 
-	stateFrom(ctx).deadline = time.Now().Add(timeout)
-	runCtx, cancel := context.WithTimeout(ctx, timeout+killGrace)
+// resolve settles the promise of a call the code started with its result,
+// and continues the code. It returns like run.
+func (i *instance) resolve(ctx context.Context, r callResult, budget *time.Duration) (out []byte, status runStatus, err error) {
+	st := stateFrom(ctx)
+	n := int32(len(r.res))
+	st.pending = r.res
+	if r.err != nil {
+		msg := r.err.Error()
+		if msg == "" {
+			msg = "the call failed"
+		}
+		st.pending = []byte(msg)
+		n = -int32(len(msg))
+	}
+	return i.call(ctx, budget, "kite_resolve", uint64(uint32(r.id)), uint64(uint32(n)))
+}
+
+// call calls fn, which runs the code, within what's left of the time budget,
+// and takes what it used from it. Only the time code runs counts, not the
+// time it waits for calls.
+func (i *instance) call(ctx context.Context, budget *time.Duration, fn string, args ...uint64) (out []byte, status runStatus, err error) {
+	if *budget <= 0 {
+		return nil, 0, errTimeout
+	}
+	start := time.Now()
+	stateFrom(ctx).deadline = start.Add(*budget)
+	runCtx, cancel := context.WithTimeout(ctx, *budget+killGrace)
 	defer cancel()
-	res, err := i.mod.ExportedFunction("kite_run").Call(runCtx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+	res, err := i.mod.ExportedFunction(fn).Call(runCtx, args...)
+	*budget -= time.Since(start)
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
 			return nil, 0, errTimeout
@@ -222,6 +250,70 @@ type runState struct {
 	deadline time.Time
 	log      func(level LogLevel, message string)
 	pending  []byte
+
+	// The calls the code can start, see Options.Host, and the context they
+	// run in.
+	host    map[string]HostFunc
+	hostCtx context.Context
+	// started counts the calls the code started, inflight those not done.
+	started  int
+	inflight int
+	results  chan callResult
+}
+
+// callResult is what a call the code started returned.
+type callResult struct {
+	id  int32
+	res json.RawMessage
+	err error
+}
+
+// start starts the call name of the code in the background, and returns its
+// ID for kite_resolve.
+func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
+	fn, ok := st.host[name]
+	if !ok {
+		return 0, fmt.Errorf("%s isn't available", jsName(name))
+	}
+	if st.started >= MaxCalls {
+		return 0, fmt.Errorf("the code made more than %d calls", MaxCalls)
+	}
+	st.started++
+	st.inflight++
+	id := int32(st.started)
+	go func() {
+		res, err := runHostFunc(st.hostCtx, fn, arg)
+		st.results <- callResult{id: id, res: res, err: err}
+	}()
+	return id, nil
+}
+
+func runHostFunc(ctx context.Context, fn HostFunc, arg json.RawMessage) (res json.RawMessage, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("the call failed")
+		}
+	}()
+	return fn(ctx, arg)
+}
+
+// jsName is the name scripts call name by, like discord.createMessage for
+// discord.create_message.
+func jsName(name string) string {
+	var b strings.Builder
+	upper := false
+	for _, r := range name {
+		switch {
+		case r == '_':
+			upper = true
+		case upper:
+			b.WriteRune(unicode.ToUpper(r))
+			upper = false
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // logLevels are the levels kite.c logs with, by its number for them.
@@ -275,6 +367,21 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 			st.pending = nil
 		}
 	}).Export("take").
+		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, namePtr, nameLen, argPtr, argLen uint32) int32 {
+		st := stateFrom(ctx)
+		if st == nil {
+			return 0
+		}
+		name, _ := m.Memory().Read(namePtr, nameLen)
+		arg, _ := m.Memory().Read(argPtr, argLen)
+		// Copied, as the call runs after the memory changed.
+		id, err := st.start(string(name), append(json.RawMessage(nil), arg...))
+		if err != nil {
+			st.pending = []byte(err.Error())
+			return -int32(len(st.pending))
+		}
+		return id
+	}).Export("start").
 		NewFunctionBuilder().WithFunc(func() float64 { return rand.Float64() }).Export("random").
 		Instantiate(ctx)
 	if err != nil {
