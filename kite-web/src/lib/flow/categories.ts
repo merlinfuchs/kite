@@ -67,7 +67,23 @@ const sections: Record<
       contextTypes: null,
     },
     {
-      title: "Stored variables",
+      title: "Stored Variables",
+      contextTypes: null,
+    },
+    {
+      title: "Tables",
+      contextTypes: null,
+    },
+    {
+      title: "Roblox",
+      contextTypes: null,
+    },
+    {
+      title: "Cookie API",
+      contextTypes: null,
+    },
+    {
+      title: "ER:LC",
       contextTypes: null,
     },
     {

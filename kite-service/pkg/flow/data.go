@@ -215,6 +215,15 @@ const (
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
+	FlowNodeTypeActionTableInsert           FlowNodeType = "action_table_insert"
+	FlowNodeTypeActionTableGet              FlowNodeType = "action_table_get"
+	FlowNodeTypeActionTableFind             FlowNodeType = "action_table_find"
+	FlowNodeTypeActionTableUpdate           FlowNodeType = "action_table_update"
+	FlowNodeTypeActionTableDelete           FlowNodeType = "action_table_delete"
+	FlowNodeTypeActionTableColumns          FlowNodeType = "action_table_columns"
+	FlowNodeTypeActionTableColumnAdd        FlowNodeType = "action_table_column_add"
+	FlowNodeTypeActionTableColumnUpdate     FlowNodeType = "action_table_column_update"
+	FlowNodeTypeActionTableColumnDelete     FlowNodeType = "action_table_column_delete"
 	FlowNodeTypeActionVariableList          FlowNodeType = "action_variable_list"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
@@ -389,10 +398,19 @@ type FlowNodeData struct {
 	RobloxLookupMode RobloxLookupType `json:"roblox_lookup_mode,omitempty"`
 
 	// Variable Set, Delete
-	VariableID        string                     `json:"variable_id,omitempty"`
-	VariableScope     string                     `json:"variable_scope,omitempty"`
-	VariableValue     string                     `json:"variable_value,omitempty"`
-	VariableOperation provider.VariableOperation `json:"variable_operation,omitempty"`
+	VariableID         string                     `json:"variable_id,omitempty"`
+	VariableScope      string                     `json:"variable_scope,omitempty"`
+	VariableValue      string                     `json:"variable_value,omitempty"`
+	VariableOperation  provider.VariableOperation `json:"variable_operation,omitempty"`
+	TableID            string                     `json:"table_id,omitempty"`
+	TableRowID         string                     `json:"table_row_id,omitempty"`
+	TableData          string                     `json:"table_data,omitempty"`
+	TableFilters       string                     `json:"table_filters,omitempty"`
+	TableLimit         string                     `json:"table_limit,omitempty"`
+	TableColumnID      string                     `json:"table_column_id,omitempty"`
+	TableColumnName    string                     `json:"table_column_name,omitempty"`
+	TableColumnType    string                     `json:"table_column_type,omitempty"`
+	TableColumnOptions string                     `json:"table_column_options,omitempty"`
 
 	// Variable List
 	VariableSort        provider.VariableListSort `json:"variable_sort,omitempty"`
