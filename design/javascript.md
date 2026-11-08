@@ -111,3 +111,22 @@ Flows could be compiled to JavaScript and run like modules, so there's one way t
 Speed isn't the reason. 967k runs a day at 0.5 ms each would be about 8 minutes of CPU a day on kite.onl's server.
 
 What's shared is the operations. A request block is a preset of the operation in its `run.operation`, so a flow can be turned into a module by turning each block into a call of its operation and each button output into a handler. Custom blocks need that mapping written once each. The other way only works for code that is a list of operations, and isn't a goal.
+
+## One interface for flows, modules and plugins
+
+Flows, modules and plugins can all sit behind one interface in the engine. Each of them declares what it handles and handles it:
+
+- A manifest with the commands, event listeners and their filters, schedules and webhooks it handles, and the settings it declares.
+- A method that gets a trigger, like a command, an event, a schedule or a click on a button with its saved data, and runs it within the app's limits, credits and logs.
+
+A flow is a unit with one trigger, its entry block. A module has as many as it declares. Plugins already work this way: `pkg/plugin` has `Commands()`, `Events()` and `Config()`, and an instance has `HandleCommand`, `HandleEvent`, `HandleComponent` and `HandleModal`. Counting and starboard are Go behind it. The interface for modules would grow out of it, with flows, modules and the plugins that are left as its implementations.
+
+The engine routes events by the manifests and doesn't care what's behind them. The commands Discord gets and the intents an app needs are computed from all manifests together, where commands, event listeners and plugins each have their own path today. A resume record holds either a block ID and the state of a flow, or the name of a handler and its saved data, so one table and one dispatcher serve both.
+
+Things to get right:
+
+- Plan limits count what's in the manifests, not units. A module with 5 commands counts as 5 commands, or modules get around the 15 commands of the free plan.
+- The Commands and Event listeners pages show those of modules too, marked as coming from their module and only editable there. Otherwise nobody sees what their bot does, and names that clash with flows go unnoticed.
+- A module is one more kind of item in a template, as an installed template already groups commands, event listeners and messages like a module does. That keeps the Marketplace working for code.
+- Flows stay a row per command or event listener. A module is one row with its code and the manifest Go takes from it on deploy, and routing is built from both.
+
