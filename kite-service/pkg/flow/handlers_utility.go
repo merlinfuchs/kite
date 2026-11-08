@@ -175,13 +175,8 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 // use. Each costs the credits of its policy. The calls run at the same time,
 // so they take turns with ctx.
 type javaScriptHost struct {
-	ctx        *FlowContext
-	mu         sync.Mutex
-	creditsErr error
-}
-
-func newJavaScriptHost(ctx *FlowContext) *javaScriptHost {
-	return &javaScriptHost{ctx: ctx}
+	ctx *FlowContext
+	mu  sync.Mutex
 }
 
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
@@ -195,9 +190,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 		h.mu.Lock()
 		err := h.ctx.checkIntegration(op.Integration)
 		if err == nil {
-			if err = h.ctx.increaseCredits(op.Policy.Credits); err != nil {
-				h.creditsErr = err
-			}
+			err = h.ctx.increaseCredits(op.Policy.Credits)
 		}
 		// A copy that's canceled with the call, which only reads ctx.
 		c := *h.ctx
@@ -241,7 +234,7 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
-	host := newJavaScriptHost(ctx)
+	host := &javaScriptHost{ctx: ctx}
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,
@@ -256,11 +249,6 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	})
 	for _, l := range logs {
 		ctx.Log.CreateLogEntry(ctx, provider.LogLevel(l.level), strings.Join(l.lines, "\n"))
-	}
-	// Even if the code caught it, so running out of credits stops the flow
-	// like it does for blocks.
-	if host.creditsErr != nil {
-		return host.creditsErr
 	}
 	if runErr != nil {
 		return runErr

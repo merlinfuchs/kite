@@ -2,7 +2,6 @@ package flow
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -13,21 +12,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func executeJavaScript(t *testing.T, data JavaScriptData, env eval.Env, results ...map[string]thing.Thing) (thing.Thing, []string, error) {
+// javaScriptTestContext is the context of a Run JavaScript block in tests.
+func javaScriptTestContext(t *testing.T, providers FlowProviders, maxCredits int, env eval.Env) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
-	logs := &recordingLogProvider{}
 	c := NewContext(
 		ctx,
 		5*time.Second,
 		&TestContextData{},
-		FlowProviders{Log: logs},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		providers,
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: maxCredits},
 		eval.NewContext(env),
 		nil,
 	)
 	t.Cleanup(c.Cancel)
+	return c
+}
+
+func executeJavaScript(t *testing.T, data JavaScriptData, env eval.Env, results ...map[string]thing.Thing) (thing.Thing, []string, error) {
+	logs := &recordingLogProvider{}
+	c := javaScriptTestContext(t, FlowProviders{Log: logs}, 1000, env)
 
 	for _, r := range results {
 		for id, result := range r {
@@ -89,11 +94,10 @@ input.channel.name, input.role.name, input.guild.name, input.message.content, in
 		},
 	}, eval.Env{"user": eval.NewUserEnv(user)}, results)
 	require.NoError(t, err)
-	got, err := json.Marshal(res.JSONValue())
-	require.NoError(t, err)
+	got := toJSON(t, res.JSONValue())
 	assert.JSONEq(t, `["Kite", "<@123456789012345678>", "123456789012345678", "undefined",
 "Nick", ["42"], "member", "kite", 200, [1], "{\"a\": [1]}",
-"general", "Mod", "Kite", "hi", "kite"]`, string(got))
+"general", "Mod", "Kite", "hi", "kite"]`, got)
 }
 
 func TestJavaScriptRunPlaceholdersInCodeAreText(t *testing.T) {

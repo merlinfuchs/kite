@@ -120,22 +120,17 @@ func (ctx *FlowContext) runOperation(op operation, arg json.RawMessage) (json.Ra
 		}
 	}
 
-	var filled map[string]string
+	// Operations of the interaction, which need its ID and token, are writes,
+	// which code can't call yet.
 	if op.Interaction {
-		interaction := ctx.Data.Interaction()
-		if interaction == nil {
-			return nil, fmt.Errorf("it only works in flows started by an interaction, like a command or button click")
-		}
-		filled = interactionPathParams(interaction)
+		return nil, fmt.Errorf("it isn't available")
 	}
 
 	take := func(list []apiParam) map[string]thing.Thing {
 		res := make(map[string]thing.Thing, len(list))
 		for _, p := range list {
 			if v, ok := params[p.Name]; ok {
-				if _, isFilled := filled[p.Name]; !isFilled {
-					res[p.Name] = jsonParamThing(v)
-				}
+				res[p.Name] = jsonParamThing(v)
 				delete(params, p.Name)
 			}
 		}
@@ -143,7 +138,7 @@ func (ctx *FlowContext) runOperation(op operation, arg json.RawMessage) (json.Ra
 	}
 	pathParams := take(op.PathParams)
 	query := take(op.QueryParams)
-	path, err := operationPath(op, pathParams, query, filled)
+	path, err := operationPath(op, pathParams, query, nil)
 	if err != nil {
 		return nil, err
 	}

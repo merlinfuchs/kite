@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -32,24 +33,11 @@ func (p *operationsTestProvider) APIRequest(ctx context.Context, req provider.Di
 }
 
 func runJavaScriptOperations(t *testing.T, code string, p *operationsTestProvider, maxCredits int) (*FlowContext, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	t.Cleanup(cancel)
-
-	c := NewContext(
-		ctx,
-		5*time.Second,
-		&TestContextData{},
-		FlowProviders{
-			Discord:     p,
-			Log:         &provider.MockLogProvider{},
-			Integration: &integrationTestProvider{},
-		},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: maxCredits},
-		eval.NewContext(eval.Env{}),
-		nil,
-	)
-	t.Cleanup(c.Cancel)
-
+	c := javaScriptTestContext(t, FlowProviders{
+		Discord:     p,
+		Log:         &provider.MockLogProvider{},
+		Integration: &integrationTestProvider{},
+	}, maxCredits, eval.Env{})
 	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: code}}}
 	return c, node.Execute(c)
 }
@@ -106,14 +94,17 @@ func TestJavaScriptRunOperationCredits(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 13, c.CreditsUsed())
 
-	// Running out of credits fails the block even if the code catches it.
+	// A call over the credit limit fails, like a block, and the code can
+	// catch that like an Error handler block can.
 	p := &operationsTestProvider{}
-	_, err = runJavaScriptOperations(t, `
+	c, err = runJavaScriptOperations(t, `
+const errors = []
 for (let i = 0; i < 2; i++) {
-  try { await discord.getPaidThing() } catch {}
+  try { await discord.getPaidThing() } catch (e) { errors.push(e.message) }
 }
-return 1`, p, 15)
-	assert.ErrorContains(t, err, "credits limit exceeded")
+return errors`, p, 15)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["discord.getPaidThing: credits limit exceeded: 15"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.Len(t, p.paths, 1)
 }
 
@@ -121,4 +112,19 @@ func toJSON(t *testing.T, v any) string {
 	b, err := json.Marshal(v)
 	require.NoError(t, err)
 	return string(b)
+}
+
+// Code calls the operations of an integration through a namespace that
+// pkg/js/prelude.js defines, named after it in camel case.
+func TestEveryIntegrationHasANamespace(t *testing.T) {
+	for integration := range operations {
+		namespace := integration
+		for strings.Contains(namespace, "_") {
+			i := strings.Index(namespace, "_")
+			namespace = namespace[:i] + strings.ToUpper(namespace[i+1:i+2]) + namespace[i+2:]
+		}
+		c, err := runJavaScriptOperations(t, "return typeof "+namespace, &operationsTestProvider{}, 1000)
+		require.NoError(t, err)
+		assert.Equal(t, "object", c.GetNodeResult("js_1").String(), integration)
+	}
 }
