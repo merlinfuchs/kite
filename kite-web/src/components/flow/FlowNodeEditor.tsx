@@ -2964,7 +2964,7 @@ function RobloxGroupIdInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="roblox_group_id"
-      title="Roblox Group ID"
+      title="Roblox group ID"
       description="The number in your group's link, like 123456 in roblox.com/communities/123456/name. The API key's owner needs permission to manage it."
       value={data.roblox_group_id || ""}
       updateValue={(v) => updateData({ roblox_group_id: v || undefined })}

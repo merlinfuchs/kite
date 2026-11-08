@@ -155,9 +155,23 @@ type robloxGroupRole struct {
 
 type robloxGroupMembership struct {
 	Path string `json:"path"`
+	User string `json:"user"`
 	// The highest-ranked role, which isn't always in Roles.
 	Role  string   `json:"role"`
 	Roles []string `json:"roles"`
+}
+
+// rolePaths returns the paths of all roles of the member.
+func (m robloxGroupMembership) rolePaths() []string {
+	if m.Role != "" && !slices.Contains(m.Roles, m.Role) {
+		return append(m.Roles, m.Role)
+	}
+	return m.Roles
+}
+
+// robloxUserPath is how Open Cloud refers to a user in group lists.
+func robloxUserPath(userID int64) string {
+	return fmt.Sprintf("users/%d", userID)
 }
 
 // maxRobloxRolePages bounds the requests for a group's roles, 20 a page.
@@ -179,7 +193,7 @@ func evalRobloxGroup(ctx *FlowContext, n *CompiledFlowNode) (int64, error) {
 
 // robloxUserFilter limits a list of Open Cloud to the user.
 func robloxUserFilter(userID int64) string {
-	return "maxPageSize=1&filter=" + url.QueryEscape(fmt.Sprintf("user == 'users/%d'", userID))
+	return "maxPageSize=1&filter=" + url.QueryEscape(fmt.Sprintf("user == '%s'", robloxUserPath(userID)))
 }
 
 // robloxGroupMember returns the membership of the user in the group, or nil
@@ -194,9 +208,12 @@ func robloxGroupMember(ctx *FlowContext, groupID int64, userID int64) (*robloxGr
 	}
 
 	member := res.GroupMemberships[0]
-	if member.Role != "" && !slices.Contains(member.Roles, member.Role) {
-		member.Roles = append(member.Roles, member.Role)
+	// Without the filter, the list would start with another member, whose
+	// roles would then be changed.
+	if member.User != robloxUserPath(userID) {
+		return nil, fmt.Errorf("Roblox returned the membership of %s instead of %s", member.User, robloxUserPath(userID))
 	}
+	member.Roles = member.rolePaths()
 	return &member, nil
 }
 
@@ -226,19 +243,20 @@ func robloxGroupRoles(ctx *FlowContext, groupID int64) ([]robloxGroupRole, error
 }
 
 // findRobloxGroupRole finds a role by its name, then by its rank, then by
-// its ID. Ranks go up to 255, IDs are bigger.
+// its ID. Ranks go up to 255, IDs are bigger. The guest role, rank 0, is for
+// users outside the group, so members can't be given it.
 func findRobloxGroupRole(roles []robloxGroupRole, value string) (robloxGroupRole, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return robloxGroupRole{}, errors.New("role is empty")
 	}
 	for _, role := range roles {
-		if strings.EqualFold(role.DisplayName, value) {
+		if role.Rank > 0 && strings.EqualFold(role.DisplayName, value) {
 			return role, nil
 		}
 	}
 	for _, role := range roles {
-		if strconv.Itoa(role.Rank) == value || role.ID == value {
+		if role.Rank > 0 && (strconv.Itoa(role.Rank) == value || role.ID == value) {
 			return role, nil
 		}
 	}
@@ -341,29 +359,35 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 		return err
 	}
 
+	// The roles the mode should leave, unless the request returns the
+	// membership, whose roles are then what Roblox actually did.
 	held := member.Roles
+	var updated robloxGroupMembership
 	switch n.Data.RobloxGroupRoleMode {
 	case RobloxGroupRoleModeAdd:
 		if !slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, nil)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, &updated)
 			held = append(held, role.Path)
 		}
 	case RobloxGroupRoleModeRemove:
 		if slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, nil)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, &updated)
 			held = slices.DeleteFunc(held, func(p string) bool { return p == role.Path })
 		}
 	case RobloxGroupRoleModeSet, "":
 		// Roblox deprecated this for assigning and unassigning roles one by
 		// one, but it's the only request that replaces all of them, including
 		// the hidden base role every member has.
-		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, nil)
+		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, &updated)
 		held = []string{role.Path}
 	default:
 		return fmt.Errorf("unknown mode %q", n.Data.RobloxGroupRoleMode)
 	}
 	if err != nil {
 		return err
+	}
+	if updated.Path != "" {
+		held = updated.rolePaths()
 	}
 
 	ctx.StoreNodeResult(n, robloxGroupMemberResult(userID, held, roles))
@@ -376,13 +400,20 @@ func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, e
 	var res struct {
 		GroupJoinRequests []struct {
 			Path string `json:"path"`
+			User string `json:"user"`
 		} `json:"groupJoinRequests"`
 	}
 	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/join-requests?%s", groupID, robloxUserFilter(userID)), nil, &res)
 	if err != nil || len(res.GroupJoinRequests) == 0 {
 		return "", err
 	}
-	return res.GroupJoinRequests[0].Path, nil
+	// Without the filter, the list would start with another user's request,
+	// who would then be let in.
+	request := res.GroupJoinRequests[0]
+	if request.User != robloxUserPath(userID) {
+		return "", fmt.Errorf("Roblox returned the join request of %s instead of %s", request.User, robloxUserPath(userID))
+	}
+	return request.Path, nil
 }
 
 func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -399,12 +430,12 @@ func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext
 		return err
 	}
 
-	var path string
-	if userID != 0 {
-		path, err = robloxJoinRequest(ctx, groupID, userID)
-		if err != nil {
-			return err
-		}
+	if userID == 0 {
+		return errors.New("no Roblox user has that username")
+	}
+	path, err := robloxJoinRequest(ctx, groupID, userID)
+	if err != nil {
+		return err
 	}
 	if path != "" {
 		err := robloxOpenCloudRequest(ctx, http.MethodPost, path+":"+string(action), map[string]string{}, nil)
