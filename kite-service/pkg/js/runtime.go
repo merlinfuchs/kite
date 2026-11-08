@@ -14,6 +14,7 @@ import (
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
+	"github.com/tetratelabs/wazero/experimental"
 )
 
 // kite.wasm is QuickJS-NG with the glue in wasm/kite.c, built by
@@ -97,7 +98,11 @@ func newEngine(ctx context.Context, cfg engineConfig) (*engine, error) {
 }
 
 func (e *engine) newInstance(ctx context.Context) (*instance, error) {
-	mod, err := e.rt.InstantiateModule(ctx, e.compiled, wazero.NewModuleConfig().WithName("").WithStartFunctions())
+	// The memory starts with the capacity of the snapshot, so growing it to
+	// the snapshot's size doesn't copy it. Without that a run took 3 times as
+	// long on Linux, see design/javascript.md.
+	allocCtx := experimental.WithMemoryAllocator(ctx, snapshotAllocator{capacity: uint64(len(e.snapshot))})
+	mod, err := e.rt.InstantiateModule(allocCtx, e.compiled, wazero.NewModuleConfig().WithName("").WithStartFunctions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate QuickJS: %w", err)
 	}
@@ -111,6 +116,32 @@ func (e *engine) newInstance(ctx context.Context) (*instance, error) {
 	mem.Write(0, e.snapshot)
 	return &instance{mod: mod}, nil
 }
+
+// snapshotAllocator allocates the memory of an instance with at least
+// capacity bytes of room.
+type snapshotAllocator struct {
+	capacity uint64
+}
+
+func (a snapshotAllocator) Allocate(capacity, maxBytes uint64) experimental.LinearMemory {
+	return &sliceMemory{buf: make([]byte, 0, min(maxBytes, max(capacity, a.capacity)))}
+}
+
+// sliceMemory is the memory of an instance, like wazero's own but with the
+// capacity of the allocator.
+type sliceMemory struct {
+	buf []byte
+}
+
+func (m *sliceMemory) Reallocate(size uint64) []byte {
+	if size > uint64(cap(m.buf)) {
+		m.buf = append(m.buf[:cap(m.buf)], make([]byte, size-uint64(cap(m.buf)))...)
+	}
+	m.buf = m.buf[:size]
+	return m.buf
+}
+
+func (m *sliceMemory) Free() {}
 
 type instance struct {
 	mod api.Module

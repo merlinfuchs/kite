@@ -22,6 +22,12 @@ Scripts that fill every core make other goroutines 25 to 60 ms late. `pkg/js` ca
 
 Each run starts from a copy of the memory of an instance where QuickJS and the prelude are set up. That's valid because the module's only mutable global is the stack pointer, which is back at its start between calls. Starting from a copy takes about 0.15 ms, and a 2 KB string-processing script about 1.8 ms with the kill on, on an M4 Pro. Every run gets a fresh instance, so nothing a script changes carries over to the next.
 
+Each instance's memory is allocated with the capacity of the snapshot through wazero's experimental `MemoryAllocator`. By default wazero sizes it for the module's initial 18 pages, so growing it to the snapshot's 21 pages copied it again. On Linux that took a trivial run from about 265 to about 200 µs and from 2.8 to 1.5 MB of allocations.
+
+Copy-on-write memory was measured against that and isn't worth it yet. It maps the snapshot from a file privately for each instance through the same allocator, so the OS only copies pages a script writes. Creating the instance still writes the module's data segments, so those 113 KB have to be copied back from the snapshot. In Docker on Linux it ran a trivial script in 175 µs against 190 µs, and the same in parallel, while allocating 133 KB instead of 1.5 MB. Most of the remaining time is wazero creating the instance, not memory.
+
+Reusing an instance and copying the snapshot back into it took 65 µs, the biggest win left for modules. An instance whose script grew its memory has to be thrown away, as Wasm memory can't shrink.
+
 QuickJS seeds `Math.random` from the clock when a context is created, so instances copied from one snapshot would share the seed. `Math.random` calls Go instead.
 
 There's no `Intl`. `prelude.js` adds `formatDate` with time zones from Go, and makes `Number.prototype.toLocaleString` group digits like en-US.
