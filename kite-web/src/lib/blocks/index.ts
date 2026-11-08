@@ -65,6 +65,7 @@ import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
 import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
+import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
@@ -106,6 +107,7 @@ import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
 import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
 import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
+import { discordSoundboardSoundPlay } from "./discordSoundboardSoundPlay";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -177,8 +179,10 @@ export const blockDefinitions: BlockDefinition[] = [
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordMemberVoiceEdit,
   discordVoiceAudioPlay,
   discordVoiceAudioStop,
+  discordSoundboardSoundPlay,
   discordStatusSet,
   discordServerProfileEdit,
   discordServerLeave,

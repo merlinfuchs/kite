@@ -1709,6 +1709,86 @@
       "result": null
     },
     {
+      "type": "action_member_voice_edit",
+      "title": "Edit voice state",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_guild_member",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "partial": true
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "user_target",
+          "in": "path",
+          "target": "user_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_mute",
+          "in": "body",
+          "target": "mute",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_deaf",
+          "in": "body",
+          "target": "deaf",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "channel_target",
+          "in": "body",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_voice_audio_play",
       "title": "Play audio",
       "credits": 1,
@@ -1734,6 +1814,61 @@
         "kind": "custom"
       },
       "fields": [],
+      "result": null
+    },
+    {
+      "type": "action_soundboard_sound_play",
+      "title": "Play soundboard sound",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "send_soundboard_sound",
+        "method": "POST",
+        "path": "/channels/{channel_id}/send-soundboard-sound"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "sound_id",
+          "in": "body",
+          "target": "sound_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "source_guild_id",
+          "in": "body",
+          "target": "source_guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
       "result": null
     },
     {

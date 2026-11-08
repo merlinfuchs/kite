@@ -16,6 +16,10 @@ export const capabilityGroups = [
     ],
   },
   {
+    label: "Server-mutes, deafens or moves members in voice",
+    types: ["action_member_voice_edit"],
+  },
+  {
     label: "Deletes messages, reactions, channels or roles",
     types: [
       "action_message_delete",
@@ -112,6 +116,7 @@ export const harmlessTypes = [
   "action_response_edit",
   "action_roblox_user_get",
   "action_role_get",
+  "action_soundboard_sound_play",
   "action_thread_create",
   "action_thread_member_add",
   "action_thread_member_remove",
