@@ -4,9 +4,9 @@ import { NodeData } from "@/lib/flow/dataSchema";
 import { getAvailablePlaceholders } from "@/lib/flow/placeholders";
 import { useAppSecrets } from "@/lib/hooks/api";
 import { useSyncedParameters } from "@/lib/flow/parametersStore";
-import { Node, useEdges, useNodes } from "@xyflow/react";
+import { Node, useStoreApi } from "@xyflow/react";
 import { VariableIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import PlaceholderExplorer from "../common/PlaceholderExplorer";
 
 export default function FlowPlaceholderExplorer({
@@ -23,22 +23,15 @@ export default function FlowPlaceholderExplorer({
   // secrets are only offered for settings that can use them.
   field?: string;
 }) {
-  const nodes = useNodes<Node<NodeData>>();
-  const edges = useEdges();
+  const [open, setOpen] = useState(false);
+  const store = useStoreApi();
   const contextType = useFlowContext((c) => c.type);
-  const selected = nodes.find((n) => n.selected);
-
-  const isResponseTarget =
-    field === "message_target" &&
-    !!selected?.type?.startsWith("action_response_");
-  const allowsSecrets = !!getBlockDefinition(selected?.type)?.fields?.find(
-    (f) => f.name === field?.split(".")[0]
-  )?.secrets;
   const secrets = useAppSecrets();
   const parameters = useSyncedParameters();
 
-  // TODO: only compute when explorer is open
   const placeholders = useMemo(() => {
+    if (!open) return [];
+
     const parameterGroup = parameters.length
       ? [
           {
@@ -52,10 +45,20 @@ export default function FlowPlaceholderExplorer({
       : [];
     if (onlyParameters) return parameterGroup;
 
+    const { nodes, edges } = store.getState();
+    const typedNodes = nodes as Node<NodeData>[];
+    const selected = typedNodes.find((n) => n.selected);
+    const isResponseTarget =
+      field === "message_target" &&
+      !!selected?.type?.startsWith("action_response_");
+    const allowsSecrets = !!getBlockDefinition(selected?.type)?.fields?.find(
+      (f) => f.name === field?.split(".")[0]
+    )?.secrets;
+
     const res = [
       ...getAvailablePlaceholders(
         selected?.id,
-        nodes,
+        typedNodes,
         edges,
         contextType,
         isResponseTarget
@@ -78,24 +81,15 @@ export default function FlowPlaceholderExplorer({
         })),
       },
     ];
-  }, [
-    selected?.id,
-    nodes,
-    edges,
-    contextType,
-    isResponseTarget,
-    allowsSecrets,
-    secrets,
-    parameters,
-    onlyParameters,
-  ]);
+  }, [open, store, field, contextType, secrets, parameters, onlyParameters]);
 
-  if (onlyParameters && !placeholders.length) return null;
+  if (onlyParameters && !parameters.length) return null;
 
   return (
     <div className="absolute top-1.5 right-1.5 z-20">
       <PlaceholderExplorer
         onSelect={onSelect}
+        onOpenChange={setOpen}
         placeholders={placeholders}
         hideBrackets={hideBrackets}
       >
