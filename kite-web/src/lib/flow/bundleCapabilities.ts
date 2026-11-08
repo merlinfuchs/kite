@@ -16,6 +16,10 @@ export const capabilityGroups = [
     ],
   },
   {
+    label: "Server-mutes, deafens or moves members in voice",
+    types: ["action_member_voice_edit"],
+  },
+  {
     label: "Deletes messages, reactions, channels or roles",
     types: [
       "action_message_delete",
