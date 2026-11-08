@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -30,7 +31,11 @@ func main() {
 	prefix := ""
 	if key := os.Getenv("OPENROUTER_API_KEY"); key != "" {
 		opts = []option.RequestOption{option.WithAPIKey(key), option.WithBaseURL("https://openrouter.ai/api/v1")}
-		prefix = "openai/"
+		// Models of other providers are given with theirs, like
+		// anthropic/claude-haiku-5.5.
+		if !strings.Contains(*modelName, "/") {
+			prefix = "openai/"
+		}
 	}
 	client := openai.NewClient(opts...)
 

@@ -30,6 +30,7 @@ const maxRepairs = 2;
 // USD per million input, cached input and output tokens.
 const prices: Record<string, [number, number, number]> = {
   "gpt-5-mini": [0.25, 0.025, 2],
+  "gpt-6-luna": [0.1, 0.01, 0.5],
 };
 
 interface EvalInfo {
