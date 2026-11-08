@@ -34,4 +34,4 @@ The `Emojis` page lists your app's custom emojis. See [Emojis](../reference/emoj
 
 ## Installing Kite
 
-You can install the Kite dashboard like an app, so it opens in its own window and starts on your list of apps. In Chrome or Edge on a computer, click the install icon at the end of the address bar. In Chrome on Android, open the menu and tap `Install app`.
+You can install the Kite dashboard like an app, so it opens in its own window and starts on your list of apps. In Chrome or Edge on a computer, click the install icon at the end of the address bar. In Chrome on Android, open the menu and tap `Install app`. In Safari on iPhone or iPad, tap the share button and then `Add to Home Screen`.
