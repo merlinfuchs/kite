@@ -81,7 +81,7 @@ export function serializeFlow(
 // Drops empty settings, which the editor leaves behind when fields are
 // cleared, so they don't cost tokens. Arrays are kept as they are, as edits
 // replace them as a whole.
-function compact(value: unknown): unknown {
+export function compact(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.length > 0 ? value : undefined;
   }
