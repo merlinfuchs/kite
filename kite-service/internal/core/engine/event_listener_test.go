@@ -284,3 +284,19 @@ func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
 		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
 	}
 }
+
+func TestBoostRemoveEventData(t *testing.T) {
+	l := &EventListener{}
+	event := &guildevent.BoostRemove{GuildMemberUpdateEvent: gateway.GuildMemberUpdateEvent{
+		GuildID: 2,
+		User:    discord.User{ID: 1},
+	}}
+	if !l.shouldHandleEvent(event, 0) {
+		t.Error("ignored the derived boost remove")
+	}
+
+	data := &EventData{event: event}
+	if data.UserID() != 1 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 1 and 2", data.UserID(), data.GuildID())
+	}
+}

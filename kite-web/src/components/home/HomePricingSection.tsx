@@ -79,7 +79,7 @@ export default function HomePricingSection({
                 className="w-full"
               >
                 <Link href="/apps">
-                  {plan.price === 0 ? "Start for Free" : `Get ${plan.title}`}
+                  {plan.price === 0 ? "Start for free" : `Get ${plan.title}`}
                 </Link>
               </Button>
             )}

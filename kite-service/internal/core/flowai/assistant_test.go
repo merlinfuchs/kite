@@ -184,6 +184,22 @@ func TestToEditUsesMisnamedFields(t *testing.T) {
 			map[string]any{"op": "connect", "source": "a", "target": "b", "after": "a"},
 		},
 		{
+			outputEdit{Op: "disconnect", ID: ptr("a"), Target: ptr("b")},
+			map[string]any{"op": "disconnect", "source": "a", "target": "b", "id": "a"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("b"), Source: ptr("a")},
+			map[string]any{"op": "connect", "source": "a", "target": "b", "id": "b"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("b"), Target: ptr("b")},
+			map[string]any{"op": "connect", "target": "b", "id": "b"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("a"), Handle: ptr("yes")},
+			map[string]any{"op": "connect", "id": "a", "handle": "yes"},
+		},
+		{
 			outputEdit{Op: "remove_node", Ref: ptr("a")},
 			map[string]any{"op": "remove_node", "id": "a", "ref": "a"},
 		},
@@ -219,6 +235,27 @@ func TestCheckVariables(t *testing.T) {
 
 	assert.Equal(t, "v1", res.Edits[0]["data"].(map[string]any)["variable_id"])
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
+}
+
+func TestParseOutputWithCode(t *testing.T) {
+	res, err := parseOutput(`{"message": "Done.", "code": "  entry_command({}, [])\n", "build_prompt": "Do it", "fields": [], "template_id": null}`)
+	require.NoError(t, err)
+	assert.Equal(t, "entry_command({}, [])", res.Code)
+	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestCheckVariablesInCode(t *testing.T) {
+	res := &Response{Code: `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_id: 'made_up', variable_scope: "x" })`}
+	res.checkVariables([]*model.Variable{{ID: "v1"}})
+
+	assert.Equal(t, `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_scope: "x" })`, res.Code)
+}
+
+func TestOutputSchemaForCode(t *testing.T) {
+	properties := outputSchemaFor(true)["properties"].(map[string]any)
+	assert.Contains(t, properties, "code")
+	assert.NotContains(t, properties, "edits")
+	assert.Equal(t, outputSchema, outputSchemaFor(false))
 }
 
 func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
@@ -313,4 +350,15 @@ func TestRespondTimesOut(t *testing.T) {
 	assert.Contains(t, resErr.Message, "took too long")
 	// It counts, as the model may have worked on it.
 	assert.NotNil(t, res)
+}
+
+func TestOutlineEdits(t *testing.T) {
+	assert.Equal(t,
+		"add_node ref=$ban type=action_member_ban after=$check handle=yes data; connect source=$check target=$log; update_node error",
+		outlineEdits([]map[string]any{
+			{"op": "add_node", "ref": "$ban", "type": "action_member_ban", "after": "$check", "handle": "yes", "data": map[string]any{"reason": "spam"}},
+			{"op": "connect", "source": "$check", "target": "$log"},
+			{"op": "update_node", "error": "data_json isn't a JSON object"},
+		}),
+	)
 }

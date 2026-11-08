@@ -6,14 +6,14 @@ import { banFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
-  title: "AI Discord Bot Maker: Describe Your Bot, AI Builds It",
+  title: "AI Discord bot maker: describe your bot and AI builds it",
   description:
-    "Make a Discord bot by describing it. Kite's AI builds the commands in the editor, or connect Claude or ChatGPT to build the whole bot. Free hosting, no code.",
-  heading: "Describe Your Discord Bot, AI Builds It",
+    "Make a Discord bot by describing it. Flow AI, the AI assistant in Kite's editor, builds the commands, or connect Claude or ChatGPT to build the whole bot. Free hosting, no code.",
+  heading: "Describe your Discord bot and AI builds it",
   intro:
-    "Tell Kite's AI what a command should do and it adds the blocks for you. Claude and ChatGPT can build whole bots when you connect them to Kite. Whatever they build runs on Kite 24/7, and you can open every flow and change it yourself.",
+    "Tell Flow AI, the AI assistant in Kite's editor, what a command should do and it adds the blocks for you. Claude and ChatGPT can build whole bots when you connect them to Kite. Whatever they build runs on Kite 24/7, and you can open every flow and change it yourself.",
   secondaryAction: {
-    label: "Read the AI Guide",
+    label: "Read the AI guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
   },
   showcase: {
@@ -23,19 +23,19 @@ const content: LandingPageContent = {
   },
   sections: [
     {
-      heading: "Build With the AI You Already Use",
-      body: "Kite's own AI works in the editor without any setup. Claude, ChatGPT and coding agents like Claude Code, Codex and Cursor connect through Kite's MCP server and use their own model.",
+      heading: "Build with the AI you already use",
+      body: "Flow AI works in the editor without any setup. Claude, ChatGPT, and coding agents like Claude Code, Codex, and Cursor connect through Kite's MCP server and use their own model.",
       points: [
         {
-          title: "Ask AI in the Editor",
+          title: "Kite's Flow AI in the editor",
           description:
-            "Open a command, click on Ask AI and describe what it should do. The AI adds and connects the blocks, and you check the changes before saving.",
+            "Open a command, click Ask AI, and describe what it should do. Flow AI adds and connects the blocks, and you check the changes before saving.",
           href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
         },
         {
           title: "Claude",
           description:
-            "Add Kite as a connector, even on Claude's free plan, and ask for commands, events and messages in a chat.",
+            "Add Kite as a connector, even on Claude's free plan, and ask for commands, events, and messages in a chat.",
           href: "/guides/make-a-discord-bot-with-claude",
         },
         {
@@ -47,7 +47,7 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "Kite Runs What the AI Builds",
+      heading: "Kite runs what the AI builds",
       body: "Many AI bot makers write code that you then have to host. Here the AI builds flows of blocks, and Kite runs them on its own servers.",
       points: [
         {
@@ -56,22 +56,22 @@ const content: LandingPageContent = {
             "Your bot runs on Kite's servers for free, with your own name and avatar. Nothing to deploy or keep online.",
         },
         {
-          title: "Checked Before Saving",
+          title: "Checked before saving",
           description:
             "Kite checks every flow the AI builds, like missing settings or blocks in the wrong place, before it goes live.",
         },
         {
-          title: "Change It Yourself",
+          title: "Change it yourself",
           description:
             "Open what the AI built in the editor and change a message or add a block, without reading code.",
         },
         {
-          title: "Undo Any Change",
+          title: "Undo any change",
           description:
             "Every change is kept in the history of the command, so you can restore an earlier version.",
         },
         {
-          title: "Fix Errors From the Logs",
+          title: "Fix errors from the logs",
           description:
             "When a command fails, the logs show which block failed and why. Claude and ChatGPT can read them and fix it.",
         },
@@ -79,24 +79,24 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "Want Your Bot to Use AI Too?",
+      heading: "Want your bot to use AI too?",
       body: "Your bot can use AI while it runs, too, like answering questions in your server.",
       points: [
         {
-          title: "AI Discord Bot",
+          title: "AI Discord bot",
           description:
             "Add an /ask command and replies when someone mentions the bot, with your own personality and no API key.",
           href: "/ai-discord-bot",
         },
         {
-          title: "AI Decisions",
+          title: "AI decisions",
           description:
             "Let AI decide what your bot does, like whether a message is spam or which team a question goes to, for 1 credit each.",
         },
         {
           title: "Templates",
           description:
-            "Start from verification, modmail or giveaways in the Marketplace and ask the AI to change them for your server.",
+            "Start from verification, modmail, or giveaways in the Marketplace and ask Flow AI to change them for your server.",
           href: "/marketplace",
         },
       ],
@@ -106,12 +106,12 @@ const content: LandingPageContent = {
     {
       question: "Can AI make a Discord bot for me?",
       answer:
-        "Yes. Describe what the bot should do and Kite's AI builds the command in the editor. Claude and ChatGPT can build whole bots with several commands and events when you connect them to Kite.",
+        "Yes. Describe what the bot should do and Flow AI builds the command in the editor. Claude and ChatGPT can build whole bots with several commands and events when you connect them to Kite.",
     },
     {
       question: "Is the AI Discord bot maker free?",
       answer:
-        "Yes. Kite hosts your bot for free. The free plan includes a few Ask AI prompts per bot each month, and connecting Claude or ChatGPT doesn't use them, because they use their own model.",
+        "Yes. Kite hosts your bot for free. The free plan includes 2 Flow AI prompts per bot each month, and connecting Claude or ChatGPT doesn't use them, because they use their own model.",
     },
     {
       question: "Do I need to know how to code?",
@@ -119,9 +119,9 @@ const content: LandingPageContent = {
         "No. The AI builds flows of blocks like Ban member or Send message, and you can read and change them in the editor without code.",
     },
     {
-      question: "What's the difference between Ask AI and Claude or ChatGPT?",
+      question: "What's the difference between Flow AI and Claude or ChatGPT?",
       answer:
-        "Ask AI changes the flow you have open in the editor. Claude and ChatGPT connect through Kite's MCP server and can create several commands, events and messages in one go, look at your logs and add templates.",
+        "Flow AI changes the flow you have open in the editor. Claude and ChatGPT connect through Kite's MCP server. They can create several commands, events, and messages in one go, look at your logs, and add templates.",
     },
     freeFaq,
   ],

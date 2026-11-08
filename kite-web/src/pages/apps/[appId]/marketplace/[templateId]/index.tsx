@@ -13,13 +13,13 @@ export default function AppTemplatePage() {
 
   return (
     <AppLayout
-      title={template ? `${template.name} Template` : "Template"}
+      title={template ? `${template.name} template` : "Template"}
       breadcrumbs={[
         { label: "Marketplace", href: "/apps/[appId]/marketplace" },
         {
           label:
             template?.name ??
-            (template === null ? "Unknown Template" : "Template"),
+            (template === null ? "Unknown template" : "Template"),
         },
       ]}
     >

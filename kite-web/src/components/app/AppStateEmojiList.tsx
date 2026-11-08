@@ -49,7 +49,7 @@ export const columns: ColumnDef<{ id: string; name: string; url: string }>[] = [
   },
   {
     accessorKey: "created_at",
-    header: "Created At",
+    header: "Created at",
     cell: ({ row }) => {
       const id = row.original?.id;
 
@@ -101,7 +101,7 @@ export default function AppStateEmojiList() {
         <Button variant="secondary" className="flex gap-2" asChild>
           <Link href={appEmojisUrl} target="_blank">
             <ExternalLinkIcon className="w-4 h-4" />
-            <div>Create Emoji</div>
+            <div>Create emoji</div>
           </Link>
         </Button>
       </div>

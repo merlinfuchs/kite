@@ -2,10 +2,9 @@ import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode, useContext } from "react";
 import { errorColor, primaryColor, useNodeValues } from "@/lib/flow/nodes";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
-import { useAppId } from "@/lib/hooks/params";
-import Link from "next/link";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import DynamicIcon from "../icons/DynamicIcon";
+import { AppIntegrationEnableButton } from "../app/AppIntegrationList";
 import { FlowReadOnlyContext, useChangedByAI } from "@/lib/flow/context";
 
 interface Props extends NodeProps {
@@ -28,7 +27,6 @@ export default function FlowNodeBase(props: Props) {
 
   const color = props.color || defaultColor;
   const changedByAI = useChangedByAI(props.id);
-  const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(props.type);
   const readOnly = useContext(FlowReadOnlyContext);
 
@@ -74,17 +72,28 @@ export default function FlowNodeBase(props: Props) {
       {missingIntegrations.length > 0 && (
         <div className="text-xs text-red-600 dark:text-red-400 mt-2">
           {missingIntegrations.map((i) => i.name).join(", ")}{" "}
-          {missingIntegrations.length === 1 ? "isn't" : "aren't"} enabled.{" "}
-          <Link
-            href={{
-              pathname: "/apps/[appId]/integrations",
-              query: { appId },
-            }}
-            target="_blank"
-            className="underline"
-          >
-            Enable {missingIntegrations.length === 1 ? "it" : "them"}
-          </Link>
+          {missingIntegrations.length === 1 ? "isn't" : "aren't"} enabled.
+          {!readOnly &&
+            missingIntegrations.map((integration) => (
+              // Clicks would otherwise also open the block's settings, even
+              // from the dialog, as React passes them up through portals.
+              <span
+                key={integration.id}
+                className="nodrag ml-1"
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              >
+                <AppIntegrationEnableButton
+                  integration={integration}
+                  variant="link"
+                  label={
+                    missingIntegrations.length === 1
+                      ? "Enable it"
+                      : `Enable ${integration.name}`
+                  }
+                />
+              </span>
+            ))}
         </div>
       )}
 

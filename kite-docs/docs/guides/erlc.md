@@ -2,7 +2,7 @@
 sidebar_position: 2.5
 ---
 
-# ER:LC Discord Bot
+# ER:LC Discord bot
 
 Kite can connect your Discord bot to your [Emergency Response: Liberty County](https://apidocs.erlc.gg) private server. Your bot can show the server's status and players, run commands like `:m` or `:kick` from Discord, and post what happens in the game to a channel.
 
@@ -10,7 +10,7 @@ If you don't have a bot yet, create one first with the [getting started guide](.
 
 Kite is a third-party app and isn't affiliated with ER:LC or Police Roleplay Community. For help with your Kite bot, ask in [Kite's Discord server](https://discord.gg/rNd9jWHnXh).
 
-## Connecting Your Server
+## Connecting your server
 
 1. In ER:LC, open the settings of your private server and copy its server key. ER:LC explains where to find it in [their docs](https://apidocs.erlc.gg/how-to-obtain-your-server-key).
 2. In Kite, open your app, go to `Integrations`, click on `Enable` next to ER:LC and paste the server key.
@@ -18,7 +18,7 @@ Kite is a third-party app and isn't affiliated with ER:LC or Police Roleplay Com
 
 The key is stored encrypted and is only ever sent to ER:LC. See [Integrations](../reference/integrations.md) for more.
 
-## Adding the ER:LC Template
+## Adding the ER:LC template
 
 The quickest start is the ER:LC template. Go to `Marketplace` in the sidebar, click on ER:LC and add the commands you want:
 
@@ -28,7 +28,7 @@ The quickest start is the ER:LC template. Go to `Marketplace` in the sidebar, cl
 
 The commands show up in Discord a few seconds later. If one fails, it replies with ER:LC's error, like a server key that isn't valid anymore.
 
-## Building Your Own Commands
+## Building your own commands
 
 The template commands are normal commands, so you can open them in the flow editor and change them. Two blocks talk to ER:LC:
 
@@ -48,7 +48,7 @@ For a command that kicks a player, add a [Command Argument](../reference/blocks/
 
 ER:LC runs one command every 5 seconds per server. If another command just ran, the block waits for its turn, up to 10 seconds. Don't run commands in a loop, ER:LC's rules forbid spamming and breaking them can cost the server its API access.
 
-## Getting Events from the Game
+## Getting events from the game
 
 ER:LC can send your bot a request when something happens in the game. Right now it does that for emergency calls and for chat messages starting with `;`, which lets you make your own in-game commands.
 
@@ -58,4 +58,4 @@ ER:LC can send your bot a request when something happens in the game. Right now 
 4. After `Valid`, add a Respond to webhook block with status `200`, then what the flow should do. To see what ER:LC sends, start with a [Create channel message](../reference/blocks/actions/action_message_create.md) block that posts `{{webhook.body}}` to a staff channel. Enter the channel's ID, as a webhook run has no channel of its own.
 5. Copy the webhook URL from the settings of the first block. In ER:LC, open the settings of your private server, search for `Event Webhook` and paste it.
 
-ER:LC tests the URL when you save it, so save the event listener in Kite first. Once you know what the requests look like, pick out fields with `{{webhook.data...}}` and react to the ones you want with a Comparison Condition. See [Webhook Event Listeners](../reference/event.md#webhook-event-listeners) for all placeholders and limits.
+ER:LC tests the URL when you save it, so save the event listener in Kite first. Once you know what the requests look like, pick out fields with `{{webhook.data...}}` and react to the ones you want with a Comparison Condition. See [Webhooks](../reference/event.md#webhook-event-listeners) for all placeholders and limits.

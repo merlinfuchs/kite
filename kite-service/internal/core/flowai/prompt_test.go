@@ -22,8 +22,8 @@ func TestFilterCatalogKeepsOrder(t *testing.T) {
 // Apps with the same integrations share the instructions, which the model
 // provider caches.
 func TestInstructionsForIsCached(t *testing.T) {
-	a := instructionsFor([]string{"x", "y"})
-	b := instructionsFor([]string{"y", "x"})
+	a := instructionsFor([]string{"x", "y"}, false)
+	b := instructionsFor([]string{"y", "x"}, false)
 	assert.Equal(t, a, b)
 	assert.Contains(t, a, "Block catalog:")
 	assert.Contains(t, a, `"action_message_create"`)

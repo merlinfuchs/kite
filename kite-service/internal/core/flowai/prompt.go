@@ -22,7 +22,7 @@ var (
 // integrations are only named after the catalog, so the model can tell the
 // user to enable them. Apps missing the same integrations get the same
 // instructions, so the model provider can cache them.
-func instructionsFor(enabled []string) string {
+func instructionsFor(enabled []string, code bool) string {
 	var missing []flow.Integration
 	var ids []string
 	for _, integration := range flow.Integrations() {
@@ -32,6 +32,9 @@ func instructionsFor(enabled []string) string {
 		}
 	}
 	key := strings.Join(ids, ",")
+	if code {
+		key = "code:" + key
+	}
 
 	instructionsMu.Lock()
 	defer instructionsMu.Unlock()
@@ -39,12 +42,12 @@ func instructionsFor(enabled []string) string {
 		return res
 	}
 
-	res := buildInstructions(missing, ids)
+	res := buildInstructions(missing, ids, code)
 	instructionsCache[key] = res
 	return res
 }
 
-func buildInstructions(missing []flow.Integration, missingIDs []string) string {
+func buildInstructions(missing []flow.Integration, missingIDs []string, code bool) string {
 	catalog, err := filterCatalog(flow.CatalogJSON, func(nodeType string) bool {
 		for _, id := range flow.BlockIntegrations(flow.FlowNodeType(nodeType)) {
 			if slices.Contains(missingIDs, id) {
@@ -57,7 +60,11 @@ func buildInstructions(missing []flow.Integration, missingIDs []string) string {
 		panic(err)
 	}
 
-	res := instructionsText + "\n\nBlock catalog:\n" + catalog
+	text := instructionsText
+	if code {
+		text = instructionsCodeText
+	}
+	res := text + "\n\nBlock catalog:\n" + catalog
 	if len(missing) > 0 {
 		res += "\n\nThe app hasn't enabled these integrations, so their blocks aren't in the catalog. If the user asks for something one of them does, tell them to enable it under Integrations in the app first:"
 		for _, integration := range missing {
@@ -136,3 +143,10 @@ var instructionsFile string
 // instructionsText leaves out the file's final newline, so the model gets the
 // same text as before it was a file.
 var instructionsText = strings.TrimSuffix(instructionsFile, "\n")
+
+// instructionsCodeFile is written like instructionsFile, for FormatCode.
+//
+//go:embed instructions_code.txt
+var instructionsCodeFile string
+
+var instructionsCodeText = strings.TrimSuffix(instructionsCodeFile, "\n")

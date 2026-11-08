@@ -66,7 +66,7 @@ export default function AppCommandPage() {
         track("command_saved", {
           blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
         });
-        toast.success("Command saved!");
+        toast.success("Command saved.");
         base.current = res.data.version;
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
@@ -98,7 +98,7 @@ export default function AppCommandPage() {
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Command | Kite</title>
+        <title>Manage command | Kite</title>
       </Head>
       {cmd && (
         <FlowPage

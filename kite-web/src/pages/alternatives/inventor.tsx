@@ -9,12 +9,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free inventor.bot Alternative",
+  title: "Free inventor.bot alternative",
   description:
     "Looking for an inventor.bot alternative? Kite is a free, open source Discord bot maker. Make up to 10 bots for free, each in up to 100 servers, with no inactivity rule.",
   competitor: "inventor.bot",
   lastChecked: "October 2026",
-  heading: "A Free inventor.bot Alternative",
+  heading: "A free inventor.bot alternative",
   intro:
     "Kite and inventor.bot (formerly inventor.gg) both let you make a Discord bot with a visual editor. Kite's free plan has higher limits, no ad in your bot's status and keeps your bot online even on quiet days. Kite is also open source.",
   chooseKite: [
@@ -76,29 +76,29 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "50+ templates in the marketplace",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Plugins",
     },
   ],
   reasons: [
     {
-      title: "Up to 10 Free Bots",
+      title: "Up to 10 free bots",
       description:
         "inventor.bot includes 2 free bots and has paid plans for more. With Kite you can make up to 10 bots for free.",
     },
     {
-      title: "Higher Free Limits",
+      title: "Higher free limits",
       description:
         "inventor.bot's free plan allows 15 servers per bot and 15 commands and events combined. Kite's free plan allows 100 servers, 15 commands and 10 event listeners.",
     },
     {
-      title: "No Ad in Your Status",
+      title: "No ad in your status",
       description:
         "Free inventor.bot bots show an invt.bot ad as their status, and free bots go offline after 14 days without an event. Kite lets you set your own status for free and keeps your bot online even on quiet days.",
     },
     aiBuilderPoint,
     {
-      title: "Templates You Can Change",
+      title: "Templates you can change",
       description:
         "Add templates for moderation, welcome messages, counting, a starboard or an AI chatbot, and change every block of them.",
     },

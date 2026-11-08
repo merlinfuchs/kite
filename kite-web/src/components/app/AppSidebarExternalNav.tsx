@@ -21,7 +21,7 @@ const items = [
     url: env.NEXT_PUBLIC_DISCORD_LINK,
   },
   {
-    name: "GitHub Repository",
+    name: "GitHub repository",
     url: env.NEXT_PUBLIC_GITHUB_LINK,
   },
 ];

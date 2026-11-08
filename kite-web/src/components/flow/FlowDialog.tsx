@@ -84,7 +84,7 @@ export default function FlowDialog({
       {/* We disable animations for the dialog, because react flow doesn't handle it well */}
       <DialogContent className="h-[90dvh] w-full max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
         <ReactFlowProvider>
-          <DialogTitle className="hidden">Flow Editor</DialogTitle>
+          <DialogTitle className="hidden">Flow editor</DialogTitle>
           <DialogDescription className="hidden">
             Define what happens.
           </DialogDescription>

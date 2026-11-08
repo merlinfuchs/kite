@@ -8,12 +8,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free BotWiz Alternative",
+  title: "Free BotWiz alternative",
   description:
     "Looking for a BotWiz alternative? Kite is a free, open source Discord bot maker with a visual editor and 24/7 hosting. No trial and no credit card.",
   competitor: "BotWiz",
   lastChecked: "October 2026",
-  heading: "A Free BotWiz Alternative",
+  heading: "A free BotWiz alternative",
   intro:
     "Kite and BotWiz both let you build a Discord bot with blocks instead of code. BotWiz has a free trial and then needs a subscription. Kite has a free plan that doesn't run out, and Kite is open source.",
   chooseKite: [
@@ -43,7 +43,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Servers per bot",
-      kite: "100 free, more with Premium",
+      kite: "100 free, more on paid plans",
       competitor: "Unlimited on paid plans",
     },
     {
@@ -54,12 +54,12 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "Free, Not a Trial",
+      title: "Free, not a trial",
       description:
         "BotWiz gives your first bot 7 days for free. After that your bot goes offline until you pay. Kite's free plan keeps your bot online with no time limit.",
     },
     {
-      title: "Up to 10 Free Bots",
+      title: "Up to 10 free bots",
       description:
         "You can make up to 10 bots on Kite without paying. Each one gets 24/7 hosting.",
     },

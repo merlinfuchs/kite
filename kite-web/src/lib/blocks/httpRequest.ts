@@ -8,7 +8,7 @@ export const httpRequest: BlockDefinition = {
   title: "Send API Request",
   description: "Send an API request to an external server",
   icon: "webhook",
-  category: "API Requests",
+  category: "API requests",
   credits: 3,
   fields: [
     {

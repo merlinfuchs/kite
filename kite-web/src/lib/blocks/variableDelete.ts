@@ -7,7 +7,7 @@ export const variableDelete: BlockDefinition = {
   title: "Delete stored variable",
   description: "Delete the value of a stored variable",
   icon: "variable",
-  category: "Stored Variables",
+  category: "Stored variables",
   credits: 1,
   fields: variableSettings,
   run: { kind: "custom" },

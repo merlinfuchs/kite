@@ -2,38 +2,40 @@
 sidebar_position: 10
 ---
 
-# Premium
+# Paid plans
 
-Kite is free to use, and every app starts on the free Basic plan. Premium plans raise your app's limits and unlock a few extra features. You can see the plans, their prices and exact limits on the `Premium` page of your app.
+Kite is free to use, and every app starts on Basic, the free plan. The paid plans, Kite Plus, Kite Premium, and Kite Ultimate, raise your app's limits and add a few features. You can see every plan with its price and limits on the `Plans` page of your app. The sidebar links to it as `Upgrade`, or `Plan` once the app has a paid plan.
 
 A subscription belongs to one app. If you have several apps, each one needs its own subscription.
 
-## What Premium Changes
+## What paid plans change {#what-premium-changes}
 
 - More [credits](./credit-system.md) per month
-- More commands, stored variables, message templates and event listeners
-- More scheduled event listeners, and schedules that can run as often as once a minute instead of every 5 minutes
+- More commands, stored variables, message templates, and event listeners
+- More scheduled tasks and webhooks
 - More servers your app can be in
 - More collaborators who can manage the app with you
-- More prompts to the [flow AI](../guides/flow-ai.md) per month
+- More [Flow AI](../guides/flow-ai.md) prompts per month
 - A rotating status and the `Set status` block, which lets flows change your bot's status
-- A nickname, avatar, banner and About Me for your bot in each server, from the `Servers` page or the `Edit server profile` block
 - An animated avatar and banner for your bot
+- The `Play audio` block, which plays sounds you upload in a voice channel
+- A nickname, avatar, banner, and About Me for your bot in each server, from the `Servers` page or the `Edit server profile` block
 - The `Send message as` block, which sends messages with another name and avatar
+- Schedules that run as often as once a minute instead of every 5 minutes
 - Priority support
 
-Plus raises the limits and includes the rotating status, the `Set status` block and an animated avatar and banner. Schedules every minute and priority support need Premium or Ultimate.
+Kite Plus raises the limits and includes the rotating status, the `Set status` block, an animated avatar and banner, and the `Play audio` block. Profiles per server, the `Send message as` block, schedules every minute, and priority support need Kite Premium or Kite Ultimate.
 
 ## Subscribing
 
-Open the `Premium` page of your app and click on `Get Started` on a plan. You pay through our payment provider, Lemon Squeezy. The plan applies right away.
+Open the `Plans` page of your app and click `Get started` on a plan. You pay through our payment provider, Lemon Squeezy. The plan applies right away.
 
-To change to another plan, click on `Switch Plan`. You're charged or credited the difference for the rest of the billing period.
+To change to another plan, click `Switch plan`. You're charged or credited the difference for the rest of the billing period.
 
-To change your payment method, cancel or see your invoices, click on `Update Billing` or `Manage` under `Subscription History`. Only the person who bought the subscription can do that. The subscription keeps working until the end of the period you paid for.
+To change your payment method, cancel, or see your invoices, click `Update billing` or `Manage` under `Subscription history`. Only the person who bought the subscription can do that. The subscription keeps working until the end of the period you paid for.
 
-You can ask for a refund within 14 days of a payment by writing to contact@kite.onl.
+You can get a full refund of the first payment of a subscription within 14 days of it, once per app. Write to contact@kite.onl. Renewals and changes to another plan aren't refunded. See the [refund policy](https://kite.onl/refund) for the details.
 
-## When Premium Ends
+## When a plan ends {#when-premium-ends}
 
-Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more commands, variables, message templates or event listeners than the free plan allows. The rotating status and the `Set status`, `Edit server profile` and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.
+Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more commands, variables, message templates, or event listeners than the free plan allows. The rotating status and the `Set status`, `Play audio`, `Edit server profile`, and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.

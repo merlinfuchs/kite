@@ -4561,6 +4561,91 @@
       },
       "result_schema": null
     },
+    "action_member_voice_edit": {
+      "title": "Edit voice state",
+      "description": "Server-mute, deafen or move a member to another voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "member_voice_mute": {
+            "description": "Whether to server-mute the member, \"true\" or \"false\". Empty leaves it unchanged.",
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "member_voice_deaf": {
+            "description": "Whether to server-deafen the member, \"true\" or \"false\". Empty leaves it unchanged.",
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the voice channel to move the member to. Leave empty to keep the member where they are.",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set at least one of member_voice_mute, member_voice_deaf or channel_target."
+      },
+      "result_schema": null
+    },
     "action_voice_audio_play": {
       "title": "Play audio",
       "description": "Bot plays an uploaded sound in a voice channel",
@@ -4652,6 +4737,52 @@
             "description": "ID of the server. Defaults to the server the flow runs in."
           }
         },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_soundboard_sound_play": {
+      "title": "Play soundboard sound",
+      "description": "Bot plays a soundboard sound in its voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the voice channel to play the sound in. The bot has to be in it, use Join voice channel first. Leave empty to use the channel the flow runs in, like a command used in a voice channel's chat.",
+            "x-templated": true
+          },
+          "sound_id": {
+            "type": "string",
+            "description": "ID of the soundboard sound to play, of this server or one of Discord's default sounds.",
+            "x-templated": true
+          },
+          "source_guild_id": {
+            "type": "string",
+            "description": "ID of the server the sound is from, only for sounds of another server the bot is in. Leave empty for sounds of this server and default sounds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "sound_id"
+        ],
         "additionalProperties": false
       },
       "result_schema": null
@@ -4979,6 +5110,116 @@
       },
       "result_schema": {
         "description": "The value of the variable."
+      }
+    },
+    "action_variable_list": {
+      "title": "List stored variable values",
+      "description": "Get the values of a stored variable in order, like a leaderboard of the highest ones",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "variable_id": {
+            "type": "string",
+            "description": "ID of an existing stored variable.",
+            "x-user-picked": true
+          },
+          "variable_sort": {
+            "description": "Order of the values. value_desc and value_asc sort numbers, and text of a number like 42, from highest or lowest, with other values last. updated_desc and updated_asc sort by when each value last changed. Defaults to value_desc.",
+            "type": "string",
+            "enum": [
+              "value_desc",
+              "value_asc",
+              "updated_desc",
+              "updated_asc"
+            ]
+          },
+          "variable_scope_prefix": {
+            "description": "Only values whose scope starts with this, like {{guild.id}}: for the members of one server when the scope is {{guild.id}}:{{user.id}}. All values if empty, and ignored for variables without a scope.",
+            "x-templated": true,
+            "type": "string"
+          },
+          "variable_limit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(100|[1-9][0-9]?)$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many values to get, from 1 to 100. Defaults to 10."
+          },
+          "variable_skip": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(10000|[1-9]?[0-9]{1,3})$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many values to skip first, from 0 to 10000, like 10 for the second page of 10. Defaults to 0."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "variable_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "description": "The scope of the value, null for unscoped variables.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The stored value."
+            },
+            "updated_at": {
+              "type": "number",
+              "description": "When the value last changed, as a Unix timestamp in seconds."
+            }
+          },
+          "required": [
+            "scope",
+            "value",
+            "updated_at"
+          ],
+          "additionalProperties": false
+        },
+        "description": "The values in the chosen order."
       }
     },
     "action_ai_chat_completion": {
@@ -5465,7 +5706,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create, send_soundboard_sound: action_soundboard_sound_play."
               },
               "path_params": {
                 "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object.",
@@ -6475,16 +6716,16 @@
           },
           "roblox_user_target": {
             "type": "string",
-            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom.",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
             "x-templated": true
           },
           "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
             "type": "string",
             "enum": [
               "id",
               "username"
-            ],
-            "description": "Whether roblox_user_target is an ID or a username."
+            ]
           },
           "temporary_name": {
             "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
@@ -6493,13 +6734,390 @@
           }
         },
         "required": [
-          "roblox_user_target",
-          "roblox_lookup_mode"
+          "roblox_user_target"
         ],
         "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/roblox_user"
+      }
+    },
+    "action_bloxlink_user_get": {
+      "title": "Get Bloxlink user",
+      "description": "Get the Roblox user a member verified as with Bloxlink",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/roblox_user"
+      }
+    },
+    "action_roblox_group_member_get": {
+      "title": "Get Roblox group member",
+      "description": "Get the roles of a user in your Roblox group",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Roblox ID of the user"
+          },
+          "role": {
+            "type": "string",
+            "description": "Name of the member's highest role"
+          },
+          "rank": {
+            "type": "number",
+            "description": "Rank of the member's highest role, 1 to 255"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number",
+                  "description": "1 to 255"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "rank"
+              ],
+              "additionalProperties": false
+            },
+            "description": "All roles of the member, highest first"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "rank",
+          "roles"
+        ],
+        "description": "The member, or null if the user isn't in the group",
+        "additionalProperties": false
+      }
+    },
+    "action_roblox_group_member_role_edit": {
+      "title": "Change Roblox group role",
+      "description": "Rank a member of your Roblox group, or give or take a role",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "roblox_group_role": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name, rank (1 to 255) or ID of the role. Names are matched first, ignoring case.",
+            "x-templated": true
+          },
+          "roblox_group_role_mode": {
+            "description": "set makes the role the member's only role, like ranking them. add and remove give or take it and keep their other roles. Defaults to set.",
+            "type": "string",
+            "enum": [
+              "set",
+              "add",
+              "remove"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target",
+          "roblox_group_role"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Roblox ID of the user"
+          },
+          "role": {
+            "type": "string",
+            "description": "Name of the member's highest role"
+          },
+          "rank": {
+            "type": "number",
+            "description": "Rank of the member's highest role, 1 to 255"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number",
+                  "description": "1 to 255"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "rank"
+              ],
+              "additionalProperties": false
+            },
+            "description": "All roles of the member, highest first"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "rank",
+          "roles"
+        ],
+        "description": "The member's roles afterwards",
+        "additionalProperties": false
+      }
+    },
+    "action_roblox_group_join_request_respond": {
+      "title": "Answer Roblox join request",
+      "description": "Accept or decline a user's request to join your Roblox group",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "roblox_join_request_action": {
+            "description": "Whether to accept or decline. Defaults to accept.",
+            "type": "string",
+            "enum": [
+              "accept",
+              "decline"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "boolean",
+        "description": "Whether the user had a join request, false if they didn't ask to join or are already in the group"
       }
     },
     "action_cookie_api_transcript_create": {
@@ -7442,6 +8060,7 @@
               "guild_delete",
               "direct_message_create",
               "guild_boost",
+              "guild_boost_remove",
               "guild_audit_log_entry_create",
               "cron",
               "webhook"

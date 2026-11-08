@@ -17,16 +17,20 @@ import { getTemplates } from "./templateFiles";
 //   FLOW_AI_EVAL_URL=http://localhost:4455 npx vitest run ai.eval
 //
 // FLOW_AI_EVAL_FILTER only runs the cases whose name contains one of its
-// comma separated parts.
+// comma separated parts. For the flow as code, start the eval server with
+// -format code and set FLOW_AI_EVAL_FORMAT=code.
 const url = process.env.FLOW_AI_EVAL_URL;
 const filter = process.env.FLOW_AI_EVAL_FILTER ?? "";
 const outDir = process.env.FLOW_AI_EVAL_OUT ?? "eval-results";
+// Like the eval server's -format.
+const format = process.env.FLOW_AI_EVAL_FORMAT === "code" ? "code" : "edits";
 // Like the service's default max_repairs, which the eval server doesn't know.
 const maxRepairs = 2;
 
 // USD per million input, cached input and output tokens.
 const prices: Record<string, [number, number, number]> = {
   "gpt-5-mini": [0.25, 0.025, 2],
+  "gpt-6-luna": [0.1, 0.01, 0.5],
 };
 
 interface EvalInfo {
@@ -120,6 +124,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     const res = await runFlowAIPrompt({
       context: c.context,
       messages,
+      format,
       getFlow: () => flow,
       applyFlow: (applied) => {
         flow = { nodes: applied.nodes, edges: applied.edges };
@@ -136,7 +141,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
         const res = await postChat({ ...req, variables, templates });
         if (res.success) {
           result.cost += cost(res.data.eval);
-          result.edits.push(res.data.edits);
+          result.edits.push(res.data.code ? [res.data.code] : res.data.edits);
         }
         return res;
       },
@@ -221,7 +226,7 @@ function report(results: CaseResult[]) {
   const sum = (f: (r: CaseResult) => number) =>
     results.reduce((a, r) => a + f(r), 0);
   const lines = [
-    `# Flow AI eval, ${new Date().toISOString()}`,
+    `# Flow AI eval, ${new Date().toISOString()}, ${format}`,
     "",
     `Builds ok: ${sum((r) => +r.buildOk)}/${results.length}. ` +
       `Asked with fields: ${sum((r) => +(r.fields.length > 0))}. ` +

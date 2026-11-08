@@ -181,7 +181,7 @@ export default function GuildProfileDialog({
               href={`/apps/${appId}/premium`}
               className="text-primary hover:underline"
             >
-              Kite {plan?.title ?? "Premium"}
+              {plan ? `Kite ${plan.title}` : "a paid plan"}
             </Link>
             .
           </p>

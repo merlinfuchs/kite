@@ -51,7 +51,7 @@ export default function MessageComponentContainer({
       >
         <div className="flex space-x-3">
           <MessageColorInput
-            label="Accent Color"
+            label="Accent color"
             value={data.accent_color}
             onChange={(accent_color) =>
               update<ContainerNode>(id, { accent_color })
@@ -96,7 +96,7 @@ export default function MessageComponentContainer({
               variant="destructive"
               onClick={() => removeChildren(id, "components")}
             >
-              Clear Components
+              Clear components
             </Button>
           </div>
         </MessageCollapsibleSection>

@@ -62,7 +62,7 @@ export default function ModalJSONDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="lg:min-w-[750px]">
         <DialogHeader>
-          <DialogTitle>Edit Modal JSON</DialogTitle>
+          <DialogTitle>Edit modal JSON</DialogTitle>
           <DialogDescription>
             View and edit the raw JSON of the modal. This is for advanced users
             only.

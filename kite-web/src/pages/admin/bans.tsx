@@ -48,7 +48,7 @@ const banFeatures = {
     confirm: "This logs them out everywhere and stops every app they own.",
   },
   marketplace: {
-    label: "the marketplace",
+    label: "the Marketplace",
     description:
       "They can't submit templates and new versions of theirs aren't reviewed. What they listed stays listed.",
     confirm: "This rejects the templates they have in review.",

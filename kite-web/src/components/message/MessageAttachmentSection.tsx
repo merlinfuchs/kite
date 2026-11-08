@@ -86,10 +86,10 @@ export default function MessageAttachmentSection() {
           onClick={() => inputRef.current?.click()}
           disabled={createMutation.isPending || attachments.length >= 10}
         >
-          Add Attachment
+          Add attachment
         </Button>
         <Button onClick={clearAttachments} variant="outline">
-          Clear Attachments
+          Clear attachments
         </Button>
       </div>
 

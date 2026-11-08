@@ -34,14 +34,14 @@
   "parameters": [
     {
       "key": "channel_id",
-      "label": "Starboard Channel",
+      "label": "Starboard channel",
       "description": "The channel the bot posts starred messages in.",
       "type": "channel",
       "required": true
     },
     {
       "key": "stars",
-      "label": "Stars Needed",
+      "label": "Stars needed",
       "description": "How many ⭐ reactions a message needs to be posted, like 3.",
       "type": "text",
       "required": true

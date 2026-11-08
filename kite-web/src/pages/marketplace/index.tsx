@@ -22,22 +22,22 @@ import { useMemo } from "react";
 
 const points = [
   {
-    title: "Change Every Block",
+    title: "Change every block",
     description:
-      "A template is copied into your bot as normal commands and event listeners. Open them in the editor and change the replies, permissions or anything else.",
+      "A template is copied into your bot as normal commands and event listeners. Open them in the editor and change the replies, permissions, or anything else.",
   },
   {
-    title: "Add Only What You Need",
+    title: "Add only what you need",
     description:
       "Pick the commands and listeners you want from a template. Commands your bot already has are left alone.",
   },
   {
-    title: "Combine Templates",
+    title: "Combine templates",
     description:
-      "Add several templates to the same bot, like Moderation, Welcomer and Verification, and build your own commands next to them.",
+      "Add several templates to the same bot, like Moderation, Welcomer, and Verification, and build your own commands next to them.",
   },
   {
-    title: "Pick Channels and Roles",
+    title: "Pick channels and roles",
     description:
       "Choose the channels and roles a template uses from your server when you add it, instead of copying IDs.",
   },
@@ -45,17 +45,17 @@ const points = [
 
 const steps = [
   {
-    title: "Create Your Bot",
+    title: "Create your bot",
     description:
-      "Sign in with Discord, add your bot's token to Kite and invite the bot to your server.",
+      "Sign in with Discord, add your bot's token to Kite, and invite the bot to your server.",
   },
   {
-    title: "Add a Template",
+    title: "Add a template",
     description:
-      "Open the Marketplace in your app, choose one and pick the channels and roles it should use.",
+      "Open the Marketplace in your app, choose one, and pick the channels and roles it should use.",
   },
   {
-    title: "Make It Your Own",
+    title: "Make it your own",
     description:
       "The commands show up in Discord a few seconds later. Change them in the editor whenever you like.",
   },
@@ -86,7 +86,7 @@ const faqs: FAQProps[] = [
   {
     question: "What if there's no template for what I need?",
     answer:
-      "Describe the command you want and Kite's AI builds it for you, or connect the blocks yourself in the editor.",
+      "Describe the command you want and Flow AI builds it for you, or connect the blocks yourself in the editor.",
   },
 ];
 
@@ -123,7 +123,7 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
 
   return (
     <HomeLayout
-      title="Discord Bot Templates"
+      title="Discord bot templates"
       description="Free templates for Discord bots made with Kite, from moderation commands to a verification button. Add one to your bot and change anything in the editor."
       jsonLd={[faqJsonLd(faqs)]}
     >
@@ -137,7 +137,7 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
         hero={
           <div>
             <h1 className="text-3xl md:text-4xl font-bold">
-              Discord Bot Templates
+              Discord bot templates
             </h1>
             <p className="text-lg text-muted-foreground mt-2">
               {count} templates from Kite and the community. Add one to your bot
@@ -149,7 +149,7 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          What You Can Do With Templates
+          What you can do with templates
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
           Templates save you building the common parts of a bot, so you can
@@ -171,7 +171,7 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          How to Add a Template
+          How to add a template
         </h2>
         <ol className="relative grid md:grid-cols-3 gap-8 mt-12">
           {/* Connects the numbers of the steps. */}

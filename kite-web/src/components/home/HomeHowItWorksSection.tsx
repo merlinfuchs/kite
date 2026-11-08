@@ -3,19 +3,19 @@ import Link from "next/link";
 
 const steps = [
   {
-    title: "Create a Discord App",
+    title: "Create a Discord app",
     description:
       "Create an application in the Discord Developer Portal and copy its bot token. It takes two minutes.",
   },
   {
-    title: "Add It to Kite",
+    title: "Add it to Kite",
     description:
-      "Sign in with Discord, paste the token and invite the bot to your server. It's online right away.",
+      "Sign in with Discord, paste the token, and invite the bot to your server. It's online right away.",
   },
   {
-    title: "Build Your Commands",
+    title: "Build your commands",
     description:
-      "Connect blocks in the editor, import a template or describe a command to Kite's AI. Save it and it shows up in Discord.",
+      "Connect blocks in the editor, add a template from the Marketplace, or describe a command to Flow AI. Save it and it shows up in Discord.",
   },
 ];
 
@@ -26,7 +26,7 @@ export default function HomeHowItWorksSection() {
       className="container py-16 sm:py-24 scroll-mt-16"
     >
       <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Online in Three Steps
+        Online in three steps
       </h2>
       <ol className="relative grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
         {/* Connects the numbers of the steps. */}

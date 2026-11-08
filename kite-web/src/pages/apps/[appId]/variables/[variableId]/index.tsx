@@ -28,7 +28,7 @@ export default function AppVariablesPage() {
   const breadcrumbs = useMemo(
     () => [
       {
-        label: "Stored Variables",
+        label: "Stored variables",
         href: `/apps/[appId]/variables`,
       },
       {

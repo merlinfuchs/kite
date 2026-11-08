@@ -16,7 +16,7 @@ export default function AppPluginsPage() {
   const appId = useAppId();
 
   return (
-    <AppLayout title="App Plugins" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App plugins" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Plugins</h1>
         <p className="text-muted-foreground text-sm">
@@ -34,7 +34,7 @@ export default function AppPluginsPage() {
             target="_blank"
             className="text-primary hover:underline"
           >
-            Learn More
+            Learn more
           </a>
         </p>
       </div>

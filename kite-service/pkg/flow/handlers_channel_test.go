@@ -188,15 +188,21 @@ func TestThreadCreateInvitable(t *testing.T) {
 	}
 }
 
-type channelEditTestProvider struct {
+type channelTestProvider struct {
 	provider.MockDiscordProvider
 
-	edit api.ModifyChannelData
+	create api.CreateChannelData
+	edit   api.ModifyChannelData
 }
 
-func (p *channelEditTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+func (p *channelTestProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
+	p.create = data
+	return &discord.Channel{ID: 7, GuildID: guildID, Name: data.Name}, nil
+}
+
+func (p *channelTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
 	p.edit = data
-	return nil
+	return &discord.Channel{ID: channelID, Name: data.Name}, nil
 }
 
 func TestChannelEditArchiveLock(t *testing.T) {
@@ -209,9 +215,10 @@ func TestChannelEditArchiveLock(t *testing.T) {
 		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
 		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
 	} {
-		p := &channelEditTestProvider{}
-		_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
+		p := &channelTestProvider{}
+		ctx, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
 		require.NoError(t, err)
+		assert.Equal(t, discord.ChannelID(3), ctx.GetNodeState("1").Result.DiscordChannel().ID)
 
 		body, err := json.Marshal(p.edit)
 		require.NoError(t, err)
@@ -222,4 +229,20 @@ func TestChannelEditArchiveLock(t *testing.T) {
 			assert.NotContains(t, string(body), w)
 		}
 	}
+}
+
+func TestChannelAuditLogReason(t *testing.T) {
+	p := &channelTestProvider{}
+	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelCreate, `{"channel_data": {"name": "ticket"}, "audit_log_reason": "opened {{1 + 1}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("opened%202"), p.create.AuditLogReason)
+
+	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": {"name": "closed"}, "audit_log_reason": "closed {{2 + 2}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("closed%204"), p.edit.AuditLogReason)
+
+	tp := &threadTestProvider{}
+	_, err = executeChannelBlock(t, tp, FlowNodeTypeActionThreadCreate, `{"channel_data": {"name": "thread", "parent": "3"}, "audit_log_reason": "started {{3 + 3}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("started%206"), tp.thread.AuditLogReason)
 }

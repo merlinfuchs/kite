@@ -62,7 +62,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
 
   return (
     <HomeLayout
-      title={template ? `${template.name} Template` : "Template"}
+      title={template ? `${template.name} template` : "Template"}
       description={template?.description}
       image={
         template

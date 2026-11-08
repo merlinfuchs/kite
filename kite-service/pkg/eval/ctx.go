@@ -663,6 +663,16 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = guild(e.GuildID).guildEnv()
+	case *guildevent.BoostRemove:
+		// The cache keeps when the member joined, which the event leaves out.
+		// It never updates when they started boosting, so that's cleared, as
+		// they aren't boosting anymore.
+		member, _ := guild(e.GuildID).member(e.User.ID)
+		e.UpdateMember(&member)
+		member.BoostedSince = discord.Timestamp{}
+		env.Member = guild(e.GuildID).memberEnv(member)
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
 	case *gateway.MessageReactionAddEvent:
 		if e.Member != nil {
 			env.Member = guild(e.GuildID).memberEnv(*e.Member)
@@ -1169,7 +1179,7 @@ func (l guildLookup) guildExtra(guild discord.Guild) guildExtra {
 	if channels, err := l.session.Cabinet.Channels(l.guildID); err == nil {
 		for _, channel := range channels {
 			// Categories and threads aren't what people count as channels.
-			if channel.Type != discord.GuildCategory && !isThread(channel.Type) {
+			if channel.Type != discord.GuildCategory && !IsThread(channel.Type) {
 				res.channelCount++
 			}
 		}
@@ -1323,7 +1333,8 @@ func (c ChannelEnv) lazyField(name string) (any, bool, error) {
 	return category.name, true, nil
 }
 
-func isThread(t discord.ChannelType) bool {
+// IsThread reports whether channels of the type are threads.
+func IsThread(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
 		return true
@@ -1389,7 +1400,7 @@ func channelEnv(session *state.State, id discord.ChannelID, fallback *discord.Ch
 
 func lookupCategory(session *state.State, channel discord.Channel) channelCategory {
 	categoryID := channel.ParentID
-	if isThread(channel.Type) {
+	if IsThread(channel.Type) {
 		categoryID = 0
 		if parent, ok := cachedChannel(session, channel.ParentID); ok {
 			categoryID = parent.ParentID

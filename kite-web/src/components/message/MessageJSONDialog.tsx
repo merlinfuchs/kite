@@ -53,7 +53,7 @@ export default function MessageJSONDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="lg:min-w-[750px]">
         <DialogHeader>
-          <DialogTitle>Edit Message JSON</DialogTitle>
+          <DialogTitle>Edit message JSON</DialogTitle>
           <DialogDescription>
             View and edit the raw JSON of the message. This is for advanced
             users only.

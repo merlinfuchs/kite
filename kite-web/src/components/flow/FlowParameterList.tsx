@@ -102,7 +102,7 @@ export default function FlowParameterList({
   function copy(key: string) {
     navigator.clipboard
       .writeText(`{{params.${key}}}`)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
   }
 

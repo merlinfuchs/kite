@@ -283,6 +283,7 @@ export default memo(function FlowAIChat({
             setAIChangedNodeIds(changedNodeIds);
           },
           send: (req, signal) => sendChat({ req, signal }),
+          format: usage?.format === "code" ? "code" : "edits",
           signal: abort.current?.signal,
         });
         track("flow_ai_prompt_answered", {
@@ -363,6 +364,7 @@ export default memo(function FlowAIChat({
       resolve,
       checkPending,
       store,
+      usage?.format,
     ]
   );
 
@@ -488,7 +490,7 @@ export default memo(function FlowAIChat({
               }}
               placeholder={
                 limit === 0
-                  ? "Your plan doesn't include the flow AI."
+                  ? "Your plan doesn't include Flow AI."
                   : "Ask a question or for a change..."
               }
               maxLength={4000}

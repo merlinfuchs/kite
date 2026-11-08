@@ -67,7 +67,7 @@ const sections: Record<
       contextTypes: null,
     },
     {
-      title: "Stored Variables",
+      title: "Stored variables",
       contextTypes: null,
     },
     {
@@ -75,7 +75,7 @@ const sections: Record<
       contextTypes: null,
     },
     {
-      title: "API Requests",
+      title: "API requests",
       contextTypes: null,
     },
     {

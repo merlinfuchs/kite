@@ -12,7 +12,7 @@
   "about": [
     "The bot checks every message with AI, also when it's edited, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where.",
     "The AI only deletes a message when it's at least 90% sure that it breaks the rules. Messages it's less sure about stay up and go to the log channel with a link, so a moderator can decide. You can add rules of your own, like no links to other servers, and they're checked together with the default ones.",
-    "Each check costs 1 credit. On a busy server, set New Member Days to a number, like 7, so only members who joined within that many days are checked. Spam bots and raiders are usually new to the server, so that catches most of them for a fraction of the credits. Members who can manage messages, like your moderators, are never checked."
+    "Each check costs 1 credit. On a busy server, set New member days to a number, like 7, so only members who joined within that many days are checked. Spam bots and raiders are usually new to the server, so that catches most of them for a fraction of the credits. Members who can manage messages, like your moderators, are never checked."
   ],
   "faq": [
     {
@@ -21,7 +21,7 @@
     },
     {
       "question": "How many credits does it use?",
-      "answer": "1 credit for every message it checks, and again when a message is edited. Messages without text and messages of moderators are skipped. To check fewer messages, set New Member Days to check only members who joined within that many days. Deleting a message and posting it in the log channel cost 1 credit each."
+      "answer": "1 credit for every message it checks, and again when a message is edited. Messages without text and messages of moderators are skipped. To check fewer messages, set New member days to check only members who joined within that many days. Deleting a message and posting it in the log channel cost 1 credit each."
     },
     {
       "question": "Can the AI make mistakes?",
@@ -49,21 +49,21 @@
   "parameters": [
     {
       "key": "log_channel_id",
-      "label": "Log Channel",
+      "label": "Log channel",
       "description": "The channel deleted messages and messages to review are posted in.",
       "type": "channel",
       "required": true
     },
     {
       "key": "max_member_days",
-      "label": "New Member Days",
+      "label": "New member days",
       "description": "Only check members who joined within this many days, like 7. Leave empty to check every member.",
       "type": "text",
       "required": false
     },
     {
       "key": "rules",
-      "label": "Extra Rules",
+      "label": "Extra rules",
       "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads and insults are always checked.",
       "type": "textarea",
       "required": false

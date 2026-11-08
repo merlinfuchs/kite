@@ -55,28 +55,28 @@ export default function FlowMenu({
           <Tab
             id="action"
             icon={BoxIcon}
-            title="Action Blocks"
+            title="Action blocks"
             tab={tab}
             setTab={wrappedSetTab}
           />
           <Tab
             id="control_flow"
             icon={GitCompareIcon}
-            title="Control Flow Blocks"
+            title="Control flow blocks"
             tab={tab}
             setTab={wrappedSetTab}
           />
           <Tab
             id="option"
             icon={TextCursorInputIcon}
-            title="Option Blocks"
+            title="Option blocks"
             tab={tab}
             setTab={wrappedSetTab}
           />
           <Tab
             id="integration"
             icon={PlugIcon}
-            title="Integration Blocks"
+            title="Integration blocks"
             tab={tab}
             setTab={wrappedSetTab}
           />

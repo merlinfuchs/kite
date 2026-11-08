@@ -22,12 +22,12 @@ export const FAQList: FAQProps[] = [
   {
     question: "Is Kite free to use?",
     answer:
-      "Yes. Every bot starts on the free plan, which includes 24/7 hosting, slash commands, event listeners and custom status. Premium plans raise the limits, like the number of servers and commands, but you don't need them to run a bot.",
+      "Yes. Every bot starts on the free plan, which includes 24/7 hosting, slash commands, event listeners, and custom status. Paid plans raise the limits, like the number of servers and commands, but you don't need them to run a bot.",
   },
   {
     question: "Do I need to know how to code?",
     answer:
-      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or add a template from the Marketplace for moderation, welcome messages or an AI chatbot.',
+      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command to Flow AI, the AI assistant in the editor, and it builds it for you. Or add a template from the Marketplace for moderation, welcome messages, or an AI chatbot.',
   },
   {
     question: "Can I customize the name and avatar of my Discord bot?",
@@ -52,7 +52,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "How many servers can I add my bot to?",
     answer:
-      "On the free plan your bot can be in up to 100 servers. Premium plans raise this limit.",
+      "On the free plan your bot can be in up to 100 servers. Paid plans raise this limit.",
   },
   {
     question: "Can I create multiple bots?",
@@ -73,7 +73,7 @@ export default function HomeFAQSection({
       className={cn("scroll-mt-16 container py-16 sm:py-24", className)}
     >
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
-        Frequently Asked Questions
+        Frequently asked questions
       </h2>
 
       <Accordion type="single" collapsible className="w-full AccordionRoot">

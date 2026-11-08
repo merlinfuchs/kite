@@ -150,6 +150,7 @@ export default function FlowContextMenu({
             </Item>
             <Item
               icon={<CopyPlusIcon />}
+              shortcut={shortcut("D")}
               disabled={!target.canCopy}
               onSelect={() => onDuplicate(target.ids)}
             >

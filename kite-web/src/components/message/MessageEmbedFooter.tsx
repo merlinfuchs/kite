@@ -45,7 +45,7 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
         <div className="w-full">
           <MessageInput
             type="url"
-            label="Footer Icon URL"
+            label="Footer icon URL"
             value={embed.footer?.icon_url || ""}
             onChange={(v) => setFooter({ icon_url: v || undefined })}
             validation={nodeField<EmbedNode>(embedId, "footer.icon_url")}

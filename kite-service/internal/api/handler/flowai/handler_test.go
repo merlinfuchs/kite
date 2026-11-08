@@ -127,6 +127,8 @@ type fakeAssistant struct {
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
+func (a *fakeAssistant) Format() string { return flowai.FormatEdits }
+
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
 	a.req = req

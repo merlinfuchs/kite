@@ -127,7 +127,7 @@ export default function APITokensDialog({
   function copy(text: string) {
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
   }
 
@@ -142,9 +142,9 @@ export default function APITokensDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>API Tokens</DialogTitle>
+          <DialogTitle>API tokens</DialogTitle>
           <DialogDescription>
-            Let AI tools build your bots, through MCP. Claude, ChatGPT, Claude
+            Let AI tools build your apps through MCP. Claude, ChatGPT, Claude
             Code and Codex connect by signing in and show up here. Create a
             token for clients that can&apos;t, like Cursor.
           </DialogDescription>
@@ -309,7 +309,7 @@ function APITokenEntry({ token }: { token: APIToken }) {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success(clientDomain ? "Disconnected!" : "Token deleted!");
+          toast.success(clientDomain ? "Disconnected." : "Token deleted.");
         } else {
           toast.error(
             `Failed to delete token: ${res.error.message} (${res.error.code})`

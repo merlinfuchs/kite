@@ -123,9 +123,9 @@ function AppMessagePageInner() {
                 flows: Object.keys(flowSources).length,
               });
               setHasUnsavedChanges(false);
-              toast.success("Message saved!", {
+              toast.success("Message saved.", {
                 description: hasInstances
-                  ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
+                  ? "Messages you already sent keep the old version until you update them in the Send message dialog."
                   : undefined,
               });
               options?.onSuccess?.();
@@ -224,7 +224,7 @@ function AppMessagePageInner() {
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Message | Kite</title>
+        <title>Manage message | Kite</title>
       </Head>
       <div className="h-[100dvh] w-full flex flex-col">
         <div className="flex-none">

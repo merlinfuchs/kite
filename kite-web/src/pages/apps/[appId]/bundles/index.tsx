@@ -14,6 +14,7 @@ import InstalledBundleList from "@/components/app/InstalledBundleList";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import TemplateIcon from "@/components/app/TemplateIcon";
 import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
@@ -30,7 +31,7 @@ import Link from "next/link";
 
 const breadcrumbs = [
   {
-    label: "Your Templates",
+    label: "Your templates",
   },
 ];
 
@@ -48,11 +49,11 @@ export default function AppBundlesPage() {
     );
 
   return (
-    <AppLayout title="Your Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Your templates" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
-            Your Templates
+            Your templates
           </h1>
           <p className="text-muted-foreground text-sm">
             The templates this app added, and the ones you made from its
@@ -63,7 +64,7 @@ export default function AppBundlesPage() {
               target="_blank"
               className="text-primary hover:underline"
             >
-              Learn More
+              Learn more
             </a>
           </p>
         </div>
@@ -184,7 +185,14 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         className="flex items-center gap-3 group min-w-0"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
-          <PackageIcon className="h-5 w-5 text-primary" />
+          {bundle.page.icon ? (
+            <TemplateIcon
+              name={bundle.page.icon}
+              className="h-5 w-5 text-primary"
+            />
+          ) : (
+            <PackageIcon className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -221,7 +229,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             size="sm"
             className="col-span-2 row-start-2 justify-self-start ml-[3.25rem] sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ml-0"
           >
-            List in marketplace
+            List in Marketplace
           </Button>
         </BundlePageDialog>
       )}

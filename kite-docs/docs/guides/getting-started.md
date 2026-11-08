@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Getting Started
+# Getting started
 
 Let's get started! The first step is to create a new Discord application!
 
@@ -12,7 +12,7 @@ Discord uses the terms `bot` and `app` interchangeably in their documentation an
 
 :::
 
-## Creating Your App
+## Creating your app
 
 Open the [Discord Developer Portal](https://discord.com/developers/applications) and sign-in with your Discord account. This is where you create and manage your Discord applications.
 
@@ -25,7 +25,7 @@ Open the [Discord Developer Portal](https://discord.com/developers/applications)
 
 Instead of creating a new application, you can also add any existing application to Kite. Just make sure to configure them correctly as described above.
 
-## Adding the App to Kite
+## Adding the app to Kite
 
 After creating your app in Discord, it's now time to add it to Kite.
 
@@ -36,24 +36,24 @@ Open the [Kite dashboard](https://kite.onl/apps) and sign-in with your Discord a
 
 You have now added your app to Kite and are ready to create your first command!
 
-## Invite the App
+## Invite the app
 
 You can now invite your app to your Discord server. It usually makes sense to first test your app on a small Discord server before adding it to a real one with a lot of people.
 
 Just click on `Invite app` at top-right of the dashboard's overview page and select the server that you want to add your app to.
 
-## Creating Your First Command
+## Creating your first command
 
 1. Click on the `/` icon in the sidebar on the left side of the dashboard
 2. Click on `Create command` and give your command a name and description
 3. In the no-code editor drag in a `Create response message` block from the block explorer on the left side
 4. Connect it to the command block by dragging your mouse from the blue dot of one block to the other
 5. Click on the `Create response message` block and type in some text for the response
-6. Save the command by clicking on `Save Changes` at the top. Kite adds it to Discord a few seconds later.
+6. Save the command by clicking on `Save changes` at the top. Kite adds it to Discord a few seconds later.
 
 ![Example Flow](./img/example-flow.webp)
 
-### Saving and History
+### Saving and history
 
 Click `History` at the top right to see the last 25 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way. Template updates are kept in the history too.
 
@@ -61,15 +61,15 @@ It's time to try it out inside Discord!
 
 It can take up to a minute for your new command to appear inside Discord. Make sure you have invited the app to your server and restart your Discord client if the command doesn't appear!
 
-## Creating Your First Message Template
+## Creating your first message template
 
 1. Click on the envelope icon in the sidebar on the left side of the dashboard
 2. Click on `Create message` and give your message a name and description
 3. In the message editor type in some text, edit the embed, and design the message however you like
-4. Save the message by clicking on `Save Changes` at the top
+4. Save the message by clicking on `Save changes` at the top
 5. Click on `Send Message` to send the message to a channel that your app has access to
 
-To start a new forum post with the message, switch to the `Forum Post` tab in the same dialog and pick a forum or media channel. Enter a title for the post, choose up to 5 of the channel's tags, and click on `Create Post`. The message becomes the first message of the post, and you can still update it later from the same dialog.
+To start a new forum post with the message, switch to the `Forum Post` tab in the same dialog and pick a forum or media channel. Enter a title for the post, choose up to 5 of the channel's tags, and click on `Create post`. The message becomes the first message of the post, and you can still update it later from the same dialog.
 
 ![Example Message](./img/example-message.webp)
 

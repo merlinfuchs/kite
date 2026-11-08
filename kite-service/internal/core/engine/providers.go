@@ -328,13 +328,21 @@ func (p *DiscordProvider) CreateChannel(ctx context.Context, guildID discord.Gui
 	return channel, nil
 }
 
-func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	err := p.session.ModifyChannel(channelID, data)
+func (p *DiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+	// arikawa's ModifyChannel discards the response body.
+	var channel discord.Channel
+	err := p.session.Client.WithContext(ctx).RequestJSON(
+		&channel,
+		http.MethodPatch,
+		api.EndpointChannels+channelID.String(),
+		httputil.WithJSONBody(data),
+		httputil.WithHeaders(data.Header()),
+	)
 	if err != nil {
-		return fmt.Errorf("failed to edit channel: %w", err)
+		return nil, fmt.Errorf("failed to edit channel: %w", err)
 	}
 
-	return nil
+	return &channel, nil
 }
 
 func (p *DiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
@@ -882,6 +890,23 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 	}
 
 	return row.Data, nil
+}
+
+func (p *VariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	rows, err := p.variableValueStore.ListVariableValues(ctx, p.appID, id, opts.ScopePrefix, string(opts.Sort), opts.Limit, opts.Skip)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list variable values: %w", err)
+	}
+
+	values := make([]provider.VariableValue, len(rows))
+	for i, row := range rows {
+		values[i] = provider.VariableValue{
+			Scope:     row.Scope,
+			Value:     row.Data,
+			UpdatedAt: row.UpdatedAt,
+		}
+	}
+	return values, nil
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {

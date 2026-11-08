@@ -4,13 +4,13 @@ import Link from "next/link";
 import { ReactNode } from "react";
 
 // Simplified versions of what they show, drawn with the site's colors like the
-// Ask AI panel.
+// Ask AI panel. The features page shows some of them too.
 
-function MessageMockup() {
+export function MessageMockup() {
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
       <div className="rounded border-l-4 border-primary bg-muted px-3 py-2">
-        <div className="font-semibold">📜 Server Rules</div>
+        <div className="font-semibold">📜 Server rules</div>
         <div className="mt-1 text-muted-foreground">
           Be kind, keep it on topic and no spam. Click below to get access to
           the server.
@@ -34,7 +34,7 @@ const points = [
   { name: "Jordan", value: 455 },
 ];
 
-function VariableMockup() {
+export function VariableMockup() {
   const max = Math.max(...points.map((p) => p.value));
   return (
     <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
@@ -95,13 +95,13 @@ const features: {
   mockup: ReactNode;
 }[] = [
   {
-    title: "Message Editor",
+    title: "Message editor",
     description:
       "Design messages with embeds, buttons and select menus, and see them the way Discord shows them.",
     mockup: <MessageMockup />,
   },
   {
-    title: "Stored Variables",
+    title: "Stored variables",
     description:
       "Keep points, counts and settings for each member or server, even across restarts.",
     mockup: <VariableMockup />,
@@ -109,7 +109,7 @@ const features: {
   {
     title: "Templates",
     description:
-      "Add one of 50+ ready-made bots from the Marketplace, then change it to fit your server.",
+      "Add one of 100+ ready-made bots from the Marketplace, then change it to fit your server.",
     href: "/marketplace",
     mockup: <TemplateMockup />,
   },
@@ -146,7 +146,7 @@ const extras: {
     ),
   },
   {
-    title: "Build Together",
+    title: "Build together",
     description: "Invite collaborators who edit the same bot with you.",
     visual: (
       <div className="flex -space-x-2">
@@ -162,7 +162,7 @@ const extras: {
     ),
   },
   {
-    title: "Open Source",
+    title: "Open source",
     description: "See how Kite works, or host it on your own server.",
     href: env.NEXT_PUBLIC_GITHUB_LINK,
     visual: (
@@ -176,7 +176,7 @@ const extras: {
 export default function HomeFeaturesSection() {
   return (
     <section id="features" className="scroll-mt-16 container py-16 sm:py-24">
-      <h2 className="text-3xl md:text-4xl font-bold">More Than Commands</h2>
+      <h2 className="text-3xl md:text-4xl font-bold">More than commands</h2>
       <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
         Messages with buttons, data that sticks around and bots you can add in
         one click, all on the free plan.
@@ -232,6 +232,14 @@ export default function HomeFeaturesSection() {
           </div>
         ))}
       </div>
+
+      <Link
+        href="/features"
+        className="mt-10 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+      >
+        See every feature and block
+        <ArrowRightIcon className="w-4 h-4" />
+      </Link>
     </section>
   );
 }

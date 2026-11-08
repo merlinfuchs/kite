@@ -5,13 +5,13 @@ sidebar_position: 4.5
 import Tabs from "@theme/Tabs";
 import TabItem from "@theme/TabItem";
 
-# Building with AI Clients (MCP)
+# Building with AI clients (MCP)
 
 Kite is an MCP server, so AI clients like Claude, ChatGPT, Claude Code and Codex can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
 
-The client uses its own AI model, so this doesn't use [flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
+The client uses its own AI model, so this doesn't use [Flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
 
-## Connect Your Client
+## Connect your client
 
 The server is at `https://kite.onl/api/mcp`. Most clients connect by signing in: you add the URL, the client opens Kite, and you pick what it can do. Clients that can't sign in, like Cursor, use an [API token](#api-tokens) instead.
 
@@ -145,7 +145,7 @@ Add a remote MCP server with Streamable HTTP and the URL above. If the client ca
 </TabItem>
 </Tabs>
 
-## Signing In
+## Signing in
 
 When a client signs in, Kite shows which client it is and the domain it comes from, like claude.ai. Kite marks the clients it knows, like Claude and ChatGPT, as verified. Only connect a client you just added yourself.
 
@@ -158,7 +158,7 @@ Clients that sign in can't send requests to Discord as your bot. For that, conne
 
 Connected clients are listed under [API tokens](https://kite.onl/apps?api-tokens), where you can disconnect them. A client stays connected as long as you use it. After 30 days without using it, it has to sign in again.
 
-## API Tokens
+## API tokens
 
 Clients that can't sign in connect with an API token, and so do clients that need the [Discord API](#discord-api). Open [API tokens](https://kite.onl/apps?api-tokens) in the dashboard and pick what the token can do, like when [signing in](#signing-in), and whether it can send requests to Discord.
 
@@ -168,7 +168,7 @@ The token is only shown once, right after you create it. The dialog also shows h
 
 ![Creating a token for Claude Code that can change two apps and read from Discord, and the command to add it to Claude Code](./img/mcp-token.webp)
 
-## What You Can Ask For
+## What you can ask for
 
 Start by telling the client which app to work on, or ask it to list your apps. Some examples:
 
@@ -182,6 +182,14 @@ Start by telling the client which app to work on, or ask it to list your apps. S
 The client can see the channels and roles of your servers to fill in blocks, and it looks up how each block works before using it.
 
 Changes are saved and live right away, and new commands show up in Discord within a minute. Every change is kept in the [history](./getting-started.md#saving-and-history) of the command, event listener or message template, so you can undo it there. Kite tells the client to only delete or disable things you asked for.
+
+## Testing Flows
+
+The client can test the flows it builds, instead of asking you to try them in Discord. A test runs a flow with a fake trigger, like the command with options the client picks, a message for a message event listener, or a webhook request. It can then click the buttons and fill in the modals the flow shows. Tests need [Discord API](#discord-api) access, `Read only` is enough.
+
+Tests don't change anything. Reads from Discord are real, so placeholders like the user's name and blocks like `Get Member` work as usual. Messages, role changes and every other change are reported to the client instead of made, with a warning when Discord would reject them, like when the bot lacks a permission or a role is above the bot's own. Stored variables can change during a test, but the changes aren't saved. The client can also set the stored values a test starts with, like a member's balance or XP.
+
+Blocks that call other services, like `Send API Request`, AI blocks and integrations, don't run in tests. The client tells Kite what they return instead, or makes them fail, to check what the flow does with each answer. Tests don't use credits, and clients can run up to 30 of them per minute.
 
 ## Templates
 
@@ -201,6 +209,6 @@ The bot can only do what its roles allow in a server. A few endpoints can't be u
 
 Every change is logged in your app's [logs](./troubleshooting.md#logs) with the name of the token. Changes that show up in the server's audit log have the token's name as the reason. Clients can send up to 30 requests per minute.
 
-## Self-Hosting
+## Self-hosting
 
 The MCP server runs in the Kite website's server. If you self-host Kite with the static export of the website, it isn't available.

@@ -26,4 +26,4 @@ Notes support the markdown you know from Discord: `**bold**`, `*italic*`, `__und
 
 Auto arrange leaves notes where you put them and only moves them out of the way if the arranged blocks would cover them. Undo and redo work for notes like for blocks, and notes can be copied and pasted along with blocks.
 
-The [Flow AI](../guides/flow-ai.md) reads your notes to understand the flow, but doesn't change them.
+[Flow AI](../guides/flow-ai.md) reads your notes to understand the flow, but doesn't change them.

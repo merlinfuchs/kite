@@ -30,6 +30,11 @@ type Engine struct {
 	scheduledApps   map[string]*App
 }
 
+// Env is what the engine runs flows with, for test runs.
+func (e *Engine) Env() Env {
+	return e.env
+}
+
 func NewEngine(
 	env Env,
 ) *Engine {

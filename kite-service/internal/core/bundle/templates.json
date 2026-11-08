@@ -508,7 +508,7 @@
     "about": [
       "The bot checks every message with AI, also when it's edited, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where.",
       "The AI only deletes a message when it's at least 90% sure that it breaks the rules. Messages it's less sure about stay up and go to the log channel with a link, so a moderator can decide. You can add rules of your own, like no links to other servers, and they're checked together with the default ones.",
-      "Each check costs 1 credit. On a busy server, set New Member Days to a number, like 7, so only members who joined within that many days are checked. Spam bots and raiders are usually new to the server, so that catches most of them for a fraction of the credits. Members who can manage messages, like your moderators, are never checked."
+      "Each check costs 1 credit. On a busy server, set New member days to a number, like 7, so only members who joined within that many days are checked. Spam bots and raiders are usually new to the server, so that catches most of them for a fraction of the credits. Members who can manage messages, like your moderators, are never checked."
     ],
     "faq": [
       {
@@ -517,7 +517,7 @@
       },
       {
         "question": "How many credits does it use?",
-        "answer": "1 credit for every message it checks, and again when a message is edited. Messages without text and messages of moderators are skipped. To check fewer messages, set New Member Days to check only members who joined within that many days. Deleting a message and posting it in the log channel cost 1 credit each."
+        "answer": "1 credit for every message it checks, and again when a message is edited. Messages without text and messages of moderators are skipped. To check fewer messages, set New member days to check only members who joined within that many days. Deleting a message and posting it in the log channel cost 1 credit each."
       },
       {
         "question": "Can the AI make mistakes?",
@@ -538,21 +538,21 @@
     "parameters": [
       {
         "key": "log_channel_id",
-        "label": "Log Channel",
+        "label": "Log channel",
         "description": "The channel deleted messages and messages to review are posted in.",
         "type": "channel",
         "required": true
       },
       {
         "key": "max_member_days",
-        "label": "New Member Days",
+        "label": "New member days",
         "description": "Only check members who joined within this many days, like 7. Leave empty to check every member.",
         "type": "text",
         "required": false
       },
       {
         "key": "rules",
-        "label": "Extra Rules",
+        "label": "Extra rules",
         "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads and insults are always checked.",
         "type": "textarea",
         "required": false
@@ -985,7 +985,7 @@
     "category": "ai",
     "about": [
       "Members ask the AI a question with /ask, and only they see the answer. They can also mention the bot in a message, and it replies to that message in the channel for everyone to read.",
-      "The system prompt setting gives the AI its personality and rules, like the topics it should stick to or the language it should answer in. Leave it empty for a general assistant. Answers use the Fast AI model, and the 10,000 monthly credits of the free plan cover more than 1,400 of them."
+      "The Personality setting gives the AI its personality and rules, like the topics it should stick to or the language it should answer in. Leave it empty for a general assistant. Answers use the Fast AI model, and the 10,000 monthly credits of the free plan cover more than 1,400 of them."
     ],
     "faq": [
       {
@@ -998,7 +998,7 @@
       },
       {
         "question": "Can I keep the AI on topic?",
-        "answer": "Yes. Describe in the system prompt what the AI should help with and how it should answer, for example only questions about your game or your server's rules."
+        "answer": "Yes. Describe in the Personality setting what the AI should help with and how it should answer, for example only questions about your game or your server's rules."
       },
       {
         "question": "Do I need the Message Content Intent?",
@@ -1958,7 +1958,7 @@
     "category": "welcome",
     "about": [
       "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
-      "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
+      "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message templates."
     ],
     "faq": [
       {
@@ -1971,7 +1971,7 @@
       },
       {
         "question": "Can I post the message again?",
-        "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
+        "answer": "Yes. Open Message templates in your app and send the Verification message to any channel."
       }
     ],
     "setup": [
@@ -1988,7 +1988,7 @@
       },
       {
         "key": "role_id",
-        "label": "Verified Role",
+        "label": "Verified role",
         "description": "The role members get when they click Verify.",
         "type": "role",
         "required": true
@@ -2354,14 +2354,14 @@
     "parameters": [
       {
         "key": "channel_id",
-        "label": "Starboard Channel",
+        "label": "Starboard channel",
         "description": "The channel the bot posts starred messages in.",
         "type": "channel",
         "required": true
       },
       {
         "key": "stars",
-        "label": "Stars Needed",
+        "label": "Stars needed",
         "description": "How many ⭐ reactions a message needs to be posted, like 3.",
         "type": "text",
         "required": true
@@ -2769,6 +2769,1562 @@
     "changelog": []
   },
   {
+    "id": "leveling",
+    "version": 1,
+    "name": "Leveling",
+    "description": "Members earn XP for chatting and level up, with /rank, /leaderboard, and an optional reward role.",
+    "icon": "trophy",
+    "category": "community",
+    "about": [
+      "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in.",
+      "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept in a stored variable, so it stays when the bot restarts."
+    ],
+    "faq": [
+      {
+        "question": "How many credits does it use?",
+        "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
+      },
+      {
+        "question": "Does the bot need the Message Content Intent?",
+        "answer": "No. It counts messages without reading them."
+      },
+      {
+        "question": "Can I change how much XP a message gives?",
+        "answer": "Yes. Open the event listener and find the Add 15 to 25 XP block. Its value is 15 plus a random number from 0 to 10, so change the 15 to give more or less XP. Levels follow from the XP, so level N always needs 100 × N² XP."
+      },
+      {
+        "question": "Why didn't a member get the reward role?",
+        "answer": "The bot needs the Manage Roles permission, and its own role has to be above the reward role. Members who were already past the reward level when you added the role get it the next time they level up."
+      },
+      {
+        "question": "Is XP shared between servers?",
+        "answer": "No. Each server has its own XP and its own leaderboard."
+      }
+    ],
+    "setup": [],
+    "parameters": [
+      {
+        "key": "level_up_channel",
+        "label": "Level-up channel",
+        "description": "Where level-up messages go. Leave it empty to post them in the channel the member chatted in.",
+        "type": "channel",
+        "required": false
+      },
+      {
+        "key": "reward_role",
+        "label": "Reward role",
+        "description": "A role members get when they reach the reward level. Leave it empty for no reward.",
+        "type": "role",
+        "required": false
+      },
+      {
+        "key": "reward_level",
+        "label": "Reward level",
+        "description": "The level that gives the reward role, like 5.",
+        "type": "text",
+        "required": false,
+        "default": "5"
+      }
+    ],
+    "commands": [
+      {
+        "id": "rank",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_k1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to show, yourself if empty.",
+                "command_argument_type": "user",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "contexts_k2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_k3r",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "rank",
+                "description": "Show your level and XP, or another member's."
+              }
+            },
+            {
+              "id": "variable_k4g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Their XP",
+                "variable_id": "xp",
+                "variable_scope": "{{interaction.guild.id}}:{{(arg('user') ?? user).id}}"
+              }
+            },
+            {
+              "id": "response_k5s",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "{{(arg('user') ?? user).display_name}}",
+                      "description": "{{let xp = int(result('variable_k4g') ?? 0); let level = int((xp / 100) ** 0.5); \"Level **\" + string(level) + \"** with **\" + string(xp) + \" XP**.\\n\" + string(100 * (level + 1) * (level + 1) - xp) + \" XP to level \" + string(level + 1) + \".\"}}",
+                      "thumbnail": {
+                        "url": "{{(arg('user') ?? user).avatar_url}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300079190",
+              "source": "arg_k1u",
+              "target": "command_k3r"
+            },
+            {
+              "id": "300087109",
+              "source": "contexts_k2c",
+              "target": "command_k3r"
+            },
+            {
+              "id": "300095028",
+              "source": "command_k3r",
+              "target": "variable_k4g"
+            },
+            {
+              "id": "300102947",
+              "source": "variable_k4g",
+              "target": "response_k5s"
+            }
+          ]
+        }
+      },
+      {
+        "id": "leaderboard",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_b1p",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "page",
+                "description": "Which page to show, 10 members each. Defaults to 1.",
+                "command_argument_type": "integer",
+                "command_argument_required": false,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000
+              }
+            },
+            {
+              "id": "contexts_b2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_b3l",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "leaderboard",
+                "description": "Show the members with the most XP."
+              }
+            },
+            {
+              "id": "values_b4t",
+              "type": "action_variable_list",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "10 members with the most XP",
+                "variable_id": "xp",
+                "variable_sort": "value_desc",
+                "variable_scope_prefix": "{{interaction.guild.id}}:",
+                "variable_limit": "10",
+                "variable_skip": "{{(int(arg('page') ?? 1) - 1) * 10}}"
+              }
+            },
+            {
+              "id": "response_b5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "Leaderboard",
+                      "description": "{{let page = int(arg('page') ?? 1); let rows = result('values_b4t'); len(rows) == 0 ? (page == 1 ? \"No one has XP yet. Members earn it by chatting.\" : \"There's no one on page \" + string(page) + \".\") : join(map(rows, { \"**\" + string((page - 1) * 10 + #index + 1) + \".** <@\" + split(#.scope, \":\")[1] + \"> · Level \" + string(int((int(#.value) / 100) ** 0.5)) + \" · \" + string(int(#.value)) + \" XP\" }), \"\\n\")}}",
+                      "footer": {
+                        "text": "Page {{int(arg('page') ?? 1)}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300110866",
+              "source": "arg_b1p",
+              "target": "command_b3l"
+            },
+            {
+              "id": "300118785",
+              "source": "contexts_b2c",
+              "target": "command_b3l"
+            },
+            {
+              "id": "300126704",
+              "source": "command_b3l",
+              "target": "values_b4t"
+            },
+            {
+              "id": "300134623",
+              "source": "values_b4t",
+              "target": "response_b5r"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [
+      {
+        "id": "leveling-xp",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_l7x",
+              "type": "entry_event",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Give members XP for chatting, at most once a minute."
+              }
+            },
+            {
+              "id": "variable_c6k",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "custom_label": "Time of the last XP",
+                "variable_id": "xp-cooldown",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}"
+              }
+            },
+            {
+              "id": "if_c7w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "A minute since the last XP?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_c6k') ?? 0) >= 60}}"
+              }
+            },
+            {
+              "id": "variable_s2t",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Save the time of this XP",
+                "variable_id": "xp-cooldown",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{now().Unix()}}"
+              }
+            },
+            {
+              "id": "variable_o2d",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "XP before",
+                "variable_id": "xp",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}"
+              }
+            },
+            {
+              "id": "variable_n4w",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Add 15 to 25 XP",
+                "variable_id": "xp",
+                "variable_scope": "{{event.guild.id}}:{{event.user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{15 + now().UnixMilli() % 11}}"
+              }
+            },
+            {
+              "id": "if_u5p",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Reached a new level?",
+                "condition_base_value": "{{int((int(result('variable_n4w')) / 100) ** 0.5) > int((int(result('variable_o2d') ?? 0) / 100) ** 0.5)}}"
+              }
+            },
+            {
+              "id": "message_l8v",
+              "type": "action_message_create",
+              "position": {
+                "x": -250,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Level-up message",
+                "channel_target": "{{(params.level_up_channel ?? \"\") != \"\" ? params.level_up_channel : event.channel.id}}",
+                "message_data": {
+                  "content": "🎉 {{event.user.mention}} reached level **{{int((int(result('variable_n4w')) / 100) ** 0.5)}}**!",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": "if_r2w",
+              "type": "control_if",
+              "position": {
+                "x": 250,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Reward role due?",
+                "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
+              }
+            },
+            {
+              "id": "error_r5h",
+              "type": "control_error_handler",
+              "position": {
+                "x": 250,
+                "y": 1680
+              },
+              "data": {
+                "custom_label": "Skip if the role can't be given"
+              }
+            },
+            {
+              "id": "member_r6a",
+              "type": "action_member_role_add",
+              "position": {
+                "x": 250,
+                "y": 1890
+              },
+              "data": {
+                "custom_label": "Give the reward role",
+                "user_target": "{{event.user.id}}",
+                "role_target": "{{params.reward_role}}"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "300000000",
+              "source": "event_l7x",
+              "target": "variable_c6k"
+            },
+            {
+              "id": "300007919",
+              "source": "variable_c6k",
+              "target": "if_c7w"
+            },
+            {
+              "id": "300015838",
+              "source": "if_c7w",
+              "target": "variable_s2t",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300023757",
+              "source": "variable_s2t",
+              "target": "variable_o2d"
+            },
+            {
+              "id": "300031676",
+              "source": "variable_o2d",
+              "target": "variable_n4w"
+            },
+            {
+              "id": "300039595",
+              "source": "variable_n4w",
+              "target": "if_u5p"
+            },
+            {
+              "id": "300047514",
+              "source": "if_u5p",
+              "target": "if_r2w",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300055433",
+              "source": "if_u5p",
+              "target": "message_l8v",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300063352",
+              "source": "if_r2w",
+              "target": "error_r5h",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "300071271",
+              "source": "error_r5h",
+              "target": "member_r6a",
+              "sourceHandle": "default"
+            }
+          ]
+        }
+      }
+    ],
+    "messages": [],
+    "variables": [
+      {
+        "id": "xp",
+        "name": "xp",
+        "scoped": true
+      },
+      {
+        "id": "xp-cooldown",
+        "name": "xp_cooldown",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
+    "id": "economy",
+    "version": 1,
+    "name": "Economy",
+    "description": "Members earn coins with /daily and /work, send them with /pay, and compete on /richest.",
+    "icon": "coins",
+    "category": "games",
+    "about": [
+      "Members collect 100 coins a day with /daily and earn 20 to 60 coins an hour with /work. /balance shows how many coins a member has, /pay sends coins to another member, and /richest lists the members with the most, 10 per page.",
+      "You can rename the coins and change the daily amount when you add the template. Members with the Manage Server permission can give or take coins with /add-coins. Balances are counted per server and kept in a stored variable, so they stay when the bot restarts."
+    ],
+    "faq": [
+      {
+        "question": "How many credits does it use?",
+        "answer": "/balance uses 1 credit, /richest and /add-coins 2, and /daily, /work, and /pay 3 each. Reading balances is free, and saving them costs 1 credit each."
+      },
+      {
+        "question": "Can members spend their coins?",
+        "answer": "Only on each other with /pay. The template has no shop. You can build one with a command that checks the balance with an If block, takes the coins with a Set stored variable block, and gives a role."
+      },
+      {
+        "question": "Can a balance go below zero?",
+        "answer": "Only with /add-coins. /pay checks the balance before it sends anything, and gives the coins back if two payments at once would take it below zero."
+      },
+      {
+        "question": "How do I reset everyone's coins?",
+        "answer": "Open Stored variables in the sidebar and delete the values of the balance variable."
+      },
+      {
+        "question": "Are balances shared between servers?",
+        "answer": "No. Each server has its own balances and its own /richest list."
+      }
+    ],
+    "setup": [],
+    "parameters": [
+      {
+        "key": "currency",
+        "label": "Currency",
+        "description": "What the coins are called in messages, like coins or gems.",
+        "type": "text",
+        "required": true,
+        "default": "coins"
+      },
+      {
+        "key": "daily_amount",
+        "label": "Daily amount",
+        "description": "How many coins /daily gives.",
+        "type": "text",
+        "required": true,
+        "default": "100"
+      }
+    ],
+    "commands": [
+      {
+        "id": "balance",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_a1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to show, yourself if empty.",
+                "command_argument_type": "user",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "contexts_a2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_a3b",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "balance",
+                "description": "Show how many coins you or another member have."
+              }
+            },
+            {
+              "id": "variable_a4g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Their balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{(arg('user') ?? user).id}}"
+              }
+            },
+            {
+              "id": "response_a5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{(arg('user') ?? user).id == user.id ? \"You have\" : (arg('user') ?? user).display_name + \" has\"}} **{{int(result('variable_a4g') ?? 0)}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400000000",
+              "source": "arg_a1u",
+              "target": "command_a3b"
+            },
+            {
+              "id": "400007919",
+              "source": "contexts_a2c",
+              "target": "command_a3b"
+            },
+            {
+              "id": "400015838",
+              "source": "command_a3b",
+              "target": "variable_a4g"
+            },
+            {
+              "id": "400023757",
+              "source": "variable_a4g",
+              "target": "response_a5r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "daily",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "contexts_d1c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_d2m",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "daily",
+                "description": "Collect your daily coins."
+              }
+            },
+            {
+              "id": "variable_d3c",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Time of the last daily",
+                "variable_id": "daily-cooldown",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "if_d5w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "A day since the last daily?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_d3c') ?? 0) >= 86400}}"
+              }
+            },
+            {
+              "id": "variable_d9a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Add the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{int(params.daily_amount)}}"
+              }
+            },
+            {
+              "id": "variable_d8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Save the time",
+                "variable_id": "daily-cooldown",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{now().Unix()}}"
+              }
+            },
+            {
+              "id": "response_d0r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "You got **{{int(params.daily_amount)}}** {{params.currency}}. You have **{{int(result('variable_d9a'))}}** now, and you can get more <t:{{now().Unix() + 86400}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "response_d0w",
+              "type": "action_response_create",
+              "position": {
+                "x": 400,
+                "y": 840
+              },
+              "data": {
+                "message_data": {
+                  "content": "You already got your daily {{params.currency}}. You can get more <t:{{int(result('variable_d3c')) + 86400}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400031676",
+              "source": "contexts_d1c",
+              "target": "command_d2m"
+            },
+            {
+              "id": "400039595",
+              "source": "command_d2m",
+              "target": "variable_d3c"
+            },
+            {
+              "id": "400047514",
+              "source": "variable_d3c",
+              "target": "if_d5w"
+            },
+            {
+              "id": "400055433",
+              "source": "if_d5w",
+              "target": "variable_d9a",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "400063352",
+              "source": "if_d5w",
+              "target": "response_d0w",
+              "sourceHandle": "no"
+            },
+            {
+              "id": "400071271",
+              "source": "variable_d9a",
+              "target": "variable_d8s"
+            },
+            {
+              "id": "400079190",
+              "source": "variable_d8s",
+              "target": "response_d0r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "work",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "contexts_w1c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_w2m",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "work",
+                "description": "Work for some coins, once an hour."
+              }
+            },
+            {
+              "id": "variable_w3c",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Time of the last work",
+                "variable_id": "work-cooldown",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "if_w5w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "An hour since the last work?",
+                "condition_base_value": "{{now().Unix() - int(result('variable_w3c') ?? 0) >= 3600}}"
+              }
+            },
+            {
+              "id": "variable_w9a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Add the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{(20 + int(interaction.id) % 41)}}"
+              }
+            },
+            {
+              "id": "variable_w8s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Save the time",
+                "variable_id": "work-cooldown",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "overwrite",
+                "variable_value": "{{now().Unix()}}"
+              }
+            },
+            {
+              "id": "response_w0r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "message_data": {
+                  "content": "You {{[\"walked some dogs\", \"fixed a bug\", \"delivered pizza\", \"moderated a busy chat\", \"streamed to 3 viewers\", \"sold lemonade\"][(20 + int(interaction.id) % 41) % 6]}} and earned **{{(20 + int(interaction.id) % 41)}}** {{params.currency}}. You have **{{int(result('variable_w9a'))}}** now.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "response_w0w",
+              "type": "action_response_create",
+              "position": {
+                "x": 400,
+                "y": 840
+              },
+              "data": {
+                "message_data": {
+                  "content": "You can work again <t:{{int(result('variable_w3c')) + 3600}}:R>.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400087109",
+              "source": "contexts_w1c",
+              "target": "command_w2m"
+            },
+            {
+              "id": "400095028",
+              "source": "command_w2m",
+              "target": "variable_w3c"
+            },
+            {
+              "id": "400102947",
+              "source": "variable_w3c",
+              "target": "if_w5w"
+            },
+            {
+              "id": "400110866",
+              "source": "if_w5w",
+              "target": "variable_w9a",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "400118785",
+              "source": "if_w5w",
+              "target": "response_w0w",
+              "sourceHandle": "no"
+            },
+            {
+              "id": "400126704",
+              "source": "variable_w9a",
+              "target": "variable_w8s"
+            },
+            {
+              "id": "400134623",
+              "source": "variable_w8s",
+              "target": "response_w0r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "pay",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_p1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -400,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to pay.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_p1a",
+              "type": "option_command_argument",
+              "position": {
+                "x": -150,
+                "y": 0
+              },
+              "data": {
+                "name": "amount",
+                "description": "How many coins to send.",
+                "command_argument_type": "integer",
+                "command_argument_required": true,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000000
+              }
+            },
+            {
+              "id": "contexts_p2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_p3p",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "pay",
+                "description": "Send coins to another member."
+              }
+            },
+            {
+              "id": "if_p4w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Another member, not a bot?",
+                "condition_base_value": "{{arg('user').id != user.id && !arg('user').is_bot}}"
+              }
+            },
+            {
+              "id": "response_p5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "You can't pay yourself or a bot.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_p6g",
+              "type": "action_variable_get",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "custom_label": "Your balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}"
+              }
+            },
+            {
+              "id": "if_p7w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "custom_label": "Enough coins?",
+                "condition_base_value": "{{int(result('variable_p6g') ?? 0) >= int(arg('amount'))}}"
+              }
+            },
+            {
+              "id": "response_p8r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 1050
+              },
+              "data": {
+                "message_data": {
+                  "content": "You only have **{{int(result('variable_p6g') ?? 0)}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "variable_p9d",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1050
+              },
+              "data": {
+                "custom_label": "Take your coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "decrement",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "if_q1w",
+              "type": "control_if",
+              "position": {
+                "x": 0,
+                "y": 1260
+              },
+              "data": {
+                "custom_label": "Still not below zero?",
+                "condition_base_value": "{{int(result('variable_p9d')) >= 0}}"
+              }
+            },
+            {
+              "id": "variable_q3a",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Give them the coins",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{arg('user').id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_q4r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 1680
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{user.mention}} paid {{arg('user').mention}} **{{int(arg('amount'))}}** {{params.currency}}.",
+                  "allowed_mentions": {
+                    "parse": [
+                      "users"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": "variable_q5f",
+              "type": "action_variable_set",
+              "position": {
+                "x": 450,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Give your coins back",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{user.id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_q6r",
+              "type": "action_response_create",
+              "position": {
+                "x": 450,
+                "y": 1680
+              },
+              "data": {
+                "message_data": {
+                  "content": "You don't have enough {{params.currency}} for that anymore.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400142542",
+              "source": "arg_p1u",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400150461",
+              "source": "arg_p1a",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400158380",
+              "source": "contexts_p2c",
+              "target": "command_p3p"
+            },
+            {
+              "id": "400166299",
+              "source": "command_p3p",
+              "target": "if_p4w"
+            },
+            {
+              "id": "400174218",
+              "source": "if_p4w",
+              "target": "response_p5r",
+              "sourceHandle": "no"
+            },
+            {
+              "id": "400182137",
+              "source": "if_p4w",
+              "target": "variable_p6g",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "400190056",
+              "source": "variable_p6g",
+              "target": "if_p7w"
+            },
+            {
+              "id": "400197975",
+              "source": "if_p7w",
+              "target": "response_p8r",
+              "sourceHandle": "no"
+            },
+            {
+              "id": "400205894",
+              "source": "if_p7w",
+              "target": "variable_p9d",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "400213813",
+              "source": "variable_p9d",
+              "target": "if_q1w"
+            },
+            {
+              "id": "400221732",
+              "source": "if_q1w",
+              "target": "variable_q3a",
+              "sourceHandle": "yes"
+            },
+            {
+              "id": "400229651",
+              "source": "variable_q3a",
+              "target": "response_q4r"
+            },
+            {
+              "id": "400237570",
+              "source": "if_q1w",
+              "target": "variable_q5f",
+              "sourceHandle": "no"
+            },
+            {
+              "id": "400245489",
+              "source": "variable_q5f",
+              "target": "response_q6r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "richest",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_r1p",
+              "type": "option_command_argument",
+              "position": {
+                "x": -250,
+                "y": 0
+              },
+              "data": {
+                "name": "page",
+                "description": "Which page to show, 10 members each. Defaults to 1.",
+                "command_argument_type": "integer",
+                "command_argument_required": false,
+                "command_argument_min_value": 1,
+                "command_argument_max_value": 1000
+              }
+            },
+            {
+              "id": "contexts_r2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_r3r",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "richest",
+                "description": "Show the members with the most coins."
+              }
+            },
+            {
+              "id": "values_r4t",
+              "type": "action_variable_list",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "10 members with the most coins",
+                "variable_id": "coins",
+                "variable_sort": "value_desc",
+                "variable_scope_prefix": "{{interaction.guild.id}}:",
+                "variable_limit": "10",
+                "variable_skip": "{{(int(arg('page') ?? 1) - 1) * 10}}"
+              }
+            },
+            {
+              "id": "response_r5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "embeds": [
+                    {
+                      "title": "Richest members",
+                      "description": "{{let page = int(arg('page') ?? 1); let rows = result('values_r4t'); len(rows) == 0 ? (page == 1 ? \"No one has \" + params.currency + \" yet. Members get them with /daily and /work.\" : \"There's no one on page \" + string(page) + \".\") : join(map(rows, { \"**\" + string((page - 1) * 10 + #index + 1) + \".** <@\" + split(#.scope, \":\")[1] + \"> · \" + string(int(#.value)) + \" \" + params.currency }), \"\\n\")}}",
+                      "footer": {
+                        "text": "Page {{int(arg('page') ?? 1)}}"
+                      },
+                      "color": 5793266
+                    }
+                  ],
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400253408",
+              "source": "arg_r1p",
+              "target": "command_r3r"
+            },
+            {
+              "id": "400261327",
+              "source": "contexts_r2c",
+              "target": "command_r3r"
+            },
+            {
+              "id": "400269246",
+              "source": "command_r3r",
+              "target": "values_r4t"
+            },
+            {
+              "id": "400277165",
+              "source": "values_r4t",
+              "target": "response_r5r"
+            }
+          ]
+        }
+      },
+      {
+        "id": "add-coins",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "arg_c1u",
+              "type": "option_command_argument",
+              "position": {
+                "x": -400,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The member to give coins to.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_c1a",
+              "type": "option_command_argument",
+              "position": {
+                "x": -150,
+                "y": 0
+              },
+              "data": {
+                "name": "amount",
+                "description": "How many coins to give, or a negative number to take some away.",
+                "command_argument_type": "integer",
+                "command_argument_required": true,
+                "command_argument_min_value": -1000000,
+                "command_argument_max_value": 1000000
+              }
+            },
+            {
+              "id": "permissions_c2p",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 150,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "32"
+              }
+            },
+            {
+              "id": "contexts_c2c",
+              "type": "option_command_contexts",
+              "position": {
+                "x": 250,
+                "y": 0
+              },
+              "data": {
+                "command_disabled_contexts": [
+                  "bot_dm",
+                  "private_channel"
+                ]
+              }
+            },
+            {
+              "id": "command_c3a",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "add-coins",
+                "description": "Give coins to a member, or take some away."
+              }
+            },
+            {
+              "id": "variable_c4s",
+              "type": "action_variable_set",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "custom_label": "Change their balance",
+                "variable_id": "coins",
+                "variable_scope": "{{interaction.guild.id}}:{{arg('user').id}}",
+                "variable_operation": "increment",
+                "variable_value": "{{arg('amount')}}"
+              }
+            },
+            {
+              "id": "response_c5r",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{arg('user').mention}} has **{{int(result('variable_c4s'))}}** {{params.currency}} now.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "400285084",
+              "source": "arg_c1u",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400293003",
+              "source": "arg_c1a",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400300922",
+              "source": "permissions_c2p",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400308841",
+              "source": "contexts_c2c",
+              "target": "command_c3a"
+            },
+            {
+              "id": "400316760",
+              "source": "command_c3a",
+              "target": "variable_c4s"
+            },
+            {
+              "id": "400324679",
+              "source": "variable_c4s",
+              "target": "response_c5r"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [],
+    "messages": [],
+    "variables": [
+      {
+        "id": "coins",
+        "name": "balance",
+        "scoped": true
+      },
+      {
+        "id": "daily-cooldown",
+        "name": "daily_cooldown",
+        "scoped": true
+      },
+      {
+        "id": "work-cooldown",
+        "name": "work_cooldown",
+        "scoped": true
+      }
+    ],
+    "changelog": []
+  },
+  {
     "id": "server-info",
     "version": 1,
     "name": "Server Info",
@@ -3120,7 +4676,7 @@
     "parameters": [
       {
         "key": "channel_id",
-        "label": "Staff Channel",
+        "label": "Staff channel",
         "description": "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
         "type": "channel",
         "required": true
@@ -3375,7 +4931,7 @@
       },
       {
         "question": "How do I reset the count?",
-        "answer": "Post a wrong number, or delete the value of the counting variable on the Variables page of your app."
+        "answer": "Post a wrong number, or delete the value of the counting variable on the Stored variables page of your app."
       }
     ],
     "setup": [
@@ -3384,7 +4940,7 @@
     "parameters": [
       {
         "key": "channel_id",
-        "label": "Counting Channel",
+        "label": "Counting channel",
         "description": "The channel members count in.",
         "type": "channel",
         "required": true
@@ -3671,7 +5227,7 @@
     "category": "games",
     "about": [
       "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
-      "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Setup is two steps: enable ER:LC under Integrations in your app with your server key, and authorize Kite once so /announce can run commands."
+      "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. To set it up, enable ER:LC under Integrations in your app and add your server key. Then authorize Kite once, so /announce can run commands."
     ],
     "faq": [
       {
@@ -5599,12 +7155,12 @@
     "category": "utility",
     "about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-      "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
+      "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Message templates any time without opening the flow. It shows up after the next message in the channel."
     ],
     "faq": [
       {
         "question": "How do I change the sticky message?",
-        "answer": "Edit the Sticky message under Messages in your app. The next time the bot posts it, it uses the new version."
+        "answer": "Edit the Sticky message under Message templates in your app. The next time the bot posts it, it uses the new version."
       },
       {
         "question": "How many credits does it use?",
@@ -5619,7 +7175,7 @@
     "parameters": [
       {
         "key": "sticky_channel",
-        "label": "Sticky Channel",
+        "label": "Sticky channel",
         "description": "The channel the message stays at the bottom of.",
         "type": "channel",
         "required": true
@@ -6286,7 +7842,7 @@
     "category": "moderation",
     "about": [
       "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
-      "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Messages."
+      "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Message templates."
     ],
     "faq": [
       {
@@ -6304,14 +7860,14 @@
     "parameters": [
       {
         "key": "honeypot_channel",
-        "label": "Honeypot Channel",
+        "label": "Honeypot channel",
         "description": "The channel that catches spam bots. Anyone without the Manage Messages permission who sends a message in it gets softbanned.",
         "type": "channel",
         "required": true
       },
       {
         "key": "log_channel",
-        "label": "Log Channel",
+        "label": "Log channel",
         "description": "The channel caught messages are forwarded to and each kick is logged in.",
         "type": "channel",
         "required": true

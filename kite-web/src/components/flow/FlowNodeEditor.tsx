@@ -29,6 +29,7 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
+import { variableListSorts } from "@/lib/blocks/variableList";
 import {
   lookupMaxRows,
   lookupModes,
@@ -40,6 +41,9 @@ import {
   integrations,
   needsCredential,
 } from "@/lib/integrations";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
+import { AppIntegrationEnableButton } from "../app/AppIntegrationList";
+import { CredentialIntegration } from "@/lib/integrations/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -123,6 +127,8 @@ import {
   webhookVerifyEncodings,
   webhookVerifyPresets,
 } from "@/lib/blocks/controlWebhookVerify";
+import { robloxGroupRoleModes } from "@/lib/blocks/robloxGroupMemberRoleEdit";
+import { robloxJoinRequestActions } from "@/lib/blocks/robloxGroupJoinRequestRespond";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -236,6 +242,8 @@ export const settingInputs: Record<string, any> = {
   persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  member_voice_mute: MemberVoiceMuteInput,
+  member_voice_deaf: MemberVoiceDeafInput,
   audio_channel_target: AudioChannelTargetInput,
   audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
@@ -246,6 +254,7 @@ export const settingInputs: Record<string, any> = {
   variable_id: VariableIdInput,
   variable_scope: VariableScopeInput,
   variable_operation: VariableOperationInput,
+  variable_list: VariableListInput,
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
@@ -277,6 +286,10 @@ export const settingInputs: Record<string, any> = {
   member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
+  roblox_group_id: RobloxGroupIdInput,
+  roblox_group_role: RobloxGroupRoleInput,
+  roblox_group_role_mode: RobloxGroupRoleModeInput,
+  roblox_join_request_action: RobloxJoinRequestActionInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_compare_base_value: ConditionCompareBaseValueInput,
@@ -389,6 +402,7 @@ export default function FlowNodeEditor({
     premiumFeature ? !!f[premiumFeature] : true
   );
   const premiumPlan = useFeaturePlan(premiumFeature);
+  const missingIntegrations = useMissingIntegrations(node?.type);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -427,7 +441,7 @@ export default function FlowNodeEditor({
             {!hideTitle && (
               <div className="flex items-start justify-between mb-5">
                 <div className="text-xl font-bold text-foreground">
-                  Block Settings
+                  Block settings
                 </div>
                 <XIcon
                   className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
@@ -485,6 +499,20 @@ export default function FlowNodeEditor({
                 and fails without it.
               </div>
             )}
+            {!readOnly &&
+              missingIntegrations.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="flex items-center gap-3 rounded-md border p-3 text-sm"
+                >
+                  <PlugIcon className="h-4 w-4 flex-none text-muted-foreground" />
+                  <div className="flex-1 text-muted-foreground">
+                    Uses {integration.name}, which isn&apos;t enabled in your
+                    app. This block fails until you enable it.
+                  </div>
+                  <AppIntegrationEnableButton integration={integration} />
+                </div>
+              ))}
             {values.dataFields.map((field) => {
               // Fields of a block's definition without an input of their own.
               const name = field.startsWith("field:")
@@ -515,7 +543,7 @@ export default function FlowNodeEditor({
                   className="w-full flex gap-2"
                 >
                   <TrashIcon className="h-5 w-5" />
-                  <div>Delete Block</div>
+                  <div>Delete block</div>
                 </Button>
                 <Button
                   variant="secondary"
@@ -523,7 +551,7 @@ export default function FlowNodeEditor({
                   className="w-full flex gap-2"
                 >
                   <CopyIcon className="h-5 w-5" />
-                  <div>Duplicate Block</div>
+                  <div>Duplicate block</div>
                 </Button>
               </>
             )}
@@ -538,8 +566,8 @@ function CustomLabelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="custom_label"
-      title="Custom Label"
-      description="Set a custom label for this block so its easier to recognize. This is optional."
+      title="Custom label"
+      description="Set a custom label for this block so it's easier to recognize. This is optional."
       value={data.custom_label || ""}
       updateValue={(v) => updateData({ custom_label: v || undefined })}
       errors={errors}
@@ -551,7 +579,7 @@ function TemporaryNameInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="temporary_name"
-      title="Temporary Variable"
+      title="Temporary variable"
       description="Store the result of this block in a temporary variable to use later."
       value={data.temporary_name || ""}
       updateValue={(v) => updateData({ temporary_name: v || undefined })}
@@ -604,7 +632,7 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
 
   return (
     <div>
-      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="font-medium text-foreground mb-2">Argument order</div>
       <div className="text-muted-foreground text-sm mb-2">
         The order of the arguments in Discord. Required arguments always come
         before optional ones.
@@ -661,12 +689,12 @@ function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="command_argument_type"
-      title="Argument Type"
+      title="Argument type"
       type="select"
       options={[
         { value: "string", label: "Text" },
-        { value: "integer", label: "Whole Number" },
-        { value: "number", label: "Decimal Number" },
+        { value: "integer", label: "Whole number" },
+        { value: "number", label: "Decimal number" },
         { value: "boolean", label: "True/False" },
         { value: "user", label: "User" },
         { value: "channel", label: "Channel" },
@@ -689,7 +717,7 @@ function CommandArgumentRequiredInput({
   return (
     <BaseCheckbox
       field="command_argument_required"
-      title="Argument Required"
+      title="Argument required"
       value={!!data.command_argument_required}
       updateValue={(v) =>
         updateData({ command_argument_required: v || undefined })
@@ -714,7 +742,7 @@ function CommandArgumentMinValueInput({
     <BaseInput
       type="text"
       field="command_argument_min_value"
-      title="Minimum Value"
+      title="Minimum value"
       value={data.command_argument_min_value?.toString() || ""}
       updateValue={(v) =>
         updateData({
@@ -741,7 +769,7 @@ function CommandArgumentMaxValueInput({
     <BaseInput
       type="text"
       field="command_argument_max_value"
-      title="Maximum Value"
+      title="Maximum value"
       value={data.command_argument_max_value?.toString() || ""}
       updateValue={(v) =>
         updateData({
@@ -764,7 +792,7 @@ function CommandArgumentMaxLengthInput({
     <BaseInput
       type="text"
       field="command_argument_max_length"
-      title="Maximum Length"
+      title="Maximum length"
       value={data.command_argument_max_length?.toString() || ""}
       updateValue={(v) =>
         updateData({ command_argument_max_length: parseInt(v) || undefined })
@@ -876,7 +904,7 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
   return (
     <BasePermissionInput
       field="command_permissions"
-      title="Required Permissions"
+      title="Required permissions"
       value={data.command_permissions || "0"}
       updateValue={(v) =>
         updateData({
@@ -893,12 +921,12 @@ function CooldownScopeInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="cooldown_scope"
-      title="Cooldown Scope"
+      title="Cooldown scope"
       description="Who the cooldown applies to."
       type="select"
       options={[
-        { value: "user", label: "Per User" },
-        { value: "guild", label: "Per Server" },
+        { value: "user", label: "Per user" },
+        { value: "guild", label: "Per server" },
         { value: "global", label: "Global" },
       ]}
       value={data.cooldown_scope || "user"}
@@ -916,7 +944,7 @@ function CooldownDurationSecondsInput({
   return (
     <BaseInput
       field="cooldown_duration_seconds"
-      title="Cooldown Duration"
+      title="Cooldown duration"
       description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
       value={data.cooldown_duration_seconds || ""}
       updateValue={(v) =>
@@ -935,7 +963,7 @@ function CooldownMessageInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="cooldown_message"
-      title="Cooldown Message"
+      title="Cooldown message"
       description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
       value={data.cooldown_message || ""}
       updateValue={(v) => updateData({ cooldown_message: v || undefined })}
@@ -974,9 +1002,9 @@ function CommandContextsInput({ data, updateData, errors }: InputProps) {
         title="Contexts"
         values={values}
         options={[
-          { value: "guild", label: "In Servers" },
-          { value: "bot_dm", label: "In Bot DMs" },
-          { value: "private_channel", label: "In Other DMs" },
+          { value: "guild", label: "In servers" },
+          { value: "bot_dm", label: "In bot DMs" },
+          { value: "private_channel", label: "In other DMs" },
         ]}
         updateValues={updateValues}
         errors={errors}
@@ -1011,11 +1039,11 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseMultiSelect
       field="command_disabled_integrations"
-      title="Integrations Types"
+      title="Integration types"
       values={values}
       options={[
-        { value: "guild_install", label: "Server Install" },
-        { value: "user_install", label: "User Install" },
+        { value: "guild_install", label: "Server install" },
+        { value: "user_install", label: "User install" },
       ]}
       updateValues={updateValues}
       errors={errors}
@@ -1120,7 +1148,7 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="event_filter_target"
-      title="Filter Target"
+      title="Filter target"
       options={targets.map((t) => ({
         value: t,
         label: eventFilterTargetLabels[t] || t,
@@ -1158,8 +1186,8 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
 }
 
 const oneOfModes = [
-  { value: "one_of", label: "Is One Of" },
-  { value: "not_one_of", label: "Is Not One Of" },
+  { value: "one_of", label: "Is one of" },
+  { value: "not_one_of", label: "Is not one of" },
 ];
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
@@ -1173,22 +1201,22 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
       ]
     : target === "role_id"
     ? [
-        { value: "equal", label: "Has Role" },
-        { value: "not_equal", label: "Doesn't Have Role" },
+        { value: "equal", label: "Has role" },
+        { value: "not_equal", label: "Doesn't have role" },
       ]
     : target === "emoji"
     ? [
         { value: "equal", label: "Is" },
-        { value: "not_equal", label: "Is Not" },
+        { value: "not_equal", label: "Is not" },
       ]
     : target === "audit_log_action"
     ? oneOfModes
     : [
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
         { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
+        { value: "starts_with", label: "Starts with" },
+        { value: "ends_with", label: "Ends with" },
         ...oneOfModes,
       ];
 
@@ -1196,7 +1224,7 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="event_filter_mode"
-      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter mode"}
       description={
         target === "user_is_bot"
           ? "Choose No to ignore bots."
@@ -1258,7 +1286,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="event_filter_value"
-      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      title={target === "role_id" ? "Role ID" : "Filter value"}
       description={
         target === "role_id"
           ? "The ID of the role, or the role mention."
@@ -1295,7 +1323,7 @@ function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="event_filter_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so !help also matches !Help."
       value={!!data.event_filter_ignore_case}
       updateValue={(v) =>
@@ -1310,7 +1338,7 @@ function LogLevelInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="log_level"
-      title="Log Level"
+      title="Log level"
       type="select"
       options={[
         { value: "debug", label: "Debug" },
@@ -1330,7 +1358,7 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="log_message"
-      title="Log Message"
+      title="Log message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
       errors={errors}
@@ -1387,7 +1415,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="textarea"
             field="webhook_verify_message"
-            title="Signed Message"
+            title="Signed message"
             description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
             value={data.webhook_verify_message || ""}
             updateValue={(v) =>
@@ -1410,7 +1438,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="select"
             field="webhook_verify_signature_encoding"
-            title="Signature Encoding"
+            title="Signature encoding"
             options={[...webhookVerifyEncodings]}
             value={data.webhook_verify_signature_encoding || "hex"}
             updateValue={(v) =>
@@ -1428,7 +1456,7 @@ function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="webhook_response_status"
-      title="Status Code"
+      title="Status code"
       description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
       value={data.webhook_response_status || ""}
       updateValue={(v) =>
@@ -1448,7 +1476,7 @@ function WebhookResponseContentTypeInput({
   return (
     <BaseInput
       field="webhook_response_content_type"
-      title="Content Type"
+      title="Content type"
       type="select"
       options={[
         { value: "text/plain", label: "Text" },
@@ -1483,7 +1511,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="audit_log_reason"
-      title="Audit Log Reason"
+      title="Audit log reason"
       description="This will appear in the Discord audit log."
       value={data.audit_log_reason || ""}
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
@@ -1557,7 +1585,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button className="w-full" variant="secondary">
-          Configure Request
+          Configure request
         </Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
@@ -1604,8 +1632,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
           )}
           {credentialIntegration && (
             <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-              Use the {credentialIntegration.name} blocks to call the{" "}
-              {credentialIntegration.name} API. Enable{" "}
+              Use the {credentialIntegration.name} blocks instead. Enable{" "}
               {credentialIntegration.name} under Integrations and they send your{" "}
               {credentialIntegration.auth.label} for you, so you don&apos;t have
               to paste it into a header.
@@ -1661,7 +1688,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-foreground">JSON Body</div>
+              <div className="font-medium text-foreground">JSON body</div>
               <PreviewInert>
                 <Switch
                   checked={!!data.http_request_data?.body_json}
@@ -1829,24 +1856,42 @@ function isDiscordApiUrl(url: string) {
   );
 }
 
-// The integration with a credential an HTTP block's URL goes to, if any.
+// The integration with a credential whose blocks replace the endpoint an
+// HTTP block's URL goes to, if any. The longest matching path wins.
 function urlCredentialIntegration(url: string) {
-  let host: string;
+  let parsed: URL;
   try {
     const trimmed = url.trim();
-    host = new URL(
+    parsed = new URL(
       /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-    ).host;
+    );
   } catch {
     return;
   }
-  return integrations
-    .filter(needsCredential)
-    .find(
-      (i) =>
-        (i.base_url && new URL(i.base_url).host === host) ||
-        i.other_hosts?.includes(host)
-    );
+
+  let match: { integration: CredentialIntegration; path: string } | undefined;
+  for (const integration of integrations.filter(needsCredential)) {
+    const base = integration.base_url?.replace(/^https?:\/\//, "");
+    const urls = [
+      ...(base
+        ? (integration.hint_paths ?? [""]).map((path) => base + path)
+        : []),
+      ...(integration.other_urls ?? []),
+    ];
+    for (const u of urls) {
+      const slash = u.indexOf("/");
+      const host = slash === -1 ? u : u.slice(0, slash);
+      const path = slash === -1 ? "/" : u.slice(slash);
+      if (
+        host === parsed.host &&
+        parsed.pathname.startsWith(path) &&
+        path.length > (match?.path.length ?? -1)
+      ) {
+        match = { integration, path };
+      }
+    }
+  }
+  return match?.integration;
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -1903,7 +1948,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
     <Dialog>
       <DialogTrigger asChild>
         <Button className="w-full" variant="secondary">
-          Configure Request
+          Configure request
         </Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
@@ -2030,7 +2075,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
           {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="font-medium text-foreground">JSON Body</div>
+                <div className="font-medium text-foreground">JSON body</div>
                 <PreviewInert>
                   <Switch
                     checked={!!request?.body_json}
@@ -2104,7 +2149,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="textarea"
         field="ai_chat_completion_data.system_prompt"
-        title="System Prompt"
+        title="System prompt"
         description="Tell the AI how to behave. (optional)"
         value={data.ai_chat_completion_data?.system_prompt || ""}
         updateValue={(v) =>
@@ -2152,7 +2197,7 @@ function AiMaxCompletionTokensInput({
   return (
     <BaseInput
       field="ai_chat_completion_data.max_completion_tokens"
-      title="Max Answer Length"
+      title="Max answer length"
       description={`The most tokens the answer can have. A token is about 4 characters of English. ${aiAnswerLimits}`}
       placeholder={aiOutputStepTokens.toString()}
       value={data.ai_chat_completion_data?.max_completion_tokens || ""}
@@ -2273,7 +2318,7 @@ function AiChoiceDataInput(props: InputProps) {
       <AiDecisionInput
         {...props}
         field="min_confidence"
-        title="Min Confidence"
+        title="Min confidence"
         description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
       />
     </>
@@ -2287,13 +2332,13 @@ function AiCheckDataInput(props: InputProps) {
       <AiDecisionInput
         {...props}
         field="yes_threshold"
-        title="Yes Threshold"
+        title="Yes threshold"
         description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
       />
       <AiDecisionInput
         {...props}
         field="no_threshold"
-        title="No Threshold"
+        title="No threshold"
         description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
       />
     </>
@@ -2556,7 +2601,7 @@ function LookupModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="lookup_mode"
-      title="Match Mode"
+      title="Match mode"
       description="How the key of a row has to match the value."
       options={[...lookupModes]}
       value={data.lookup_mode || "equal"}
@@ -2570,7 +2615,7 @@ function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="lookup_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so hello also matches Hello."
       value={!!data.lookup_ignore_case}
       updateValue={(v) => updateData({ lookup_ignore_case: v || undefined })}
@@ -2640,7 +2685,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
         </DialogTrigger>
         <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Table</DialogTitle>
+            <DialogTitle>Edit table</DialogTitle>
             <DialogDescription>
               Up to {lookupMaxRows} rows. Keys and values can use placeholders,
               like {"{{user.id}}"}.
@@ -2689,7 +2734,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
             <EditOnly>
               <div>
                 <div className="font-medium text-foreground mb-1">
-                  Paste Rows
+                  Paste rows
                 </div>
                 <div className="text-muted-foreground text-sm mb-2">
                   One row per line, as key = value, or copy two columns from a
@@ -2707,7 +2752,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     onClick={() => addPasted(false)}
                     disabled={!pasted.trim()}
                   >
-                    Add Rows
+                    Add rows
                   </Button>
                   <ConfirmDialog
                     title="Replace all rows?"
@@ -2715,7 +2760,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     onConfirm={() => addPasted(true)}
                   >
                     <Button variant="outline" disabled={!pasted.trim()}>
-                      Replace All Rows
+                      Replace all rows
                     </Button>
                   </ConfirmDialog>
                 </div>
@@ -2801,7 +2846,7 @@ function LookupDefaultInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="textarea"
       field="lookup_default"
-      title="Default Value"
+      title="Default value"
       description="The result when no row matches. Leave empty to return nothing, which a Comparison Condition can check for."
       value={data.lookup_default || ""}
       updateValue={(v) => updateData({ lookup_default: v || undefined })}
@@ -2816,7 +2861,7 @@ function UserTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="user_target"
-      title="Target User"
+      title="Target user"
       value={data.user_target || ""}
       updateValue={(v) => updateData({ user_target: v || undefined })}
       errors={errors}
@@ -2830,7 +2875,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="guild_target"
-      title="Target Guild"
+      title="Target server"
       description={
         type === "action_guild_get"
           ? undefined
@@ -2853,7 +2898,7 @@ function MemberBanDeleteMessageDurationInput({
     <BaseInput
       type="text"
       field="member_ban_delete_message_duration_seconds"
-      title="Delete Message Duration"
+      title="Delete message duration"
       description="Number of seconds to delete messages for."
       value={data.member_ban_delete_message_duration_seconds || ""}
       updateValue={(v) =>
@@ -2872,7 +2917,7 @@ function MemberTimeoutDurationInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="member_timeout_duration_seconds"
-      title="Timeout Duration"
+      title="Timeout duration"
       description="Number of seconds to timeout the user for."
       value={data.member_timeout_duration_seconds || ""}
       updateValue={(v) =>
@@ -2889,7 +2934,7 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="member_data"
-      title="Member Nickname"
+      title="Member nickname"
       value={data.member_data?.nick || ""}
       updateValue={(v) =>
         updateData({ member_data: v ? { nick: v } : undefined })
@@ -2905,7 +2950,7 @@ function RobloxUserTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="roblox_user_target"
-      title="Roblox User Target"
+      title="Roblox user target"
       description="The Roblox ID or username of the user. Discord users and IDs don't work here."
       value={data.roblox_user_target || ""}
       updateValue={(v) => updateData({ roblox_user_target: v || undefined })}
@@ -2920,13 +2965,79 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="roblox_lookup_mode"
-      title="Roblox Lookup Mode"
-      value={data.roblox_lookup_mode || ""}
+      title="Roblox lookup mode"
+      value={data.roblox_lookup_mode || "id"}
       options={[
         { label: "ID", value: "id" },
         { label: "Username", value: "username" },
       ]}
       updateValue={(v) => updateData({ roblox_lookup_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RobloxGroupIdInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_id"
+      title="Roblox group ID"
+      description="The number in your group's link, like 123456 in roblox.com/communities/123456/name. The API key's owner needs permission to manage it."
+      value={data.roblox_group_id || ""}
+      updateValue={(v) => updateData({ roblox_group_id: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_role"
+      title="Role"
+      description="The name, rank (1 to 255) or ID of the role."
+      value={data.roblox_group_role || ""}
+      updateValue={(v) => updateData({ roblox_group_role: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_group_role_mode"
+      title="Mode"
+      value={data.roblox_group_role_mode || "set"}
+      options={[...robloxGroupRoleModes]}
+      updateValue={(v) =>
+        updateData({ roblox_group_role_mode: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function RobloxJoinRequestActionInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_join_request_action"
+      title="Answer"
+      value={data.roblox_join_request_action || "accept"}
+      options={[...robloxJoinRequestActions]}
+      updateValue={(v) =>
+        updateData({ roblox_join_request_action: v || undefined })
+      }
       errors={errors}
     />
   );
@@ -2947,7 +3058,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         <BaseInput
           type="select"
           field="message_template_id"
-          title="Message Template"
+          title="Message template"
           description="Select a message template to use for the response."
           options={messages?.map((m) => ({
             value: m!.id,
@@ -3037,7 +3148,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
           onClose={(v) => updateData({ message_data: v })}
           message={data.message_data || {}}
         >
-          <Button className="w-full">Edit Message</Button>
+          <Button className="w-full">Edit message</Button>
         </MessageEditorDialog>
       )}
 
@@ -3101,7 +3212,7 @@ function AllowedMentionsDialog({
       <div>
         <DialogTrigger asChild>
           <Button className="w-full" variant="secondary">
-            Configure Pings
+            Configure pings
           </Button>
         </DialogTrigger>
         {error && (
@@ -3113,7 +3224,7 @@ function AllowedMentionsDialog({
       </div>
       <DialogContent className="overflow-y-auto max-h-[90dvh]">
         <DialogHeader>
-          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogTitle>Configure pings</DialogTitle>
           <DialogDescription>
             Choose which mentions in the message notify people. Mentions without
             a ping are still shown.
@@ -3139,7 +3250,7 @@ function AllowedMentionsDialog({
           {data.reply_target && (
             <BaseCheckbox
               field="message_data.allowed_mentions.replied_user"
-              title="Reply Author"
+              title="Reply author"
               description="The author of the message this replies to gets a notification."
               value={repliedUser}
               updateValue={(v) => update(parse, v)}
@@ -3157,7 +3268,7 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="message_target"
-      title="Target Message"
+      title="Target message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
       errors={errors}
@@ -3171,7 +3282,7 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="reply_target"
-      title="Reply To"
+      title="Reply to"
       description="The message to reply to, in the same channel. Leave blank to not reply."
       value={data.reply_target || ""}
       updateValue={(v) => updateData({ reply_target: v || undefined })}
@@ -3194,11 +3305,11 @@ function ResponseTargetInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="select"
         field="message_target"
-        title="Target Response"
+        title="Target response"
         value={other ? "other" : data.message_target || ""}
         options={[
-          { label: "Original Response", value: "@original" },
-          { label: "Other Response", value: "other" },
+          { label: "Original response", value: "@original" },
+          { label: "Other response", value: "other" },
         ]}
         updateValue={(v) => {
           setPickedOther(v === "other");
@@ -3226,7 +3337,7 @@ function MessageEphemeralInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="message_ephemeral"
-      title="Public Response"
+      title="Public response"
       description="If enabled, the response will be visible to everyone. If disabled, the response will only be visible to the user who triggered the flow."
       value={!data.message_ephemeral}
       updateValue={(v) => updateData({ message_ephemeral: !v || undefined })}
@@ -3419,7 +3530,7 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
       />
       <BaseCheckbox
         field="poll_data.allow_multiselect"
-        title="Allow Multiple Answers"
+        title="Allow multiple answers"
         description="If enabled, people can vote for more than one answer."
         value={!!data.poll_data?.allow_multiselect}
         updateValue={(v) => updateField({ allow_multiselect: v || undefined })}
@@ -3538,13 +3649,13 @@ function ChannelDataInput({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full">Configure Channel</Button>
+        <Button className="w-full">Configure channel</Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure Channel</DialogTitle>
+          <DialogTitle>Configure channel</DialogTitle>
           <DialogDescription>
-            Configure your channel here! A channel must have one of the
+            Configure your channel here. A channel must have one of the
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
@@ -3684,7 +3795,7 @@ function ChannelDataInput({
               <BaseInput
                 type="text"
                 field="channel_data.user_limit"
-                title="User Limit"
+                title="User limit"
                 description="The user limit for the channel."
                 value={data.channel_data?.user_limit?.toString() || ""}
                 updateValue={(v) =>
@@ -3741,7 +3852,7 @@ function ChannelDataInput({
 
           <div className="space-y-3">
             <div className="font-medium text-foreground">
-              Permission Overwrites
+              Permission overwrites
             </div>
 
             {data.channel_data?.permission_overwrites?.map((overwrite, i) => (
@@ -3812,7 +3923,7 @@ function ChannelDataInput({
                     onClick={() => removeOverwrite(i)}
                   >
                     <TrashIcon className="h-4 w-4" />
-                    <div>Remove Overwrite</div>
+                    <div>Remove overwrite</div>
                   </Button>
                 </EditOnly>
               </Card>
@@ -3821,9 +3932,9 @@ function ChannelDataInput({
 
           <EditOnly>
             <div className="flex space-x-3">
-              <Button onClick={addOverwrite}>Add Overwrite</Button>
+              <Button onClick={addOverwrite}>Add overwrite</Button>
               <Button variant="outline" onClick={clearOverwrites}>
-                Clear Overwrites
+                Clear overwrites
               </Button>
             </div>
           </EditOnly>
@@ -3841,7 +3952,7 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="text"
         field="channel_data.name"
-        title="Post Title"
+        title="Post title"
         value={data.channel_data?.name || ""}
         updateValue={(v) =>
           updateData({
@@ -3875,13 +3986,13 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
 const threadEditSettings = [
   {
     field: "archived",
-    title: "Archive Thread",
+    title: "Archive thread",
     description:
       "Only for threads. A new message unarchives it unless it's locked.",
   },
   {
     field: "locked",
-    title: "Lock Thread",
+    title: "Lock thread",
     description:
       "Only for threads. Only moderators can unarchive a locked thread.",
   },
@@ -3920,13 +4031,13 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button className="w-full">Configure Thread</Button>
+        <Button className="w-full">Configure thread</Button>
       </DialogTrigger>
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Configure Thread</DialogTitle>
+          <DialogTitle>Configure thread</DialogTitle>
           <DialogDescription>
-            Configure your thread here! A thread must have a name and can be
+            Configure your thread here. A thread must have a name and can be
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
@@ -3934,7 +4045,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="text"
             field="channel_data.parent"
-            title="Parent Channel"
+            title="Parent channel"
             description="The parent channel that the thread will be created in."
             value={data.channel_data?.parent || ""}
             updateValue={(v) =>
@@ -3952,7 +4063,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
           <BaseInput
             type="text"
             field="message_target"
-            title="Message Target"
+            title="Message target"
             description="The message to start the thread from. Leave blank to create an independent thread."
             value={data.message_target || ""}
             updateValue={(v) =>
@@ -3972,15 +4083,15 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               value={data.channel_data?.type?.toString() || "11"}
               options={[
                 {
-                  label: "Public Thread",
+                  label: "Public thread",
                   value: "11",
                 },
                 {
-                  label: "Private Thread",
+                  label: "Private thread",
                   value: "12",
                 },
                 {
-                  label: "Announcement Thread",
+                  label: "Announcement thread",
                   value: "10 ",
                 },
               ]}
@@ -4039,7 +4150,7 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="channel_target"
-      title="Target Channel"
+      title="Target channel"
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
@@ -4088,7 +4199,7 @@ function ForwardSourceChannelTargetInput({
     <BaseInput
       type="text"
       field="channel_target"
-      title="Message Channel"
+      title="Message channel"
       description="The channel the message to forward is in. Leave blank to use the channel the flow runs in."
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
@@ -4103,7 +4214,7 @@ function ForwardChannelTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="forward_channel_target"
-      title="Forward To"
+      title="Forward to"
       description="The channel to forward the message to."
       value={data.forward_channel_target || ""}
       updateValue={(v) =>
@@ -4119,7 +4230,7 @@ function VoiceSelfMuteInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="voice_self_mute"
-      title="Mute Self"
+      title="Mute self"
       description="If enabled, the bot joins the voice channel muted."
       value={!!data.voice_self_mute}
       updateValue={(v) => updateData({ voice_self_mute: v || undefined })}
@@ -4132,10 +4243,52 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="voice_self_deaf"
-      title="Deafen Self"
+      title="Deafen self"
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+const voiceStateChangeOptions = [
+  { label: "Unchanged", value: "unchanged" },
+  { label: "On", value: "true" },
+  { label: "Off", value: "false" },
+];
+
+function MemberVoiceMuteInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_mute"
+      title="Server Mute"
+      value={String(data.member_voice_mute ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_mute: v && v !== "unchanged" ? v : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function MemberVoiceDeafInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_deaf"
+      title="Server Deafen"
+      value={String(data.member_voice_deaf ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_deaf: v && v !== "unchanged" ? v : undefined,
+        })
+      }
       errors={errors}
     />
   );
@@ -4146,7 +4299,7 @@ function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="channel_target"
-      title="Voice Channel"
+      title="Voice channel"
       description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
@@ -4211,7 +4364,7 @@ function AudioAssetInput({ data, updateData, errors }: InputProps) {
           disabled={createMutation.isPending}
           onClick={() => inputRef.current?.click()}
         >
-          {assetId ? "Replace Sound" : "Upload Sound"}
+          {assetId ? "Replace sound" : "Upload sound"}
         </Button>
         <input
           type="file"
@@ -4235,7 +4388,7 @@ function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="audio_leave_after"
-      title="Leave When Done"
+      title="Leave when done"
       description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
       value={!!data.audio_leave_after}
       updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
@@ -4262,7 +4415,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       <BaseInput
         type="select"
         field="status_data.activity_type"
-        title="Activity Type"
+        title="Activity type"
         options={activityTypeOptions}
         value={(data.status_data?.activity_type || 0).toString()}
         updateValue={(v) =>
@@ -4280,7 +4433,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       />
       <BaseInput
         field="status_data.activity_name"
-        title="Activity Name"
+        title="Activity name"
         value={data.status_data?.activity_name || ""}
         updateValue={(v) => updateField({ activity_name: v || undefined })}
         errors={errors}
@@ -4289,7 +4442,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
       {data.status_data?.activity_type !== 4 && (
         <BaseInput
           field="status_data.activity_state"
-          title="Second Line"
+          title="Second line"
           description="Optional text shown under the activity name."
           value={data.status_data?.activity_state || ""}
           updateValue={(v) => updateField({ activity_state: v || undefined })}
@@ -4324,7 +4477,7 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
     <>
       <BaseCheckbox
         field="server_profile_data.reset"
-        title="Reset Profile"
+        title="Reset profile"
         description="Reset the nickname, avatar, banner and about me to the bot's own."
         value={reset}
         updateValue={(v) =>
@@ -4384,7 +4537,7 @@ function RoleDataInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="role_data"
-      title="Role Name"
+      title="Role name"
       value={data.role_data?.name || ""}
       updateValue={(v) =>
         updateData({ role_data: v ? { name: v } : undefined })
@@ -4400,7 +4553,7 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="text"
       field="role_target"
-      title="Target Role"
+      title="Target role"
       value={data.role_target || ""}
       updateValue={(v) => updateData({ role_target: v || undefined })}
       errors={errors}
@@ -4516,6 +4669,58 @@ function VariableOperationInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function VariableListInput({ data, updateData, errors }: InputProps) {
+  const variables = useFlowVariables();
+  const scoped = variables?.find((v) => v?.id === data.variable_id)?.scoped;
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="variable_sort"
+        title="Order"
+        options={[...variableListSorts]}
+        value={data.variable_sort || "value_desc"}
+        updateValue={(v) => updateData({ variable_sort: v || undefined })}
+        errors={errors}
+      />
+      {/* Unscoped variables have one value, so there's nothing to filter.
+          Shown while a prefix is left, so it can be cleared. */}
+      {(scoped || data.variable_scope_prefix) && (
+        <BaseInput
+          field="variable_scope_prefix"
+          title="Scope starts with"
+          description="Only values whose scope starts with this, like {{guild.id}}: for one server. All values if empty."
+          value={data.variable_scope_prefix || ""}
+          updateValue={(v) =>
+            updateData({ variable_scope_prefix: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      <BaseInput
+        field="variable_limit"
+        title="Number of values"
+        description="From 1 to 100. Defaults to 10."
+        value={data.variable_limit || ""}
+        updateValue={(v) => updateData({ variable_limit: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="variable_skip"
+        title="Skip"
+        description="How many values to skip first, like 10 for the second page of 10."
+        value={data.variable_skip || ""}
+        updateValue={(v) => updateData({ variable_skip: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
 function VariableValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -4539,7 +4744,7 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title={type === "control_if" ? "Condition" : "Base Value"}
+      title={type === "control_if" ? "Condition" : "Base value"}
       description={
         type === "control_if"
           ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, yes or 1, No otherwise."
@@ -4573,19 +4778,19 @@ function ConditionItemCompareModeInput({
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "greater_than", label: "Greater Than" },
-        { value: "less_than", label: "Less Than" },
-        { value: "greater_than_or_equal", label: "Greater Than or Equal" },
-        { value: "less_than_or_equal", label: "Less Than or Equal" },
+        { value: "not_equal", label: "Not equal" },
+        { value: "greater_than", label: "Greater than" },
+        { value: "less_than", label: "Less than" },
+        { value: "greater_than_or_equal", label: "Greater than or equal" },
+        { value: "less_than_or_equal", label: "Less than or equal" },
         { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
+        { value: "starts_with", label: "Starts with" },
+        { value: "ends_with", label: "Ends with" },
         ...oneOfModes,
-        { value: "contains_any", label: "Contains Any Of" },
+        { value: "contains_any", label: "Contains any of" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) =>
@@ -4617,7 +4822,7 @@ function ConditionItemCompareValueInput({
     return (
       <ListInput
         field="condition_item_value"
-        title="Comparison Values"
+        title="Comparison values"
         noun="value"
         value={value}
         updateValue={updateValue}
@@ -4632,7 +4837,7 @@ function ConditionItemCompareValueInput({
       // aren't hidden in a single-line input.
       type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
-      title="Comparison Value"
+      title="Comparison value"
       value={value}
       updateValue={updateValue}
       errors={errors}
@@ -4687,7 +4892,7 @@ function ConditionItemIgnoreCaseInput({
   return (
     <BaseCheckbox
       field="condition_item_ignore_case"
-      title="Ignore Case"
+      title="Ignore case"
       description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
       value={!!data.condition_item_ignore_case}
       updateValue={(v) =>
@@ -4702,7 +4907,7 @@ function ConditionUserBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base User"
+      title="Base user"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4720,14 +4925,14 @@ function ConditionItemUserModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "has_role", label: "Has Role" },
-        { value: "not_has_role", label: "Does Not Have Role" },
-        { value: "has_permission", label: "Has Permission" },
-        { value: "not_has_permission", label: "Does Not Have Permission" },
+        { value: "not_equal", label: "Not equal" },
+        { value: "has_role", label: "Has role" },
+        { value: "not_has_role", label: "Does not have role" },
+        { value: "has_permission", label: "Has permission" },
+        { value: "not_has_permission", label: "Does not have permission" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4744,7 +4949,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
     return (
       <BaseInput
         field="condition_item_value"
-        title="Comparison Role"
+        title="Comparison role"
         value={data.condition_item_value || ""}
         updateValue={(v) =>
           updateData({
@@ -4762,7 +4967,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
     return (
       <BasePermissionInput
         field="condition_item_value"
-        title="Comparison Permission"
+        title="Comparison permission"
         value={data.condition_item_value || "0"}
         updateValue={(v) =>
           updateData({
@@ -4777,7 +4982,7 @@ function ConditionItemUserValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison User"
+      title="Comparison user"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4798,7 +5003,7 @@ function ConditionChannelBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Channel"
+      title="Base channel"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4820,10 +5025,10 @@ function ConditionItemChannelModeInput({
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4840,7 +5045,7 @@ function ConditionItemChannelValueInput({
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Channel"
+      title="Comparison channel"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4857,7 +5062,7 @@ function ConditionRoleBaseValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Role"
+      title="Base role"
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4875,10 +5080,10 @@ function ConditionItemRoleModeInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       type="select"
       field="condition_item_mode"
-      title="Comparison Mode"
+      title="Comparison mode"
       options={[
         { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
+        { value: "not_equal", label: "Not equal" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -4891,7 +5096,7 @@ function ConditionItemRoleValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="condition_item_value"
-      title="Comparison Role"
+      title="Comparison role"
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -4908,8 +5113,8 @@ function ConditionAllowMultipleInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseCheckbox
       field="condition_allow_multiple"
-      title="Allow Multiple"
-      description="Allow multiple conditions to be met. If disabled, only the first condition that is met will be executed."
+      title="Allow multiple"
+      description="Allow multiple conditions to be met. If off, only the first condition that is met runs."
       value={data.condition_allow_multiple || false}
       updateValue={(v) =>
         updateData({ condition_allow_multiple: v || undefined })
@@ -4923,7 +5128,7 @@ function ControlLoopCountInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="loop_count"
-      title="Loop Count"
+      title="Loop count"
       description="The number of times to run the loop."
       value={data.loop_count || ""}
       updateValue={(v) =>
@@ -4941,7 +5146,7 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="sleep_duration_seconds"
-      title="Wait Duration"
+      title="Wait duration"
       description="The number of seconds to wait before continuing, up to 30 days. Waits over 5 seconds end the current run and continue later, so responses only work if the flow continues within 15 minutes."
       value={data.sleep_duration_seconds || ""}
       updateValue={(v) =>
@@ -5084,7 +5289,7 @@ function BaseInput({
                     updateValue("");
                   }}
                 >
-                  Clear Selection
+                  Clear selection
                 </Button>
               </EditOnly>
             )}

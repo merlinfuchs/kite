@@ -8,8 +8,8 @@ import {
 
 const points = [
   "Set your own status and activity for free, like Watching #support.",
-  "Rotate through statuses and give your bot an animated avatar and banner with Plus.",
-  "Give it a profile per server and send messages with another name and avatar, like the user who ran a command, with Premium.",
+  "Rotate through statuses and give your bot an animated avatar and banner with Kite Plus.",
+  "Give it a profile per server and send messages with another name and avatar, like the user who ran a command, with Kite Premium.",
 ];
 
 export default function HomeProfileSection() {
@@ -18,7 +18,7 @@ export default function HomeProfileSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="lg:order-last">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Make the Bot Look Like Yours
+            Make the bot look like yours
           </h2>
           <p className="text-xl text-muted-foreground mt-4">
             Your bot shows up in Discord with your own name, avatar and status,

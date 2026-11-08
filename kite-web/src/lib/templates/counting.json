@@ -22,7 +22,7 @@
     },
     {
       "question": "How do I reset the count?",
-      "answer": "Post a wrong number, or delete the value of the counting variable on the Variables page of your app."
+      "answer": "Post a wrong number, or delete the value of the counting variable on the Stored variables page of your app."
     }
   ],
   "usage": {
@@ -38,7 +38,7 @@
   "parameters": [
     {
       "key": "channel_id",
-      "label": "Counting Channel",
+      "label": "Counting channel",
       "description": "The channel members count in.",
       "type": "channel",
       "required": true

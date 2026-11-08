@@ -228,7 +228,7 @@ func TestExecuteDiscordAPIRequest(t *testing.T) {
 
 	assert.Equal(t, "POST", p.req.Method)
 	assert.Equal(t, "/channels/3/messages", p.req.Path)
-	assert.Equal(t, api.AuditLogReason("because 2"), p.req.Reason)
+	assert.Equal(t, api.AuditLogReason("because%202"), p.req.Reason)
 	assert.JSONEq(t, `{
 		"content": "Hi 2 ",
 		"empty": "",

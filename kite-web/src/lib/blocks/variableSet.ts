@@ -9,7 +9,7 @@ export const variableSet: BlockDefinition = {
   title: "Set stored variable",
   description: "Set the value of a stored variable",
   icon: "variable",
-  category: "Stored Variables",
+  category: "Stored variables",
   credits: 1,
   fields: [
     ...variableSettings,

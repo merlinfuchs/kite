@@ -33,7 +33,7 @@ export default function AIClientGuide({
   content: AIClientGuideContent;
 }) {
   const steps = [
-    "Create Your Bot in Kite",
+    "Create your bot in Kite",
     ...content.steps.map((step) => step.title),
   ];
 
@@ -71,7 +71,7 @@ export default function AIClientGuide({
           ))}
         </div>
         <Button className="mt-8 md:w-48" asChild>
-          <Link href="/apps">Get Started for Free</Link>
+          <Link href="/apps">Get started for free</Link>
         </Button>
 
         <GuideContents steps={steps} />
@@ -94,15 +94,13 @@ export default function AIClientGuide({
                 Discord Developer Portal
               </a>
               , turn on the <strong>Privileged Gateway Intents</strong> on the{" "}
-              <strong>Bot</strong> page and copy the token.
+              <strong>Bot</strong> page, and copy the token.
             </li>
             <li>
-              Open Kite, click on <strong>Create app</strong> and paste the
-              token.
+              Open Kite, click <strong>Create app</strong>, and paste the token.
             </li>
             <li>
-              Click on <strong>Invite app</strong> and add the bot to your
-              server.
+              Click <strong>Invite app</strong> and add the bot to your server.
             </li>
           </ol>
           <p>
@@ -129,10 +127,10 @@ export default function AIClientGuide({
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold">
-          What to Ask {content.client} For
+          What to ask {content.client} for
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl">
-          {content.client} sees your commands, logs, channels and roles, so you
+          {content.client} sees your commands, logs, channels, and roles, so you
           can describe things the way you&apos;d tell a person.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">

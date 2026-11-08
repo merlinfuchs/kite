@@ -36,7 +36,7 @@ function CommandList({
   return (
     <div className="rounded-xl border bg-card p-2 shadow-sm">
       <div className="px-3 pt-2 pb-1 text-xs font-semibold uppercase text-muted-foreground">
-        Your Bot
+        Your bot
       </div>
       {points.map((point, i) => (
         <div
@@ -71,7 +71,7 @@ export default function LandingPage({
           <p className="text-xl text-muted-foreground mt-6">{content.intro}</p>
           <div className="mt-8 flex flex-col md:flex-row justify-center lg:justify-start gap-4">
             <Button className="md:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
+              <Link href="/apps">Get started for free</Link>
             </Button>
             {content.secondaryAction && (
               <Button variant="outline" className="md:w-48" asChild>

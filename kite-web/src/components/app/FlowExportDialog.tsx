@@ -80,7 +80,7 @@ export function ExportForm({
   function copy(text: string) {
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
   }
 

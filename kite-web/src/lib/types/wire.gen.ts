@@ -1137,6 +1137,11 @@ export interface FlowAIChatRequest {
    */
   repair_prompt_id: string;
   issues: string[];
+  /**
+   * Format is how the flow is written and the AI changes it, "edits" or
+   * "code", as the usage said. Empty is the server's.
+   */
+  format: string;
 }
 export interface FlowAIChatResponse {
   prompt_id: string;
@@ -1162,6 +1167,11 @@ export interface FlowAIChatResponse {
    * Edits are applied with the editor's applyFlowEdits.
    */
   edits: { [key: string]: any}[];
+  /**
+   * Code is the whole flow as code, applied with the editor's
+   * applyFlowCode instead of edits, if the AI writes code.
+   */
+  code: string;
   usage: FlowAIUsage;
 }
 export interface FlowAIUsage {
@@ -1173,6 +1183,11 @@ export interface FlowAIUsage {
    */
   answers_used: number /* int */;
   answers_limit: number /* int */;
+  /**
+   * Format is how the editor writes flows for the AI and applies its
+   * changes: "edits" or "code".
+   */
+  format: string;
 }
 export type FlowAIUsageGetResponse = FlowAIUsage;
 /**
@@ -1187,6 +1202,150 @@ export interface FlowAIField {
   type: string;
   options: string[];
   default: string;
+}
+
+//////////
+// source: flow_test_run.go
+
+/**
+ * FlowTestRequest runs a flow without changing anything. Reads from Discord
+ * are real, changes are returned instead of made, and requests to services
+ * other than Discord aren't sent unless the block is mocked.
+ */
+export interface FlowTestRequest {
+  /**
+   * A draft of the flow to test instead of the saved one, for commands and
+   * event listeners.
+   */
+  flow_source?: FlowData;
+  /**
+   * The button or select menu of a message to test, by its flow.
+   */
+  flow_source_id?: string;
+  /**
+   * Who triggers the flow, by default the user of the request, and where.
+   */
+  user_id?: string;
+  guild_id?: string;
+  channel_id?: string;
+  /**
+   * Runs a command in a DM with the bot.
+   */
+  dm?: boolean;
+  /**
+   * Arguments of a command by name.
+   */
+  options?: { [key: string]: any };
+  /**
+   * Values picked in the select menu of a message.
+   */
+  values?: string[];
+  /**
+   * Merged into the Discord event or interaction, in Discord's format.
+   */
+  event?: any;
+  webhook?: FlowTestWebhook;
+  /**
+   * What blocks do instead of running, by block ID.
+   */
+  mocks?: { [key: string]: FlowTestMock};
+  /**
+   * Values of stored variables when the test starts, in place of the stored
+   * ones.
+   */
+  variables?: FlowTestVariable[];
+  /**
+   * What the user does after the flow ran, in order.
+   */
+  then?: FlowTestAction[];
+}
+export interface FlowTestWebhook {
+  body: string;
+  headers?: { [key: string]: string};
+  query?: { [key: string]: string};
+}
+export interface FlowTestMock {
+  /**
+   * The block's result, in the format of its result type.
+   */
+  result?: any;
+  /**
+   * Makes the block fail with this error.
+   */
+  error?: string;
+}
+export interface FlowTestVariable {
+  variable_id: string;
+  /**
+   * The scope, for variables with a value per scope, as the block
+   * evaluates it, like "<server ID>:<user ID>".
+   */
+  scope?: string;
+  /**
+   * The value, or null for no value.
+   */
+  value?: any;
+}
+export interface FlowTestAction {
+  /**
+   * Label or custom ID of a button to click.
+   */
+  click?: string;
+  /**
+   * Placeholder or custom ID of a select menu, with the values to pick.
+   */
+  select?: string;
+  values?: string[];
+  /**
+   * Values of the inputs of the open modal, by custom ID or label.
+   */
+  submit?: { [key: string]: any };
+  user_id?: string;
+}
+export interface FlowTestResponse {
+  executions: FlowTestExecution[];
+  /**
+   * What the test would have cost.
+   */
+  credits: number /* int */;
+  /**
+   * Mocked blocks that never ran.
+   */
+  unused_mocks?: string[];
+}
+/**
+ * FlowTestExecution is one run of the flow, like the command or a click on a
+ * button it sent.
+ */
+export interface FlowTestExecution {
+  trigger: string;
+  steps: FlowTestStep[];
+  truncated?: boolean;
+  notes?: string[];
+  /**
+   * The error that ended the run, if no Error Handler caught it.
+   */
+  error?: string;
+}
+/**
+ * FlowTestStep is a block that ran.
+ */
+export interface FlowTestStep {
+  node_id: string;
+  node_type: string;
+  result?: any;
+  error?: string;
+  error_code?: string;
+  notes?: string[];
+  effects?: FlowTestEffect[];
+}
+/**
+ * FlowTestEffect is a change the block would have made.
+ */
+export interface FlowTestEffect {
+  action: string;
+  data?: any;
+  warnings?: string[];
 }
 
 //////////

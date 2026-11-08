@@ -87,6 +87,7 @@ export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
+export const FlowNodeTypeActionBloxlinkUserGet: FlowNodeType = "action_bloxlink_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
@@ -100,6 +101,7 @@ export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionVariableList: FlowNodeType = "action_variable_list";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
@@ -130,6 +132,12 @@ export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condi
 export const FlowNodeTypeControlConditionItemAIChoice: FlowNodeType = "control_condition_item_ai_choice";
 export const FlowNodeTypeControlAICheck: FlowNodeType = "control_ai_check";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
+/**
+ * Roblox group blocks
+ */
+export const FlowNodeTypeActionRobloxGroupMemberGet: FlowNodeType = "action_roblox_group_member_get";
+export const FlowNodeTypeActionRobloxGroupMemberRoleEdit: FlowNodeType = "action_roblox_group_member_role_edit";
+export const FlowNodeTypeActionRobloxGroupJoinRequestRespond: FlowNodeType = "action_roblox_group_join_request_respond";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
  * schedule instead of reacting to Discord events.
@@ -263,10 +271,17 @@ export interface FlowNodeData {
   role_target?: string;
   role_data?: RoleData;
   /**
-   * Roblox User Get
+   * Roblox User Get, and the user of the Roblox group blocks
    */
   roblox_user_target?: string;
   roblox_lookup_mode?: RobloxLookupType;
+  /**
+   * Roblox Group Member Get, Role Edit, Join Request Respond
+   */
+  roblox_group_id?: string;
+  roblox_group_role?: string;
+  roblox_group_role_mode?: RobloxGroupRoleMode;
+  roblox_join_request_action?: RobloxJoinRequestAction;
   /**
    * Variable Set, Delete
    */
@@ -274,6 +289,13 @@ export interface FlowNodeData {
   variable_scope?: string;
   variable_value?: string;
   variable_operation?: any /* provider.VariableOperation */;
+  /**
+   * Variable List
+   */
+  variable_sort?: any /* provider.VariableListSort */;
+  variable_scope_prefix?: string;
+  variable_limit?: string;
+  variable_skip?: string;
   /**
    * HTTP Request
    */
@@ -448,6 +470,16 @@ export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export type RobloxGroupRoleMode = string;
+/**
+ * The member has only this role afterwards.
+ */
+export const RobloxGroupRoleModeSet: RobloxGroupRoleMode = "set";
+export const RobloxGroupRoleModeAdd: RobloxGroupRoleMode = "add";
+export const RobloxGroupRoleModeRemove: RobloxGroupRoleMode = "remove";
+export type RobloxJoinRequestAction = string;
+export const RobloxJoinRequestActionAccept: RobloxJoinRequestAction = "accept";
+export const RobloxJoinRequestActionDecline: RobloxJoinRequestAction = "decline";
 /**
  * LookupRow is a row of a lookup block's table, mapping a key to the value
  * the block returns when the key matches.

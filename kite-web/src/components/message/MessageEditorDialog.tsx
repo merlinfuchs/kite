@@ -72,7 +72,7 @@ function MessageEditorDialogInner({
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
-        <DialogTitle className="hidden">Message Editor</DialogTitle>
+        <DialogTitle className="hidden">Message editor</DialogTitle>
         <DialogDescription className="hidden">
           Edit your message.
         </DialogDescription>

@@ -8,12 +8,12 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free Bot Designer for Discord (BDFD) Alternative",
+  title: "Free Bot Designer for Discord (BDFD) alternative",
   description:
     "Looking for a Bot Designer for Discord alternative? With Kite you build your Discord bot from visual blocks instead of BDScript. Free, open source and hosted 24/7.",
   competitor: "BDFD",
   lastChecked: "October 2026",
-  heading: "A Free Bot Designer for Discord Alternative",
+  heading: "A free Bot Designer for Discord alternative",
   intro:
     "In Bot Designer for Discord (BDFD) you write your commands in BDScript, its own scripting language. In Kite you build them by connecting blocks in a visual editor, so you don't need to learn a language. Kite is free and open source.",
   chooseKite: [
@@ -55,17 +55,17 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "Blocks Instead of Script",
+      title: "Blocks instead of script",
       description:
         "You don't need to learn BDScript functions or syntax. You drag in blocks like Ban member or Send message and connect them.",
     },
     {
-      title: "See How Your Command Works",
+      title: "See how your command works",
       description:
         "Each command is shown as connected blocks, so you can see every step and every condition.",
     },
     {
-      title: "Hosting Without Ads",
+      title: "Hosting without ads",
       description:
         "A free BDFD bot runs on hosting time you earn: 30 minutes from a button while the bot is offline, or 200 minutes for watching an ad. Kite hosts your bot 24/7 for free, without buttons or ads.",
     },
@@ -77,7 +77,7 @@ const content: ComparisonPageContent = {
     {
       question: "Can I import my BDScript code?",
       answer:
-        "No. Kite doesn't use BDScript. You build your commands again with blocks, or describe them to Kite's AI.",
+        "No. Kite doesn't use BDScript. You build your commands again with blocks, or describe them to Flow AI.",
     },
   ],
 };

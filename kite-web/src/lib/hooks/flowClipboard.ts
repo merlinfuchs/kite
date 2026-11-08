@@ -13,10 +13,11 @@ import { Edge, Node, useReactFlow, XYPosition } from "@xyflow/react";
 import { MouseEvent, RefObject, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-// Copy, cut and paste for flow blocks. Uses the system clipboard so the blocks
-// can be pasted into other commands and event listeners. Returns a mouse move
-// handler for the flow so pasted blocks land at the cursor, and the actions
-// for the context menu, which take the IDs of the blocks they act on.
+// Copy, cut, paste and duplicate (Ctrl+D) for flow blocks. Uses the system
+// clipboard so the blocks can be pasted into other commands and event
+// listeners. Returns a mouse move handler for the flow so pasted blocks land
+// at the cursor, and the actions for the context menu, which take the IDs of
+// the blocks they act on.
 export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
   const {
     getNodes,
@@ -99,8 +100,23 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
     [screenToFlowPosition, contextType, insertNodes]
   );
 
+  const duplicate = useCallback(
+    (ids: string[]) => {
+      const [newNodes, newEdges] = duplicateFlowNodes(
+        ids,
+        getNodes(),
+        getEdges()
+      );
+      if (newNodes.length === 0) return false;
+
+      insertNodes(newNodes, newEdges);
+      return true;
+    },
+    [getNodes, getEdges, insertNodes]
+  );
+
   useEffect(() => {
-    const shouldIgnore = (e: ClipboardEvent) => {
+    const shouldIgnore = (e: Event) => {
       const target = e.target as HTMLElement | null;
       if (
         target?.closest("input, textarea, [contenteditable]") ||
@@ -145,15 +161,46 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key.toLowerCase() !== "d" ||
+        !(e.ctrlKey || e.metaKey) ||
+        e.shiftKey ||
+        e.altKey ||
+        shouldIgnore(e)
+      ) {
+        return;
+      }
+
+      // Holding the keys down would otherwise stack a copy per key repeat.
+      if (e.repeat) {
+        e.preventDefault();
+        return;
+      }
+
+      if (duplicate(getSelectedIds())) {
+        e.preventDefault();
+      }
+    };
+
     document.addEventListener("copy", writeSelection);
     document.addEventListener("cut", onCut);
     document.addEventListener("paste", onPaste);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("copy", writeSelection);
       document.removeEventListener("cut", onCut);
       document.removeEventListener("paste", onPaste);
+      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [containerRef, copyText, getSelectedIds, deleteNodes, pasteText]);
+  }, [
+    containerRef,
+    copyText,
+    getSelectedIds,
+    deleteNodes,
+    pasteText,
+    duplicate,
+  ]);
 
   const copy = useCallback(
     async (ids: string[]) => {
@@ -176,18 +223,6 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       if (await copy(ids)) deleteNodes(ids);
     },
     [copy, deleteNodes]
-  );
-
-  const duplicate = useCallback(
-    (ids: string[]) => {
-      const [newNodes, newEdges] = duplicateFlowNodes(
-        ids,
-        getNodes(),
-        getEdges()
-      );
-      insertNodes(newNodes, newEdges);
-    },
-    [getNodes, getEdges, insertNodes]
   );
 
   const paste = useCallback(

@@ -29,7 +29,7 @@ export default function VariableListEntry({
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Variable deleted!");
+          toast.success("Variable deleted.");
         } else {
           toast.error(
             `Failed to delete variable: ${res.error.message} (${res.error.code})`
