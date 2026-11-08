@@ -105,22 +105,20 @@ func deriveEvents(c cache, edits *editTimes, e gateway.Event) []guildevent.Event
 			return nil
 		}
 		var oldChannelID discord.ChannelID
-		action := "join"
-		if old, err := c.VoiceState(e.GuildID, e.UserID); err == nil && old != nil && old.ChannelID.IsValid() {
+		if old, err := c.VoiceState(e.GuildID, e.UserID); err == nil && old != nil {
 			oldChannelID = old.ChannelID
-			if !e.ChannelID.IsValid() {
-				action = "leave"
-			} else if e.ChannelID != oldChannelID {
-				action = "move"
-			} else {
-				action = "update"
-			}
-		} else {
-			if !e.ChannelID.IsValid() {
-				action = "leave"
-			} else {
-				action = "join"
-			}
+		}
+		// Muting, deafening, streaming, and turning on the camera keep the
+		// channel, and would run the listener for every click.
+		if e.ChannelID == oldChannelID {
+			return nil
+		}
+		action := "move"
+		switch {
+		case !oldChannelID.IsValid():
+			action = "join"
+		case !e.ChannelID.IsValid():
+			action = "leave"
 		}
 		return []guildevent.Event{&guildevent.VoiceStateUpdate{
 			VoiceStateUpdateEvent: *e,

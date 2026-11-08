@@ -33,7 +33,8 @@ export type EventGroup =
   | "message"
   | "message_id"
   | "emoji"
-  | "audit_log";
+  | "audit_log"
+  | "voice";
 
 export interface DiscordEventType {
   value: string;
@@ -160,11 +161,11 @@ export const discordEventTypes: DiscordEventType[] = [
   },
   {
     value: "voice_state_update",
-    label: "Voice State Update",
+    label: "Voice state update",
     description: "A member joins, leaves, or moves voice channels",
     icon: MicIcon,
     category: "Voice",
-    placeholders: ["user", "server", "channel"],
+    placeholders: ["voice", "user", "server", "channel"],
   },
   {
     value: "guild_create",

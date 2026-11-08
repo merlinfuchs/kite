@@ -471,6 +471,20 @@ type EventEnv struct {
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
 	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
+	Voice    *VoiceEnv    `expr:"voice" json:"voice"`
+}
+
+// VoiceEnv is what changed for a member in voice. The channel of the event is
+// the one they're in now, or the one they left.
+type VoiceEnv struct {
+	// Action is join, leave or move, as the Event Filter matches it.
+	Action string `expr:"action" json:"action"`
+	// OldChannel is the channel the member was in before, nil if they joined.
+	OldChannel *CurrentChannelEnv `expr:"old_channel" json:"old_channel"`
+}
+
+func (v VoiceEnv) String() string {
+	return v.Action
 }
 
 type ScheduleEnv struct {
@@ -758,6 +772,10 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if chID.IsValid() {
 			env.Channel = currentChannelEnv(session, chID, nil)
 		}
+		env.Voice = &VoiceEnv{Action: e.Action}
+		if e.OldChannelID.IsValid() {
+			env.Voice.OldChannel = currentChannelEnv(session, e.OldChannelID, nil)
+		}
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -832,6 +850,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"schedule":  env.Schedule,
 			"webhook":   env.Webhook,
 			"audit_log": env.AuditLog,
+			"voice":     env.Voice,
 			"app":       NewAppEnv(session),
 		},
 	}
