@@ -7,7 +7,6 @@ package js
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -29,17 +28,19 @@ const (
 	MaxInputLength  = 1 << 20
 	MaxResultLength = 16 << 10
 	MaxLogLength    = 4 << 10
+	MaxLogEntries   = 50
 )
 
-// killGrace is how long after Timeout wazero kills a script the interrupt
-// handler didn't stop.
-const killGrace = 25 * time.Millisecond
-
-var defaultEngineConfig = engineConfig{
-	memoryLimit: MemoryLimit,
-	maxPages:    256, // 16 MiB
-	stackSize:   256 << 10,
-}
+const (
+	// killGrace is how long after Timeout wazero kills a script the
+	// interrupt handler didn't stop.
+	killGrace = 25 * time.Millisecond
+	// maxPages caps the Wasm memory in pages of 64 KiB, as a backstop for
+	// memory QuickJS doesn't count against MemoryLimit.
+	maxPages = 256
+	// stackSize is the QuickJS stack limit, below the 1 MiB Wasm stack.
+	stackSize = 256 << 10
+)
 
 var (
 	engineOnce sync.Once
@@ -53,7 +54,7 @@ var slots = make(chan struct{}, max(1, runtime.GOMAXPROCS(0)/2))
 
 func getEngine() (*engine, error) {
 	engineOnce.Do(func() {
-		engineInst, engineErr = newEngine(context.Background(), defaultEngineConfig)
+		engineInst, engineErr = newEngine(context.Background())
 	})
 	return engineInst, engineErr
 }
@@ -74,12 +75,13 @@ func Warm(ctx context.Context, delay time.Duration) {
 	}()
 }
 
-type LogLevel int
+// LogLevel is one of the levels of provider.LogLevel.
+type LogLevel string
 
 const (
-	LogLevelInfo LogLevel = iota
-	LogLevelWarn
-	LogLevelError
+	LogLevelInfo  LogLevel = "info"
+	LogLevelWarn  LogLevel = "warn"
+	LogLevelError LogLevel = "error"
 )
 
 type Options struct {
@@ -87,7 +89,7 @@ type Options struct {
 	// Input is passed to the script as input, after encoding it as JSON.
 	Input any
 	// Log gets what the script logs with console.log, warn and error, up to
-	// MaxLogLength in total.
+	// MaxLogEntries entries and MaxLogLength in total.
 	Log func(level LogLevel, message string)
 }
 
@@ -137,14 +139,15 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	defer func() { <-slots }()
 
-	logged := 0
+	logged, entries := 0, 0
 	st := &runState{
 		deadline: time.Now().Add(Timeout),
 		log: func(level LogLevel, message string) {
-			if opts.Log == nil || logged+len(message) > MaxLogLength {
+			if opts.Log == nil || entries >= MaxLogEntries || logged+len(message) > MaxLogLength {
 				return
 			}
 			logged += len(message)
+			entries++
 			opts.Log(level, message)
 		},
 	}
@@ -157,7 +160,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	defer inst.close(context.Background())
 
-	out, ok, err := inst.run(runCtx, []byte(opts.Code), input)
+	out, ok, err := inst.run(runCtx, []byte(codeHead+opts.Code+codeTail), input)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -176,6 +179,13 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	return out, nil
 }
 
+// The code runs as the body of a function, which starts on its first line so
+// line numbers match.
+const (
+	codeHead = "(function (input) {"
+	codeTail = "\n})"
+)
+
 var codeLineRe = regexp.MustCompile(`code\.js:(\d+):(\d+)`)
 
 // scriptError turns an error message from kite.c, the message and the stack
@@ -191,17 +201,10 @@ func scriptError(out string) *Error {
 	e := &Error{Message: message}
 	if m := codeLineRe.FindStringSubmatch(stack); m != nil {
 		// QuickJS gives some errors, like reading a property of null, the
-		// position of the function, which is the wrapper kite.c adds.
+		// position of the function, which is codeHead.
 		if m[1] != "1" || m[2] != "1" {
 			e.Line, _ = strconv.Atoi(m[1])
 		}
 	}
 	return e
-}
-
-// IsError reports whether err is the script's fault, like an error it threw,
-// rather than the service's.
-func IsError(err error) bool {
-	var e *Error
-	return errors.As(err, &e)
 }

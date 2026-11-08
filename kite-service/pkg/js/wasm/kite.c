@@ -30,18 +30,13 @@ static int interrupt_handler(JSContext *c, void *opaque) {
   return host_interrupt();
 }
 
+// prelude.js passes one string with the arguments already joined.
 static JSValue js_log(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic) {
-  for (int i = 0; i < argc; i++) {
-    JSValue s = JS_IsString(argv[i]) ? JS_DupValue(ctx, argv[i]) : JS_JSONStringify(ctx, argv[i], JS_UNDEFINED, JS_UNDEFINED);
-    if (JS_IsException(s)) return s;
-    if (JS_IsUndefined(s)) s = JS_NewString(ctx, "undefined");
-    size_t len;
-    const char *str = JS_ToCStringLen(ctx, &len, s);
-    JS_FreeValue(ctx, s);
-    if (!str) return JS_EXCEPTION;
-    host_log(magic, str, len);
-    JS_FreeCString(ctx, str);
-  }
+  size_t len;
+  const char *str = JS_ToCStringLen(ctx, &len, argv[0]);
+  if (!str) return JS_EXCEPTION;
+  host_log(magic, str, len);
+  JS_FreeCString(ctx, str);
   return JS_UNDEFINED;
 }
 
@@ -91,6 +86,7 @@ static const JSCFunctionListEntry console_funcs[] = {
     JS_CFUNC_MAGIC_DEF("error", 1, js_log, 2),
 };
 
+// The output Go reads after kite_run, the result or the error.
 static void set_out(const char *s, size_t len) {
   free(out);
   out = malloc(len);
@@ -98,30 +94,37 @@ static void set_out(const char *s, size_t len) {
   if (out) memcpy(out, s, len);
 }
 
+static void append_out(const char *s, size_t len) {
+  char *grown = realloc(out, out_len + len);
+  if (!grown) return;
+  memcpy(grown + out_len, s, len);
+  out = grown;
+  out_len += len;
+}
+
+#define SET_OUT_LIT(s) set_out(s, sizeof(s) - 1)
+
+// Stores the pending exception as the output, its message and on the
+// following lines its stack.
 static int32_t fail(void) {
   JSValue exc = JS_GetException(ctx);
   JSValue msg = JS_ToString(ctx, exc);
   JSValue stack = JS_IsError(exc) ? JS_GetPropertyStr(ctx, exc, "stack") : JS_UNDEFINED;
-  size_t msg_len, stack_len;
-  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &msg_len, msg);
-  const char *s = JS_IsString(stack) ? JS_ToCStringLen(ctx, &stack_len, stack) : NULL;
-  if (m && s) {
-    char *full = malloc(msg_len + 1 + stack_len);
-    if (full) {
-      memcpy(full, m, msg_len);
-      full[msg_len] = '\n';
-      memcpy(full + msg_len + 1, s, stack_len);
-      set_out(full, msg_len + 1 + stack_len);
-      free(full);
-    }
-  } else if (m) {
-    set_out(m, msg_len);
+  size_t len;
+  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &len, msg);
+  if (m) {
+    set_out(m, len);
+    JS_FreeCString(ctx, m);
   } else {
     // Converting the error failed too, most likely out of memory.
-    set_out("InternalError: out of memory", 28);
+    SET_OUT_LIT("InternalError: out of memory");
   }
-  if (m) JS_FreeCString(ctx, m);
-  if (s) JS_FreeCString(ctx, s);
+  const char *st = JS_IsString(stack) ? JS_ToCStringLen(ctx, &len, stack) : NULL;
+  if (st) {
+    append_out("\n", 1);
+    append_out(st, len);
+    JS_FreeCString(ctx, st);
+  }
   JS_FreeValue(ctx, stack);
   JS_FreeValue(ctx, msg);
   JS_FreeValue(ctx, exc);
@@ -173,28 +176,14 @@ char *kite_out_ptr(void) { return out; }
 EXPORT("kite_out_len")
 uint32_t kite_out_len(void) { return out_len; }
 
-// Runs code, which is null terminated, as the body of function (input) {...}
-// and stores its return value as JSON, or the error. Returns 0 for a result,
-// 1 for an error. The code starts on the first line so line numbers match.
+// Runs code, a function expression that Go builds and null terminates, with
+// input as its argument, and stores its return value as JSON, or the error.
+// Returns 0 for a result, 1 for an error.
 EXPORT("kite_run")
 int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_t input_len) {
   JS_UpdateStackTop(rt);
 
-  static const char head[] = "(function (input) {";
-  static const char tail[] = "\n})";
-  size_t src_len = sizeof(head) - 1 + code_len + sizeof(tail) - 1;
-  char *src = malloc(src_len + 1);
-  if (!src) {
-    set_out("InternalError: out of memory", 28);
-    return 1;
-  }
-  memcpy(src, head, sizeof(head) - 1);
-  memcpy(src + sizeof(head) - 1, code, code_len);
-  memcpy(src + sizeof(head) - 1 + code_len, tail, sizeof(tail) - 1);
-  src[src_len] = 0;
-
-  JSValue fn = JS_Eval(ctx, src, src_len, "code.js", JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_STRICT);
-  free(src);
+  JSValue fn = JS_Eval(ctx, code, code_len, "code.js", JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_STRICT);
   if (JS_IsException(fn)) return fail();
 
   JSValue in = JS_ParseJSON(ctx, input, input_len, "<input>");
@@ -217,7 +206,7 @@ int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_
   JS_FreeValue(ctx, res);
   if (JS_IsException(json)) return fail();
   if (JS_IsUndefined(json)) {
-    set_out("null", 4);
+    SET_OUT_LIT("null");
   } else {
     size_t len;
     const char *s = JS_ToCStringLen(ctx, &len, json);

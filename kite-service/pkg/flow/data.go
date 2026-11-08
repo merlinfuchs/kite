@@ -1332,15 +1332,13 @@ type JavaScriptInput struct {
 	Value string `json:"value,omitempty"`
 }
 
-var javaScriptInputNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,31}$`)
-
 func (d JavaScriptData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Code, validation.Required, validation.Length(1, js.MaxCodeLength)),
 		validation.Field(&d.Inputs, validation.Length(0, js.MaxInputs), validation.By(func(value any) error {
 			names := map[string]bool{}
 			for _, input := range value.([]JavaScriptInput) {
-				if !javaScriptInputNameRe.MatchString(input.Name) {
+				if !ParameterKeyPattern.MatchString(input.Name) || len(input.Name) > 32 {
 					return fmt.Errorf("input name %q must start with a letter or _ and have up to 32 letters, digits and _", input.Name)
 				}
 				if names[input.Name] {

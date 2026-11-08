@@ -35,7 +35,7 @@ Placeholders in the code itself aren't filled in. Otherwise anyone who can put t
 
 ## What the code can use
 
-The code can use JavaScript itself, including `Math`, `Date`, `JSON` and regular expressions. `console.log`, `console.warn` and `console.error` write to the app's logs, up to 4 KB per run.
+The code can use JavaScript itself, including `Math`, `Date`, `JSON` and regular expressions. `console.log`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
 It can't send requests, wait, use timers or reach anything outside the block. Use the other blocks for that, before or after this one. `async` code isn't supported.
 

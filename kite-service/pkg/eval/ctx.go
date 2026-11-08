@@ -1761,6 +1761,19 @@ func (h HTTPResponseEnv) String() string {
 	return h.Status
 }
 
+// MarshalJSON includes the body and data, which are only read when a
+// placeholder uses them.
+func (h HTTPResponseEnv) MarshalJSON() ([]byte, error) {
+	body, _ := h.BodyFunc()
+	data, _ := h.DataFunc()
+	return json.Marshal(struct {
+		Status     string `json:"status"`
+		StatusCode int    `json:"status_code"`
+		Body       string `json:"body"`
+		Data       any    `json:"data"`
+	}{h.Status, h.StatusCode, body, data})
+}
+
 func NewThingEnv(t thing.Thing) any {
 	switch t.Type {
 	case thing.TypeString:
@@ -1802,6 +1815,14 @@ func NewThingEnv(t thing.Thing) any {
 	default:
 		return t.Value
 	}
+}
+
+// ThingJSON encodes a thing with the fields its placeholders have, like the
+// display_name of a user, where thing.JSONValue gives Discord objects as
+// their ID. Fields that are only computed when a placeholder reads them, like
+// user.role_names, are left out, as the envs only tag the others for JSON.
+func ThingJSON(t thing.Thing) (json.RawMessage, error) {
+	return json.Marshal(NewThingEnv(t))
 }
 
 type AppEnv struct {

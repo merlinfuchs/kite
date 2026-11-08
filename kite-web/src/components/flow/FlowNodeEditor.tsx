@@ -2486,7 +2486,6 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
 }
 
 function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const inputs = data.javascript_data?.inputs || [];
   const inputNames = inputs
     .filter((input) => input.name)
@@ -2506,23 +2505,19 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <div>
-        <FlowCodeInput
-          title="Code"
-          description="Use return to pass the result to later blocks. Read inputs as input.name, like input.amount. The code can run for 25 ms."
-          value={data.javascript_data?.code || ""}
-          onChange={(v) => update({ code: v || undefined })}
-          placeholder="return input.amount * 2"
-          error={errors["javascript_data.code"]}
-          hint={
-            inputNames.length > 0
-              ? `Use return to pass the result to later blocks. The inputs are ${inputNames.join(
-                  ", "
-                )}.`
-              : "Use return to pass the result to later blocks. Add inputs in the block settings to use values from the flow."
-          }
-        />
-      </div>
+      <FlowCodeInput
+        title="Code"
+        description="Use return to pass the result to later blocks. Read inputs as input.name, like input.amount. The code can run for 25 ms."
+        value={data.javascript_data?.code || ""}
+        onChange={(v) => update({ code: v || undefined })}
+        placeholder="return input.amount * 2"
+        error={errors["javascript_data.code"]}
+        hint={
+          inputNames.length > 0
+            ? `The inputs are ${inputNames.join(", ")}.`
+            : undefined
+        }
+      />
       <div>
         <div className="font-medium text-foreground mb-1">Inputs</div>
         <div className="text-muted-foreground text-sm mb-2">
@@ -2563,18 +2558,20 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
               </EditOnly>
             </div>
           ))}
-          {!readOnly && inputs.length < javascriptMaxInputs && (
-            <div className="flex">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                  update({ inputs: [...inputs, { name: "", value: "" }] })
-                }
-              >
-                <PlusIcon className="h-5 w-5" />
-              </Button>
-            </div>
+          {inputs.length < javascriptMaxInputs && (
+            <EditOnly>
+              <div className="flex">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    update({ inputs: [...inputs, { name: "", value: "" }] })
+                  }
+                >
+                  <PlusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </EditOnly>
           )}
         </div>
       </div>

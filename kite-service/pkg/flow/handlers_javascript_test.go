@@ -66,24 +66,34 @@ func TestJavaScriptRunDiscordInputs(t *testing.T) {
 	results := map[string]thing.Thing{
 		"member_1":  thing.NewDiscordMember(member),
 		"members_1": thing.NewArray([]thing.Thing{thing.NewDiscordMember(member)}),
+		"channel_1": thing.NewDiscordChannel(discord.Channel{ID: 11, Name: "general"}),
+		"role_1":    thing.NewDiscordRole(discord.Role{ID: 12, Name: "Mod"}),
+		"guild_1":   thing.NewDiscordGuild(discord.Guild{ID: 13, Name: "Kite"}),
+		"message_1": thing.NewDiscordMessage(discord.Message{ID: 14, Content: "hi", Author: user}),
 		"http_1":    thing.NewHTTPResponse(thing.HTTPResponseValue{Status: "200 OK", StatusCode: 200, Body: []byte(`{"a": [1]}`)}),
 	}
 	res, _, err := executeJavaScript(t, JavaScriptData{
 		Code: `return [input.user.display_name, input.user.mention, input.user.id, typeof input.user.role_names,
-input.member.nick, input.member.role_ids, input.members[0].username, input.name, input.http.status_code, input.http.data.a, input.http.body]`,
+input.member.nick, input.member.role_ids, input.members[0].username, input.name, input.http.status_code, input.http.data.a, input.http.body,
+input.channel.name, input.role.name, input.guild.name, input.message.content, input.message.author.username]`,
 		Inputs: []JavaScriptInput{
 			{Name: "user", Value: "{{user}}"},
 			{Name: "member", Value: "{{result('member_1')}}"},
 			{Name: "members", Value: "{{result('members_1')}}"},
 			{Name: "name", Value: "{{user.username}}"},
 			{Name: "http", Value: "{{result('http_1')}}"},
+			{Name: "channel", Value: "{{result('channel_1')}}"},
+			{Name: "role", Value: "{{result('role_1')}}"},
+			{Name: "guild", Value: "{{result('guild_1')}}"},
+			{Name: "message", Value: "{{result('message_1')}}"},
 		},
 	}, eval.Env{"user": eval.NewUserEnv(user)}, results)
 	require.NoError(t, err)
 	got, err := json.Marshal(res.JSONValue())
 	require.NoError(t, err)
 	assert.JSONEq(t, `["Kite", "<@123456789012345678>", "123456789012345678", "undefined",
-"Nick", ["42"], "member", "kite", 200, [1], "{\"a\": [1]}"]`, string(got))
+"Nick", ["42"], "member", "kite", 200, [1], "{\"a\": [1]}",
+"general", "Mod", "Kite", "hi", "kite"]`, string(got))
 }
 
 func TestJavaScriptRunPlaceholdersInCodeAreText(t *testing.T) {

@@ -79,7 +79,8 @@ func TestRunErrors(t *testing.T) {
 			start := time.Now()
 			_, err := run(t, tt.code, nil)
 			require.Error(t, err)
-			assert.True(t, IsError(err), "%v is not a script error", err)
+			var scriptErr *Error
+			assert.ErrorAs(t, err, &scriptErr)
 			assert.Equal(t, tt.want, err.Error())
 			// Far below the 8.7 s a native loop ran without the kill, with
 			// room for a busy CI machine.
@@ -125,6 +126,14 @@ for (let i = 0; i < 1000; i++) console.log("x".repeat(100))`,
 		total += len(l.message)
 	}
 	assert.LessOrEqual(t, total, MaxLogLength)
+
+	logs = nil
+	_, err = Run(context.Background(), Options{
+		Code: `for (let i = 0; i < 1000; i++) console.log("")`,
+		Log:  func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
+	})
+	require.NoError(t, err)
+	assert.Len(t, logs, MaxLogEntries)
 }
 
 func TestFormatDate(t *testing.T) {

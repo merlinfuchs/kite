@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"time"
-	// The service image has no zoneinfo.
-	_ "time/tzdata"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -26,33 +24,21 @@ var wasmBytes []byte
 //go:embed prelude.js
 var prelude []byte
 
-type engineConfig struct {
-	// memoryLimit is the QuickJS heap limit, which scripts hit as an out of
-	// memory error.
-	memoryLimit uint32
-	// maxPages caps the Wasm memory in pages of 64 KiB, as a backstop for
-	// memory QuickJS doesn't count.
-	maxPages uint32
-	// stackSize is the QuickJS stack limit, below the 1 MiB Wasm stack.
-	stackSize uint32
-}
-
 // engine holds the compiled module and the memory of an instance right after
 // QuickJS and the prelude are set up, which every run starts from.
 type engine struct {
-	cfg      engineConfig
 	rt       wazero.Runtime
 	compiled wazero.CompiledModule
 	snapshot []byte
 }
 
-func newEngine(ctx context.Context, cfg engineConfig) (*engine, error) {
+func newEngine(ctx context.Context) (*engine, error) {
 	// The context kill has to be on: QuickJS only calls the interrupt handler
 	// from its interpreter loop and some builtins, so a native loop like
 	// new Array(2**28).join() runs on until wazero closes the module. It also
 	// lets the Go GC stop the goroutine.
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigCompiler().
-		WithMemoryLimitPages(cfg.maxPages).
+		WithMemoryLimitPages(maxPages).
 		WithCloseOnContextDone(true))
 
 	if err := instantiateHost(ctx, rt); err != nil {
@@ -64,7 +50,7 @@ func newEngine(ctx context.Context, cfg engineConfig) (*engine, error) {
 		rt.Close(ctx)
 		return nil, fmt.Errorf("failed to compile QuickJS: %w", err)
 	}
-	e := &engine{cfg: cfg, rt: rt, compiled: compiled}
+	e := &engine{rt: rt, compiled: compiled}
 
 	mod, err := rt.InstantiateModule(ctx, compiled, wazero.NewModuleConfig().WithName("").WithStartFunctions("_initialize"))
 	if err != nil {
@@ -78,7 +64,7 @@ func newEngine(ctx context.Context, cfg engineConfig) (*engine, error) {
 		rt.Close(ctx)
 		return nil, err
 	}
-	res, err := mod.ExportedFunction("kite_init").Call(ctx, uint64(cfg.memoryLimit), uint64(cfg.stackSize), uint64(ptr), uint64(len(prelude)))
+	res, err := mod.ExportedFunction("kite_init").Call(ctx, MemoryLimit, stackSize, uint64(ptr), uint64(len(prelude)))
 	if err != nil {
 		rt.Close(ctx)
 		return nil, fmt.Errorf("failed to set up QuickJS: %w", err)
@@ -214,6 +200,9 @@ type runState struct {
 	pending  []byte
 }
 
+// logLevels are the levels kite.c logs with, by its number for them.
+var logLevels = []LogLevel{LogLevelInfo, LogLevelWarn, LogLevelError}
+
 type stateKey struct{}
 
 func withState(ctx context.Context, st *runState) context.Context {
@@ -235,11 +224,11 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 	}).Export("interrupt").
 		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, level int32, p, n uint32) {
 		st := stateFrom(ctx)
-		if st == nil || st.log == nil {
+		if st == nil || level < 0 || int(level) >= len(logLevels) {
 			return
 		}
 		b, _ := m.Memory().Read(p, n)
-		st.log(LogLevel(level), string(b))
+		st.log(logLevels[level], string(b))
 	}).Export("log").
 		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, namePtr, nameLen, argPtr, argLen uint32) int32 {
 		st := stateFrom(ctx)
@@ -313,7 +302,7 @@ func callHost(name string, arg json.RawMessage) (res []byte, err error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown host function %s", name)
 	}
-	v, err := fn(append(json.RawMessage(nil), arg...))
+	v, err := fn(arg)
 	if err != nil {
 		return nil, err
 	}

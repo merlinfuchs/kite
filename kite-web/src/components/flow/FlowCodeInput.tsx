@@ -15,9 +15,14 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 
+const basicSetup = { foldGutter: false, indentOnInput: true };
+// Long lines wrap so the editor fits the settings panel.
+const panelExtensions = [javascript(), EditorView.lineWrapping];
+const dialogExtensions = [javascript()];
+
 // JavaScript code, with highlighting and line numbers, which errors refer to.
-// Long lines wrap so the editor fits the settings panel. The expand button
-// opens the same code in a wide dialog, which edits it directly.
+// The expand button opens the same code in a wide dialog, which edits it
+// directly.
 export default function FlowCodeInput({
   title,
   description,
@@ -33,13 +38,23 @@ export default function FlowCodeInput({
   onChange: (value: string) => void;
   placeholder?: string;
   error?: string;
-  // Shown above the code in the dialog.
+  // Shown after the description in the dialog.
   hint?: string;
 }) {
   const { resolvedTheme } = useTheme();
   const readOnly = useContext(FlowReadOnlyContext);
   const [expanded, setExpanded] = useState(false);
   const theme = resolvedTheme === "dark" ? githubDark : githubLight;
+
+  const editorProps = {
+    className: "rounded overflow-hidden border text-sm min-w-0",
+    value,
+    placeholder,
+    basicSetup,
+    theme,
+    onChange,
+    readOnly,
+  };
 
   const errorText = error && (
     <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -70,16 +85,10 @@ export default function FlowCodeInput({
         </Button>
       </div>
       <ReactCodeMirror
-        className="rounded overflow-hidden border text-sm min-w-0"
+        {...editorProps}
         minHeight="120px"
         maxHeight="400px"
-        value={value}
-        placeholder={placeholder}
-        basicSetup={{ foldGutter: false, indentOnInput: true }}
-        extensions={[javascript(), EditorView.lineWrapping]}
-        theme={theme}
-        onChange={onChange}
-        readOnly={readOnly}
+        extensions={panelExtensions}
       />
       {errorText}
 
@@ -87,18 +96,16 @@ export default function FlowCodeInput({
         <DialogContent className="sm:max-w-[min(1000px,calc(100vw-2rem))]">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
-            {hint && <DialogDescription>{hint}</DialogDescription>}
+            {(description || hint) && (
+              <DialogDescription>
+                {[description, hint].filter(Boolean).join(" ")}
+              </DialogDescription>
+            )}
           </DialogHeader>
           <ReactCodeMirror
-            className="rounded overflow-hidden border text-sm min-w-0"
+            {...editorProps}
             height="min(600px, 65vh)"
-            value={value}
-            placeholder={placeholder}
-            basicSetup={{ foldGutter: false, indentOnInput: true }}
-            extensions={[javascript()]}
-            theme={theme}
-            onChange={onChange}
-            readOnly={readOnly}
+            extensions={dialogExtensions}
             autoFocus={!readOnly}
           />
           {errorText}

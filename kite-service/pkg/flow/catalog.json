@@ -5752,7 +5752,8 @@
                   "properties": {
                     "name": {
                       "type": "string",
-                      "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,31}$",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
                       "description": "Name of the input, read in the code as input.name."
                     },
                     "value": {
