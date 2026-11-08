@@ -10,6 +10,9 @@ import (
 	"math/rand/v2"
 	"sync"
 	"time"
+	// formatDate takes time zones by name, and the service image has no
+	// zoneinfo. Here, not in main, so the package works on its own.
+	_ "time/tzdata"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -172,7 +175,9 @@ func (i *instance) output(ctx context.Context) ([]byte, error) {
 }
 
 // run returns the JSON of the script's return value, or ok false and the
-// error message the script threw. An error means the instance is dead.
+// error message the script threw. An error means the instance is dead. The
+// time limit starts when the script does, so a slow start on a busy machine
+// doesn't count against it.
 func (i *instance) run(ctx context.Context, code []byte, input []byte) (out []byte, ok bool, err error) {
 	codePtr, err := i.write(ctx, code)
 	if err != nil {
@@ -182,8 +187,15 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte) (out []by
 	if err != nil {
 		return nil, false, err
 	}
-	res, err := i.mod.ExportedFunction("kite_run").Call(ctx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+
+	stateFrom(ctx).deadline = time.Now().Add(Timeout)
+	runCtx, cancel := context.WithTimeout(ctx, Timeout+killGrace)
+	defer cancel()
+	res, err := i.mod.ExportedFunction("kite_run").Call(runCtx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
 	if err != nil {
+		if ctx.Err() == nil && runCtx.Err() != nil {
+			return nil, false, errTimeout
+		}
 		return nil, false, err
 	}
 	out, err = i.output(ctx)

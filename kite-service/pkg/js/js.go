@@ -144,7 +144,6 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 
 	logged, entries := 0, 0
 	st := &runState{
-		deadline: time.Now().Add(Timeout),
 		log: func(level LogLevel, message string) {
 			if opts.Log == nil || entries >= MaxLogEntries || logged >= MaxLogLength {
 				return
@@ -158,22 +157,20 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 			opts.Log(level, message)
 		},
 	}
-	runCtx, cancel := context.WithTimeout(withState(ctx, st), Timeout+killGrace)
-	defer cancel()
-
-	inst, err := e.newInstance(runCtx)
+	stateCtx := withState(ctx, st)
+	inst, err := e.newInstance(stateCtx)
 	if err != nil {
 		return nil, err
 	}
 	defer inst.close(context.Background())
 
-	out, ok, err := inst.run(runCtx, []byte(codeHead+opts.Code+codeTail), input)
+	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if runCtx.Err() != nil {
-			return nil, errTimeout
+		if err == errTimeout {
+			return nil, err
 		}
 		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
 	}

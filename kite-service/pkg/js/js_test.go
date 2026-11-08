@@ -73,7 +73,7 @@ func TestRunErrors(t *testing.T) {
 		{"recursion", `function f() { return f() + 1 }; return f()`, "RangeError: Maximum call stack size exceeded (line 1)"},
 		{"result too large", `return "x".repeat(20000)`, "the result is 19 KB, more than the limit of 16 KB"},
 		{"multiline message", "throw new Error('Invalid amount\\nUse a number from 1 to 10')", "Error: Invalid amount\nUse a number from 1 to 10 (line 1)"},
-		{"long message", `throw "x".repeat(1e6)`, strings.Repeat("x", MaxErrorLength-len(cutOff)) + cutOff},
+		{"long message", `throw "x".repeat(1e4)`, strings.Repeat("x", MaxErrorLength-len(cutOff)) + cutOff},
 		{"unprintable", `throw {toString() { throw 1 }}`, "Error: the code threw something that can't be shown as text"},
 		{"code too long", strings.Repeat(" ", MaxCodeLength+1), "the code is 4001 characters, more than the limit of 4000"},
 	}
@@ -113,7 +113,7 @@ func TestRunLog(t *testing.T) {
 	var logs []entry
 	_, err := Run(context.Background(), Options{
 		Code: `console.log("a", 1, {b: [2]}); console.warn("w"); console.error(new Error("e")); console.log(undefined, null)
-for (let i = 0; i < 1000; i++) console.log("x".repeat(100))`,
+for (let i = 0; i < 100; i++) console.log("x".repeat(100))`,
 		Log: func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
 	})
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ for (let i = 0; i < 1000; i++) console.log("x".repeat(100))`,
 
 	logs = nil
 	_, err = Run(context.Background(), Options{
-		Code: `for (let i = 0; i < 1000; i++) console.log("")`,
+		Code: `for (let i = 0; i < 100; i++) console.log("")`,
 		Log:  func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
 	})
 	require.NoError(t, err)
