@@ -15,9 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// testTimeout is the time limit of tests that don't test it, as a busy CI
+// machine can take longer than Timeout for any script.
+const testTimeout = time.Second
+
 func run(t *testing.T, code string, input any) (string, error) {
 	t.Helper()
-	res, err := Run(context.Background(), Options{Code: code, Input: input})
+	res, err := Run(context.Background(), Options{Code: code, Input: input, timeout: testTimeout})
 	return string(res), err
 }
 
@@ -80,8 +84,12 @@ func TestRunErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			opts := Options{Code: tt.code, timeout: testTimeout}
+			if tt.want == errTimeout.Message {
+				opts.timeout = 0
+			}
 			start := time.Now()
-			_, err := run(t, tt.code, nil)
+			_, err := Run(context.Background(), opts)
 			require.Error(t, err)
 			var scriptErr *Error
 			assert.ErrorAs(t, err, &scriptErr)
@@ -115,7 +123,8 @@ func TestRunLog(t *testing.T) {
 	_, err := Run(context.Background(), Options{
 		Code: `console.log("a", 1, {b: [2]}); console.warn("w"); console.error(new Error("e")); console.log(undefined, null)
 for (let i = 0; i < 100; i++) console.log("x".repeat(100))`,
-		Log: func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
+		Log:     func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
+		timeout: testTimeout,
 	})
 	require.NoError(t, err)
 	require.Greater(t, len(logs), 4)
@@ -135,8 +144,9 @@ for (let i = 0; i < 100; i++) console.log("x".repeat(100))`,
 
 	logs = nil
 	_, err = Run(context.Background(), Options{
-		Code: `for (let i = 0; i < 100; i++) console.log("")`,
-		Log:  func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
+		Code:    `for (let i = 0; i < 100; i++) console.log("")`,
+		Log:     func(level LogLevel, message string) { logs = append(logs, entry{level, message}) },
+		timeout: testTimeout,
 	})
 	require.NoError(t, err)
 	assert.Len(t, logs, MaxLogEntries)
@@ -182,11 +192,11 @@ func TestRunConcurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			code := `return input * 2`
+			opts := Options{Code: `return input * 2`, Input: i, timeout: testTimeout}
 			if i%5 == 0 {
-				code = `while (true) {}`
+				opts = Options{Code: `while (true) {}`}
 			}
-			res, err := Run(context.Background(), Options{Code: code, Input: i})
+			res, err := Run(context.Background(), opts)
 			if i%5 == 0 {
 				if err != errTimeout {
 					errs <- fmt.Errorf("spin: %v", err)

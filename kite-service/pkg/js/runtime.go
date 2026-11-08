@@ -178,7 +178,7 @@ func (i *instance) output(ctx context.Context) ([]byte, error) {
 // error message the script threw. An error means the instance is dead. The
 // time limit starts when the script does, so a slow start on a busy machine
 // doesn't count against it.
-func (i *instance) run(ctx context.Context, code []byte, input []byte) (out []byte, ok bool, err error) {
+func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout time.Duration) (out []byte, ok bool, err error) {
 	codePtr, err := i.write(ctx, code)
 	if err != nil {
 		return nil, false, err
@@ -188,8 +188,8 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte) (out []by
 		return nil, false, err
 	}
 
-	stateFrom(ctx).deadline = time.Now().Add(Timeout)
-	runCtx, cancel := context.WithTimeout(ctx, Timeout+killGrace)
+	stateFrom(ctx).deadline = time.Now().Add(timeout)
+	runCtx, cancel := context.WithTimeout(ctx, timeout+killGrace)
 	defer cancel()
 	res, err := i.mod.ExportedFunction("kite_run").Call(runCtx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
 	if err != nil {
