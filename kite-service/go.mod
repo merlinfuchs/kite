@@ -32,6 +32,7 @@ require (
 	github.com/rs/cors v1.11.0
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/stretchr/testify v1.11.1
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2

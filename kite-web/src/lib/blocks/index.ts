@@ -110,6 +110,7 @@ import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
+import { javascriptRun } from "./javascriptRun";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
@@ -204,6 +205,7 @@ export const blockDefinitions: BlockDefinition[] = [
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
+  javascriptRun,
   randomGenerate,
   valueLookup,
   log,

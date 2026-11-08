@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -10,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -17,6 +20,7 @@ func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
 		FlowNodeTypeActionRandomGenerate:     executeActionRandomGenerate,
 		FlowNodeTypeActionExpressionEvaluate: executeActionExpressionEvaluate,
+		FlowNodeTypeActionJavaScriptRun:      executeActionJavaScriptRun,
 		FlowNodeTypeActionLog:                executeActionLog,
 		FlowNodeTypeActionValueLookup:        executeActionValueLookup,
 	})
@@ -161,6 +165,118 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 
 	ctx.StoreNodeResult(n, res)
 	return n.ExecuteChildren(ctx)
+}
+
+var javaScriptLogLevels = map[js.LogLevel]provider.LogLevel{
+	js.LogLevelInfo:  provider.LogLevelInfo,
+	js.LogLevelWarn:  provider.LogLevelWarn,
+	js.LogLevelError: provider.LogLevelError,
+}
+
+func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
+	data := n.Data.JavaScriptData
+	if data == nil {
+		return &FlowError{
+			Code:    FlowNodeErrorUnknown,
+			Message: "javascript_data is nil",
+		}
+	}
+
+	input := make(map[string]any, len(data.Inputs))
+	for _, in := range data.Inputs {
+		v, err := ctx.EvalTemplate(in.Value)
+		if err != nil {
+			return err
+		}
+		input[in.Name] = javaScriptInputValue(v)
+	}
+
+	res, err := js.Run(ctx, js.Options{
+		Code:  data.Code,
+		Input: input,
+		Log: func(level js.LogLevel, message string) {
+			if ctx.Log != nil {
+				ctx.Log.CreateLogEntry(ctx, javaScriptLogLevels[level], message)
+			}
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	var v any
+	if err := json.Unmarshal(res, &v); err != nil {
+		return fmt.Errorf("failed to read the result: %w", err)
+	}
+	ctx.StoreNodeResult(n, thing.NewFromJSONValue(v))
+	return n.ExecuteChildren(ctx)
+}
+
+// javaScriptInputValue is what the code of a Run JavaScript block gets for
+// the value of an input. Discord objects have the fields of their
+// placeholders, like user.display_name, except the ones that are only
+// computed when a placeholder reads them, like user.role_names, which can
+// read the whole server from the cache. The server and channel the flow runs
+// in are their ID, like the placeholders {{guild}} and {{channel}}.
+func javaScriptInputValue(t thing.Thing) any {
+	switch t.Type {
+	case thing.TypeArray:
+		res := make([]any, len(t.Array()))
+		for i, item := range t.Array() {
+			res[i] = javaScriptInputValue(item)
+		}
+		return res
+	case thing.TypeObject:
+		res := make(map[string]any, len(t.Object()))
+		for key, item := range t.Object() {
+			res[key] = javaScriptInputValue(item)
+		}
+		return res
+	case thing.TypeHTTPResponse:
+		env := eval.NewHTTPResponseEnv(t.HTTPResponse())
+		body, _ := env.BodyFunc()
+		data, err := env.DataFunc()
+		if err != nil {
+			data = nil
+		}
+		return map[string]any{
+			"status":      env.Status,
+			"status_code": env.StatusCode,
+			"body":        body,
+			"data":        data,
+		}
+	case thing.TypeDiscordMessage, thing.TypeDiscordUser, thing.TypeDiscordMember,
+		thing.TypeDiscordChannel, thing.TypeDiscordGuild, thing.TypeDiscordRole, thing.TypeRobloxUser:
+		// The env types have JSON tags for their fields that aren't lazy.
+		b, err := json.Marshal(eval.NewThingEnv(t))
+		if err != nil {
+			break
+		}
+		var v any
+		if err := json.Unmarshal(b, &v); err != nil {
+			break
+		}
+		return v
+	case thing.TypeAny:
+		// Lists and maps of placeholders, like the members of a Get members
+		// block, which hold envs of Discord objects.
+		rv := reflect.ValueOf(t.Value)
+		switch {
+		case rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array:
+			res := make([]any, rv.Len())
+			for i := range res {
+				res[i] = javaScriptInputValue(thing.NewGuessTypeWithFallback(rv.Index(i).Interface()))
+			}
+			return res
+		case rv.Kind() == reflect.Map && rv.Type().Key().Kind() == reflect.String:
+			res := make(map[string]any, rv.Len())
+			for iter := rv.MapRange(); iter.Next(); {
+				res[iter.Key().String()] = javaScriptInputValue(thing.NewGuessTypeWithFallback(iter.Value().Interface()))
+			}
+			return res
+		}
+	}
+	return t.JSONValue()
 }
 
 func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {

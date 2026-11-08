@@ -28,6 +28,7 @@ import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
+import { javascriptMaxInputs } from "@/lib/blocks/javascriptRun";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import { variableListSorts } from "@/lib/blocks/variableList";
 import {
@@ -168,6 +169,7 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
+import FlowCodeInput from "./FlowCodeInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
@@ -264,6 +266,7 @@ export const settingInputs: Record<string, any> = {
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
+  javascript_data: JavaScriptDataInput,
   random: RandomInput,
   lookup_value: LookupValueInput,
   lookup_mode: LookupModeInput,
@@ -2479,6 +2482,103 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
       placeholders
       disablePlaceholderBrackets
     />
+  );
+}
+
+function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+  const inputs = data.javascript_data?.inputs || [];
+  const inputNames = inputs
+    .filter((input) => input.name)
+    .map((input) => `input.${input.name}`);
+
+  function update(patch: Partial<NonNullable<typeof data.javascript_data>>) {
+    updateData({ javascript_data: { ...data.javascript_data, ...patch } });
+  }
+
+  function updateInput(i: number, name: string, value: string) {
+    update({
+      inputs: inputs.map((input, j) =>
+        i === j ? { name, value: value || undefined } : input
+      ),
+    });
+  }
+
+  return (
+    <>
+      <div>
+        <FlowCodeInput
+          title="Code"
+          description="Use return to pass the result to later blocks. Read inputs as input.name, like input.amount. The code can run for 25 ms."
+          value={data.javascript_data?.code || ""}
+          onChange={(v) => update({ code: v || undefined })}
+          placeholder="return input.amount * 2"
+          error={errors["javascript_data.code"]}
+          hint={
+            inputNames.length > 0
+              ? `Use return to pass the result to later blocks. The inputs are ${inputNames.join(
+                  ", "
+                )}.`
+              : "Use return to pass the result to later blocks. Add inputs in the block settings to use values from the flow."
+          }
+        />
+      </div>
+      <div>
+        <div className="font-medium text-foreground mb-1">Inputs</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          Values the code gets from the flow, like {"{{arg('amount')}}"}.
+          Placeholders don&apos;t work in the code itself.
+        </div>
+        <div className="flex flex-col gap-3">
+          {inputs.map((input, i) => (
+            <div className="flex gap-2" key={i}>
+              <div className="grid grid-cols-2 gap-2 flex-auto">
+                <BaseInput
+                  field={`javascript_data.inputs.${i}.name`}
+                  placeholder="Name"
+                  value={input.name || ""}
+                  updateValue={(v) => updateInput(i, v, input.value || "")}
+                  errors={errors}
+                />
+                <BaseInput
+                  field={`javascript_data.inputs.${i}.value`}
+                  placeholder="Value"
+                  value={input.value || ""}
+                  updateValue={(v) => updateInput(i, input.name, v)}
+                  errors={errors}
+                  placeholders
+                />
+              </div>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    update({ inputs: inputs.filter((_, j) => i !== j) })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
+            </div>
+          ))}
+          {!readOnly && inputs.length < javascriptMaxInputs && (
+            <div className="flex">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() =>
+                  update({ inputs: [...inputs, { name: "", value: "" }] })
+                }
+              >
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 

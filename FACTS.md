@@ -35,6 +35,7 @@ Features (feature | what it means for the user | free or paid):
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free
+- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms | free, 10 credits a run
 - Integrations: ER:LC, Roblox, and Cookie API | ready blocks for ER:LC private servers, Roblox users and groups, and Cookie API | free, ER:LC needs your server key
 - Collaborators | others edit the same bot with you | free, 3 including you, more on paid plans
 - MCP server at https://kite.onl/api/mcp | build and change the bot from Claude, ChatGPT, Codex, Cursor, or VS Code | free
@@ -74,7 +75,7 @@ Trial, refunds, cancellation:
 Credits:
 - Most actions, like sending a message or banning a member, cost 1 credit.
 - Conditions, loops, and getting servers, channels, members, messages, and stored variables are free.
-- AI blocks and HTTP requests cost more. The pricing page lists every cost, generated from the block definitions.
+- AI blocks, HTTP requests, and the Run JavaScript block cost more. The pricing page lists every cost, generated from the block definitions.
 - Being online costs nothing. Flow AI prompts don't use credits.
 - Out of credits: the bot stays online, its commands and events pause, and members who use it are told why. It warns at 80%, DMs the owner at 80% and 100%, and runs again when the month ends or a few minutes after an upgrade.
 

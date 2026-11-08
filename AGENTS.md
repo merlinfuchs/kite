@@ -51,6 +51,7 @@ Never edit these by hand. Change the source and regenerate.
 | `kite-service/internal/core/flowai/instructions.txt` | `kite-web/src/lib/flow/aiInstructions.ts`                       | `pnpm test -u` in `kite-web`                   |
 | `kite-web/src/lib/flow/expressionTypes.gen.json`     | the envs in `kite-service/pkg/eval`                             | `go test ./pkg/eval -update` in `kite-service` |
 | `kite-web/src/lib/flow/eventFilterTargets.gen.json`  | `eventFilterTargets` in `kite-service/pkg/flow/event_filter.go` | `go test ./pkg/flow -update` in `kite-service` |
+| `kite-service/pkg/js/kite.wasm`                      | `kite-service/pkg/js/wasm/kite.c` and QuickJS-NG                | `pkg/js/wasm/build.sh`, needs wasi-sdk         |
 
 `catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `expressionTypes.gen.json` has the fields of the values expressions can use, like `result('id')` of a Get Member block, for the editor and the catalog. A field's name is its label, add a `desc` tag where that isn't enough. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 

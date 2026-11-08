@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
@@ -209,6 +210,7 @@ const (
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionAITranslate           FlowNodeType = "action_ai_translate"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
+	FlowNodeTypeActionJavaScriptRun         FlowNodeType = "action_javascript_run"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionValueLookup           FlowNodeType = "action_value_lookup"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -463,6 +465,9 @@ type FlowNodeData struct {
 	// Expression Evaluate
 	Expression string `json:"expression,omitempty"`
 
+	// Run JavaScript
+	JavaScriptData *JavaScriptData `json:"javascript_data,omitempty"`
+
 	// Value Lookup
 	LookupValue      string         `json:"lookup_value,omitempty"`
 	LookupMode       ComparsionMode `json:"lookup_mode,omitempty"`
@@ -702,6 +707,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// AI Translate
 		validation.Field(&d.AITranslateData, validation.When(
 			nodeType == FlowNodeTypeActionAITranslate,
+			validation.Required,
+		)),
+
+		// Run JavaScript
+		validation.Field(&d.JavaScriptData, validation.When(
+			nodeType == FlowNodeTypeActionJavaScriptRun,
 			validation.Required,
 		)),
 
@@ -1305,6 +1316,41 @@ type AIDecisionData struct {
 	NoThreshold  string `json:"no_threshold,omitempty"`
 	// Score: the levels, lowest first.
 	Levels []string `json:"levels,omitempty"`
+}
+
+type JavaScriptData struct {
+	// The body of a function with the parameter input. Placeholders in it
+	// aren't evaluated, they would let anyone who can put text in them run
+	// code. Values go in through inputs.
+	Code   string            `json:"code,omitempty"`
+	Inputs []JavaScriptInput `json:"inputs,omitempty"`
+}
+
+type JavaScriptInput struct {
+	// Property of input in the code.
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
+}
+
+var javaScriptInputNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,31}$`)
+
+func (d JavaScriptData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Code, validation.Required, validation.Length(1, js.MaxCodeLength)),
+		validation.Field(&d.Inputs, validation.Length(0, js.MaxInputs), validation.By(func(value any) error {
+			names := map[string]bool{}
+			for _, input := range value.([]JavaScriptInput) {
+				if !javaScriptInputNameRe.MatchString(input.Name) {
+					return fmt.Errorf("input name %q must start with a letter or _ and have up to 32 letters, digits and _", input.Name)
+				}
+				if names[input.Name] {
+					return fmt.Errorf("input name %q is used twice", input.Name)
+				}
+				names[input.Name] = true
+			}
+			return nil
+		})),
+	)
 }
 
 type AITranslateData struct {
