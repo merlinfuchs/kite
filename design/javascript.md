@@ -2,7 +2,9 @@
 
 Status: step 1, the Run JavaScript block, implemented 2026-11-08. Later steps are proposals.
 
-Kite runs user JavaScript in `kite-service/pkg/js`. The plan has three steps. The Run JavaScript block computes and returns a value, with no access to anything. Then scripts get host functions to call Discord, HTTP and stored variables. Maybe later, whole bot features are written as JavaScript modules that register commands and event handlers. The last step isn't decided.
+Kite runs user JavaScript in `kite-service/pkg/js`. The plan has three steps. The Run JavaScript block computes and returns a value, with no access to anything. Then scripts get the operations of Kite's integrations, like Discord's API, stored variables and AI. Maybe later, whole bot features are written as JavaScript modules that register commands and event handlers. The last step isn't decided.
+
+Flows, the Run JavaScript block and modules are three ways to use the same operations. Flows stay a graph that the Go engine runs, see "Flows stay a graph" below.
 
 ## Runtime
 
@@ -38,7 +40,20 @@ There's no `Intl`. `prelude.js` adds `formatDate` with time zones from Go, and m
 
 The C glue has one way out of the sandbox, `kite.call(name, json)`, which runs a Go function and blocks until it returns. `prelude.js` keeps a reference and deletes the global, so scripts only get the wrappers it defines. Today the only host function is `date_parts`, for `formatDate`.
 
-Step 2 adds functions like `discord.request`, `http.fetch` and `variables.get` to `hostFuncs`. Each needs an argument schema, a credit cost, a rate limit, and whether a block can call it or only a module. Go validates every call as if an attacker wrote it, and the JS wrappers are only for convenience. Discord calls go through a route policy table like Tessera's, which says per route how its target is proven to be in the right server. The Discord API Request block and the MCP Discord API already check scopes, and should share that table.
+Step 2 gives scripts the operations of Kite's integrations through `kite.call`. Go validates every call as if an attacker wrote it, and the JS wrappers are only for convenience.
+
+Scripts don't call blocks. A block is shaped for the editor. It has a curated subset of an operation's options, text fields with placeholders and results in Kite's shapes. The Create channel block leaves out options that are hard to show in the editor, and code should have all of them. So blocks and scripts both use the operations underneath, which `design/integrations.md` defines:
+
+- The operations of an integration's `api.json`, like all of Discord's API, generated from its OpenAPI spec, and the hand-written ones of Roblox, ER:LC and Cookie API.
+- Operations that aren't a request to a service, like reading a member from the gateway cache, stored variables, AI and voice. They have a Go handler and a JSON Schema for their parameters and result.
+
+The SDK is generated from the same files, so a new operation is in the SDK without writing a wrapper. One Go executor runs every operation for blocks, scripts and the MCP server. It adds the bot token or the integration's credential, sends requests through the egress proxy, checks the route policy, charges credits and writes logs. A script never sees an API key.
+
+The route policy is generated per operation, like `block_definitions.json` for blocks. It holds the operation's credits, how its target is proven to be in the app's server, and limits for destructive operations. It replaces Tessera's hand-written table, and the scope checks of Discord API Request and the MCP Discord API tool should move to it.
+
+Scripts get Discord's API JSON, like `global_name` and an `avatar` hash. Placeholders and the inputs of the Run JavaScript block use Kite's shapes, like `display_name` and `avatar_url`. That's on purpose. Modules are written against the real API, which docs and AI know. The block stays in the flow world.
+
+With the app's own bot token, a script that burns the rate limit only hurts its own app. On a shared bot, the route policy and per-app budgets in Go have to stop it before Discord does.
 
 The public API should return Promises from the start, so scripts `await` host calls. Go can resolve them right away at first, and run them in parallel later without breaking scripts. That needs the QuickJS job queue, which also lifts the block's ban on returning a Promise.
 
@@ -55,6 +70,62 @@ MEE6's Bot Maker, launched in November 2026, works the same way and is worth cop
 - Event filters declared next to each handler and checked in Go before any JS runs.
 - Settings declared in code that become flow parameters, so templates work for modules.
 
+Modules wait like Discord does, with handlers and saved data instead of paused code:
+
+```js
+command("giveaway", opts, async (ctx) => {
+  const msg = await ctx.reply({
+    content: "Click to enter!",
+    components: [
+      button("enter", { label: "Enter" }, { prize: ctx.options.prize }),
+    ],
+  });
+  schedule.in("24h", "draw", { messageId: msg.id, prize: ctx.options.prize });
+});
+
+on.button("enter", async (ctx, data) => {
+  /* data.prize */
+});
+on.schedule("draw", async (ctx, data) => {
+  /* pick a winner */
+});
+```
+
+Kite stores the data of a button and puts only an ID in its `custom_id`, which Discord caps at 100 characters, like a resume point of a flow. `schedule.in` is a timer resume point with a handler name instead of a block ID. Nothing is paused, so deploys, restarts and edits to the code can't break waiting runs. It also fits buttons better than `await`. A message's buttons can be clicked by anyone, many times, days later. Short waits in one run, like `await sleep(2000)`, can keep the instance alive within the time limit.
+
+If people want `await ctx.waitForClick()` later, the instance's memory can be saved while it waits. A paused `async` function lives in QuickJS's heap, which is the Wasm memory. When every function waits on a promise that isn't resolved yet, `kite_run` returns, and the memory is the run's whole state. Kite would save the pages that differ from the snapshot, compressed, and later copy them into a new instance and call a `kite_resolve(id, result)` export. Nothing runs again, so code doesn't have to be deterministic like with replay in Temporal or Durable Functions. A new `kite.wasm` breaks saved runs, as its memory layout differs, so old builds have to be kept as long as runs can wait, or the runs fail after an upgrade. A saved run also keeps the code it started with. The size of saved runs needs a spike before anything depends on it.
+
 Modules should run in a worker process before they launch, with a lower CPU priority, so a wazero or QuickJS crash can't take the gateways down. Keeping `pkg/js` behind `Run` makes that a change of transport.
 
 QuickJS is 20 to 50 times slower than V8 on heavy compute. Bot handlers mostly wait on Discord, but a game module like chess should be measured before modules are built on it.
+
+## Flows stay a graph
+
+Flows could be compiled to JavaScript and run like modules, so there's one way to run things. They aren't, for these reasons:
+
+- Flows pause. A modal, a button on a message or a sleep stores a resume point, the ID of a block and the results so far, and the flow continues from it minutes or days later, after deploys. A paused JavaScript call stack can't be stored. Compiling flows to steps that can be resumed gives back the graph.
+- Placeholders are expr-lang in Go, with lazy fields, `origin.`, `previous.`, `arg()` and `result()`, and behavior apps depend on, like the IDs of modal selects. Rewriting that in JavaScript risks every flow, and calling Go for each placeholder leaves JavaScript only ordering calls to Go.
+- Every block calls Go anyway. Compiling would replace the graph interpreter, about 1,700 lines. The 5,700 lines of block handlers stay either way.
+- Error logs, field highlighting and test runs point at blocks.
+
+Speed isn't the reason. 967k runs a day at 0.5 ms each would be about 8 minutes of CPU a day on kite.onl's server.
+
+What's shared is the operations. A request block is a preset of the operation in its `run.operation`, so a flow can be turned into a module by turning each block into a call of its operation and each button output into a handler. Custom blocks need that mapping written once each. The other way only works for code that is a list of operations, and isn't a goal.
+
+## One interface for flows, modules and plugins
+
+Flows, modules and plugins can all sit behind one interface in the engine. Each of them declares what it handles and handles it:
+
+- A manifest with the commands, event listeners and their filters, schedules and webhooks it handles, and the settings it declares.
+- A method that gets a trigger, like a command, an event, a schedule or a click on a button with its saved data, and runs it within the app's limits, credits and logs.
+
+A flow is a unit with one trigger, its entry block. A module has as many as it declares. Plugins already work this way: `pkg/plugin` has `Commands()`, `Events()` and `Config()`, and an instance has `HandleCommand`, `HandleEvent`, `HandleComponent` and `HandleModal`. Counting and starboard are Go behind it. The interface for modules would grow out of it, with flows, modules and the plugins that are left as its implementations.
+
+The engine routes events by the manifests and doesn't care what's behind them. The commands Discord gets and the intents an app needs are computed from all manifests together, where commands, event listeners and plugins each have their own path today. A resume record holds either a block ID and the state of a flow, or the name of a handler and its saved data, so one table and one dispatcher serve both.
+
+Things to get right:
+
+- Plan limits count what's in the manifests, not units. A module with 5 commands counts as 5 commands, or modules get around the 15 commands of the free plan.
+- The Commands and Event listeners pages show those of modules too, marked as coming from their module and only editable there. Otherwise nobody sees what their bot does, and names that clash with flows go unnoticed.
+- A module is one more kind of item in a template, as an installed template already groups commands, event listeners and messages like a module does. That keeps the Marketplace working for code.
+- Flows stay a row per command or event listener. A module is one row with its code and the manifest Go takes from it on deploy, and routing is built from both.
