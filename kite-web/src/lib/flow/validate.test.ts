@@ -227,11 +227,17 @@ describe("validateFlow", () => {
     const check = node("if", "control_if", {
       condition_base_value: "{{true}}",
     });
+    const missingHandle =
+      "'If' only has the outputs 'yes', 'no', so a block after it needs one of them as its handle. To run the block either way, connect it to each.";
     expect(
       errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
-    ).toEqual([
-      "Without a handle, a block runs after the default output, but 'If' only has 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
-    ]);
+    ).toEqual([missingHandle]);
+    expect(
+      errors(
+        [entry, check, log("a")],
+        [edge("entry", "if"), edge("if", "a", "default")]
+      )
+    ).toEqual([missingHandle]);
   });
 
   it("accepts outputs of message components", () => {

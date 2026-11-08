@@ -541,10 +541,10 @@ export function getConnectionIssue(
   }
   if (!outputs.includes(handle)) {
     const names = outputs.map((o) => `'${o}'`).join(", ");
-    // The AI mostly leaves out the handle, so "no output 'default'" would
-    // name a handle it never set.
+    // A left-out handle is the default one, so "no output 'default'" would
+    // often name a handle that was never set.
     if (handle === "default") {
-      return `Without a handle, a block runs after the default output, but '${sourceTitle}' only has ${names}. Set the handle to one of them, or connect the block to each to run it either way.`;
+      return `'${sourceTitle}' only has the outputs ${names}, so a block after it needs one of them as its handle. To run the block either way, connect it to each.`;
     }
     return `'${sourceTitle}' has no output '${handle}', only ${names}.${
       handle === "error"

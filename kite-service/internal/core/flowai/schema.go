@@ -64,7 +64,7 @@ var outputSchema = map[string]any{
 					"id":         nullable("string", "update_node and remove_node: the block to change."),
 					"after":      nullable("string", "add_node: the block the new one runs after."),
 					"before":     nullable("string", "add_node: the block the new one runs before."),
-					"handle":     nullable("string", "add_node, connect and disconnect: output of the earlier block. Required after blocks without a default output, like yes or no of control_if."),
+					"handle":     nullable("string", "add_node, connect and disconnect: output of the earlier block. add_node and connect need it after blocks without a default output, like the yes or no output of control_if."),
 					"source":     nullable("string", "connect and disconnect: the earlier block."),
 					"target":     nullable("string", "connect and disconnect: the later block."),
 					"data_json":  nullable("string", "add_node and update_node: settings as a JSON object."),
