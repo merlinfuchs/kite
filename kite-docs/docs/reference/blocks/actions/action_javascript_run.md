@@ -11,7 +11,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 The `Run JavaScript` block runs a short piece of JavaScript and passes what it returns to later blocks. Use it for logic that would take many blocks, like going through a list, reading numbers out of a message or several calculations that build on each other. For a single calculation, the [Calculate Value](./action_expression_evaluate.md) block is enough.
 
-The code runs as the body of a function. End it with `return` and the value, and later blocks read it with `{{result('js_abc')}}`, where `js_abc` is the ID of the block. It can return a number, text, a list or an object, like `{{result('js_abc').total}}`.
+The code runs as the body of an async function, so it can use `await`. End it with `return` and the value, and later blocks read it with `{{result('js_abc')}}`, where `js_abc` is the ID of the block. It can return a number, text, a list or an object, like `{{result('js_abc').total}}`.
 
 ```js
 const rolls = [];

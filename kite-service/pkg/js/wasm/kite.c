@@ -109,16 +109,24 @@ static void append_out(const char *s, size_t len) {
 static int32_t fail(void) {
   JSValue exc = JS_GetException(ctx);
   JSValue msg = JS_ToString(ctx, exc);
-  JSValue stack = JS_IsError(exc) ? JS_GetPropertyStr(ctx, exc, "stack") : JS_UNDEFINED;
   size_t len;
-  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &len, msg);
-  if (m) {
+  const char *m = NULL;
+  if (JS_IsException(msg)) {
+    // Like an object whose toString throws, or runs out of time.
+    JSValue err = JS_GetException(ctx);
+    if (JS_IsUncatchableError(err)) {
+      SET_OUT_LIT("InternalError: interrupted");
+    } else {
+      SET_OUT_LIT("Error: the code threw something that can't be shown as text");
+    }
+    JS_FreeValue(ctx, err);
+  } else if ((m = JS_ToCStringLen(ctx, &len, msg))) {
     set_out(m, len);
     JS_FreeCString(ctx, m);
   } else {
-    // Like an object whose toString throws.
-    SET_OUT_LIT("Error: the code threw something that can't be shown as text");
+    SET_OUT_LIT("InternalError: out of memory");
   }
+  JSValue stack = JS_IsError(exc) ? JS_GetPropertyStr(ctx, exc, "stack") : JS_UNDEFINED;
   const char *st = JS_IsString(stack) ? JS_ToCStringLen(ctx, &len, stack) : NULL;
   if (st) {
     append_out("", 1);
@@ -176,6 +184,20 @@ char *kite_out_ptr(void) { return out; }
 EXPORT("kite_out_len")
 uint32_t kite_out_len(void) { return out_len; }
 
+// Logs an error nothing waits for at the error level.
+static void log_error(JSValueConst err) {
+  JSValue msg = JS_ToString(ctx, err);
+  size_t len;
+  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &len, msg);
+  if (m) {
+    host_log(2, m, len);
+    JS_FreeCString(ctx, m);
+  } else {
+    JS_FreeValue(ctx, JS_GetException(ctx));
+  }
+  JS_FreeValue(ctx, msg);
+}
+
 // Stores v as JSON as the output, and frees it. Returns 0, or 1 for an error.
 static int32_t set_out_json(JSValue v) {
   JSValue json = JS_JSONStringify(ctx, v, JS_UNDEFINED, JS_UNDEFINED);
@@ -202,13 +224,24 @@ static int32_t set_out_json(JSValue v) {
 static int32_t settle(JSValue promise) {
   JSContext *job_ctx;
   int job;
-  while ((job = JS_ExecutePendingJob(rt, &job_ctx)) > 0) {}
-  if (job < 0) {
-    JS_FreeValue(ctx, promise);
-    return fail();
+  while ((job = JS_ExecutePendingJob(rt, &job_ctx)) != 0) {
+    if (job > 0) continue;
+    // A job threw. Running out of time ends the run. Other errors, like one
+    // in a queueMicrotask callback, are logged like browsers report them, as
+    // nothing waits for them.
+    JSValue exc = JS_GetException(ctx);
+    if (JS_IsUncatchableError(exc)) {
+      JS_Throw(ctx, exc);
+      JS_FreeValue(ctx, promise);
+      return fail();
+    }
+    log_error(exc);
+    JS_FreeValue(ctx, exc);
   }
 
   JSPromiseStateEnum state = JS_PromiseState(ctx, promise);
+  // The code got out of the async function Go wraps it in.
+  if (state == JS_PROMISE_NOT_A_PROMISE) return set_out_json(promise);
   if (state == JS_PROMISE_PENDING) {
     JS_FreeValue(ctx, promise);
     return 2;

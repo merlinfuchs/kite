@@ -46,6 +46,7 @@ func TestRun(t *testing.T) {
 		{"promise all", `return await Promise.all([1, Promise.resolve(2), (async () => 3)()])`, nil, `[1,2,3]`},
 		{"async helper", "async function double(n) {\n  await null\n  return n * 2\n}\nreturn [await double(1), await double(2)]", nil, `[2,4]`},
 		{"microtask", `const seen = []; queueMicrotask(() => seen.push(1)); await null; return seen`, nil, `[1]`},
+		{"escaped wrapper", `}), (function () { return 1`, nil, `1`},
 		{"unhandled rejection", `Promise.reject(new Error("ignored")); (async () => { throw 1 })(); return 1`, nil, `1`},
 		{"no globals", `return [typeof std, typeof os, typeof kite, typeof require, typeof fetch, typeof setTimeout, typeof process, typeof Deno]`, nil,
 			`["undefined","undefined","undefined","undefined","undefined","undefined","undefined","undefined"]`},
@@ -72,6 +73,9 @@ func TestRunErrors(t *testing.T) {
 		{"throw string", `throw "nope"`, "nope"},
 		{"rejected", "\nreturn Promise.reject(new Error('nope'))", "Error: nope (line 2)"},
 		{"rejected helper", "async function f() {\n  await null\n  throw new TypeError('bad')\n}\nreturn await f()", "TypeError: bad (line 3)"},
+		{"null property after await", "const x = 1\nawait null\n\nreturn null.x", "TypeError: cannot read property 'x' of null"},
+		{"error after await", "await null\n\nreturn missing()", "ReferenceError: missing is not defined (line 3)"},
+		{"slow rejection", `return Promise.reject({toString() { while (true) {} }})`, "the code ran longer than 25 ms"},
 		{"never finishes", `await new Promise(() => {})`, "the code waited for something that never finished"},
 		{"spin in microtask", `queueMicrotask(() => { while (true) {} }); return 1`, "the code ran longer than 25 ms"},
 		{"endless microtasks", `const f = () => queueMicrotask(f); f(); return 1`, "the code ran longer than 25 ms"},
@@ -270,4 +274,15 @@ func TestOneMutableGlobal(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, mutable)
+}
+
+func TestRunMicrotaskError(t *testing.T) {
+	var logs []string
+	res, err := Run(context.Background(), Options{
+		Code: `queueMicrotask(() => { throw new Error("x") }); await null; return 1`,
+		Log:  func(level LogLevel, message string) { logs = append(logs, string(level)+" "+message) },
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "1", string(res))
+	assert.Equal(t, []string{"error Error: x"}, logs)
 }
