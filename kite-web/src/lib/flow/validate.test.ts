@@ -230,7 +230,7 @@ describe("validateFlow", () => {
     expect(
       errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
     ).toEqual([
-      "'If' has no output 'default', only 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
+      "Without a handle, a block runs after the default output, but 'If' only has 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
     ]);
   });
 

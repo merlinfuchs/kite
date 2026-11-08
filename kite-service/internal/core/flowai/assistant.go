@@ -455,6 +455,13 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	case "connect", "disconnect":
 		e.Source = or(e.Source, e.After)
 		e.Target = or(e.Target, e.Before)
+		// It also puts the end it left out in id, like id and target to
+		// disconnect.
+		if e.Source == nil || *e.Source == "" {
+			e.Source = e.ID
+		} else {
+			e.Target = or(e.Target, e.ID)
+		}
 	}
 	if e.Op == "update_node" && e.DataJSON == nil && (e.After != nil || e.Before != nil) {
 		return nil, errors.New("update_node can't move a block. Disconnect and connect it instead.")

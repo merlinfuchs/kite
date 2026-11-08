@@ -540,13 +540,15 @@ export function getConnectionIssue(
     }.`;
   }
   if (!outputs.includes(handle)) {
-    return `'${sourceTitle}' has no output '${handle}', only ${outputs
-      .map((o) => `'${o}'`)
-      .join(", ")}.${
+    const names = outputs.map((o) => `'${o}'`).join(", ");
+    // The AI mostly leaves out the handle, so "no output 'default'" would
+    // name a handle it never set.
+    if (handle === "default") {
+      return `Without a handle, a block runs after the default output, but '${sourceTitle}' only has ${names}. Set the handle to one of them, or connect the block to each to run it either way.`;
+    }
+    return `'${sourceTitle}' has no output '${handle}', only ${names}.${
       handle === "error"
         ? " To handle errors, put the block after the default output of an error handler block."
-        : handle === "default"
-        ? " Set the handle to one of them, or connect the block to each to run it either way."
         : ""
     }`;
   }

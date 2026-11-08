@@ -184,6 +184,14 @@ func TestToEditUsesMisnamedFields(t *testing.T) {
 			map[string]any{"op": "connect", "source": "a", "target": "b", "after": "a"},
 		},
 		{
+			outputEdit{Op: "disconnect", ID: ptr("a"), Target: ptr("b")},
+			map[string]any{"op": "disconnect", "source": "a", "target": "b", "id": "a"},
+		},
+		{
+			outputEdit{Op: "connect", ID: ptr("b"), Source: ptr("a")},
+			map[string]any{"op": "connect", "source": "a", "target": "b", "id": "b"},
+		},
+		{
 			outputEdit{Op: "remove_node", Ref: ptr("a")},
 			map[string]any{"op": "remove_node", "id": "a", "ref": "a"},
 		},
