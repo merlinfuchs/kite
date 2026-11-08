@@ -60,7 +60,7 @@ Scripts get Discord's API JSON, like `global_name` and an `avatar` hash. Placeho
 
 With the app's own bot token, a script that burns the rate limit only hurts its own app. On a shared bot, the route policy and per-app budgets in Go have to stop it before Discord does.
 
-The public API should return Promises from the start, so scripts `await` host calls. Go can resolve them right away at first, and run them in parallel later without breaking scripts. That needs the QuickJS job queue, which also lifts the block's ban on returning a Promise.
+The public API should return Promises from the start, so scripts `await` host calls. Go can resolve them right away at first, and run them in parallel later without breaking scripts. That needs the QuickJS job queue, which `kite_run` already runs, so the block's code can use `await`.
 
 ## Modules
 

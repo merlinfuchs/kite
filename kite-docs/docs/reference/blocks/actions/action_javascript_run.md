@@ -11,7 +11,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 The `Run JavaScript` block runs a short piece of JavaScript and passes what it returns to later blocks. Use it for logic that would take many blocks, like going through a list, reading numbers out of a message or several calculations that build on each other. For a single calculation, the [Calculate Value](./action_expression_evaluate.md) block is enough.
 
-The code runs as the body of a function. End it with `return` and the value, and later blocks read it with `{{result('js_abc')}}`, where `js_abc` is the ID of the block. It can return a number, text, a list or an object, like `{{result('js_abc').total}}`.
+The code runs as the body of an async function, so it can use `await`. End it with `return` and the value, and later blocks read it with `{{result('js_abc')}}`, where `js_abc` is the ID of the block. It can return a number, text, a list or an object, like `{{result('js_abc').total}}`.
 
 ```js
 const rolls = [];
@@ -49,9 +49,9 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can't send requests, wait, use timers or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can't send requests or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
-`async` code isn't supported. The block fails if the code returns a Promise, and code after an `await` or in `queueMicrotask` never runs.
+`await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
 There's no `Intl`, so `toLocaleString` on dates ignores the language and time zone, and dates are in UTC. Numbers get commas, like `1,234.5`. To show a date in a time zone, use `formatDate(date, format, timeZone)`. The date can be a `Date`, a timestamp in milliseconds or text like `2026-01-01T12:00:00Z`.
 

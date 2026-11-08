@@ -109,16 +109,24 @@ static void append_out(const char *s, size_t len) {
 static int32_t fail(void) {
   JSValue exc = JS_GetException(ctx);
   JSValue msg = JS_ToString(ctx, exc);
-  JSValue stack = JS_IsError(exc) ? JS_GetPropertyStr(ctx, exc, "stack") : JS_UNDEFINED;
   size_t len;
-  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &len, msg);
-  if (m) {
+  const char *m = NULL;
+  if (JS_IsException(msg)) {
+    // Like an object whose toString throws, or runs out of time.
+    JSValue err = JS_GetException(ctx);
+    if (JS_IsUncatchableError(err)) {
+      SET_OUT_LIT("InternalError: interrupted");
+    } else {
+      SET_OUT_LIT("Error: the code threw something that can't be shown as text");
+    }
+    JS_FreeValue(ctx, err);
+  } else if ((m = JS_ToCStringLen(ctx, &len, msg))) {
     set_out(m, len);
     JS_FreeCString(ctx, m);
   } else {
-    // Like an object whose toString throws.
-    SET_OUT_LIT("Error: the code threw something that can't be shown as text");
+    SET_OUT_LIT("InternalError: out of memory");
   }
+  JSValue stack = JS_IsError(exc) ? JS_GetPropertyStr(ctx, exc, "stack") : JS_UNDEFINED;
   const char *st = JS_IsString(stack) ? JS_ToCStringLen(ctx, &len, stack) : NULL;
   if (st) {
     append_out("", 1);
@@ -176,9 +184,79 @@ char *kite_out_ptr(void) { return out; }
 EXPORT("kite_out_len")
 uint32_t kite_out_len(void) { return out_len; }
 
-// Runs code, a function expression that Go builds and null terminates, with
-// input as its argument, and stores its return value as JSON, or the error.
-// Returns 0 for a result, 1 for an error.
+// Logs an error nothing waits for at the error level.
+static void log_error(JSValueConst err) {
+  JSValue msg = JS_ToString(ctx, err);
+  size_t len;
+  const char *m = JS_IsException(msg) ? NULL : JS_ToCStringLen(ctx, &len, msg);
+  if (m) {
+    host_log(2, m, len);
+    JS_FreeCString(ctx, m);
+  } else {
+    JS_FreeValue(ctx, JS_GetException(ctx));
+  }
+  JS_FreeValue(ctx, msg);
+}
+
+// Stores v as JSON as the output, and frees it. Returns 0, or 1 for an error.
+static int32_t set_out_json(JSValue v) {
+  JSValue json = JS_JSONStringify(ctx, v, JS_UNDEFINED, JS_UNDEFINED);
+  JS_FreeValue(ctx, v);
+  if (JS_IsException(json)) return fail();
+  if (JS_IsUndefined(json)) {
+    SET_OUT_LIT("null");
+    return 0;
+  }
+  size_t len;
+  const char *s = JS_ToCStringLen(ctx, &len, json);
+  JS_FreeValue(ctx, json);
+  if (!s) return fail();
+  set_out(s, len);
+  JS_FreeCString(ctx, s);
+  return 0;
+}
+
+// Runs the job queue, the code after each await and queueMicrotask
+// callbacks, then stores what promise settled to, and frees it. Returns 0 for
+// a result, 1 for an error and 2 if promise is still pending. Jobs only run in
+// ctx, the only context, so a failed job's exception is pending there. That
+// includes the interrupt once the run is out of time.
+static int32_t settle(JSValue promise) {
+  JSContext *job_ctx;
+  int job;
+  while ((job = JS_ExecutePendingJob(rt, &job_ctx)) != 0) {
+    if (job > 0) continue;
+    // A job threw. Running out of time ends the run. Other errors, like one
+    // in a queueMicrotask callback, are logged like browsers report them, as
+    // nothing waits for them.
+    JSValue exc = JS_GetException(ctx);
+    if (JS_IsUncatchableError(exc)) {
+      JS_Throw(ctx, exc);
+      JS_FreeValue(ctx, promise);
+      return fail();
+    }
+    log_error(exc);
+    JS_FreeValue(ctx, exc);
+  }
+
+  JSPromiseStateEnum state = JS_PromiseState(ctx, promise);
+  // The code got out of the async function Go wraps it in.
+  if (state == JS_PROMISE_NOT_A_PROMISE) return set_out_json(promise);
+  if (state == JS_PROMISE_PENDING) {
+    JS_FreeValue(ctx, promise);
+    return 2;
+  }
+  JSValue result = JS_PromiseResult(ctx, promise);
+  JS_FreeValue(ctx, promise);
+  if (state == JS_PROMISE_REJECTED) {
+    JS_Throw(ctx, result);
+    return fail();
+  }
+  return set_out_json(result);
+}
+
+// Runs code, an async function expression that Go builds and null
+// terminates, with input as its argument. Returns like settle.
 EXPORT("kite_run")
 int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_t input_len) {
   JS_UpdateStackTop(rt);
@@ -196,27 +274,5 @@ int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_
   JS_FreeValue(ctx, fn);
   JS_FreeValue(ctx, in);
   if (JS_IsException(res)) return fail();
-  if (JS_IsPromise(res)) {
-    JS_FreeValue(ctx, res);
-    JS_ThrowTypeError(ctx, "the code returned a Promise, async code isn't supported");
-    return fail();
-  }
-
-  JSValue json = JS_JSONStringify(ctx, res, JS_UNDEFINED, JS_UNDEFINED);
-  JS_FreeValue(ctx, res);
-  if (JS_IsException(json)) return fail();
-  if (JS_IsUndefined(json)) {
-    SET_OUT_LIT("null");
-  } else {
-    size_t len;
-    const char *s = JS_ToCStringLen(ctx, &len, json);
-    if (!s) {
-      JS_FreeValue(ctx, json);
-      return fail();
-    }
-    set_out(s, len);
-    JS_FreeCString(ctx, s);
-  }
-  JS_FreeValue(ctx, json);
-  return 0;
+  return settle(res);
 }

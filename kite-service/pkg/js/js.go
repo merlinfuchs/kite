@@ -117,11 +117,12 @@ func (e *Error) Error() string {
 
 var (
 	errTimeout = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
+	errPending = &Error{Message: "the code waited for something that never finished"}
 	errMemory  = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
 )
 
-// Run runs opts.Code as the body of a function with the parameter input, and
-// returns the JSON of what it returns.
+// Run runs opts.Code as the body of an async function with the parameter
+// input, and returns the JSON of what it returns once the promise settles.
 func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	if n := utf8.RuneCountInString(opts.Code); n > MaxCodeLength {
 		return nil, &Error{Message: fmt.Sprintf("the code is %d characters, more than the limit of %d", n, MaxCodeLength)}
@@ -172,7 +173,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	if opts.timeout > 0 {
 		timeout = opts.timeout
 	}
-	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
+	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
@@ -182,8 +183,15 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		}
 		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
 	}
-	if !ok {
-		return nil, scriptError(string(out))
+	switch status {
+	case runError:
+		return nil, scriptError(string(out), opts.Code)
+	case runPending:
+		// No timers or host calls can settle it yet.
+		return nil, errPending
+	case runResult:
+	default:
+		return nil, fmt.Errorf("the code stopped unexpectedly: status %d", status)
 	}
 	if len(out) > MaxResultLength {
 		return nil, &Error{Message: fmt.Sprintf("the result is %d KB, more than the limit of %d KB", len(out)>>10, MaxResultLength>>10)}
@@ -191,18 +199,18 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	return out, nil
 }
 
-// The code runs as the body of a function, which starts on its first line so
-// line numbers match.
+// The code runs as the body of an async function, so it can use await. The
+// function starts on its first line so line numbers match.
 const (
-	codeHead = "(function (input) {"
+	codeHead = "(async function (input) {"
 	codeTail = "\n})"
 )
 
 var codeLineRe = regexp.MustCompile(`code\.js:(\d+):(\d+)`)
 
 // scriptError turns an error from kite.c, the message, a null byte and the
-// stack, into an Error.
-func scriptError(out string) *Error {
+// stack, into an Error. code is the code the error is from.
+func scriptError(out string, code string) *Error {
 	message, stack, _ := strings.Cut(out, "\x00")
 	if len(message) > MaxErrorLength {
 		message = truncate(message, MaxErrorLength-len(cutOff)) + cutOff
@@ -215,10 +223,13 @@ func scriptError(out string) *Error {
 	}
 	e := &Error{Message: message}
 	if m := codeLineRe.FindStringSubmatch(stack); m != nil {
+		line, _ := strconv.Atoi(m[1])
 		// QuickJS gives some errors, like reading a property of null, the
-		// position of the function, which is codeHead.
-		if m[1] != "1" || m[2] != "1" {
-			e.Line, _ = strconv.Atoi(m[1])
+		// last position it knows of. That's the start of codeHead, or after
+		// an await the statement it resumed at, which would be a wrong line.
+		lines := strings.Split(codeHead+code+codeTail, "\n")
+		if (m[1] != "1" || m[2] != "1") && line <= len(lines) && !strings.Contains(lines[line-1], "await") {
+			e.Line = line
 		}
 	}
 	return e
