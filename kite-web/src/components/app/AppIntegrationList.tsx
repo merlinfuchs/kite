@@ -179,21 +179,37 @@ function AppIntegrationEntry({
 }
 
 // Enables an integration that isn't enabled, by entering its key if it needs
-// one.
+// one. The link variant is underlined text, for inside other text like on a
+// block.
 export function AppIntegrationEnableButton({
   integration,
+  variant = "button",
+  label = "Enable",
 }: {
   integration: Integration;
+  variant?: "button" | "link";
+  label?: string;
 }) {
   const updateMutation = useAppIntegrationUpdateMutation(
     useAppId(),
     integration.id
   );
 
+  const link = (onClick?: () => void) => (
+    <button
+      type="button"
+      className="underline"
+      onClick={onClick}
+      disabled={updateMutation.isPending}
+    >
+      {label}
+    </button>
+  );
+
   if (needsCredential(integration)) {
     return (
       <AppIntegrationConnectDialog integration={integration} replace={false}>
-        <Button size="sm">Enable</Button>
+        {variant === "link" ? link() : <Button size="sm">{label}</Button>}
       </AppIntegrationConnectDialog>
     );
   }
@@ -215,13 +231,15 @@ export function AppIntegrationEnableButton({
     );
   }
 
+  if (variant === "link") return link(enable);
+
   return (
     <LoadingButton
       size="sm"
       onClick={enable}
       loading={updateMutation.isPending}
     >
-      Enable
+      {label}
     </LoadingButton>
   );
 }
