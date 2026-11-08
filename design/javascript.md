@@ -60,7 +60,11 @@ Scripts get Discord's API JSON, like `global_name` and an `avatar` hash. Placeho
 
 With the app's own bot token, a script that burns the rate limit only hurts its own app. On a shared bot, the route policy and per-app budgets in Go have to stop it before Discord does.
 
-The public API should return Promises from the start, so scripts `await` host calls. Go can resolve them right away at first, and run them in parallel later without breaking scripts. That needs the QuickJS job queue, which `kite_run` already runs, so the block's code can use `await`.
+Operations return promises, which Go settles while the script waits. Today Go calls `kite_run` once and the whole run happens in that call. It runs the code until its first `await`, then QuickJS's job queue in a loop in `kite.c` until nothing is left. Calls into Go, like the time zones of `formatDate`, return right away.
+
+Step 2 makes that a back and forth. A call of an operation starts the request in a goroutine and returns an ID at once, and the prelude keeps a pending promise for it. When the job queue is empty and promises are still pending, `kite_run` returns that the run is waiting instead of a result. Go waits for the first request to finish and calls a `kite_resolve(id, result)` export, which settles its promise and runs the queue again. That repeats until the promise the code returned settles. Blocking in the host call would be simpler, but the calls of a `Promise.all` would run one after another.
+
+The time limit then counts only the time inside `kite_run` and `kite_resolve`, when the script runs. Waiting on Discord doesn't count, and a cap on the wall time of the whole run, like 10 seconds, ends scripts that wait too long. A waiting run doesn't hold one of the slots for running scripts, and takes one again for `kite_resolve`. A run waiting between two calls has nothing on its stack, which is the state that saving a waiting run under Modules starts from.
 
 ## Modules
 
