@@ -17,6 +17,7 @@ With event listeners you can listen for events inside the Discord servers that y
 - Bot joined server
 - Bot left server
 - Server boost
+- Server boost remove
 - Audit log entry
 - Voice state update
 
@@ -37,6 +38,8 @@ With event listeners you can listen for events inside the Discord servers that y
 - Server boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 - Voice state update triggers when a user joins, leaves, or moves voice channels in a server. It provides `{{user}}`, `{{guild}}`, and `{{channel}}` (including the channel left when leaving). You can use an [Event Filter](./blocks/options/option_event_filter.md) with the target **Voice action** to filter by Joined Voice, Left Voice, or Moved Voice Channel.
+- Server boost remove runs when a member stops boosting the server. `{{user}}` is the member and `{{guild}}` is the server. It runs once their last boost ends, not for every boost they remove while they still boost the server.
+- Discord has no event for boosts ending and posts no message, so Kite detects it from Discord taking the **Server Booster** role away from the member. It needs the "Server Members Intent", and only works for members Kite has seen in the server since your app connected, like by sending a message, joining or having their roles changed. Server boost remove doesn't run for other members.
 
 ![Example Event Flow](./img/example-event-flow.webp)
 

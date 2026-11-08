@@ -1137,6 +1137,11 @@ export interface FlowAIChatRequest {
    */
   repair_prompt_id: string;
   issues: string[];
+  /**
+   * Format is how the flow is written and the AI changes it, "edits" or
+   * "code", as the usage said. Empty is the server's.
+   */
+  format: string;
 }
 export interface FlowAIChatResponse {
   prompt_id: string;
@@ -1162,6 +1167,11 @@ export interface FlowAIChatResponse {
    * Edits are applied with the editor's applyFlowEdits.
    */
   edits: { [key: string]: any}[];
+  /**
+   * Code is the whole flow as code, applied with the editor's
+   * applyFlowCode instead of edits, if the AI writes code.
+   */
+  code: string;
   usage: FlowAIUsage;
 }
 export interface FlowAIUsage {
@@ -1173,6 +1183,11 @@ export interface FlowAIUsage {
    */
   answers_used: number /* int */;
   answers_limit: number /* int */;
+  /**
+   * Format is how the editor writes flows for the AI and applies its
+   * changes: "edits" or "code".
+   */
+  format: string;
 }
 export type FlowAIUsageGetResponse = FlowAIUsage;
 /**

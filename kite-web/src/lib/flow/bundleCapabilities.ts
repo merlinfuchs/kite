@@ -16,6 +16,10 @@ export const capabilityGroups = [
     ],
   },
   {
+    label: "Server-mutes, deafens or moves members in voice",
+    types: ["action_member_voice_edit"],
+  },
+  {
     label: "Deletes messages, reactions, channels or roles",
     types: [
       "action_message_delete",
@@ -39,6 +43,13 @@ export const capabilityGroups = [
       "action_role_edit",
       "action_channel_create",
       "action_channel_edit",
+    ],
+  },
+  {
+    label: "Changes roles in your Roblox group or answers join requests",
+    types: [
+      "action_roblox_group_member_role_edit",
+      "action_roblox_group_join_request_respond",
     ],
   },
   {
@@ -81,6 +92,7 @@ export const capabilityGroups = [
 // harmlessTypes are the action and control blocks that don't need to be
 // pointed out. Every one of them is in a group or here, a test checks it.
 export const harmlessTypes = [
+  "action_bloxlink_user_get",
   "action_channel_get",
   "action_cookie_api_captcha_create",
   "action_cookie_api_captcha_get",
@@ -110,8 +122,10 @@ export const harmlessTypes = [
   "action_response_defer",
   "action_response_delete",
   "action_response_edit",
+  "action_roblox_group_member_get",
   "action_roblox_user_get",
   "action_role_get",
+  "action_soundboard_sound_play",
   "action_thread_create",
   "action_thread_member_add",
   "action_thread_member_remove",

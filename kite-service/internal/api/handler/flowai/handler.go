@@ -19,6 +19,7 @@ import (
 // Assistant is what the handler needs of flowai.Assistant.
 type Assistant interface {
 	Model() string
+	Format() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
 }
 
@@ -84,7 +85,7 @@ func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUs
 		return nil, err
 	}
 
-	res := usage(count, c.Features.MaxAIPromptsPerMonth)
+	res := h.usage(count, c.Features.MaxAIPromptsPerMonth)
 	return &res, nil
 }
 
@@ -196,6 +197,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
 		Flow:         req.Flow,
+		Format:       req.Format,
 		Messages:     req.AssistantMessages(),
 		Issues:       req.Issues,
 		Variables:    variables,
@@ -207,7 +209,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
-	edited := isRepair || err != nil || len(res.Edits) > 0
+	edited := isRepair || err != nil || len(res.Edits) > 0 || res.Code != ""
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
 		if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
@@ -238,7 +240,8 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		TemplateID:  res.TemplateID,
 		Fields:      wire.FlowAIFieldsToWire(res.Fields),
 		Edits:       res.Edits,
-		Usage:       usage(count, limit),
+		Code:        res.Code,
+		Usage:       h.usage(count, limit),
 	}, nil
 }
 
@@ -263,12 +266,17 @@ func (h *FlowAIHandler) promptCount(c *handler.Context) (model.AssistantPromptCo
 	return count, nil
 }
 
-func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
+func (h *FlowAIHandler) usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
+	format := flowai.FormatEdits
+	if h.assistant != nil {
+		format = h.assistant.Format()
+	}
 	return wire.FlowAIUsage{
 		PromptsUsed:  count.Edited,
 		PromptsLimit: limit,
 		AnswersUsed:  count.Total,
 		AnswersLimit: answerLimitFactor * limit,
+		Format:       format,
 	}
 }
 

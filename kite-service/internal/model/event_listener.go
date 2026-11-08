@@ -33,6 +33,9 @@ const (
 	// Discord has no gateway event for boosts. This type is derived from the
 	// MESSAGE_CREATE of the system message Discord posts when a member boosts.
 	EventListenerTypeDiscordGuildBoost EventListenerType = "guild_boost"
+	// Discord has no event for a member who stops boosting either. This type
+	// is derived from the GUILD_MEMBER_UPDATE that takes the booster role away.
+	EventListenerTypeDiscordGuildBoostRemove EventListenerType = "guild_boost_remove"
 	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"

@@ -15,6 +15,8 @@ import (
 type fakeCache struct {
 	messages    map[discord.MessageID]discord.Message
 	voiceStates map[discord.UserID]discord.VoiceState
+	members     map[discord.UserID]discord.Member
+	roles       map[discord.RoleID]discord.Role
 }
 
 var errNotCached = errors.New("not cached")
@@ -35,6 +37,29 @@ func (c fakeCache) VoiceState(guildID discord.GuildID, userID discord.UserID) (*
 	return &v, nil
 }
 
+func (c fakeCache) Member(guildID discord.GuildID, id discord.UserID) (*discord.Member, error) {
+	m, ok := c.members[id]
+	if !ok {
+		return nil, errNotCached
+	}
+	return &m, nil
+}
+
+func (c fakeCache) Role(guildID discord.GuildID, id discord.RoleID) (*discord.Role, error) {
+	r, ok := c.roles[id]
+	if !ok {
+		return nil, errNotCached
+	}
+	return &r, nil
+}
+
+const (
+	boosterRole      = discord.RoleID(30)
+	botRole          = discord.RoleID(31)
+	plainRole        = discord.RoleID(32)
+	subscriptionRole = discord.RoleID(33)
+)
+
 func TestDeriveEvents(t *testing.T) {
 	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
@@ -46,6 +71,21 @@ func TestDeriveEvents(t *testing.T) {
 			2: {UserID: 2, GuildID: 2, ChannelID: 5},
 			3: {UserID: 3, GuildID: 2, ChannelID: 5},
 		},
+		members: map[discord.UserID]discord.Member{
+			40: {User: discord.User{ID: 40}, RoleIDs: []discord.RoleID{boosterRole, plainRole}},
+			41: {User: discord.User{ID: 41}, RoleIDs: []discord.RoleID{botRole, plainRole}},
+			43: {User: discord.User{ID: 43}, RoleIDs: []discord.RoleID{subscriptionRole}},
+		},
+		roles: map[discord.RoleID]discord.Role{
+			boosterRole:      {ID: boosterRole, Managed: true, Tags: discord.RoleTags{PremiumSubscriber: true}},
+			botRole:          {ID: botRole, Managed: true, Tags: discord.RoleTags{BotID: 99}},
+			plainRole:        {ID: plainRole},
+			subscriptionRole: {ID: subscriptionRole, Managed: true},
+		},
+	}
+
+	memberUpdate := func(userID discord.UserID, roles ...discord.RoleID) *gateway.GuildMemberUpdateEvent {
+		return &gateway.GuildMemberUpdateEvent{GuildID: 2, User: discord.User{ID: userID}, RoleIDs: roles}
 	}
 
 	tests := []struct {
@@ -69,6 +109,15 @@ func TestDeriveEvents(t *testing.T) {
 		{"voice leave", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 2, GuildID: 2, ChannelID: 0}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
 		{"voice move", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 3, GuildID: 2, ChannelID: 6}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
+		{"booster role taken away", memberUpdate(40, plainRole), []ws.EventType{guildevent.BoostRemoveType}},
+		{"booster role kept", memberUpdate(40, boosterRole), nil},
+		{"other role taken away", memberUpdate(40, boosterRole, plainRole), nil},
+		// Bot and integration roles are managed too, but aren't the booster role.
+		{"bot role taken away", memberUpdate(41, plainRole), nil},
+		// Role subscriptions have managed roles without a bot or integration.
+		{"subscription role taken away", memberUpdate(43), nil},
+		// Without the cached member there's nothing to compare with.
+		{"uncached member", memberUpdate(42), nil},
 	}
 
 	for _, tt := range tests {
@@ -137,6 +186,54 @@ func TestTrackDerivedEventsKeepsDeletedMessage(t *testing.T) {
 	}
 	if del.Message == nil || del.Message.Content != "hello, edited" || del.Message.Author.ID != author.ID {
 		t.Fatalf("message = %+v, want the edited content by %d", del.Message, author.ID)
+	}
+}
+
+func TestTrackDerivedEventsBoostRemove(t *testing.T) {
+	session := state.New("Bot token")
+	derived := make(chan gateway.Event, 1)
+	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+
+	dispatch := func(e any) { session.Session.Handler.Call(e) }
+
+	const guildID = discord.GuildID(20)
+	user := discord.User{ID: 5, Username: "jack"}
+
+	dispatch(&gateway.GuildCreateEvent{Guild: discord.Guild{
+		ID: guildID,
+		Roles: []discord.Role{
+			{ID: discord.RoleID(guildID), Name: "@everyone"},
+			{ID: boosterRole, Name: "Server Booster", Managed: true, Tags: discord.RoleTags{PremiumSubscriber: true}},
+		},
+	}})
+	dispatch(&gateway.GuildMemberAddEvent{GuildID: guildID, Member: discord.Member{
+		User:    user,
+		RoleIDs: []discord.RoleID{boosterRole},
+	}})
+	dispatch(&gateway.GuildMemberUpdateEvent{GuildID: guildID, User: user})
+
+	var e gateway.Event
+	select {
+	case e = <-derived:
+	case <-time.After(time.Second):
+		t.Fatal("no event derived from the booster role being taken away")
+	}
+
+	removed, ok := e.(*guildevent.BoostRemove)
+	if !ok {
+		t.Fatalf("got %T, want *guildevent.BoostRemove", e)
+	}
+	if removed.GuildID != guildID || removed.User.ID != user.ID {
+		t.Errorf("got %d in %d, want %d in %d", removed.User.ID, removed.GuildID, user.ID, guildID)
+	}
+
+	// The cache has the member without the role now, so another update
+	// derives nothing.
+	dispatch(&gateway.GuildMemberUpdateEvent{GuildID: guildID, User: user})
+	select {
+	case e := <-derived:
+		t.Fatalf("derived %T from a member that wasn't boosting", e)
+	case <-time.After(100 * time.Millisecond):
 	}
 }
 

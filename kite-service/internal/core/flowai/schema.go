@@ -64,7 +64,7 @@ var outputSchema = map[string]any{
 					"id":         nullable("string", "update_node and remove_node: the block to change."),
 					"after":      nullable("string", "add_node: the block the new one runs after."),
 					"before":     nullable("string", "add_node: the block the new one runs before."),
-					"handle":     nullable("string", "add_node, connect and disconnect: output of the earlier block, if it has several."),
+					"handle":     nullable("string", "add_node, connect and disconnect: output of the earlier block. add_node and connect need it after blocks without a default output, like the yes or no output of control_if."),
 					"source":     nullable("string", "connect and disconnect: the earlier block."),
 					"target":     nullable("string", "connect and disconnect: the later block."),
 					"data_json":  nullable("string", "add_node and update_node: settings as a JSON object."),
@@ -80,5 +80,26 @@ func nullable(typ string, description string) map[string]any {
 	return map[string]any{
 		"type":        []string{typ, "null"},
 		"description": description,
+	}
+}
+
+// outputSchemaFor returns outputSchema, or for FormatCode the same with the
+// whole flow as code instead of edits.
+func outputSchemaFor(code bool) map[string]any {
+	if !code {
+		return outputSchema
+	}
+	properties := map[string]any{}
+	for key, value := range outputSchema["properties"].(map[string]any) {
+		if key != "edits" {
+			properties[key] = value
+		}
+	}
+	properties["code"] = nullable("string", "The whole flow as code, the way it should be after your change. null if you don't change the flow.")
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"message", "code", "build_prompt", "fields", "template_id"},
+		"properties":           properties,
 	}
 }

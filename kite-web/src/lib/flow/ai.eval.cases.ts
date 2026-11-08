@@ -404,7 +404,11 @@ export const evalCases: EvalCase[] = [
     prompt:
       "roll a random number from 1 to 100. if it's above 50 reply that they won, otherwise that they lost, and in both cases log the number",
     route: ["build"],
-    types: ["action_random_generate", "control_if", "action_log"],
+    types: [
+      "action_random_generate",
+      "control_if|control_condition_compare",
+      "action_log",
+    ],
   },
   {
     name: "ai check then continue",
@@ -468,7 +472,7 @@ export const evalCases: EvalCase[] = [
     prompt: "When someone says hello, reply hi",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_create",
     ],
   },
@@ -479,7 +483,7 @@ export const evalCases: EvalCase[] = [
     prompt: "Delete messages that contain a discord invite link",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_delete",
     ],
   },
@@ -490,7 +494,7 @@ export const evalCases: EvalCase[] = [
     prompt: `react with 👍 to every message in channel ${channelId}`,
     route: ["build"],
     types: [
-      "control_condition_channel|option_event_filter",
+      "control_condition_channel|control_if|option_event_filter",
       "action_message_reaction_create",
     ],
   },
@@ -532,7 +536,7 @@ export const evalCases: EvalCase[] = [
     prompt: "Wenn jemand 'gute nacht' schreibt, antworte mit 'Schlaf gut!'",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_create",
     ],
   },
@@ -559,7 +563,7 @@ export const evalCases: EvalCase[] = [
     prompt: `make it only answer in channel ${channelId}`,
     route: ["build"],
     types: [
-      "control_condition_channel|option_event_filter",
+      "control_condition_channel|control_if|option_event_filter",
       "action_ai_chat_completion",
     ],
   },

@@ -19,6 +19,10 @@ import (
 const MessageDeleteType ws.EventType = "MESSAGE_DELETE"
 const VoiceStateUpdateType ws.EventType = "VOICE_STATE_UPDATE"
 
+// BoostRemoveType isn't a Discord event, Discord has none for a member who
+// stops boosting.
+const BoostRemoveType ws.EventType = "GUILD_BOOST_REMOVE"
+
 // Event is implemented by every event of this package.
 type Event interface {
 	ws.Event
@@ -39,6 +43,18 @@ type MessageDelete struct {
 func (e *MessageDelete) Op() ws.OpCode           { return 0 }
 func (e *MessageDelete) EventType() ws.EventType { return MessageDeleteType }
 func (e *MessageDelete) derived()                {}
+
+// BoostRemove is the GUILD_MEMBER_UPDATE of a member who stopped boosting the
+// server. Discord takes the server's booster role away once the member's last
+// boost ends, so it's derived from the cached member losing that role. It's
+// only known for members that are cached, see the Server boost remove docs.
+type BoostRemove struct {
+	gateway.GuildMemberUpdateEvent
+}
+
+func (e *BoostRemove) Op() ws.OpCode           { return 0 }
+func (e *BoostRemove) EventType() ws.EventType { return BoostRemoveType }
+func (e *BoostRemove) derived()                {}
 
 // MessageEdit is Discord's MESSAGE_UPDATE when the message was edited. Discord
 // also sends MESSAGE_UPDATE when it adds a link preview or the message is
@@ -69,6 +85,8 @@ func New(t ws.EventType) Event {
 		return new(MessageDelete)
 	case VoiceStateUpdateType:
 		return new(VoiceStateUpdate)
+	case BoostRemoveType:
+		return new(BoostRemove)
 	}
 	return nil
 }

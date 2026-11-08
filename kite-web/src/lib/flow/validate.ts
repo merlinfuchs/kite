@@ -481,7 +481,11 @@ function getMessageIssues(message: NodeData["message_data"]) {
 // type and style, matched, with the fewest issues.
 function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
   return issues.flatMap((issue) => {
-    if (issue.code !== "invalid_union") return [issue];
+    // A discriminated union whose discriminator matched no variant, like a
+    // modal input of an unknown type, has no variant issues to pick from.
+    if (issue.code !== "invalid_union" || issue.errors.length === 0) {
+      return [issue];
+    }
 
     // The paths of the variants' issues are relative to the union.
     const variants = issue.errors.map((e) =>
@@ -540,13 +544,15 @@ export function getConnectionIssue(
     }.`;
   }
   if (!outputs.includes(handle)) {
-    return `'${sourceTitle}' has no output '${handle}', only ${outputs
-      .map((o) => `'${o}'`)
-      .join(", ")}.${
+    const names = outputs.map((o) => `'${o}'`).join(", ");
+    // A left-out handle is the default one, so "no output 'default'" would
+    // often name a handle that was never set.
+    if (handle === "default") {
+      return `'${sourceTitle}' only has the outputs ${names}, so a block after it needs one of them as its handle. To run the block either way, connect it to each.`;
+    }
+    return `'${sourceTitle}' has no output '${handle}', only ${names}.${
       handle === "error"
         ? " To handle errors, put the block after the default output of an error handler block."
-        : handle === "default"
-        ? " Set the handle to one of them, or connect the block to each to run it either way."
         : ""
     }`;
   }

@@ -42,6 +42,9 @@ import {
   integrations,
   needsCredential,
 } from "@/lib/integrations";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
+import { AppIntegrationEnableButton } from "../app/AppIntegrationList";
+import { CredentialIntegration } from "@/lib/integrations/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -125,6 +128,8 @@ import {
   webhookVerifyEncodings,
   webhookVerifyPresets,
 } from "@/lib/blocks/controlWebhookVerify";
+import { robloxGroupRoleModes } from "@/lib/blocks/robloxGroupMemberRoleEdit";
+import { robloxJoinRequestActions } from "@/lib/blocks/robloxGroupJoinRequestRespond";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -238,6 +243,8 @@ export const settingInputs: Record<string, any> = {
   persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  member_voice_mute: MemberVoiceMuteInput,
+  member_voice_deaf: MemberVoiceDeafInput,
   audio_channel_target: AudioChannelTargetInput,
   audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
@@ -280,6 +287,10 @@ export const settingInputs: Record<string, any> = {
   member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
+  roblox_group_id: RobloxGroupIdInput,
+  roblox_group_role: RobloxGroupRoleInput,
+  roblox_group_role_mode: RobloxGroupRoleModeInput,
+  roblox_join_request_action: RobloxJoinRequestActionInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_compare_base_value: ConditionCompareBaseValueInput,
@@ -392,6 +403,7 @@ export default function FlowNodeEditor({
     premiumFeature ? !!f[premiumFeature] : true
   );
   const premiumPlan = useFeaturePlan(premiumFeature);
+  const missingIntegrations = useMissingIntegrations(node?.type);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -488,6 +500,20 @@ export default function FlowNodeEditor({
                 and fails without it.
               </div>
             )}
+            {!readOnly &&
+              missingIntegrations.map((integration) => (
+                <div
+                  key={integration.id}
+                  className="flex items-center gap-3 rounded-md border p-3 text-sm"
+                >
+                  <PlugIcon className="h-4 w-4 flex-none text-muted-foreground" />
+                  <div className="flex-1 text-muted-foreground">
+                    Uses {integration.name}, which isn&apos;t enabled in your
+                    app. This block fails until you enable it.
+                  </div>
+                  <AppIntegrationEnableButton integration={integration} />
+                </div>
+              ))}
             {values.dataFields.map((field) => {
               // Fields of a block's definition without an input of their own.
               const name = field.startsWith("field:")
@@ -1628,8 +1654,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
           )}
           {credentialIntegration && (
             <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-              Use the {credentialIntegration.name} blocks to call the{" "}
-              {credentialIntegration.name} API. Enable{" "}
+              Use the {credentialIntegration.name} blocks instead. Enable{" "}
               {credentialIntegration.name} under Integrations and they send your{" "}
               {credentialIntegration.auth.label} for you, so you don&apos;t have
               to paste it into a header.
@@ -1853,24 +1878,42 @@ function isDiscordApiUrl(url: string) {
   );
 }
 
-// The integration with a credential an HTTP block's URL goes to, if any.
+// The integration with a credential whose blocks replace the endpoint an
+// HTTP block's URL goes to, if any. The longest matching path wins.
 function urlCredentialIntegration(url: string) {
-  let host: string;
+  let parsed: URL;
   try {
     const trimmed = url.trim();
-    host = new URL(
+    parsed = new URL(
       /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-    ).host;
+    );
   } catch {
     return;
   }
-  return integrations
-    .filter(needsCredential)
-    .find(
-      (i) =>
-        (i.base_url && new URL(i.base_url).host === host) ||
-        i.other_hosts?.includes(host)
-    );
+
+  let match: { integration: CredentialIntegration; path: string } | undefined;
+  for (const integration of integrations.filter(needsCredential)) {
+    const base = integration.base_url?.replace(/^https?:\/\//, "");
+    const urls = [
+      ...(base
+        ? (integration.hint_paths ?? [""]).map((path) => base + path)
+        : []),
+      ...(integration.other_urls ?? []),
+    ];
+    for (const u of urls) {
+      const slash = u.indexOf("/");
+      const host = slash === -1 ? u : u.slice(0, slash);
+      const path = slash === -1 ? "/" : u.slice(slash);
+      if (
+        host === parsed.host &&
+        parsed.pathname.startsWith(path) &&
+        path.length > (match?.path.length ?? -1)
+      ) {
+        match = { integration, path };
+      }
+    }
+  }
+  return match?.integration;
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -2945,12 +2988,78 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="roblox_lookup_mode"
       title="Roblox lookup mode"
-      value={data.roblox_lookup_mode || ""}
+      value={data.roblox_lookup_mode || "id"}
       options={[
         { label: "ID", value: "id" },
         { label: "Username", value: "username" },
       ]}
       updateValue={(v) => updateData({ roblox_lookup_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RobloxGroupIdInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_id"
+      title="Roblox group ID"
+      description="The number in your group's link, like 123456 in roblox.com/communities/123456/name. The API key's owner needs permission to manage it."
+      value={data.roblox_group_id || ""}
+      updateValue={(v) => updateData({ roblox_group_id: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_role"
+      title="Role"
+      description="The name, rank (1 to 255) or ID of the role."
+      value={data.roblox_group_role || ""}
+      updateValue={(v) => updateData({ roblox_group_role: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_group_role_mode"
+      title="Mode"
+      value={data.roblox_group_role_mode || "set"}
+      options={[...robloxGroupRoleModes]}
+      updateValue={(v) =>
+        updateData({ roblox_group_role_mode: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function RobloxJoinRequestActionInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_join_request_action"
+      title="Answer"
+      value={data.roblox_join_request_action || "accept"}
+      options={[...robloxJoinRequestActions]}
+      updateValue={(v) =>
+        updateData({ roblox_join_request_action: v || undefined })
+      }
       errors={errors}
     />
   );
@@ -4160,6 +4269,48 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+const voiceStateChangeOptions = [
+  { label: "Unchanged", value: "unchanged" },
+  { label: "On", value: "true" },
+  { label: "Off", value: "false" },
+];
+
+function MemberVoiceMuteInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_mute"
+      title="Server Mute"
+      value={String(data.member_voice_mute ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_mute: v && v !== "unchanged" ? v : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function MemberVoiceDeafInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_deaf"
+      title="Server Deafen"
+      value={String(data.member_voice_deaf ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_deaf: v && v !== "unchanged" ? v : undefined,
+        })
+      }
       errors={errors}
     />
   );

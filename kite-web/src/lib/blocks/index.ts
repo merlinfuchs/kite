@@ -65,6 +65,7 @@ import { discordMemberRoleAdd } from "./discordMemberRoleAdd";
 import { discordMemberRoleRemove } from "./discordMemberRoleRemove";
 import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
+import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
@@ -106,6 +107,7 @@ import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
 import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
 import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
+import { discordSoundboardSoundPlay } from "./discordSoundboardSoundPlay";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -113,6 +115,10 @@ import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { bloxlinkUserGet } from "./bloxlinkUserGet";
+import { robloxGroupMemberGet } from "./robloxGroupMemberGet";
+import { robloxGroupMemberRoleEdit } from "./robloxGroupMemberRoleEdit";
+import { robloxGroupJoinRequestRespond } from "./robloxGroupJoinRequestRespond";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
@@ -177,8 +183,10 @@ export const blockDefinitions: BlockDefinition[] = [
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordMemberVoiceEdit,
   discordVoiceAudioPlay,
   discordVoiceAudioStop,
+  discordSoundboardSoundPlay,
   discordStatusSet,
   discordServerProfileEdit,
   discordServerLeave,
@@ -187,6 +195,10 @@ export const blockDefinitions: BlockDefinition[] = [
   variableGet,
   variableList,
   robloxUserGet,
+  bloxlinkUserGet,
+  robloxGroupMemberGet,
+  robloxGroupMemberRoleEdit,
+  robloxGroupJoinRequestRespond,
   cookieApiTranscriptCreate,
   cookieApiCardCreate,
   cookieApiQrCodeCreate,

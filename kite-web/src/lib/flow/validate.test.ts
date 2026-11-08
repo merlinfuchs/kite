@@ -227,11 +227,17 @@ describe("validateFlow", () => {
     const check = node("if", "control_if", {
       condition_base_value: "{{true}}",
     });
+    const missingHandle =
+      "'If' only has the outputs 'yes', 'no', so a block after it needs one of them as its handle. To run the block either way, connect it to each.";
     expect(
       errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
-    ).toEqual([
-      "'If' has no output 'default', only 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
-    ]);
+    ).toEqual([missingHandle]);
+    expect(
+      errors(
+        [entry, check, log("a")],
+        [edge("entry", "if"), edge("if", "a", "default")]
+      )
+    ).toEqual([missingHandle]);
   });
 
   it("accepts outputs of message components", () => {
@@ -498,6 +504,18 @@ describe("validateFlow", () => {
           "Two connections join the same blocks, so the second block runs twice.",
         edgeId: "dup",
       },
+    ]);
+  });
+
+  it("reports a modal input of an unknown type", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [{ type: "slider", custom_id: "level", label: "Level" }],
+      },
+    });
+    expect(errors([entry, modal], [edge("entry", "modal")])).toEqual([
+      "'Show Modal' setting 'modal_data.components.0.type': Invalid discriminator value. Expected 'label' | 'text_display'",
     ]);
   });
 

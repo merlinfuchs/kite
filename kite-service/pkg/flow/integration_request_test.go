@@ -12,6 +12,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/guregu/null.v4"
@@ -110,6 +111,7 @@ func executeIntegrationBlockWith(t *testing.T, nodeType FlowNodeType, data FlowN
 		&TestContextData{},
 		FlowProviders{
 			Discord:     &integrationTestDiscordProvider{},
+			Roblox:      &robloxTestProvider{users: map[int64]thing.RobloxUserValue{156: {ID: 156, Name: "builderman", DisplayName: "builderman"}}},
 			HTTP:        httpProvider,
 			Log:         &provider.MockLogProvider{},
 			Integration: integrationProvider,

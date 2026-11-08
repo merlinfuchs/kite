@@ -283,6 +283,7 @@ export default memo(function FlowAIChat({
             setAIChangedNodeIds(changedNodeIds);
           },
           send: (req, signal) => sendChat({ req, signal }),
+          format: usage?.format === "code" ? "code" : "edits",
           signal: abort.current?.signal,
         });
         track("flow_ai_prompt_answered", {
@@ -363,6 +364,7 @@ export default memo(function FlowAIChat({
       resolve,
       checkPending,
       store,
+      usage?.format,
     ]
   );
 

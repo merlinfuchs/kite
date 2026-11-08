@@ -14,6 +14,7 @@ const usage = {
   prompts_limit: 30,
   answers_used: 1,
   answers_limit: 90,
+  format: "edits",
 };
 const logData = { log_level: "info", log_message: "hi" };
 
@@ -39,6 +40,7 @@ function fakeAPI(
         template_id: "",
         fields: [],
         edits: typeof round === "function" ? round(req) : round,
+        code: "",
         usage,
       },
     };
@@ -70,6 +72,43 @@ const addLog: Edits = [
 ];
 
 describe("runFlowAIPrompt", () => {
+  it("sends the flow as code and applies code", async () => {
+    const requests: FlowAIChatRequest[] = [];
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+    const res = await runFlowAIPrompt({
+      context: "command",
+      messages: [{ role: "user", content: "Add a log" }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
+      format: "code",
+      send: async (req) => {
+        requests.push(req);
+        return {
+          success: true as const,
+          data: {
+            prompt_id: "p1",
+            message: "Added a log.",
+            build_prompt: "",
+            template_id: "",
+            fields: [],
+            edits: [],
+            code: `entry_command({ $id: "entry", name: "test", description: "Test" }, [
+              action_log({ $id: "log", log_level: "info", log_message: "hi" }),
+            ])`,
+            usage,
+          },
+        };
+      },
+    });
+    expect(requests[0].format).toBe("code");
+    expect(requests[0].flow).toContain('entry_command({ $id: "entry"');
+    expect(res.issues).toEqual([]);
+    expect(res.changedNodeIds).toEqual(["log"]);
+    expect(editor.flow.edges.map((e) => `${e.source}->${e.target}`)).toEqual([
+      "entry->log",
+    ]);
+  });
+
   it("sends the problems with the edits back to be fixed", async () => {
     const api = fakeAPI([
       addLog,

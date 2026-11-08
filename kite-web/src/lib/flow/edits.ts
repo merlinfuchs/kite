@@ -562,7 +562,7 @@ function isPlainObject(value: unknown) {
 // their new siblings, and moves the existing blocks after an inserted block
 // further down to make room. Used for flows the user arranged, as it leaves
 // the other existing blocks where the user put them.
-function layoutAddedNodes(
+export function layoutAddedNodes(
   nodes: Node<NodeData>[],
   edges: Edge[],
   added: Set<string>

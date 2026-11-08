@@ -16,7 +16,44 @@
       "auth": {
         "type": "none"
       },
-      "availability": "default"
+      "availability": "always"
+    },
+    {
+      "id": "roblox_open_cloud",
+      "name": "Roblox Open Cloud",
+      "description": "Change the roles of your Roblox group's members and answer join requests.",
+      "base_url": "https://apis.roblox.com/cloud/v2",
+      "hint_paths": [
+        "/groups/"
+      ],
+      "other_urls": [
+        "api.cookie-api.com/api/roblox/group/"
+      ],
+      "auth": {
+        "type": "header",
+        "name": "x-api-key",
+        "label": "API key",
+        "help_url": "https://create.roblox.com/docs/cloud/auth/api-keys"
+      },
+      "availability": "opt_in",
+      "data_shared": "Its blocks send Roblox your API key and the users and roles you change. The key can do what its owner can in the group, so give it only the group:read and group:write permissions.",
+      "privacy_url": "https://www.roblox.com/info/privacy",
+      "terms_url": "https://www.roblox.com/info/terms"
+    },
+    {
+      "id": "bloxlink",
+      "name": "Bloxlink",
+      "description": "Look up the Roblox accounts members verified with the Bloxlink bot.",
+      "base_url": "https://api.blox.link",
+      "auth": {
+        "type": "header",
+        "name": "Authorization",
+        "label": "server API key",
+        "help_url": "https://blox.link/dashboard"
+      },
+      "availability": "opt_in",
+      "data_shared": "Its blocks send Bloxlink your server's API key and the Discord IDs of the members you look up.",
+      "privacy_url": "https://blox.link/legal/privacy-policy"
     },
     {
       "id": "cookie_api",
@@ -40,7 +77,7 @@
       "name": "ER:LC",
       "description": "Read the status of your Emergency Response: Liberty County private server and run commands in it.",
       "base_url": "https://api.erlc.gg",
-      "other_hosts": [
+      "other_urls": [
         "api.policeroleplay.community"
       ],
       "auth": {
@@ -1709,6 +1746,86 @@
       "result": null
     },
     {
+      "type": "action_member_voice_edit",
+      "title": "Edit voice state",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_guild_member",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/members/{user_id}",
+        "partial": true
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "user_target",
+          "in": "path",
+          "target": "user_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_mute",
+          "in": "body",
+          "target": "mute",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "member_voice_deaf",
+          "in": "body",
+          "target": "deaf",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "channel_target",
+          "in": "body",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_voice_audio_play",
       "title": "Play audio",
       "credits": 1,
@@ -1734,6 +1851,61 @@
         "kind": "custom"
       },
       "fields": [],
+      "result": null
+    },
+    {
+      "type": "action_soundboard_sound_play",
+      "title": "Play soundboard sound",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "send_soundboard_sound",
+        "method": "POST",
+        "path": "/channels/{channel_id}/send-soundboard-sound"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "sound_id",
+          "in": "body",
+          "target": "sound_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "source_guild_id",
+          "in": "body",
+          "target": "source_guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
       "result": null
     },
     {
@@ -1849,6 +2021,78 @@
       "fields": [],
       "result": {
         "thing": "roblox_user",
+        "list": false
+      }
+    },
+    {
+      "type": "action_bloxlink_user_get",
+      "title": "Get Bloxlink user",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "bloxlink",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "roblox_user",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_member_get",
+      "title": "Get Roblox group member",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_member_role_edit",
+      "title": "Change Roblox group role",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_join_request_respond",
+      "title": "Answer Roblox join request",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
         "list": false
       }
     },

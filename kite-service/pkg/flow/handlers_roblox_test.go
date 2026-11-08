@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,4 +128,287 @@ func TestRobloxUserGetAvatarError(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "hi", user.RobloxUser().Description)
 	assert.Empty(t, user.RobloxUser().AvatarURL)
+}
+
+func executeBloxlinkUserGet(t *testing.T, data FlowNodeData, httpProvider *redirectCheckingHTTPProvider) (thing.Thing, error) {
+	c, err := executeIntegrationBlock(t, FlowNodeTypeActionBloxlinkUserGet, data, map[string]string{"bloxlink": "k3y"}, httpProvider)
+	return c.GetNodeResult("1"), err
+}
+
+func TestBloxlinkUserGet(t *testing.T) {
+	for _, body := range []string{`{"robloxID":"156","resolved":{}}`, `{"robloxID":156}`} {
+		httpProvider := &redirectCheckingHTTPProvider{body: body}
+		user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "{{ '123' }}", GuildTarget: "456"}, httpProvider)
+		require.NoError(t, err)
+
+		assert.Equal(t, "https://api.blox.link/v4/public/guilds/456/discord-to-roblox/123", httpProvider.req.URL.String())
+		assert.Equal(t, "k3y", httpProvider.req.Header.Get("Authorization"))
+		assert.Equal(t, "builderman", user.RobloxUser().Name)
+		assert.Equal(t, "https://tr.rbxcdn.com/156.png", user.RobloxUser().AvatarURL)
+	}
+}
+
+// Members who haven't verified are null instead of an error, so flows can
+// tell them to verify.
+func TestBloxlinkUserGetNotLinked(t *testing.T) {
+	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{status: 404, body: `{"error":"User not found"}`})
+	require.NoError(t, err)
+	assert.True(t, user.IsNil())
+}
+
+// A verified member whose Roblox account was deleted still has its ID.
+func TestBloxlinkUserGetDeletedAccount(t *testing.T) {
+	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{body: `{"robloxID":"1"}`})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), user.RobloxUser().ID)
+	assert.Empty(t, user.RobloxUser().Name)
+}
+
+func TestBloxlinkUserGetErrors(t *testing.T) {
+	_, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{status: 400, body: `{"error":"Invalid API Key"}`})
+	assert.ErrorContains(t, err, "Invalid API Key")
+
+	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "abc", GuildTarget: "456"}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "user must be an ID")
+
+	// Outside of a server, like in DMs.
+	httpProvider := &redirectCheckingHTTPProvider{}
+	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123"}, httpProvider)
+	assert.ErrorContains(t, err, "needs a server")
+	assert.Nil(t, httpProvider.req)
+}
+
+// openCloudTestProvider answers Open Cloud requests by method and path,
+// and records them.
+type openCloudTestProvider struct {
+	responses map[string]string
+	requests  []openCloudTestRequest
+}
+
+type openCloudTestRequest struct {
+	key  string
+	body string
+}
+
+func (p *openCloudTestProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return p.HTTPRequestWithoutRedirects(ctx, req)
+}
+
+func (p *openCloudTestProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
+	if req.Header.Get("x-api-key") != "k3y" {
+		return nil, errors.New("missing API key")
+	}
+	key := req.Method + " " + strings.TrimPrefix(req.URL.Path, "/cloud/v2/")
+	if query, _ := url.QueryUnescape(req.URL.RawQuery); query != "" {
+		key += "?" + query
+	}
+	var body []byte
+	if req.Body != nil {
+		body, _ = io.ReadAll(req.Body)
+	}
+	p.requests = append(p.requests, openCloudTestRequest{key: key, body: string(body)})
+
+	res, ok := p.responses[key]
+	status := http.StatusOK
+	if !ok {
+		status, res = http.StatusNotFound, `{"code":"NOT_FOUND","message":"Not found"}`
+	}
+	return &http.Response{StatusCode: status, Status: http.StatusText(status), Body: io.NopCloser(strings.NewReader(res))}, nil
+}
+
+const (
+	testMembersPath = "GET groups/7/memberships?maxPageSize=1&filter=user == 'users/156'"
+	testRolesPath   = "GET groups/7/roles?maxPageSize=20"
+	// Join requests aren't in the provider's responses, so each test sets
+	// them.
+	testJoinRequestsPath = "GET groups/7/join-requests?maxPageSize=1&filter=user == 'users/156'"
+)
+
+func newOpenCloudTestProvider() *openCloudTestProvider {
+	return &openCloudTestProvider{responses: map[string]string{
+		testMembersPath:                 `{"groupMemberships":[{"path":"groups/7/memberships/abc","user":"users/156","role":"groups/7/roles/30","roles":["groups/7/roles/10"]}]}`,
+		testRolesPath:                   `{"groupRoles":[{"path":"groups/7/roles/1","id":"1","displayName":"Guest","rank":0},{"path":"groups/7/roles/10","id":"10","displayName":"Member","rank":1}],"nextPageToken":"p2"}`,
+		testRolesPath + "&pageToken=p2": `{"groupRoles":[{"path":"groups/7/roles/20","id":"20","displayName":"Moderator","rank":100},{"path":"groups/7/roles/30","id":"30","displayName":"Admin","rank":200}]}`,
+	}}
+}
+
+// executeRobloxGroupBlock runs a Roblox group block in group 7, unless data
+// has another group.
+func executeRobloxGroupBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, httpProvider *openCloudTestProvider) (thing.Thing, error) {
+	if data.RobloxGroupID == "" {
+		data.RobloxGroupID = "7"
+	}
+	c, err := executeIntegrationBlock(t, nodeType, data, map[string]string{"roblox_open_cloud": "k3y"}, httpProvider)
+	return c.GetNodeResult("1"), err
+}
+
+func roleNames(member thing.Thing) []string {
+	var names []string
+	for _, role := range member.Object()["roles"].Array() {
+		names = append(names, role.Object()["name"].String())
+	}
+	return names
+}
+
+func TestRobloxGroupMemberGet(t *testing.T) {
+	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "builderman", RobloxLookupMode: RobloxLookupTypeName}, newOpenCloudTestProvider())
+	require.NoError(t, err)
+
+	// The highest role isn't always in the roles Roblox lists.
+	assert.Equal(t, []string{"Admin", "Member"}, roleNames(member))
+	assert.Equal(t, "Admin", member.Object()["role"].String())
+	assert.Equal(t, "200", member.Object()["rank"].String())
+	assert.Equal(t, "156", member.Object()["user_id"].String())
+}
+
+func TestRobloxGroupMemberGetNotMember(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses[testMembersPath] = `{"groupMemberships":[]}`
+	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.True(t, member.IsNil())
+
+	member, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "nobody", RobloxLookupMode: RobloxLookupTypeName}, httpProvider)
+	require.NoError(t, err)
+	assert.True(t, member.IsNil())
+}
+
+func TestRobloxGroupRoleEdit(t *testing.T) {
+	tests := []struct {
+		name    string
+		mode    RobloxGroupRoleMode
+		role    string
+		request string
+		body    string
+		roles   []string
+	}{
+		{"set by name", RobloxGroupRoleModeSet, "moderator", "PATCH groups/7/memberships/abc", `{"role":"groups/7/roles/20"}`, []string{"Moderator"}},
+		{"set by rank", "", "100", "PATCH groups/7/memberships/abc", `{"role":"groups/7/roles/20"}`, []string{"Moderator"}},
+		{"add by ID", RobloxGroupRoleModeAdd, "20", "POST groups/7/memberships/abc:assignRole", `{"role":"groups/7/roles/20"}`, []string{"Admin", "Moderator", "Member"}},
+		{"remove", RobloxGroupRoleModeRemove, "{{ 'Admin' }}", "POST groups/7/memberships/abc:unassignRole", `{"role":"groups/7/roles/30"}`, []string{"Member"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpProvider := newOpenCloudTestProvider()
+			httpProvider.responses[tt.request] = `{}`
+			member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+				FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: tt.role, RobloxGroupRoleMode: tt.mode}, httpProvider)
+			require.NoError(t, err)
+
+			last := httpProvider.requests[len(httpProvider.requests)-1]
+			assert.Equal(t, tt.request, last.key)
+			assert.JSONEq(t, tt.body, last.body)
+			assert.Equal(t, tt.roles, roleNames(member))
+		})
+	}
+}
+
+// The result has the roles Roblox says the member has after the change, which
+// can differ from what the mode should leave.
+func TestRobloxGroupRoleEditReadsResult(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses["PATCH groups/7/memberships/abc"] = `{"path":"groups/7/memberships/abc","user":"users/156","role":"groups/7/roles/20","roles":["groups/7/roles/10","groups/7/roles/20"]}`
+	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Moderator"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Moderator", "Member"}, roleNames(member))
+}
+
+// A list Roblox didn't filter by the user must not change another member.
+func TestRobloxGroupWrongUser(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses[testMembersPath] = `{"groupMemberships":[{"path":"groups/7/memberships/xyz","user":"users/1","roles":["groups/7/roles/10"]}]}`
+	_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
+	assert.ErrorContains(t, err, "instead of users/156")
+	for _, req := range httpProvider.requests {
+		assert.True(t, strings.HasPrefix(req.key, "GET "), req.key)
+	}
+
+	httpProvider = newOpenCloudTestProvider()
+	httpProvider.responses[testJoinRequestsPath] = `{"groupJoinRequests":[{"path":"groups/7/join-requests/1","user":"users/1"}]}`
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	assert.ErrorContains(t, err, "instead of users/156")
+	for _, req := range httpProvider.requests {
+		assert.True(t, strings.HasPrefix(req.key, "GET "), req.key)
+	}
+}
+
+// The guest role is for users outside the group, so it isn't found.
+func TestRobloxGroupRoleEditGuest(t *testing.T) {
+	for _, role := range []string{"Guest", "0"} {
+		_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+			FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: role}, newOpenCloudTestProvider())
+		assert.ErrorContains(t, err, "has no role named, ranked or with the ID")
+	}
+}
+
+// Adding a role the member has, or removing one they don't, only reads.
+func TestRobloxGroupRoleEditNoChange(t *testing.T) {
+	for _, data := range []FlowNodeData{
+		{RobloxUserTarget: "156", RobloxGroupRole: "Member", RobloxGroupRoleMode: RobloxGroupRoleModeAdd},
+		{RobloxUserTarget: "156", RobloxGroupRole: "Moderator", RobloxGroupRoleMode: RobloxGroupRoleModeRemove},
+	} {
+		httpProvider := newOpenCloudTestProvider()
+		_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit, data, httpProvider)
+		require.NoError(t, err)
+		for _, req := range httpProvider.requests {
+			assert.True(t, strings.HasPrefix(req.key, "GET "), req.key)
+		}
+	}
+}
+
+func TestRobloxGroupRoleEditErrors(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Owner"}, httpProvider)
+	assert.ErrorContains(t, err, `has no role named, ranked or with the ID "Owner"`)
+
+	// Roblox's error, like when the key's owner can't rank that high.
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
+	assert.ErrorContains(t, err, `Roblox Open Cloud returned Not Found: {"code":"NOT_FOUND"`)
+
+	httpProvider.responses[testMembersPath] = `{"groupMemberships":[]}`
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
+	assert.ErrorContains(t, err, "isn't in the group")
+
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxGroupID: "groups/7", RobloxUserTarget: "156"}, httpProvider)
+	assert.ErrorContains(t, err, "must be a Roblox group ID")
+}
+
+func TestRobloxJoinRequestRespond(t *testing.T) {
+	for _, action := range []RobloxJoinRequestAction{RobloxJoinRequestActionAccept, RobloxJoinRequestActionDecline} {
+		httpProvider := newOpenCloudTestProvider()
+		httpProvider.responses[testJoinRequestsPath] = `{"groupJoinRequests":[{"path":"groups/7/join-requests/156","user":"users/156"}]}`
+		httpProvider.responses["POST groups/7/join-requests/156:"+string(action)] = `{}`
+
+		found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+			FlowNodeData{RobloxUserTarget: "156", RobloxJoinRequestAction: action}, httpProvider)
+		require.NoError(t, err)
+		assert.True(t, found.Bool())
+		require.Len(t, httpProvider.requests, 2)
+		assert.Equal(t, "POST groups/7/join-requests/156:"+string(action), httpProvider.requests[1].key)
+	}
+
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses[testJoinRequestsPath] = `{"groupJoinRequests":[]}`
+	found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.False(t, found.Bool())
+
+	// A misspelled username isn't the same as having no request.
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "nobody", RobloxLookupMode: RobloxLookupTypeName}, newOpenCloudTestProvider())
+	assert.ErrorContains(t, err, "no Roblox user has that username")
 }

@@ -21,6 +21,11 @@
       "message_id",
       "role_id"
     ],
+    "guild_boost_remove": [
+      "user_id",
+      "guild_id",
+      "role_id"
+    ],
     "guild_create": [
       "guild_id"
     ],

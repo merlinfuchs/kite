@@ -99,6 +99,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Model:           cfg.Assistant.Model,
 			ReasoningEffort: cfg.Assistant.ReasoningEffort,
 			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
+			Format:          cfg.Assistant.Format,
 		})
 	}
 
