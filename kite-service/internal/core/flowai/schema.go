@@ -82,3 +82,24 @@ func nullable(typ string, description string) map[string]any {
 		"description": description,
 	}
 }
+
+// outputSchemaFor returns outputSchema, or for FormatCode the same with the
+// whole flow as code instead of edits.
+func outputSchemaFor(code bool) map[string]any {
+	if !code {
+		return outputSchema
+	}
+	properties := map[string]any{}
+	for key, value := range outputSchema["properties"].(map[string]any) {
+		if key != "edits" {
+			properties[key] = value
+		}
+	}
+	properties["code"] = nullable("string", "The whole flow as code, the way it should be after your change. null if you don't change the flow.")
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"required":             []string{"message", "code", "build_prompt", "fields", "template_id"},
+		"properties":           properties,
+	}
+}

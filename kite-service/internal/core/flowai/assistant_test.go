@@ -237,6 +237,27 @@ func TestCheckVariables(t *testing.T) {
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
 }
 
+func TestParseOutputWithCode(t *testing.T) {
+	res, err := parseOutput(`{"message": "Done.", "code": "  entry_command({}, [])\n", "build_prompt": "Do it", "fields": [], "template_id": null}`)
+	require.NoError(t, err)
+	assert.Equal(t, "entry_command({}, [])", res.Code)
+	assert.Empty(t, res.BuildPrompt)
+}
+
+func TestCheckVariablesInCode(t *testing.T) {
+	res := &Response{Code: `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_id: 'made_up', variable_scope: "x" })`}
+	res.checkVariables([]*model.Variable{{ID: "v1"}})
+
+	assert.Equal(t, `action_variable_get({ variable_id: "v1" }), action_variable_get({ variable_scope: "x" })`, res.Code)
+}
+
+func TestOutputSchemaForCode(t *testing.T) {
+	properties := outputSchemaFor(true)["properties"].(map[string]any)
+	assert.Contains(t, properties, "code")
+	assert.NotContains(t, properties, "edits")
+	assert.Equal(t, outputSchema, outputSchemaFor(false))
+}
+
 func TestParseOutputDropsBuildPromptWithEdits(t *testing.T) {
 	res, err := parseOutput(`{"message": "Done.", "edits": [
 		{"op": "remove_node", "ref": null, "type": null, "id": "a", "after": null, "before": null, "handle": null,

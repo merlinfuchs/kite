@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -34,6 +35,23 @@ type Config struct {
 	Model           string
 	ReasoningEffort string
 	MaxOutputTokens int
+	// Format is how the model changes the flow, unless the request says:
+	// FormatEdits, the default, or FormatCode, which writes the whole flow as
+	// code for the editor's applyFlowCode.
+	Format string
+}
+
+const (
+	FormatEdits = "edits"
+	FormatCode  = "code"
+)
+
+// Format returns the format the editor should send flows in.
+func (a *Assistant) Format() string {
+	if a.config.Format == FormatCode {
+		return FormatCode
+	}
+	return FormatEdits
 }
 
 // Assistant asks the model for edits to a flow.
@@ -59,6 +77,9 @@ type Message struct {
 type Request struct {
 	// Flow is the flow as serialized by the editor.
 	Flow string
+	// Format is the format the editor wrote the flow in and applies the
+	// answer in, FormatEdits or FormatCode. If empty, the assistant's.
+	Format string
 	// Messages is the chat so far, oldest first. The last one is the user's
 	// current message, unless this is a repair.
 	Messages []Message
@@ -106,6 +127,9 @@ type Response struct {
 	// JSON, only have an error, which the editor reports like its own, so
 	// they are numbered the same.
 	Edits []map[string]any
+	// Code is the whole flow as code, if the model writes code and changed the
+	// flow.
+	Code  string
 	Usage model.AssistantUsage
 }
 
@@ -125,10 +149,16 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 
+	format := req.Format
+	if format != FormatEdits && format != FormatCode {
+		format = a.Format()
+	}
+	code := format == FormatCode
+
 	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           a.config.Model,
-		Instructions:    openai.String(instructionsFor(req.Integrations) + describeTemplates(req.Templates)),
-		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
+		Instructions:    openai.String(instructionsFor(req.Integrations, code) + describeTemplates(req.Templates)),
+		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req, code)},
 		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
 		Reasoning: shared.ReasoningParam{
 			Effort: shared.ReasoningEffort(a.config.ReasoningEffort),
@@ -137,7 +167,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 			Format: responses.ResponseFormatTextConfigUnionParam{
 				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
 					Name:   "flow_edits",
-					Schema: outputSchema,
+					Schema: outputSchemaFor(code),
 					Strict: openai.Bool(true),
 				},
 			},
@@ -169,6 +199,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		slog.String("app_id", req.AppID),
 		slog.String("prompt_id", req.PromptID),
 		slog.Bool("repair", len(req.Issues) > 0),
+		slog.String("format", format),
 		// What the model got wrong the round before.
 		slog.Any("issues", req.Issues),
 		slog.String("status", string(resp.Status)),
@@ -272,6 +303,10 @@ func (r *Response) checkTemplate(templates []Template) {
 	r.TemplateID = ""
 }
 
+// variableIDRegex matches a variable_id setting in code, with the comma and
+// space after it.
+var variableIDRegex = regexp.MustCompile("\\bvariable_id\\s*:\\s*([\"'`])([^\"'`]*)[\"'`]\\s*,?\\s*")
+
 // checkVariables removes stored variable IDs the app doesn't have from the
 // edits, so the user picks the variable instead, like when the AI leaves one
 // out.
@@ -280,6 +315,12 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 	for _, v := range variables {
 		ids[v.ID] = true
 	}
+	r.Code = variableIDRegex.ReplaceAllStringFunc(r.Code, func(match string) string {
+		if ids[variableIDRegex.FindStringSubmatch(match)[2]] {
+			return match
+		}
+		return ""
+	})
 	for _, edit := range r.Edits {
 		data, _ := edit["data"].(map[string]any)
 		id, ok := data["variable_id"].(string)
@@ -290,10 +331,14 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 	}
 }
 
-func chatInput(req Request) responses.ResponseInputParam {
+func chatInput(req Request, code bool) responses.ResponseInputParam {
 	messages := req.Messages
 	var current string
-	if len(req.Issues) > 0 {
+	if len(req.Issues) > 0 && code {
+		current = "The editor applied your code and found these problems:\n- " +
+			strings.Join(req.Issues, "\n- ") +
+			"\n\nFix them and write the whole code again."
+	} else if len(req.Issues) > 0 {
 		current = "The editor applied your edits and found these problems:\n- " +
 			strings.Join(req.Issues, "\n- ") +
 			"\n\nFix them with further edits."
@@ -341,6 +386,7 @@ func easyMessage(role responses.EasyInputMessageRole, content string) responses.
 type output struct {
 	Message     string       `json:"message"`
 	Edits       []outputEdit `json:"edits"`
+	Code        *string      `json:"code"`
 	BuildPrompt string       `json:"build_prompt"`
 	Fields      []Field      `json:"fields"`
 	TemplateID  string       `json:"template_id"`
@@ -388,6 +434,9 @@ func parseOutput(text string) (*Response, error) {
 		Fields:      out.Fields,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 	}
+	if out.Code != nil {
+		res.Code = strings.TrimSpace(*out.Code)
+	}
 	for _, e := range out.Edits {
 		edit, err := e.toEdit()
 		if err != nil {
@@ -409,7 +458,7 @@ func parseOutput(text string) (*Response, error) {
 
 	// The suggested change was already made, or will be once invalid edits
 	// are repaired, or needs the fields filled in first.
-	if len(out.Edits) > 0 || len(res.Fields) > 0 {
+	if len(out.Edits) > 0 || res.Code != "" || len(res.Fields) > 0 {
 		res.BuildPrompt = ""
 		res.TemplateID = ""
 	}

@@ -202,6 +202,9 @@ type AssistantConfig struct {
 	MaxOutputTokens int `toml:"max_output_tokens"`
 	// Repairs of a flow prompt's edits that don't count as new prompts.
 	MaxRepairs int `toml:"max_repairs"`
+	// Format is how the flow AI changes flows: "edits", or "code" to write
+	// the whole flow as code.
+	Format string `toml:"format" validate:"omitempty,oneof=edits code"`
 }
 
 // PrescreenConfig configures the AI that screens templates submitted to the

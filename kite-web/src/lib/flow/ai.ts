@@ -9,6 +9,7 @@ import {
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { applyFlowCode, printFlowCode } from "./flowCode";
 import { normalizeHandle } from "./nodes";
 import { serializeFlow } from "./serialize";
 import { describeIssue, FlowIssue, validateFlow } from "./validate";
@@ -56,6 +57,7 @@ export async function runFlowAIPrompt({
   applyFlow,
   send,
   signal,
+  format = "edits",
 }: {
   context: FlowContextType;
   // The chat so far, ending with the user's new message.
@@ -68,6 +70,9 @@ export async function runFlowAIPrompt({
   ) => Promise<APIResponse<FlowAIChatResponse>>;
   // Stops the prompt, e.g. when the editor is closed.
   signal?: AbortSignal;
+  // How the AI changes the flow, as the usage says: with edits, or by
+  // writing the whole flow as code.
+  format?: "edits" | "code";
 }): Promise<FlowAIResult> {
   // The blocks the user selected when sending, even if they click around
   // while the AI works.
@@ -76,7 +81,7 @@ export async function runFlowAIPrompt({
 
   const request = async (flow: Flow, req: Partial<FlowAIChatRequest>) => {
     signal?.throwIfAborted();
-    const serialized = serializeFlow(
+    const serialized = (format === "code" ? printFlowCode : serializeFlow)(
       flow.nodes,
       flow.edges,
       context,
@@ -94,6 +99,7 @@ export async function runFlowAIPrompt({
         messages: toRequestMessages(messages),
         repair_prompt_id: "",
         issues: [],
+        format,
         ...req,
       },
       signal
@@ -145,8 +151,11 @@ export async function runFlowAIPrompt({
 
     const before = getIssues(validateFlow(flow.nodes, flow.edges, context));
     let after = before;
-    if (res.edits.length > 0) {
-      const edited = applyFlowEdits(flow, res.edits as FlowEdit[], context);
+    const hasChanges = !!res.code || res.edits.length > 0;
+    if (hasChanges) {
+      const edited = res.code
+        ? applyFlowCode(flow, res.code, context)
+        : applyFlowEdits(flow, res.edits as FlowEdit[], context);
       const changes = diffFlow(flow, edited);
       for (const n of [
         ...(changes?.added ?? []),
@@ -167,7 +176,7 @@ export async function runFlowAIPrompt({
       issues: [...caused],
       changedNodeIds: [...changed].filter((id) => ids.has(id)),
     };
-    if (res.edits.length > 0) applyFlow(flow, result.changedNodeIds);
+    if (hasChanges) applyFlow(flow, result.changedNodeIds);
     if (result.issues.length === 0) return result;
 
     try {
