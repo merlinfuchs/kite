@@ -26,7 +26,7 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 **Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them enabled.
 
-**Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
+**Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API. That changes once scripts can call operations, see Operations for code.
 
 **Raw request block.** An integration can turn on a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. The block is generated for the integration, and its operation list is the integration's `api.json`, like Discord's today.
 
@@ -302,6 +302,20 @@ The get blocks (`action_message_get`, `action_channel_get` and the others) read 
 
 Each converted block has a test for the exact request it sends, matching the arikawa call it replaced. Then the Go handler and the provider method are deleted.
 
+## Operations for code
+
+Status: proposal, for step 2 of `design/javascript.md`.
+
+Scripts call operations, not blocks. Blocks are presets of operations for the editor, with a curated subset of the options, and code should get all of them. So an integration's operations become the layer that blocks, the JavaScript SDK and the MCP server all use, and `integrations/` is the one place every operation is defined.
+
+**Operation kinds.** Today an operation is a request: a method, a path and parameters, sent to the integration's base URL with its auth. A second kind names a Go handler instead, with a JSON Schema for its parameters and its result. Reading a member from the gateway cache, stored variables, AI and voice are that kind. The executor runs both kinds, and credits, logs, limits and the generated SDK work the same for them. Some costs depend on the input, like AI by its tokens, so a handler can compute its cost, like `CreditsCost` does for blocks.
+
+**Built-in integrations.** Kite's own features are integrations too, one per feature group, like `variables`, `ai` and `voice`. A group is what an SDK namespace, a docs page, a plan limit and a section of the flow AI's catalog follow, which one `kite` integration would mix together. They have the availability `always` and aren't on the Integrations page, as there's nothing to enable or enter. A group a plan doesn't include, like voice without Kite Plus, says so where it's used, like the Paid badge in the block explorer.
+
+Discord's operations without a request stay in the Discord integration. Reading a member from the cache sits next to `GET /guilds/{guild.id}/members/{user.id}`, not in a Kite group.
+
+**Read at runtime.** Calls from scripts name an operation, so the service needs a table of operations, generated like `block_definitions.json`. Each entry has the operation's credits, how its target is proven to be in the app's server, and limits for destructive operations. Blocks keep running from their definitions, and both go through the same executor.
+
 ## Future: platform integrations
 
 Integrations as described here only add actions. What makes Discord the primary platform isn't its API calls but everything flows are built around: triggers (gateway events, commands, buttons, select menus, modals), the message builder, the placeholder environment (`user`, `member`, `channel`, `guild`) and the app model of one bot account per app with a gateway connection.
@@ -355,6 +369,7 @@ Event webhooks for `;` chat commands and emergency calls fit triggers (#181). ER
 4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, enable badges in the block explorer, blocks marked red when their integration isn't enabled, and the flow AI's catalog limited to enabled integrations. An integration's `availability` says whether apps can use it without doing anything: `always` (Discord), `default`, on until the app turns it off (Roblox), or `opt_in`, off until the app turns it on. Integrations that need a credential are `opt_in` and enabled by entering it. `app_integrations` records the integrations an app set up, a missing row means the default, and credentials in `app_secrets` reference their row, so removing an integration removes its credential while disabling keeps it. Cookie API has a hand-written `api.json` and blocks for transcripts, cards, QR codes, captchas and Minecraft verification. Transcripts send the app's bot token, which `run.inject` adds to the body, as cookie-api reads the channel itself. That's safer than the pasted tokens it replaces, and the Enable dialog says so, with cookie-api's privacy policy and terms. Cards take the JSON of cookie-api's card builder in a `json_object` field, which is sent as the body. Apps pay cookie-api with their own key, so its blocks cost 1 credit like those of other integrations. Charts return the image and fit the URL-only run kind proposed for Popcat.
 5. The LLM draft script and contributor docs.
 6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
+7. Proposed: operations for code, with operation kinds, built-in integrations and the table of operations the service reads at runtime.
 
 ## Open questions
 
