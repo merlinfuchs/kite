@@ -191,10 +191,10 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	return out, nil
 }
 
-// The code runs as the body of a function, which starts on its first line so
-// line numbers match.
+// The code runs as the body of an async function, so it can use await. The
+// function starts on its first line so line numbers match.
 const (
-	codeHead = "(function (input) {"
+	codeHead = "(async function (input) {"
 	codeTail = "\n})"
 )
 

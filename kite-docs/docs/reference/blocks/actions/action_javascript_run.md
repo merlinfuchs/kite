@@ -49,9 +49,9 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can't send requests, wait, use timers or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can't send requests or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
-`async` code isn't supported. The block fails if the code returns a Promise, and code after an `await` or in `queueMicrotask` never runs.
+`await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails.
 
 There's no `Intl`, so `toLocaleString` on dates ignores the language and time zone, and dates are in UTC. Numbers get commas, like `1,234.5`. To show a date in a time zone, use `formatDate(date, format, timeZone)`. The date can be a `Date`, a timestamp in milliseconds or text like `2026-01-01T12:00:00Z`.
 

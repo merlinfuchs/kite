@@ -33,7 +33,7 @@ export const javascriptRun: BlockDefinition = {
                 "Placeholders don't work in code. Add an input and read it as input.name instead.",
             })
             .describe(
-              `JavaScript that runs as the body of a function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. There's no async, network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
+              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. It can use await. There's no network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
             ),
           inputs: z
             .array(

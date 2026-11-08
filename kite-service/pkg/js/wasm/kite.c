@@ -178,7 +178,7 @@ uint32_t kite_out_len(void) { return out_len; }
 
 // Runs code, a function expression that Go builds and null terminates, with
 // input as its argument, and stores its return value as JSON, or the error.
-// Returns 0 for a result, 1 for an error.
+// A returned promise is awaited. Returns 0 for a result, 1 for an error.
 EXPORT("kite_run")
 int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_t input_len) {
   JS_UpdateStackTop(rt);
@@ -196,10 +196,31 @@ int32_t kite_run(const char *code, uint32_t code_len, const char *input, uint32_
   JS_FreeValue(ctx, fn);
   JS_FreeValue(ctx, in);
   if (JS_IsException(res)) return fail();
-  if (JS_IsPromise(res)) {
+
+  // Runs the code after each await and queueMicrotask callbacks. Jobs only
+  // run in ctx, the only context, so a failed job's exception is pending
+  // there. That includes the interrupt once the run is out of time.
+  JSContext *job_ctx;
+  int job;
+  while ((job = JS_ExecutePendingJob(rt, &job_ctx)) > 0) {}
+  if (job < 0) {
     JS_FreeValue(ctx, res);
-    JS_ThrowTypeError(ctx, "the code returned a Promise, async code isn't supported");
     return fail();
+  }
+  if (JS_IsPromise(res)) {
+    JSPromiseStateEnum state = JS_PromiseState(ctx, res);
+    if (state == JS_PROMISE_PENDING) {
+      JS_FreeValue(ctx, res);
+      SET_OUT_LIT("the code waited for something that never finished");
+      return 1;
+    }
+    JSValue result = JS_PromiseResult(ctx, res);
+    JS_FreeValue(ctx, res);
+    if (state == JS_PROMISE_REJECTED) {
+      JS_Throw(ctx, result);
+      return fail();
+    }
+    res = result;
   }
 
   JSValue json = JS_JSONStringify(ctx, res, JS_UNDEFINED, JS_UNDEFINED);
