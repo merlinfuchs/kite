@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/tetratelabs/wazero"
@@ -309,6 +310,22 @@ func callHost(name string, arg json.RawMessage) (res []byte, err error) {
 	return json.Marshal(v)
 }
 
+// locations caches time zones, as LoadLocation reads the zone each time.
+var locations sync.Map
+
+func loadLocation(name string) (*time.Location, error) {
+	if loc, ok := locations.Load(name); ok {
+		return loc.(*time.Location), nil
+	}
+	loc, err := time.LoadLocation(name)
+	// Local is the zone of the server.
+	if err != nil || name == "Local" {
+		return nil, fmt.Errorf("formatDate: unknown time zone %q, use a name like Europe/Berlin", name)
+	}
+	locations.Store(name, loc)
+	return loc, nil
+}
+
 func dateParts(arg json.RawMessage) (any, error) {
 	var a struct {
 		Time     float64 `json:"time"`
@@ -317,10 +334,9 @@ func dateParts(arg json.RawMessage) (any, error) {
 	if err := json.Unmarshal(arg, &a); err != nil {
 		return nil, err
 	}
-	loc, err := time.LoadLocation(a.TimeZone)
-	// Local is the zone of the server.
-	if err != nil || a.TimeZone == "Local" {
-		return nil, fmt.Errorf("formatDate: unknown time zone %q, use a name like Europe/Berlin", a.TimeZone)
+	loc, err := loadLocation(a.TimeZone)
+	if err != nil {
+		return nil, err
 	}
 	t := time.UnixMilli(int64(a.Time)).In(loc)
 	_, offset := t.Zone()

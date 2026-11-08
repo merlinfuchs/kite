@@ -1761,19 +1761,6 @@ func (h HTTPResponseEnv) String() string {
 	return h.Status
 }
 
-// MarshalJSON includes the body and data, which are only read when a
-// placeholder uses them.
-func (h HTTPResponseEnv) MarshalJSON() ([]byte, error) {
-	body, _ := h.BodyFunc()
-	data, _ := h.DataFunc()
-	return json.Marshal(struct {
-		Status     string `json:"status"`
-		StatusCode int    `json:"status_code"`
-		Body       string `json:"body"`
-		Data       any    `json:"data"`
-	}{h.Status, h.StatusCode, body, data})
-}
-
 func NewThingEnv(t thing.Thing) any {
 	switch t.Type {
 	case thing.TypeString:
@@ -1822,7 +1809,38 @@ func NewThingEnv(t thing.Thing) any {
 // their ID. Fields that are only computed when a placeholder reads them, like
 // user.role_names, are left out, as the envs only tag the others for JSON.
 func ThingJSON(t thing.Thing) (json.RawMessage, error) {
-	return json.Marshal(NewThingEnv(t))
+	return json.Marshal(jsonEnv(t))
+}
+
+// jsonEnv is NewThingEnv with the body and data of HTTP responses, which
+// their env only reads when a placeholder uses them. It isn't a MarshalJSON
+// of the env, which would change what toJSON gives in placeholders.
+func jsonEnv(t thing.Thing) any {
+	switch t.Type {
+	case thing.TypeHTTPResponse:
+		env := NewHTTPResponseEnv(t.HTTPResponse())
+		body, _ := env.BodyFunc()
+		data, _ := env.DataFunc()
+		return map[string]any{
+			"status":      env.Status,
+			"status_code": env.StatusCode,
+			"body":        body,
+			"data":        data,
+		}
+	case thing.TypeArray:
+		res := make([]any, len(t.Array()))
+		for i, v := range t.Array() {
+			res[i] = jsonEnv(v)
+		}
+		return res
+	case thing.TypeObject:
+		res := make(map[string]any, len(t.Object()))
+		for k, v := range t.Object() {
+			res[k] = jsonEnv(v)
+		}
+		return res
+	}
+	return NewThingEnv(t)
 }
 
 type AppEnv struct {

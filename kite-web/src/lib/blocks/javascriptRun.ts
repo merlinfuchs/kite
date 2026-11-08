@@ -49,12 +49,25 @@ export const javascriptRun: BlockDefinition = {
                     "Name of the input, read in the code as input.name."
                   ),
                 value: templated(
-                  z.string(),
+                  z.string().optional(),
                   "Value of the input, like {{arg('amount')}}. A single placeholder keeps its type, like a number or a list. Users, members, channels, roles and messages become objects with the fields of their placeholders, like input.user.display_name, but without user.role_names, permissions, is_admin, is_owner, top_role and color, the category of a channel, and the counts and channels of a server. {{guild}} and {{channel}} are the ID of the server and channel the flow runs in, so pass the fields you need. A response of a Send API Request block has status_code, body and data."
                 ),
               })
             )
             .max(javascriptMaxInputs)
+            .superRefine((inputs, ctx) => {
+              const names = new Set<string>();
+              inputs.forEach((input, i) => {
+                if (names.has(input.name)) {
+                  ctx.addIssue({
+                    code: "custom",
+                    message: `Another input is named ${input.name} already`,
+                    path: [i, "name"],
+                  });
+                }
+                names.add(input.name);
+              });
+            })
             .optional()
             .describe("Values the code gets from the flow."),
         })

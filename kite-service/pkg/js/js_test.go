@@ -72,6 +72,9 @@ func TestRunErrors(t *testing.T) {
 		{"string", `return "x".repeat(2**30).length`, "RangeError: string too long (line 1)"},
 		{"recursion", `function f() { return f() + 1 }; return f()`, "RangeError: Maximum call stack size exceeded (line 1)"},
 		{"result too large", `return "x".repeat(20000)`, "the result is 19 KB, more than the limit of 16 KB"},
+		{"multiline message", "throw new Error('Invalid amount\\nUse a number from 1 to 10')", "Error: Invalid amount\nUse a number from 1 to 10 (line 1)"},
+		{"long message", `throw "x".repeat(1e6)`, strings.Repeat("x", MaxErrorLength-len(cutOff)) + cutOff},
+		{"unprintable", `throw {toString() { throw 1 }}`, "Error: the code threw something that can't be shown as text"},
 		{"code too long", strings.Repeat(" ", MaxCodeLength+1), "the code is 4001 characters, more than the limit of 4000"},
 	}
 	for _, tt := range tests {
@@ -126,6 +129,8 @@ for (let i = 0; i < 1000; i++) console.log("x".repeat(100))`,
 		total += len(l.message)
 	}
 	assert.LessOrEqual(t, total, MaxLogLength)
+
+	assert.Contains(t, logs[len(logs)-1].message, "(cut off)")
 
 	logs = nil
 	_, err = Run(context.Background(), Options{

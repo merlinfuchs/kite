@@ -43,7 +43,7 @@ func executeJavaScript(t *testing.T, data JavaScriptData, env eval.Env, results 
 func TestJavaScriptRunInputs(t *testing.T) {
 	user := discord.User{ID: 123456789012345678, Username: "kite", DisplayName: "Kite"}
 	res, logs, err := executeJavaScript(t, JavaScriptData{
-		Code: `console.log("types", typeof input.n, typeof input.text, Array.isArray(input.list))
+		Code: `console.log("types", typeof input.n, typeof input.text, Array.isArray(input.list)); console.log("second"); console.warn("warn")
 return {sum: input.list.reduce((a, b) => a + b, input.n), text: input.text + "!", empty: input.empty}`,
 		Inputs: []JavaScriptInput{
 			{Name: "n", Value: "{{1 + 2}}"},
@@ -53,7 +53,7 @@ return {sum: input.list.reduce((a, b) => a + b, input.n), text: input.text + "!"
 		},
 	}, eval.Env{"user": eval.NewUserEnv(user)})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"types number string true"}, logs)
+	assert.Equal(t, []string{"types number string true\nsecond", "warn"}, logs)
 	obj := res.Object()
 	assert.Equal(t, int64(9), obj["sum"].Int())
 	assert.Equal(t, "hi 3!", obj["text"].String())

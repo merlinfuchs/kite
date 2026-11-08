@@ -29,6 +29,9 @@ const (
 	MaxResultLength = 16 << 10
 	MaxLogLength    = 4 << 10
 	MaxLogEntries   = 50
+	// MaxErrorLength caps the message of an error, which ends up in the
+	// logs of the app.
+	MaxErrorLength = 1000
 )
 
 const (
@@ -143,8 +146,12 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	st := &runState{
 		deadline: time.Now().Add(Timeout),
 		log: func(level LogLevel, message string) {
-			if opts.Log == nil || entries >= MaxLogEntries || logged+len(message) > MaxLogLength {
+			if opts.Log == nil || entries >= MaxLogEntries || logged >= MaxLogLength {
 				return
+			}
+			// The message that goes over the limit is cut off, not left out.
+			if logged+len(message) > MaxLogLength {
+				message = truncate(message, max(0, MaxLogLength-logged-len(cutOff))) + cutOff
 			}
 			logged += len(message)
 			entries++
@@ -188,10 +195,13 @@ const (
 
 var codeLineRe = regexp.MustCompile(`code\.js:(\d+):(\d+)`)
 
-// scriptError turns an error message from kite.c, the message and the stack
-// on the following lines, into an Error.
+// scriptError turns an error from kite.c, the message, a null byte and the
+// stack, into an Error.
 func scriptError(out string) *Error {
-	message, stack, _ := strings.Cut(out, "\n")
+	message, stack, _ := strings.Cut(out, "\x00")
+	if len(message) > MaxErrorLength {
+		message = truncate(message, MaxErrorLength-len(cutOff)) + cutOff
+	}
 	switch message {
 	case "InternalError: interrupted":
 		return errTimeout
@@ -207,4 +217,17 @@ func scriptError(out string) *Error {
 		}
 	}
 	return e
+}
+
+const cutOff = " (cut off)"
+
+// truncate cuts s to at most n bytes without splitting a character.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }

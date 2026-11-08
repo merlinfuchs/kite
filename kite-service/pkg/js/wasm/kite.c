@@ -104,8 +104,8 @@ static void append_out(const char *s, size_t len) {
 
 #define SET_OUT_LIT(s) set_out(s, sizeof(s) - 1)
 
-// Stores the pending exception as the output, its message and on the
-// following lines its stack.
+// Stores the pending exception as the output, its message, a null byte and
+// its stack.
 static int32_t fail(void) {
   JSValue exc = JS_GetException(ctx);
   JSValue msg = JS_ToString(ctx, exc);
@@ -116,12 +116,12 @@ static int32_t fail(void) {
     set_out(m, len);
     JS_FreeCString(ctx, m);
   } else {
-    // Converting the error failed too, most likely out of memory.
-    SET_OUT_LIT("InternalError: out of memory");
+    // Like an object whose toString throws.
+    SET_OUT_LIT("Error: the code threw something that can't be shown as text");
   }
   const char *st = JS_IsString(stack) ? JS_ToCStringLen(ctx, &len, stack) : NULL;
   if (st) {
-    append_out("\n", 1);
+    append_out("", 1);
     append_out(st, len);
     JS_FreeCString(ctx, st);
   }

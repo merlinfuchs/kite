@@ -191,21 +191,26 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	// Logs are written after the run, so a script that logs doesn't wait
-	// for the database while it holds a slot and its time runs out.
+	// for the database while it holds a slot and its time runs out. Lines in
+	// a row with the same level become one entry, so it's one insert usually.
 	type logEntry struct {
-		level   js.LogLevel
-		message string
+		level js.LogLevel
+		lines []string
 	}
 	var logs []logEntry
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,
 		Log: func(level js.LogLevel, message string) {
-			logs = append(logs, logEntry{level, message})
+			if n := len(logs); n > 0 && logs[n-1].level == level {
+				logs[n-1].lines = append(logs[n-1].lines, message)
+				return
+			}
+			logs = append(logs, logEntry{level, []string{message}})
 		},
 	})
 	for _, l := range logs {
-		ctx.Log.CreateLogEntry(ctx, provider.LogLevel(l.level), l.message)
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevel(l.level), strings.Join(l.lines, "\n"))
 	}
 	if runErr != nil {
 		return runErr
