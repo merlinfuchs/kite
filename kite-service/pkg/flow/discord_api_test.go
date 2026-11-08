@@ -25,7 +25,7 @@ func TestDiscordAPIOperations(t *testing.T) {
 		"leave_guild",
 		"get_my_application",
 	} {
-		assert.Contains(t, discordAPIOperations, id)
+		assert.Contains(t, operations["discord"], id)
 	}
 
 	// Managed by Kite, premium, or not authenticated with the bot token.
@@ -40,7 +40,7 @@ func TestDiscordAPIOperations(t *testing.T) {
 		"update_original_webhook_message",
 		"create_guild_sticker",
 	} {
-		assert.NotContains(t, discordAPIOperations, id)
+		assert.NotContains(t, operations["discord"], id)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestDiscordAPIPath(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			op, ok := discordAPIOperations[tt.op]
+			op, ok := operations["discord"][tt.op]
 			require.True(t, ok)
 
 			path, err := operationPath(op, tt.path, tt.query, tt.filled)

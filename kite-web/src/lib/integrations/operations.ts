@@ -9,10 +9,14 @@ export interface OperationPolicy {
   // calls cost 1 like most actions.
   credits: number;
   // What the call acts on, so the service can check it's in the app's server
-  // once apps can share a bot: guild, channel, webhook, interaction, user or
-  // none. Not checked yet, apps with their own bot can act anywhere it is.
+  // once apps can share a bot: guild, channel, webhook, interaction or user
+  // from the path, none for reads of nothing in particular, or unknown when
+  // the path doesn't say, like a channel in the body, which needs a rule
+  // written by hand first. Not checked yet, apps with their own bot can act
+  // anywhere it is.
   target: string;
-  // It deletes or removes something, or acts on many things at once.
+  // It deletes, removes or bans, judged by its method and path. Calls whose
+  // body decides it, like an ER:LC command, aren't marked.
   destructive: boolean;
 }
 
@@ -42,7 +46,9 @@ function discordTarget(op: ApiOperation): string {
   if (op.path.includes("{channel_id}")) return "channel";
   if (op.path.includes("{webhook_id}")) return "webhook";
   if (op.path.startsWith("/users/")) return "user";
-  return "none";
+  return op.method === "GET" && op.path_params.length === 0
+    ? "none"
+    : "unknown";
 }
 
 // Every operation of every integration, which the service embeds as

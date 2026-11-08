@@ -24,7 +24,7 @@ func executeActionDiscordAPIRequest(n *CompiledFlowNode, ctx *FlowContext) error
 		}
 	}
 
-	op, ok := discordAPIOperations[data.Operation]
+	op, ok := operations["discord"][data.Operation]
 	if !ok {
 		return fmt.Errorf("unknown Discord API endpoint: %s", data.Operation)
 	}

@@ -56,11 +56,11 @@ type operation struct {
 // Blocks have their own credits.
 type operationPolicy struct {
 	Credits int `json:"credits"`
-	// What the call acts on: guild, channel, webhook, interaction, user or
-	// none. It isn't checked yet, as every app has its own bot, which can act
-	// in any server it's in. A shared bot would have to check it's the app's.
+	// What the call acts on, see OperationPolicy in
+	// kite-web/src/lib/integrations/operations.ts. It isn't checked yet, as
+	// every app has its own bot, which can act in any server it's in.
 	Target string `json:"target"`
-	// It deletes or removes something, or acts on many things at once.
+	// It deletes, removes or bans.
 	Destructive bool `json:"destructive"`
 }
 

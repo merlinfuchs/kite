@@ -17,10 +17,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
-// discordAPIOperations are the Discord API endpoints the Discord API Request
-// block can call, see operations.go.
-var discordAPIOperations = operations["discord"]
-
 var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 
 // operationPath builds the path of a request to op, relative to the base URL
@@ -234,7 +230,7 @@ type discordAPIEndpoint struct {
 
 var discordAPIFlowOnlyPaths = sync.OnceValue(func() []discordAPIEndpoint {
 	var res []discordAPIEndpoint
-	for _, op := range discordAPIOperations {
+	for _, op := range operations["discord"] {
 		if !op.FlowOnly {
 			continue
 		}
@@ -255,7 +251,7 @@ var discordAPIFlowOnlyPaths = sync.OnceValue(func() []discordAPIEndpoint {
 // ones of MCP clients. Parameters are JSON values, and endpoints of an
 // interaction can't be called as there is none.
 func DiscordAPIRequestOutsideFlow(operation string, pathParams map[string]json.RawMessage, query map[string]json.RawMessage, body json.RawMessage) (provider.DiscordAPIRequest, error) {
-	op, ok := discordAPIOperations[operation]
+	op, ok := operations["discord"][operation]
 	if !ok {
 		return provider.DiscordAPIRequest{}, fmt.Errorf("unknown Discord API endpoint: %s", operation)
 	}
