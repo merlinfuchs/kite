@@ -11,6 +11,49 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-08",
+    title: "Run JavaScript block",
+    description:
+      "Run a short piece of JavaScript with values from your flow, for calculations and text that would take many blocks. It costs 10 credits a run.",
+  },
+  {
+    date: "2026-11-08",
+    title: "Voice event and voice blocks",
+    description:
+      "The Voice state update event runs when a member joins, leaves, or moves to another voice channel. Edit voice state mutes, deafens, or moves a member, and Play soundboard sound plays a sound from the soundboard on every plan.",
+  },
+  {
+    date: "2026-11-08",
+    title: "Server boost remove event",
+    description:
+      "Run a flow when a member stops boosting your server, like to take away a booster reward.",
+  },
+  {
+    date: "2026-11-08",
+    title: "Tags in Edit channel",
+    description:
+      "The Edit channel block changes the tags of a forum post, like marking a ticket as Resolved.",
+  },
+  {
+    date: "2026-11-08",
+    title: "Install Kite as an app",
+    description:
+      "Install the dashboard on your computer or phone from Chrome, Edge, or Safari on iPhone, so it opens in its own window.",
+  },
+  {
+    date: "2026-11-08",
+    title: "Faster flow editing",
+    description:
+      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't turned on, you can enable it right from the block.",
+  },
+  {
+    date: "2026-11-05",
+    title: "Claude and ChatGPT test your flows",
+    description:
+      "AI clients connected to the MCP server can test a flow before you use it. Tests show the messages and changes a flow would make without making them, and don't use credits.",
+    href: "/discord-mcp-server",
+  },
+  {
     date: "2026-11-05",
     title: "Leveling template",
     description:
