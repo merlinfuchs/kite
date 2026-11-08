@@ -76,13 +76,19 @@ Modules wait like Discord does, with handlers and saved data instead of paused c
 command("giveaway", opts, async (ctx) => {
   const msg = await ctx.reply({
     content: "Click to enter!",
-    components: [button("enter", { label: "Enter" }, { prize: ctx.options.prize })],
+    components: [
+      button("enter", { label: "Enter" }, { prize: ctx.options.prize }),
+    ],
   });
   schedule.in("24h", "draw", { messageId: msg.id, prize: ctx.options.prize });
 });
 
-on.button("enter", async (ctx, data) => { /* data.prize */ });
-on.schedule("draw", async (ctx, data) => { /* pick a winner */ });
+on.button("enter", async (ctx, data) => {
+  /* data.prize */
+});
+on.schedule("draw", async (ctx, data) => {
+  /* pick a winner */
+});
 ```
 
 Kite stores the data of a button and puts only an ID in its `custom_id`, which Discord caps at 100 characters, like a resume point of a flow. `schedule.in` is a timer resume point with a handler name instead of a block ID. Nothing is paused, so deploys, restarts and edits to the code can't break waiting runs. It also fits buttons better than `await`. A message's buttons can be clicked by anyone, many times, days later. Short waits in one run, like `await sleep(2000)`, can keep the instance alive within the time limit.
