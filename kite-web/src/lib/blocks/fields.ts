@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  numericOrPlaceholder,
   channelDataSchema,
   channelTargetSchema,
   guildTargetSchema,
@@ -54,6 +55,33 @@ export const responseTargetSetting: BlockField = {
 export const channelDataSetting: BlockField = {
   name: "channel_data",
   schema: channelDataSchema,
+};
+
+// The user of the Roblox blocks, by ID or username, or a Roblox user result.
+export const robloxUserSettings: BlockField[] = [
+  {
+    name: "roblox_user_target",
+    schema: templated(
+      z.string(),
+      "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member."
+    ),
+  },
+  {
+    name: "roblox_lookup_mode",
+    schema: z
+      .enum(["id", "username"])
+      .optional()
+      .describe(
+        "Whether roblox_user_target is an ID or a username. Defaults to id."
+      ),
+  },
+];
+
+export const robloxGroupIdSetting: BlockField = {
+  name: "roblox_group_id",
+  schema: numericOrPlaceholder(
+    "ID of the Roblox group, the number in the group's link."
+  ),
 };
 
 export const variableSettings: BlockField[] = [
@@ -289,4 +317,9 @@ export function roleDataFields(edit: boolean): BlockField[] {
       description: describe("Whether everyone can mention the role."),
     },
   ];
+}
+
+// values are the values of select options, for z.enum.
+export function values<T extends string>(options: readonly { value: T }[]) {
+  return options.map((o) => o.value) as [T, ...T[]];
 }

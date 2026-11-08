@@ -115,6 +115,10 @@ Integration blocks use services outside of Discord. They have their own **Integr
 ### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
+- [Get Bloxlink user](./actions/action_bloxlink_user_get.md) - Get the Roblox user a member verified as with Bloxlink
+- [Get Roblox group member](./actions/action_roblox_group_member_get.md) - Get the roles of a user in your Roblox group
+- [Change Roblox group role](./actions/action_roblox_group_member_role_edit.md) - Rank a group member, or give or take a role
+- [Answer Roblox join request](./actions/action_roblox_group_join_request_respond.md) - Accept or decline a request to join your Roblox group
 
 ### Cookie API
 
