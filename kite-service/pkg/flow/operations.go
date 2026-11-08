@@ -1,12 +1,16 @@
 package flow
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 // operationsJSON has the operations of every integration's API that Kite
@@ -103,4 +107,64 @@ func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, re
 		})
 	}
 	return integrationRequest(ctx, integration, op.Method, path, body, secrets...)
+}
+
+// runOperation runs op for code with arg, a JSON object with its path and
+// query parameters by name and the fields of its body, like
+// {"channel_id": "1", "content": "Hi"}, and returns the JSON of the response.
+func (ctx *FlowContext) runOperation(op operation, arg json.RawMessage) (json.RawMessage, error) {
+	params := map[string]json.RawMessage{}
+	if arg = bytes.TrimSpace(arg); len(arg) > 0 && string(arg) != "null" {
+		if err := json.Unmarshal(arg, &params); err != nil {
+			return nil, fmt.Errorf("the argument must be an object of its parameters")
+		}
+	}
+
+	var filled map[string]string
+	if op.Interaction {
+		interaction := ctx.Data.Interaction()
+		if interaction == nil {
+			return nil, fmt.Errorf("it only works in flows started by an interaction, like a command or button click")
+		}
+		filled = interactionPathParams(interaction)
+	}
+
+	take := func(list []apiParam) map[string]thing.Thing {
+		res := make(map[string]thing.Thing, len(list))
+		for _, p := range list {
+			if v, ok := params[p.Name]; ok {
+				if _, isFilled := filled[p.Name]; !isFilled {
+					res[p.Name] = jsonParamThing(v)
+				}
+				delete(params, p.Name)
+			}
+		}
+		return res
+	}
+	pathParams := take(op.PathParams)
+	query := take(op.QueryParams)
+	path, err := operationPath(op, pathParams, query, filled)
+	if err != nil {
+		return nil, err
+	}
+
+	var body []byte
+	if len(params) > 0 {
+		if !op.HasBody {
+			names := slices.Sorted(maps.Keys(params))
+			return nil, fmt.Errorf("it has no parameter %s", names[0])
+		}
+		if body, err = json.Marshal(params); err != nil {
+			return nil, err
+		}
+	}
+
+	res, err := ctx.sendOperation(op, path, body, "")
+	if err != nil {
+		return nil, err
+	}
+	if len(bytes.TrimSpace(res)) == 0 {
+		return json.RawMessage("null"), nil
+	}
+	return res, nil
 }

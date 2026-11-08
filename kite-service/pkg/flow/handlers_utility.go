@@ -1,14 +1,17 @@
 package flow
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/js"
@@ -167,6 +170,46 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// javaScriptHost has the operations the code of a Run JavaScript block can
+// call: for now the reads, GET operations, of the integrations the app can
+// use. Each costs the credits of its policy. The calls run at the same time,
+// so they take turns with ctx.
+type javaScriptHost struct {
+	ctx        *FlowContext
+	mu         sync.Mutex
+	creditsErr error
+}
+
+func newJavaScriptHost(ctx *FlowContext) *javaScriptHost {
+	return &javaScriptHost{ctx: ctx}
+}
+
+func (h *javaScriptHost) lookup(name string) js.HostFunc {
+	integration, id, _ := strings.Cut(name, ".")
+	op, ok := operations[integration][id]
+	if !ok || op.Method != http.MethodGet {
+		return nil
+	}
+
+	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		h.mu.Lock()
+		err := h.ctx.checkIntegration(op.Integration)
+		if err == nil {
+			if err = h.ctx.increaseCredits(op.Policy.Credits); err != nil {
+				h.creditsErr = err
+			}
+		}
+		// A copy that's canceled with the call, which only reads ctx.
+		c := *h.ctx
+		h.mu.Unlock()
+		if err != nil {
+			return nil, err
+		}
+		c.Context = callCtx
+		return c.runOperation(op, arg)
+	}
+}
+
 func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	data := n.Data.JavaScriptData
 	if data == nil {
@@ -198,9 +241,11 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
+	host := newJavaScriptHost(ctx)
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,
+		Host:  host.lookup,
 		Log: func(level js.LogLevel, message string) {
 			if n := len(logs); n > 0 && logs[n-1].level == level {
 				logs[n-1].lines = append(logs[n-1].lines, message)
@@ -211,6 +256,11 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	})
 	for _, l := range logs {
 		ctx.Log.CreateLogEntry(ctx, provider.LogLevel(l.level), strings.Join(l.lines, "\n"))
+	}
+	// Even if the code caught it, so running out of credits stops the flow
+	// like it does for blocks.
+	if host.creditsErr != nil {
+		return host.creditsErr
 	}
 	if runErr != nil {
 		return runErr

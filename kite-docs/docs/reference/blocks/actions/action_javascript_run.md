@@ -49,7 +49,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can't send requests or reach anything outside the block. Use the other blocks for that, before or after this one. So there's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can read from Discord and the app's integrations, see below, but can't change anything or send other requests. Use the other blocks for that, before or after this one. There's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
 `await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
@@ -73,9 +73,29 @@ return formatDate(Date.now(), "dddd [at] HH:mm", "Europe/Berlin");
 
 Text in `[brackets]` stays as it is. The time zone is a name like `America/New_York`, and defaults to `UTC`. To show a time to each member in their own time zone, use Discord's timestamps instead, like `<t:{{user.created_at}}:F>`.
 
+## Reading from Discord and integrations
+
+The code can read from Discord, ER:LC and Cookie API with the endpoints of their APIs. Each one is a function that returns a promise, so use `await`:
+
+```js
+const [channel, messages] = await Promise.all([
+  discord.getChannel({ channel_id: input.channel }),
+  discord.listMessages({ channel_id: input.channel, limit: 50 }),
+]);
+return `${channel.name} has ${messages.length} recent messages`;
+```
+
+The names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. The argument is an object with the endpoint's parameters by name, like `channel_id` and `limit`.
+
+The result is the JSON the API returns, with its own field names. A member has `nick` and `user.global_name`, not the `display_name` of placeholders.
+
+If a request fails, like with "Missing Access", the promise is rejected with the error. Catch it with `try` and `catch`, or the block fails.
+
+Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
+
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can read from Discord and integrations 20 times per run, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 
