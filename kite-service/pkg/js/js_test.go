@@ -2,6 +2,7 @@ package js
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"strconv"
@@ -215,4 +216,38 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	os.Exit(m.Run())
+}
+
+// Copying the memory of an instance is only a full snapshot if its only
+// mutable global is the stack pointer. A new QuickJS-NG version or build flag
+// could add one, like for thread-local storage.
+func TestOneMutableGlobal(t *testing.T) {
+	b := wasmBytes[8:]
+	mutable := 0
+	for len(b) > 0 {
+		id := b[0]
+		size, n := binary.Uvarint(b[1:])
+		section := b[1+n : 1+n+int(size)]
+		b = b[1+n+int(size):]
+		if id != 6 {
+			continue
+		}
+		count, n := binary.Uvarint(section)
+		section = section[n:]
+		for range count {
+			// Value type, mutability, then an init expression: i32.const,
+			// i64.const or global.get with a LEB128 operand, and end.
+			if section[1] == 1 {
+				mutable++
+			}
+			require.Contains(t, []byte{0x41, 0x42, 0x23}, section[2], "unexpected init expression")
+			i := 3
+			for section[i]&0x80 != 0 {
+				i++
+			}
+			require.Equal(t, byte(0x0b), section[i+1])
+			section = section[i+2:]
+		}
+	}
+	assert.Equal(t, 1, mutable)
 }
