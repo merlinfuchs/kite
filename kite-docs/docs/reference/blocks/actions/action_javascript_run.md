@@ -61,7 +61,7 @@ Text in `[brackets]` stays as it is. The time zone is a name like `America/New_Y
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory, which is plenty for a loop over a few thousand items. The value it returns can be up to 16 KB.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 
