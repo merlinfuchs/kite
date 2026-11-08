@@ -15,7 +15,6 @@ export const cookieApiCaptchaGet: BlockDefinition = {
     integration: "cookie_api",
     operation: "get_captcha",
     method: "GET",
-    path: "/api/security/captcha/get-captcha",
   },
   fields: [
     {

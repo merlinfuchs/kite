@@ -791,6 +791,7 @@ func TestEveryBlockRuns(t *testing.T) {
 		switch {
 		case block.Run.Kind == "request":
 			assert.Falsef(t, handled, "%s is a request but has a handler", nodeType)
+			assert.Containsf(t, operations[block.Run.Integration], block.Run.Operation, "%s runs an operation that isn't in operations.json", nodeType)
 		case strings.HasPrefix(string(nodeType), "option_"):
 			assert.Falsef(t, handled, "%s is an option but has a handler", nodeType)
 		default:

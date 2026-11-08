@@ -16,7 +16,6 @@ export const discordMemberRoleAdd: BlockDefinition = {
     integration: "discord",
     operation: "add_guild_member_role",
     method: "PUT",
-    path: "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
   },
   fields: [guildTargetField, userTargetField, roleTargetField],
 };

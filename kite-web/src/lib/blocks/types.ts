@@ -83,10 +83,12 @@ export interface BlockRequest {
   kind: "request";
   // ID of the integration, see ../integrations.
   integration: string;
-  // operationId in the integration's spec.
+  // operationId in the integration's spec. The service sends the request
+  // with the operation's path from kite-service/pkg/flow/operations.json.
   operation: string;
+  // The operation's method too, for the editor, which shows edits
+  // differently and doesn't load the specs.
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  path: string;
   // Values Kite adds to the request, which aren't settings.
   inject?: BlockRequestInject[];
   // The block does one of several things the endpoint does, like a timeout

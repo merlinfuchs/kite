@@ -16,7 +16,6 @@ export const discordMessageReactionCreate: BlockDefinition = {
     integration: "discord",
     operation: "add_my_message_reaction",
     method: "PUT",
-    path: "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
   },
   fields: [
     channelTargetField,

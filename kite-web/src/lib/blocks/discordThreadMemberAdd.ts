@@ -17,7 +17,6 @@ export const discordThreadMemberAdd: BlockDefinition = {
     integration: "discord",
     operation: "add_thread_member",
     method: "PUT",
-    path: "/channels/{channel_id}/thread-members/{user_id}",
   },
   fields: [
     {

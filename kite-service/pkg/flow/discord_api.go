@@ -26,7 +26,7 @@ var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 // operationPath builds the path of a request to op, relative to the base URL
 // of its integration, from the evaluated path and query parameters, and the
 // path parameters Kite fills in itself.
-func operationPath(op Operation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
+func operationPath(op operation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
 	params := make(map[string]string, len(op.PathParams)+len(filled))
 	for _, p := range op.PathParams {
 		value, ok := pathParams[p.Name]
@@ -120,7 +120,7 @@ func apiListItems(value thing.Thing) ([]thing.Thing, bool) {
 	return items, true
 }
 
-func apiParamValue(p APIParam, value thing.Thing) (string, error) {
+func apiParamValue(p apiParam, value thing.Thing) (string, error) {
 	var (
 		v   string
 		err error
@@ -216,7 +216,7 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 }
 
 // DiscordAPIFlowOnly reports whether a request goes to an endpoint that can
-// only be used in flows, see Operation.FlowOnly.
+// only be used in flows, see operation.FlowOnly.
 func DiscordAPIFlowOnly(method string, path string) bool {
 	path, _, _ = strings.Cut(path, "?")
 	for _, op := range discordAPIFlowOnlyPaths() {

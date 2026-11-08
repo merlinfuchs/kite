@@ -17,7 +17,6 @@ export const discordThreadMemberRemove: BlockDefinition = {
     integration: "discord",
     operation: "delete_thread_member",
     method: "DELETE",
-    path: "/channels/{channel_id}/thread-members/{user_id}",
   },
   fields: [
     {

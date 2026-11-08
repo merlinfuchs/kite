@@ -75,7 +75,7 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 			List  bool   `json:"list"`
 		}{},
 	}
-	operations["test_api"] = map[string]Operation{
+	operations["test_api"] = map[string]operation{
 		"get_thing": {Integration: "test_api", ID: "get_thing", Method: "GET", Path: "/things/{id}"},
 	}
 	t.Cleanup(func() {

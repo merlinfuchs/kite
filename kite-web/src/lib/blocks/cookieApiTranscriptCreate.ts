@@ -17,7 +17,6 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
     integration: "cookie_api",
     operation: "create_transcript",
     method: "POST",
-    path: "/api/transcript",
     inject: [{ in: "body", name: "bot_token", value: "discord_bot_token" }],
   },
   fields: [

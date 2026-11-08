@@ -4,18 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net/http"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,24 +23,6 @@ type sentRequest struct {
 	Body   string `json:"body,omitempty"`
 	Reason string `json:"reason,omitempty"`
 	Error  string `json:"error,omitempty"`
-}
-
-type recordingHTTPProvider struct {
-	req  *http.Request
-	body string
-}
-
-func (p *recordingHTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
-	return p.HTTPRequestWithoutRedirects(ctx, req)
-}
-
-func (p *recordingHTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
-	p.req = req
-	if req.Body != nil {
-		b, _ := io.ReadAll(req.Body)
-		p.body = string(b)
-	}
-	return &http.Response{StatusCode: 200, Status: "200 OK", Body: io.NopCloser(strings.NewReader("{}"))}, nil
 }
 
 // sampleSetting is a value for a field of a request block that it accepts.
@@ -122,7 +100,7 @@ func TestRequestBlocksSendSameRequests(t *testing.T) {
 			response = "[]"
 		}
 		discordProvider := &blockTestProvider{response: response}
-		httpProvider := &recordingHTTPProvider{}
+		httpProvider := &httpTestProvider{}
 		choices := map[string]bool{}
 		for id := range integrations {
 			choices[id] = true
@@ -156,7 +134,11 @@ func TestRequestBlocksSendSameRequests(t *testing.T) {
 				Reason: string(discordProvider.req.Reason),
 			}
 		case httpProvider.req != nil:
-			sent = sentRequest{Method: httpProvider.req.Method, URL: httpProvider.req.URL.String(), Body: httpProvider.body}
+			sent = sentRequest{Method: httpProvider.req.Method, URL: httpProvider.req.URL.String()}
+			if httpProvider.req.Body != nil {
+				body, _ := io.ReadAll(httpProvider.req.Body)
+				sent.Body = string(body)
+			}
 		}
 		if err != nil {
 			sent.Error = err.Error()
@@ -167,15 +149,5 @@ func TestRequestBlocksSendSameRequests(t *testing.T) {
 
 	b, err := json.MarshalIndent(got, "", "  ")
 	require.NoError(t, err)
-	b = append(b, '\n')
-
-	path := "testdata/request_blocks.json"
-	if *update {
-		require.NoError(t, os.MkdirAll("testdata", 0o755))
-		require.NoError(t, os.WriteFile(path, b, 0o644))
-		return
-	}
-	want, err := os.ReadFile(path)
-	require.NoError(t, err, "run go test ./pkg/flow -update to create it")
-	assert.Equal(t, string(want), string(b))
+	checkGeneratedFile(t, "testdata/request_blocks.json", append(b, '\n'))
 }

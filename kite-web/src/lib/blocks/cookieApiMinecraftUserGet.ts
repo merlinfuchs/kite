@@ -15,7 +15,6 @@ export const cookieApiMinecraftUserGet: BlockDefinition = {
     integration: "cookie_api",
     operation: "get_minecraft_user",
     method: "GET",
-    path: "/api/minecraft/get-user",
   },
   fields: [
     {

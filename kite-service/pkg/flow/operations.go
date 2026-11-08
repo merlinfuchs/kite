@@ -18,30 +18,30 @@ import (
 //go:embed operations.json
 var operationsJSON []byte
 
-type APIParamType string
+type apiParamType string
 
 const (
-	apiParamTypeSnowflake APIParamType = "snowflake"
-	apiParamTypeInteger   APIParamType = "integer"
-	apiParamTypeNumber    APIParamType = "number"
-	apiParamTypeBoolean   APIParamType = "boolean"
-	apiParamTypeArray     APIParamType = "array"
+	apiParamTypeSnowflake apiParamType = "snowflake"
+	apiParamTypeInteger   apiParamType = "integer"
+	apiParamTypeNumber    apiParamType = "number"
+	apiParamTypeBoolean   apiParamType = "boolean"
+	apiParamTypeArray     apiParamType = "array"
 )
 
-type APIParam struct {
+type apiParam struct {
 	Name     string       `json:"name"`
-	Type     APIParamType `json:"type"`
+	Type     apiParamType `json:"type"`
 	Required bool         `json:"required"`
 }
 
-// Operation is an endpoint of an integration's API.
-type Operation struct {
+// operation is an endpoint of an integration's API.
+type operation struct {
 	Integration string     `json:"integration"`
 	ID          string     `json:"id"`
 	Method      string     `json:"method"`
 	Path        string     `json:"path"`
-	PathParams  []APIParam `json:"path_params"`
-	QueryParams []APIParam `json:"query_params"`
+	PathParams  []apiParam `json:"path_params"`
+	QueryParams []apiParam `json:"query_params"`
 	HasBody     bool       `json:"has_body"`
 	// Interaction is set for Discord endpoints of the interaction the flow
 	// runs with, whose {application_id} and {interaction_token} Kite fills in.
@@ -49,12 +49,12 @@ type Operation struct {
 	// FlowOnly is set for Discord endpoints that can't be called from
 	// outside of flows, like by MCP clients.
 	FlowOnly bool            `json:"flow_only"`
-	Policy   OperationPolicy `json:"policy"`
+	Policy   operationPolicy `json:"policy"`
 }
 
-// OperationPolicy is what a call of an operation from code costs and acts on.
+// operationPolicy is what a call of an operation from code costs and acts on.
 // Blocks have their own credits.
-type OperationPolicy struct {
+type operationPolicy struct {
 	Credits int `json:"credits"`
 	// What the call acts on: guild, channel, webhook, interaction, user or
 	// none. It isn't checked yet, as every app has its own bot, which can act
@@ -65,28 +65,30 @@ type OperationPolicy struct {
 }
 
 // operations are the operations by integration and ID.
-var operations = func() map[string]map[string]Operation {
+var operations = func() map[string]map[string]operation {
 	var data struct {
-		Operations []Operation `json:"operations"`
+		Operations []operation `json:"operations"`
 	}
 	if err := json.Unmarshal(operationsJSON, &data); err != nil {
 		panic(fmt.Sprintf("failed to parse operations.json: %v", err))
 	}
 
-	res := make(map[string]map[string]Operation)
+	res := make(map[string]map[string]operation)
 	for _, op := range data.Operations {
 		if res[op.Integration] == nil {
-			res[op.Integration] = make(map[string]Operation)
+			res[op.Integration] = make(map[string]operation)
 		}
 		res[op.Integration][op.ID] = op
 	}
 	return res
 }()
 
-// sendOperation sends a request to op with the path that operationPath
-// built, with the app's bot token for Discord and the app's credential for
-// other integrations. secrets are values in the body to redact from errors.
-func (ctx *FlowContext) sendOperation(op Operation, path string, body []byte, reason api.AuditLogReason, secrets ...string) ([]byte, error) {
+// sendOperation sends a request to op with the path its caller built, with
+// the app's bot token for Discord and the app's credential for other
+// integrations. secrets are values in the body to redact from errors. It's
+// only the sending: running an operation from its parameters, with its policy,
+// comes with calls from code.
+func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, reason api.AuditLogReason, secrets ...string) ([]byte, error) {
 	integration, ok := integrations[op.Integration]
 	if !ok {
 		return nil, fmt.Errorf("unknown integration: %s", op.Integration)

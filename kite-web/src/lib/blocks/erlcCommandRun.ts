@@ -14,7 +14,6 @@ export const erlcCommandRun: BlockDefinition = {
     integration: "erlc",
     operation: "run_command",
     method: "POST",
-    path: "/v2/server/command",
   },
   fields: [
     {

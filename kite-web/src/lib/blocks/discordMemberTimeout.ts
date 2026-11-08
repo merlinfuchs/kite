@@ -17,7 +17,6 @@ export const discordMemberTimeout: BlockDefinition = {
     integration: "discord",
     operation: "update_guild_member",
     method: "PATCH",
-    path: "/guilds/{guild_id}/members/{user_id}",
     partial: true,
   },
   fields: [

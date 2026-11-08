@@ -16,7 +16,6 @@ export const discordMemberRoleRemove: BlockDefinition = {
     integration: "discord",
     operation: "delete_guild_member_role",
     method: "DELETE",
-    path: "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
   },
   fields: [guildTargetField, userTargetField, roleTargetField],
 };

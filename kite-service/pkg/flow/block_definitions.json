@@ -316,8 +316,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_message",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/messages/{message_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -410,8 +409,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "trigger_typing_indicator",
-        "method": "POST",
-        "path": "/channels/{channel_id}/typing"
+        "method": "POST"
       },
       "fields": [
         {
@@ -441,8 +439,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "add_my_message_reaction",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+        "method": "PUT"
       },
       "fields": [
         {
@@ -496,8 +493,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_my_message_reaction",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -551,8 +547,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "deprecated_create_pin",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/pins/{message_id}"
+        "method": "PUT"
       },
       "fields": [
         {
@@ -594,8 +589,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "deprecated_delete_pin",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/pins/{message_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -637,8 +631,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "crosspost_message",
-        "method": "POST",
-        "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
+        "method": "POST"
       },
       "fields": [
         {
@@ -700,8 +693,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "list_messages",
-        "method": "GET",
-        "path": "/channels/{channel_id}/messages"
+        "method": "GET"
       },
       "fields": [
         {
@@ -770,8 +762,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "bulk_delete_messages",
-        "method": "POST",
-        "path": "/channels/{channel_id}/messages/bulk-delete"
+        "method": "POST"
       },
       "fields": [
         {
@@ -813,8 +804,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "ban_user_from_guild",
-        "method": "PUT",
-        "path": "/guilds/{guild_id}/bans/{user_id}"
+        "method": "PUT"
       },
       "fields": [
         {
@@ -868,8 +858,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "unban_user_from_guild",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/bans/{user_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -911,8 +900,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_guild_member",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/members/{user_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -955,7 +943,6 @@
         "integration": "discord",
         "operation": "update_guild_member",
         "method": "PATCH",
-        "path": "/guilds/{guild_id}/members/{user_id}",
         "partial": true
       },
       "fields": [
@@ -1058,8 +1045,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "add_guild_member_role",
-        "method": "PUT",
-        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+        "method": "PUT"
       },
       "fields": [
         {
@@ -1113,8 +1099,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_guild_member_role",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -1185,8 +1170,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "create_guild_role",
-        "method": "POST",
-        "path": "/guilds/{guild_id}/roles"
+        "method": "POST"
       },
       "fields": [
         {
@@ -1279,8 +1263,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "update_guild_role",
-        "method": "PATCH",
-        "path": "/guilds/{guild_id}/roles/{role_id}"
+        "method": "PATCH"
       },
       "fields": [
         {
@@ -1385,8 +1368,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_guild_role",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/roles/{role_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -1479,8 +1461,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_channel",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -1561,8 +1542,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "add_thread_member",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/thread-members/{user_id}"
+        "method": "PUT"
       },
       "fields": [
         {
@@ -1604,8 +1584,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "delete_thread_member",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/thread-members/{user_id}"
+        "method": "DELETE"
       },
       "fields": [
         {
@@ -1647,8 +1626,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "create_channel_invite",
-        "method": "POST",
-        "path": "/channels/{channel_id}/invites"
+        "method": "POST"
       },
       "fields": [
         {
@@ -1758,7 +1736,6 @@
         "integration": "discord",
         "operation": "update_guild_member",
         "method": "PATCH",
-        "path": "/guilds/{guild_id}/members/{user_id}",
         "partial": true
       },
       "fields": [
@@ -1865,8 +1842,7 @@
         "kind": "request",
         "integration": "discord",
         "operation": "send_soundboard_sound",
-        "method": "POST",
-        "path": "/channels/{channel_id}/send-soundboard-sound"
+        "method": "POST"
       },
       "fields": [
         {
@@ -2110,7 +2086,6 @@
         "integration": "cookie_api",
         "operation": "create_transcript",
         "method": "POST",
-        "path": "/api/transcript",
         "inject": [
           {
             "in": "body",
@@ -2186,8 +2161,7 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "create_card",
-        "method": "POST",
-        "path": "/api/cards/card-builder/build"
+        "method": "POST"
       },
       "fields": [
         {
@@ -2220,8 +2194,7 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "create_qr_code",
-        "method": "POST",
-        "path": "/api/images/qr-code"
+        "method": "POST"
       },
       "fields": [
         {
@@ -2293,8 +2266,7 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "create_captcha",
-        "method": "POST",
-        "path": "/api/security/captcha/create"
+        "method": "POST"
       },
       "fields": [
         {
@@ -2342,8 +2314,7 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "get_captcha",
-        "method": "GET",
-        "path": "/api/security/captcha/get-captcha"
+        "method": "GET"
       },
       "fields": [
         {
@@ -2376,8 +2347,7 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "get_minecraft_user",
-        "method": "GET",
-        "path": "/api/minecraft/get-user"
+        "method": "GET"
       },
       "fields": [
         {
@@ -2410,8 +2380,7 @@
         "kind": "request",
         "integration": "erlc",
         "operation": "get_server",
-        "method": "GET",
-        "path": "/v2/server"
+        "method": "GET"
       },
       "fields": [
         {
@@ -2540,8 +2509,7 @@
         "kind": "request",
         "integration": "erlc",
         "operation": "run_command",
-        "method": "POST",
-        "path": "/v2/server/command"
+        "method": "POST"
       },
       "fields": [
         {

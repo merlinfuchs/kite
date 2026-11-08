@@ -22,7 +22,6 @@ export const discordSoundboardSoundPlay: BlockDefinition = {
     integration: "discord",
     operation: "send_soundboard_sound",
     method: "POST",
-    path: "/channels/{channel_id}/send-soundboard-sound",
   },
   fields: [
     {

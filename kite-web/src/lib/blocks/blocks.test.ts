@@ -130,10 +130,7 @@ describe("block definitions", () => {
       expect(op, block.type).toBeDefined();
       if (!op) continue;
 
-      expect([block.run.method, block.run.path], block.type).toEqual([
-        op.method,
-        op.path,
-      ]);
+      expect(block.run.method, block.type).toEqual(op.method);
 
       const targets = (location: string) =>
         block.fields

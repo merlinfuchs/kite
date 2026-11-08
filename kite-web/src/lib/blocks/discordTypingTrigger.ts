@@ -15,7 +15,6 @@ export const discordTypingTrigger: BlockDefinition = {
     integration: "discord",
     operation: "trigger_typing_indicator",
     method: "POST",
-    path: "/channels/{channel_id}/typing",
   },
   fields: [
     {

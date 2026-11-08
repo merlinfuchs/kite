@@ -16,7 +16,6 @@ export const discordMessageUnpin: BlockDefinition = {
     integration: "discord",
     operation: "deprecated_delete_pin",
     method: "DELETE",
-    path: "/channels/{channel_id}/pins/{message_id}",
   },
   fields: [channelTargetField, messageTargetField],
 };

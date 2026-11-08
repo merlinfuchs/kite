@@ -15,7 +15,6 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
     integration: "cookie_api",
     operation: "create_captcha",
     method: "POST",
-    path: "/api/security/captcha/create",
   },
   fields: [
     {

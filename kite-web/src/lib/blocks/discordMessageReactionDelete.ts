@@ -15,7 +15,6 @@ export const discordMessageReactionDelete: BlockDefinition = {
     integration: "discord",
     operation: "delete_my_message_reaction",
     method: "DELETE",
-    path: "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
   },
   fields: [
     channelTargetField,
