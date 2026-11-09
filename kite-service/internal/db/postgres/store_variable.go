@@ -411,9 +411,9 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 		q = c.Q.WithTx(tx)
 	}
 
-	data, err := json.Marshal(value.Data)
+	data, err := encodeVariableValue(value.Data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+		return nil, err
 	}
 
 	row, err := q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
@@ -443,9 +443,9 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 // doesn't exist yet. It returns store.ErrNotFound if it does, or if the
 // variable isn't the app's.
 func (c *Client) insertVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
-	data, err := json.Marshal(value.Data)
+	data, err := encodeVariableValue(value.Data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+		return nil, err
 	}
 
 	row, err := c.Q.WithTx(tx).InsertVariableValue(ctx, pgmodel.InsertVariableValueParams{
@@ -467,6 +467,19 @@ func (c *Client) insertVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID
 		return nil, err
 	}
 	return &v, nil
+}
+
+// encodeVariableValue is the JSON a value is stored as, which can be up to
+// provider.MaxVariableValueSize.
+func encodeVariableValue(v thing.Thing) ([]byte, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+	}
+	if len(data) > provider.MaxVariableValueSize {
+		return nil, provider.ErrVariableValueTooLarge
+	}
+	return data, nil
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {

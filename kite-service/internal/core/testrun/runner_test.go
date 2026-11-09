@@ -402,6 +402,32 @@ func TestFlowTestVariables(t *testing.T) {
 	}
 }
 
+func TestFlowTestVariableSizeLimit(t *testing.T) {
+	r := NewRunner(engine.Env{
+		VariableStore: &fakeVariableStore{variables: []*model.Variable{{ID: "log"}}},
+	}, testRunSessions{session: testRunState(t)})
+	test := Test{
+		Kind:   KindCommand,
+		UserID: testRunUser.String(),
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "log", "description": "Log"}},
+				{"id": "add", "type": "action_variable_set", "data": {"variable_id": "log", "variable_operation": "append", "variable_value": "`+strings.Repeat("b", 2048)+`"}}
+			],
+			"edges": [{"id": "1", "source": "entry", "target": "add"}]
+		}`),
+		Variables: []Variable{{VariableID: "log", Value: thing.NewString(strings.Repeat("a", 63<<10))}},
+	}
+
+	res, err := r.Run(context.Background(), "app", test)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.Executions[0].Error; !strings.Contains(got, "larger than 64 KB") {
+		t.Errorf("error = %q", got)
+	}
+}
+
 func TestFlowTestSetVariables(t *testing.T) {
 	r := NewRunner(engine.Env{
 		VariableStore: &fakeVariableStore{variables: []*model.Variable{
