@@ -13,6 +13,158 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// maxVariableListLimit is the most values a list of a variable has. A
+// leaderboard or a list in a message needs far fewer.
+const maxVariableListLimit = 100
+
+const defaultVariableListLimit = 10
+
+// maxVariableListSkip bounds how far into the values a list can page. The
+// database sorts all of them either way, a far offset only adds to that.
+const maxVariableListSkip = 10_000
+
+// variableCall is a call of an operation of a stored variable. The variable
+// blocks are presets of these operations, and code calls them by the names
+// the block gives its variables, see the variables.* handlers below.
+type variableCall struct {
+	ctx *FlowContext
+	id  string
+	// scope returns the scope of the value. It's only called for scoped
+	// variables, so blocks only evaluate theirs when it's needed.
+	scope func() (string, error)
+	// charge is operationCall.charge for code. Blocks are charged when they
+	// start, so theirs does nothing.
+	charge func() error
+}
+
+var errEmptyVariableScope = errors.New("the variable is scoped, but the scope is empty")
+
+// start resolves the scope of the call and charges for it. The variable
+// decides whether there is a scope: blocks and code keep theirs when it's
+// switched to unscoped, and a scoped variable has no value without a scope.
+func (c variableCall) start() (null.String, error) {
+	scoped, err := c.ctx.Variable.VariableScoped(c.ctx, c.id)
+	if err != nil {
+		return null.String{}, err
+	}
+	var scope null.String
+	if scoped {
+		s, err := c.scope()
+		if err != nil {
+			return null.String{}, err
+		}
+		if s == "" {
+			return null.String{}, errEmptyVariableScope
+		}
+		scope = null.StringFrom(s)
+	}
+	return scope, c.charge()
+}
+
+// getVariable is the value of the variable, null if it has none.
+func getVariable(c variableCall) (thing.Thing, error) {
+	scope, err := c.start()
+	if err != nil {
+		return thing.Null, err
+	}
+	v, err := c.ctx.Variable.Variable(c.ctx, c.id, scope)
+	if errors.Is(err, provider.ErrNotFound) {
+		return thing.Null, nil
+	}
+	return v, err
+}
+
+// updateVariable changes the value of the variable with op, and returns the
+// new value.
+func updateVariable(c variableCall, op provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
+	scope, err := c.start()
+	if err != nil {
+		return thing.Null, err
+	}
+	return c.ctx.Variable.UpdateVariable(c.ctx, c.id, scope, op, value)
+}
+
+func deleteVariable(c variableCall) error {
+	scope, err := c.start()
+	if err != nil {
+		return err
+	}
+	return c.ctx.Variable.DeleteVariable(c.ctx, c.id, scope)
+}
+
+type variableListOptions struct {
+	// Sort defaults to the highest values first.
+	Sort  provider.VariableListSort
+	Limit int
+	Skip  int
+	// scopePrefix returns the start of the scopes of the values to list. It's
+	// only called for scoped variables, unscoped ones have one value, which a
+	// prefix can't match.
+	scopePrefix func() (string, error)
+}
+
+// listVariable lists the values of the variable as objects with the scope,
+// the value and when it was last updated, like a leaderboard of the highest
+// values.
+func listVariable(c variableCall, opts variableListOptions) (thing.Thing, error) {
+	if opts.Sort == "" {
+		opts.Sort = provider.VariableListSortValueDesc
+	}
+	if !slices.Contains(provider.VariableListSorts, opts.Sort) {
+		sorts := make([]string, len(provider.VariableListSorts))
+		for i, s := range provider.VariableListSorts {
+			sorts[i] = string(s)
+		}
+		return thing.Null, fmt.Errorf("invalid value for parameter sort: must be one of %s", strings.Join(sorts, ", "))
+	}
+	if opts.Limit < 1 || opts.Limit > maxVariableListLimit {
+		return thing.Null, fmt.Errorf("invalid value for parameter limit: must be from 1 to %d", maxVariableListLimit)
+	}
+	if opts.Skip < 0 || opts.Skip > maxVariableListSkip {
+		return thing.Null, fmt.Errorf("invalid value for parameter skip: must be from 0 to %d", maxVariableListSkip)
+	}
+
+	scoped, err := c.ctx.Variable.VariableScoped(c.ctx, c.id)
+	if err != nil {
+		return thing.Null, err
+	}
+	var prefix string
+	if scoped {
+		if prefix, err = opts.scopePrefix(); err != nil {
+			return thing.Null, err
+		}
+	}
+	if err := c.charge(); err != nil {
+		return thing.Null, err
+	}
+
+	values, err := c.ctx.Variable.VariableValues(c.ctx, c.id, provider.VariableListOptions{
+		ScopePrefix: prefix,
+		Sort:        opts.Sort,
+		Limit:       opts.Limit,
+		Skip:        opts.Skip,
+	})
+	if err != nil {
+		return thing.Null, err
+	}
+
+	items := make([]thing.Thing, len(values))
+	for i, v := range values {
+		scope := thing.Null
+		if v.Scope.Valid {
+			scope = thing.NewString(v.Scope.String)
+		}
+		items[i] = thing.NewObject(map[string]thing.Thing{
+			"scope":      scope,
+			"value":      v.Value,
+			"updated_at": thing.NewInt(v.UpdatedAt.Unix()),
+		})
+	}
+	return thing.NewArray(items), nil
+}
+
+// The handlers of the variables.* operations code calls.
+
 // variableArg names the stored variable a call uses, by the name the block
 // gives it, and the scope of its value.
 type variableArg struct {
@@ -20,35 +172,35 @@ type variableArg struct {
 	Scope string `json:"scope"`
 }
 
-// codeVariableID is the ID of the stored variable the code calls name.
-func codeVariableID(call operationCall, name string) (string, error) {
-	if name == "" {
-		return "", errors.New("missing parameter name")
+// codeVariableCall is the variableCall of a call from code.
+func codeVariableCall(call operationCall, v variableArg) (variableCall, error) {
+	if v.Name == "" {
+		return variableCall{}, errors.New("missing parameter name")
 	}
-	id, ok := call.variables[name]
+	id, ok := call.variables[v.Name]
 	if !ok {
-		return "", fmt.Errorf("the block has no stored variable named %s, add it under Stored variables", name)
+		return variableCall{}, fmt.Errorf("the block has no stored variable named %s, add it under Stored variables", v.Name)
 	}
 	if id == "" {
-		return "", fmt.Errorf("no variable is picked for %s under Stored variables of the block", name)
+		return variableCall{}, fmt.Errorf("no variable is picked for %s under Stored variables of the block", v.Name)
 	}
-	return id, nil
+	return variableCall{
+		ctx:    call.ctx,
+		id:     id,
+		scope:  func() (string, error) { return v.Scope, nil },
+		charge: call.charge,
+	}, nil
 }
 
-// startVariableCall resolves the variable and scope of a call like the
-// blocks do, and charges for it.
-func startVariableCall(call operationCall, v variableArg) (string, null.String, error) {
-	id, err := codeVariableID(call, v.Name)
-	if err != nil {
-		return "", null.String{}, err
-	}
-	scope, err := resolveVariableScope(call.ctx, id, func() (string, error) { return v.Scope, nil })
+// codeVariableResult is the result of a variables.* call as JSON for the
+// code, with an error that says what the code can do about it.
+func codeVariableResult(name string, v thing.Thing, err error) (any, error) {
 	if errors.Is(err, errEmptyVariableScope) {
-		return "", null.String{}, fmt.Errorf("%s has a value per scope, pass the scope, like a user ID", v.Name)
+		return nil, fmt.Errorf("%s has a value per scope, pass the scope, like a user ID", name)
 	} else if err != nil {
-		return "", null.String{}, err
+		return nil, err
 	}
-	return id, scope, call.charge()
+	return eval.ThingJSON(v)
 }
 
 func variableGetOperation(call operationCall) (any, error) {
@@ -56,17 +208,12 @@ func variableGetOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	id, scope, err := startVariableCall(call, arg)
+	c, err := codeVariableCall(call, arg)
 	if err != nil {
 		return nil, err
 	}
-	v, err := call.ctx.Variable.Variable(call.ctx, id, scope)
-	if errors.Is(err, provider.ErrNotFound) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
-	}
-	return eval.ThingJSON(v)
+	v, err := getVariable(c)
+	return codeVariableResult(arg.Name, v, err)
 }
 
 func variableSetOperation(call operationCall) (any, error) {
@@ -83,12 +230,12 @@ func variableSetOperation(call operationCall) (any, error) {
 	} else if err := json.Unmarshal(arg.Value, &value); err != nil {
 		return nil, errors.New("invalid value for parameter value")
 	}
-
-	id, scope, err := startVariableCall(call, arg.variableArg)
+	c, err := codeVariableCall(call, arg.variableArg)
 	if err != nil {
 		return nil, err
 	}
-	return updateVariable(call, id, scope, provider.VariableOperationOverwrite, thing.NewFromJSONValue(value))
+	v, err := updateVariable(c, provider.VariableOperationOverwrite, thing.NewFromJSONValue(value))
+	return codeVariableResult(arg.Name, v, err)
 }
 
 func variableIncrementOperation(call operationCall) (any, error) {
@@ -99,23 +246,16 @@ func variableIncrementOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	id, scope, err := startVariableCall(call, arg.variableArg)
-	if err != nil {
-		return nil, err
-	}
 	by := 1.0
 	if arg.By != nil {
 		by = *arg.By
 	}
-	return updateVariable(call, id, scope, provider.VariableOperationIncrement, thing.NewGuessTypeWithFallback(by))
-}
-
-func updateVariable(call operationCall, id string, scope null.String, op provider.VariableOperation, value thing.Thing) (any, error) {
-	v, err := call.ctx.Variable.UpdateVariable(call.ctx, id, scope, op, value)
+	c, err := codeVariableCall(call, arg.variableArg)
 	if err != nil {
 		return nil, err
 	}
-	return eval.ThingJSON(v)
+	v, err := updateVariable(c, provider.VariableOperationIncrement, thing.NewGuessTypeWithFallback(by))
+	return codeVariableResult(arg.Name, v, err)
 }
 
 func variableDeleteOperation(call operationCall) (any, error) {
@@ -123,15 +263,14 @@ func variableDeleteOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	id, scope, err := startVariableCall(call, arg)
+	c, err := codeVariableCall(call, arg)
 	if err != nil {
 		return nil, err
 	}
-	return nil, call.ctx.Variable.DeleteVariable(call.ctx, id, scope)
+	_, err = codeVariableResult(arg.Name, thing.Null, deleteVariable(c))
+	return nil, err
 }
 
-// variableListOperation lists the values of a variable like the List stored
-// variable values block.
 func variableListOperation(call operationCall) (any, error) {
 	var arg struct {
 		Name        string                    `json:"name"`
@@ -143,51 +282,19 @@ func variableListOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	if arg.Sort == "" {
-		arg.Sort = provider.VariableListSortValueDesc
-	}
-	if !slices.Contains(provider.VariableListSorts, arg.Sort) {
-		sorts := make([]string, len(provider.VariableListSorts))
-		for i, s := range provider.VariableListSorts {
-			sorts[i] = string(s)
-		}
-		return nil, fmt.Errorf("invalid value for parameter sort: must be one of %s", strings.Join(sorts, ", "))
+	c, err := codeVariableCall(call, variableArg{Name: arg.Name})
+	if err != nil {
+		return nil, err
 	}
 	limit := defaultVariableListLimit
 	if arg.Limit != nil {
 		limit = *arg.Limit
 	}
-	if limit < 1 || limit > maxVariableListLimit {
-		return nil, fmt.Errorf("invalid value for parameter limit: must be from 1 to %d", maxVariableListLimit)
-	}
-	if arg.Skip < 0 || arg.Skip > maxVariableListSkip {
-		return nil, fmt.Errorf("invalid value for parameter skip: must be from 0 to %d", maxVariableListSkip)
-	}
-
-	id, err := codeVariableID(call, arg.Name)
-	if err != nil {
-		return nil, err
-	}
-	// Unscoped variables have one value, which a prefix can't match.
-	scoped, err := call.ctx.Variable.VariableScoped(call.ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if !scoped {
-		arg.ScopePrefix = ""
-	}
-	if err := call.charge(); err != nil {
-		return nil, err
-	}
-
-	values, err := call.ctx.Variable.VariableValues(call.ctx, id, provider.VariableListOptions{
-		ScopePrefix: arg.ScopePrefix,
+	v, err := listVariable(c, variableListOptions{
 		Sort:        arg.Sort,
 		Limit:       limit,
 		Skip:        arg.Skip,
+		scopePrefix: func() (string, error) { return arg.ScopePrefix, nil },
 	})
-	if err != nil {
-		return nil, err
-	}
-	return eval.ThingJSON(variableValueRows(values))
+	return codeVariableResult(arg.Name, v, err)
 }
