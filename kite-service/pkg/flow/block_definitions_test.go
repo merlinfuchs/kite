@@ -433,5 +433,5 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 func TestOperationPolicies(t *testing.T) {
 	assert.True(t, operations["discord"]["ban_user_from_guild"].Policy.Destructive)
 	assert.Equal(t, "channel", operations["discord"]["create_message"].Policy.Target)
-	assert.Zero(t, operations["discord"]["get_channel"].Policy.Credits)
+	assert.Zero(t, operations["discord"]["get_channel"].Credits)
 }

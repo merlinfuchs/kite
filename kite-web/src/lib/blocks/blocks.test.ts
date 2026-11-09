@@ -130,6 +130,8 @@ describe("block definitions", () => {
       expect(op, block.type).toBeDefined();
       if (!op) continue;
 
+      expect(block.credits, block.type).toBe(op.credits);
+
       // Booleans with a schema have their own input.
       for (const field of block.fields.filter(
         (f) => f.type === "boolean" && !f.schema

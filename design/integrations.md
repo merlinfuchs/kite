@@ -179,7 +179,7 @@ The service embeds all definitions and builds a table of node type to block defi
 
 The credential is only ever added to requests to the integration's own base URL, which comes from the repo, never from a flow. It never appears in templates, results, errors or logs. This is the same property Discord API Request has for the bot token, extended to every integration.
 
-Credits come from the definition. Partner APIs that charge Kite can cost more.
+Credits come from the operation in the `api.json`, and request blocks have a copy a test checks, as pages that show costs don't load the specs. Partner APIs that charge Kite can cost more.
 
 ## Editor
 
@@ -314,7 +314,7 @@ Discord's operations without a request stay in the Discord integration. Reading 
 
 **Read at runtime.** Calls from scripts name an operation, so the service needs a table of operations, generated like `block_definitions.json`. That's `kite-service/pkg/flow/operations.json`, generated from the `api.json` files with each operation's policy by `operations.ts`. Request blocks and the Discord API Request block look up their operation in it and send it through `sendOperation`. Each entry has the operation's credits, how its target is proven to be in the app's server, and limits for destructive operations. Blocks keep running from their definitions, and both go through the same executor.
 
-Once scripts call them, an `api.json` is the list of what code may do, and changes to it are changes to what apps can do. It leaves out operations that would break how Kite manages an app, like registering Discord application commands or editing the application. Names of operations are fixed once scripts can call them, and a renamed operation keeps its old name as an alias. Targets and credits are derived where they can be, from the path and from reads being free, with a short list written by hand for fields in bodies, like a forwarded message reference.
+Once scripts call them, an `api.json` is the list of what code may do, and changes to it are changes to what apps can do. It leaves out operations that would break how Kite manages an app, like registering Discord application commands or editing the application. Names of operations are fixed once scripts can call them, and a renamed operation keeps its old name as an alias. Each operation's credits are in its `api.json`. Discord's generator makes reads free and other calls cost 1. Targets are derived from the path where they can be, with a short list written by hand for fields in bodies, like a forwarded message reference.
 
 ## Future: platform integrations
 

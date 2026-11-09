@@ -1,13 +1,9 @@
 import { ApiOperation } from "./api";
 import { integrationApis } from "./apis";
 
-// What the service checks and charges when code calls an operation. Blocks
-// keep their own credits. See "Operations for code" in
-// design/integrations.md.
+// What the service checks when code calls an operation, besides its
+// credits. See "Operations for code" in design/integrations.md.
 export interface OperationPolicy {
-  // Credits a call costs: Discord reads are free like the get blocks, other
-  // calls cost 1 like most actions.
-  credits: number;
   // What the call acts on, so the service can check it's in the app's server
   // once apps can share a bot: guild, channel, webhook, interaction or user
   // from the path, none for reads of nothing in particular, or unknown when
@@ -31,7 +27,6 @@ export function operationPolicy(
 ): OperationPolicy {
   const discord = integration === "discord";
   return {
-    credits: discord && op.method === "GET" ? 0 : 1,
     target: discord ? discordTarget(op) : "none",
     destructive:
       op.method === "DELETE" ||

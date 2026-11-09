@@ -36,10 +36,12 @@ type apiParam struct {
 
 // operation is an endpoint of an integration's API.
 type operation struct {
-	Integration string     `json:"integration"`
-	ID          string     `json:"id"`
-	Method      string     `json:"method"`
-	Path        string     `json:"path"`
+	Integration string `json:"integration"`
+	ID          string `json:"id"`
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	// Credits each request costs, from request blocks and from code.
+	Credits     int        `json:"credits"`
 	PathParams  []apiParam `json:"path_params"`
 	QueryParams []apiParam `json:"query_params"`
 	HasBody     bool       `json:"has_body"`
@@ -52,10 +54,8 @@ type operation struct {
 	Policy   operationPolicy `json:"policy"`
 }
 
-// operationPolicy is what a call of an operation from code costs and acts on.
-// Blocks have their own credits.
+// operationPolicy is what a call of an operation from code acts on.
 type operationPolicy struct {
-	Credits int `json:"credits"`
 	// What the call acts on, see OperationPolicy in
 	// kite-web/src/lib/integrations/operations.ts. It isn't checked yet, as
 	// every app has its own bot, which can act in any server it's in.

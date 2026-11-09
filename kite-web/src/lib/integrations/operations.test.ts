@@ -25,7 +25,7 @@ describe("operations", () => {
   it("makes Discord reads free", () => {
     for (const op of operations) {
       if (op.integration === "discord" && op.method === "GET") {
-        expect(op.policy.credits, op.id).toBe(0);
+        expect(op.credits, op.id).toBe(0);
       }
     }
   });
