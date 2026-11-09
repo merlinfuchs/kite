@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
+	"github.com/tidwall/sjson"
 )
 
 // maxStoredTriggers bounds how many triggers a resume point keeps: the one that
@@ -62,17 +63,7 @@ func (c typedComponent) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(data, &fields); err != nil {
-		return nil, err
-	}
-	fields["component_type"], err = json.Marshal(c.Type())
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(fields)
+	return sjson.SetBytes(data, "component_type", c.Type())
 }
 
 func (t FlowTrigger) MarshalJSON() ([]byte, error) {
