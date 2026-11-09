@@ -322,12 +322,26 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 		return ""
 	})
 	for _, edit := range r.Edits {
-		data, _ := edit["data"].(map[string]any)
-		id, ok := data["variable_id"].(string)
-		if !ok || ids[id] {
-			continue
+		dropVariableIDs(edit["data"], ids)
+	}
+}
+
+// dropVariableIDs removes the variable_id settings of v the app doesn't
+// have, at any depth like those of a Run JavaScript block's variables, the
+// same as the code branch of checkVariables.
+func dropVariableIDs(v any, ids map[string]bool) {
+	switch v := v.(type) {
+	case map[string]any:
+		if id, ok := v["variable_id"].(string); ok && !ids[id] {
+			delete(v, "variable_id")
 		}
-		delete(data, "variable_id")
+		for _, item := range v {
+			dropVariableIDs(item, ids)
+		}
+	case []any:
+		for _, item := range v {
+			dropVariableIDs(item, ids)
+		}
 	}
 }
 

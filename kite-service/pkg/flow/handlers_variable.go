@@ -30,23 +30,34 @@ func init() {
 	})
 }
 
-// variableScope evaluates the scope of a variable block. The variable decides
-// whether there is one: blocks keep their scope when it's switched to
-// unscoped, and a scoped variable has no value without a scope.
-func variableScope(n *CompiledFlowNode, ctx *FlowContext) (null.String, error) {
-	scoped, err := ctx.Variable.VariableScoped(ctx, n.Data.VariableID)
+var errEmptyVariableScope = errors.New("the variable is scoped, but the scope is empty")
+
+// resolveVariableScope is the scope of a value of variable id. The variable
+// decides whether there is one: blocks and code keep their scope when it's
+// switched to unscoped, and a scoped variable has no value without a scope.
+// scope is only called for scoped variables.
+func resolveVariableScope(ctx *FlowContext, id string, scope func() (string, error)) (null.String, error) {
+	scoped, err := ctx.Variable.VariableScoped(ctx, id)
 	if err != nil || !scoped {
 		return null.String{}, err
 	}
 
-	scope, err := ctx.EvalTemplate(n.Data.VariableScope)
+	s, err := scope()
 	if err != nil {
 		return null.String{}, err
 	}
-	if s := scope.String(); s != "" {
-		return null.StringFrom(s), nil
+	if s == "" {
+		return null.String{}, errEmptyVariableScope
 	}
-	return null.String{}, errors.New("the variable is scoped, but the scope is empty")
+	return null.StringFrom(s), nil
+}
+
+// variableScope evaluates the scope of a variable block.
+func variableScope(n *CompiledFlowNode, ctx *FlowContext) (null.String, error) {
+	return resolveVariableScope(ctx, n.Data.VariableID, func() (string, error) {
+		scope, err := ctx.EvalTemplate(n.Data.VariableScope)
+		return scope.String(), err
+	})
 }
 
 func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -161,6 +172,13 @@ func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
+	ctx.StoreNodeResult(n, variableValueRows(values))
+	return n.ExecuteChildren(ctx)
+}
+
+// variableValueRows are values of a variable as a list of objects with the
+// scope, the value and when it was last updated.
+func variableValueRows(values []provider.VariableValue) thing.Thing {
 	items := make([]thing.Thing, len(values))
 	for i, v := range values {
 		scope := thing.Null
@@ -173,9 +191,7 @@ func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
 			"updated_at": thing.NewInt(v.UpdatedAt.Unix()),
 		})
 	}
-
-	ctx.StoreNodeResult(n, thing.NewArray(items))
-	return n.ExecuteChildren(ctx)
+	return thing.NewArray(items)
 }
 
 // variableListNumber evaluates a number setting of the List stored variable

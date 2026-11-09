@@ -1,5 +1,6 @@
 import { withoutParameterValues } from "./parameters";
 import { FlowData } from "../types/flow.gen";
+import { mapNodeVariableIds } from "./variableIds";
 import { Message, MessageCreateRequest } from "../types/wire.gen";
 
 // A message template as it's stored in share codes and exported JSON. The id is
@@ -96,13 +97,12 @@ export function remapFlowReferences(
   let removed = 0;
 
   const nodes = flow.nodes.map((node) => {
-    const data = { ...node.data };
     let cleared = false;
-
-    if (data.variable_id && !variableIds.has(data.variable_id)) {
-      delete data.variable_id;
+    const data = mapNodeVariableIds(node.data, (id) => {
+      if (variableIds.has(id)) return id;
       cleared = true;
-    }
+      return undefined;
+    });
 
     const templateId = data.message_template_id;
     if (templateId) {

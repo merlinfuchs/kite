@@ -7655,6 +7655,220 @@
         "target": "none",
         "destructive": false
       }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "get",
+      "description": "Get the value of a stored variable, or null if it has none.",
+      "credits": 0,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "set",
+      "description": "Set the value of a stored variable, and get it back.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value: text, a number, a list, an object, or null."
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "increment",
+      "description": "Add to the number in a stored variable, which starts at 0, and get the new value. Calls at the same time don't overwrite each other, unlike get and set.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "by": {
+            "description": "How much to add, negative to subtract. Defaults to 1.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "number"
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "delete",
+      "description": "Delete the value of a stored variable.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "null"
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "list",
+      "description": "List the values of a stored variable, like a leaderboard of the highest ones.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope_prefix": {
+            "description": "Only values whose scope starts with it, like the server ID for scopes like <server ID>:<user ID>.",
+            "type": "string"
+          },
+          "sort": {
+            "description": "Defaults to value_desc, the highest values first.",
+            "type": "string",
+            "enum": [
+              "value_desc",
+              "value_asc",
+              "updated_desc",
+              "updated_asc"
+            ]
+          },
+          "limit": {
+            "description": "How many values, from 1 to 100. Defaults to 10.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "skip": {
+            "description": "How many values to skip first, for the next page.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The value: text, a number, a list, an object, or null."
+            },
+            "updated_at": {
+              "type": "number",
+              "description": "Unix timestamp in seconds."
+            }
+          },
+          "required": [
+            "scope",
+            "value",
+            "updated_at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
     }
   ]
 }

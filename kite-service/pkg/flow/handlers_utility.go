@@ -178,6 +178,8 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
+	// The block's stored variables, see operationCall.
+	variables map[string]string
 }
 
 // callContext is a copy of the flow's context that's canceled with the call.
@@ -218,9 +220,10 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 		}
 		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 			res, err := handler(operationCall{
-				ctx:    h.callContext(callCtx),
-				arg:    arg,
-				charge: func() error { return h.charge(op) },
+				ctx:       h.callContext(callCtx),
+				arg:       arg,
+				charge:    func() error { return h.charge(op) },
+				variables: h.variables,
 			})
 			if err != nil {
 				return nil, err
@@ -293,7 +296,10 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
-	host := &javaScriptHost{ctx: ctx}
+	host := &javaScriptHost{ctx: ctx, variables: make(map[string]string, len(data.Variables))}
+	for _, v := range data.Variables {
+		host.variables[v.Name] = v.VariableID
+	}
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,

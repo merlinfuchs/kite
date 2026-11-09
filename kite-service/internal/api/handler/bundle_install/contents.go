@@ -172,9 +172,10 @@ func (ids bundleIDs) missing(b *bundle.Bundle, flows []flow.FlowData) ([]string,
 					flows = append(flows, flowSource)
 				}
 			}
-			key = node.Data.VariableID
-			_, ok = b.Variable(key)
-			add(key, ids.variables, ok)
+			for _, key := range node.Data.VariableIDs() {
+				_, ok = b.Variable(key)
+				add(key, ids.variables, ok)
+			}
 		}
 	}
 	return keys, nil
@@ -191,12 +192,15 @@ func (ids bundleIDs) remap(flowSource *flow.FlowData) error {
 			}
 			flowSource.Nodes[i].Data.MessageTemplateID = id
 		}
-		if key := node.Data.VariableID; key != "" {
+		err := flowSource.Nodes[i].Data.RemapVariableIDs(func(key string) (string, error) {
 			id, ok := ids.variables[key]
 			if !ok {
-				return handler.ErrBadRequest("unknown_variable", fmt.Sprintf("block %s uses variable %s of the template, which the app doesn't have", node.ID, key))
+				return "", handler.ErrBadRequest("unknown_variable", fmt.Sprintf("block %s uses variable %s of the template, which the app doesn't have", node.ID, key))
 			}
-			flowSource.Nodes[i].Data.VariableID = id
+			return id, nil
+		})
+		if err != nil {
+			return err
 		}
 	}
 	return nil

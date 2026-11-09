@@ -24,6 +24,9 @@ type operationCall struct {
 	// credits. A handler calls it once the argument is valid, before it does
 	// anything, so a wrong argument isn't billed.
 	charge func() error
+	// The IDs of the stored variables the block lets the code use, by the
+	// names the code uses.
+	variables map[string]string
 }
 
 // operationHandler runs a handler operation, see
@@ -35,7 +38,12 @@ type operationHandler func(call operationCall) (any, error)
 // name, like http.request. TestEveryHandlerOperationHasAHandler checks they
 // match operations.json.
 var operationHandlers = map[string]operationHandler{
-	"http.request": httpRequestOperation,
+	"http.request":        httpRequestOperation,
+	"variables.get":       variableGetOperation,
+	"variables.set":       variableSetOperation,
+	"variables.increment": variableIncrementOperation,
+	"variables.delete":    variableDeleteOperation,
+	"variables.list":      variableListOperation,
 }
 
 // decodeOperationArg decodes the argument of a call into v, which has a field

@@ -1,4 +1,5 @@
 import { readdirSync } from "node:fs";
+import { nodeVariableIds } from "./variableIds";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
@@ -173,9 +174,7 @@ describe("templates", () => {
       const ids = (file.variables ?? []).map((v) => v.id);
       const used = new Set(
         templateFlows(file).flatMap((flow) =>
-          flow.nodes.flatMap((n) =>
-            typeof n.data.variable_id === "string" ? [n.data.variable_id] : []
-          )
+          flow.nodes.flatMap((n) => nodeVariableIds(n.data))
         )
       );
       expect(
