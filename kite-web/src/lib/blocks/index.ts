@@ -127,6 +127,7 @@ import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
 import { webhookResponseCreate } from "./webhookResponseCreate";
 import { integrationApis } from "../integrations/apis";
+import { ApiOperation } from "../integrations/api";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -244,16 +245,65 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,
-].map(withOperationCredits);
+].map(withOperation);
 
-// Request blocks cost what their operation in the integration's api.json
-// costs, the same as a call of it from code.
-function withOperationCredits(block: BlockDefinition): BlockDefinition {
-  if (block.run.kind !== "request") return block;
+// Request blocks get what the spec knows from their operation in the
+// integration's api.json: their credits, the same as a call of it from code,
+// and where each field goes, its type and whether it's required.
+function withOperation(block: BlockDefinition): BlockDefinition {
+  const op = blockOperation(block);
+  if (block.run.kind !== "request" || !op) return block;
   if (block.credits !== undefined) {
     throw new Error(`${block.type} gets its credits from its operation`);
   }
-  return { ...block, credits: blockOperation(block)?.credits };
+  return {
+    ...block,
+    credits: op.credits,
+    fields: block.fields?.map((field) => withParam(block, op, field)),
+  };
+}
+
+function withParam(
+  block: BlockDefinition,
+  op: ApiOperation,
+  field: BlockField
+): BlockField {
+  const fail = (message: string) => {
+    throw new Error(`${block.type}.${field.name} ${message}`);
+  };
+  if (field.in) fail("gets where it goes from its operation");
+
+  // A JSON object's properties are those of the body.
+  if (field.type === "json_object") return { ...field, in: "body" };
+
+  const name = field.target ?? field.name;
+  const locations = [
+    ["path", op.path_params],
+    ["query", op.query_params],
+    ["body", op.body_params ?? []],
+  ] as const;
+  const [location, param] =
+    locations
+      .map(
+        ([location, params]) =>
+          [location, params.find((p) => p.name === name)] as const
+      )
+      .find(([, param]) => param) ?? [];
+  // Bodies that are lists or unions don't list their parameters.
+  if (!location && !(op.has_body && !op.body_params)) {
+    fail(`has no parameter ${name} in ${op.id}`);
+  }
+  const paramTypes = ["snowflake", "integer", "boolean", "string"];
+  if (!field.type && !paramTypes.includes(param?.type ?? "")) {
+    fail(`needs a type, ${name} is ${param?.type ?? "unknown"}`);
+  }
+
+  return {
+    ...field,
+    in: location ?? "body",
+    type: field.type ?? (param!.type as BlockFieldType),
+    required: field.required || (!!param?.required && !field.fallback),
+  };
 }
 
 // The operation a request block sends, from its integration's api.json.

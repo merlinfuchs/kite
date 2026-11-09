@@ -17,18 +17,13 @@ export const cookieApiQrCodeCreate: BlockDefinition = {
   fields: [
     {
       name: "qr_code_data",
-      in: "body",
       target: "data",
-      type: "string",
       label: "Content",
       description: "What the QR code contains, like a link.",
-      required: true,
     },
     {
       name: "qr_code_style",
-      in: "body",
       target: "style",
-      type: "string",
       label: "Style",
       description: "How the QR code is drawn. Defaults to squares.",
       // "standart" is how Cookie API spells it.
@@ -39,18 +34,14 @@ export const cookieApiQrCodeCreate: BlockDefinition = {
     },
     {
       name: "qr_code_border",
-      in: "body",
       target: "border",
-      type: "integer",
       label: "Border",
       description: "Size of the border around the QR code.",
       min: 0,
     },
     {
       name: "qr_code_center_image_url",
-      in: "body",
       target: "center_image_url",
-      type: "string",
       label: "Center Image",
       description: "URL of an image to show in the middle of the QR code.",
     },

@@ -20,31 +20,24 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
   fields: [
     {
       ...flowChannelField,
-      in: "query",
       description:
         "ID of the channel, thread or forum post. Leave empty to use the channel the flow runs in. Up to its last 500 messages are saved.",
     },
     {
       name: "transcript_title",
-      in: "body",
       target: "title",
-      type: "string",
       label: "Title",
       description: "Title of the link's embed.",
     },
     {
       name: "transcript_description",
-      in: "body",
       target: "description",
-      type: "string",
       label: "Description",
       description: "Description of the link's embed.",
     },
     {
       name: "transcript_password",
-      in: "body",
       target: "password",
-      type: "string",
       label: "Password",
       description:
         "Password needed to open the transcript. Anyone with the link can open it without one, so set one for private channels like tickets.",

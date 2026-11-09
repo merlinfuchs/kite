@@ -76,7 +76,7 @@ func withTestIntegration(t *testing.T, auth IntegrationAuth) {
 		}{},
 	}
 	operations["test_api"] = map[string]operation{
-		"get_thing": {Integration: "test_api", ID: "get_thing", Method: "GET", Path: "/things/{id}"},
+		"get_thing": {Integration: "test_api", ID: "get_thing", Method: "GET", Path: "/things/{id}", PathParams: []apiParam{{Name: "id", Type: "string", Required: true}}},
 	}
 	t.Cleanup(func() {
 		delete(operations, "test_api")

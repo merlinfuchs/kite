@@ -19,7 +19,6 @@ export const discordMessageReactionDelete: BlockDefinition = {
     messageTargetField,
     {
       name: "emoji_data",
-      in: "path",
       target: "emoji_name",
       type: "emoji",
       schema: emojiDataSchema.describe("The emoji to remove the reaction of."),

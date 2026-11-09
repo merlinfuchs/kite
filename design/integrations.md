@@ -101,17 +101,15 @@ export const discordRoleCreate: BlockDefinition = {
   fields: [
     {
       name: "guild_target",
-      in: "path",
       target: "guild_id",
-      type: "snowflake",
       label: "Server",
       description: "ID of the server. Leave empty to use the server the flow runs in.",
       fallback: "guild",
     },
-    { name: "name", in: "body", type: "string", max_length: 100, label: "Name", description: "..." },
-    { name: "permissions", in: "body", type: "string", widget: "permissions", label: "Permissions", description: "..." },
-    { name: "color", in: "body", type: "integer", min: 0, max: 16777215, label: "Color", description: "..." },
-    { name: "hoist", in: "body", type: "boolean", label: "Show Separately", description: "..." },
+    { name: "name", max_length: 100, label: "Name", description: "..." },
+    { name: "permissions", type: "string", widget: "permissions", label: "Permissions", description: "..." },
+    { name: "color", type: "color", min: 0, max: 16777215, label: "Color", description: "..." },
+    { name: "hoist", label: "Show Separately", description: "..." },
   ],
   result: { thing: "discord_role" },
 };
@@ -130,9 +128,9 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
 
 A block's integrations are those of its requests and its `requires` together. Discord blocks name Discord too, although it's always enabled, so they keep working if Discord ever becomes one platform among several.
 
-A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Field types are `snowflake`, `snowflake_list`, `integer`, `boolean` and `string`, checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
+A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Where the field goes, in the path, the query or the body, comes from the operation's parameter of that name, and so do its type and whether it's required. A field only sets `type` for what Kite converts, like `seconds`, `color` or a list of IDs, and `required` to require more than the spec. Types are checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
 
-The generator copies what the spec knows into the definition: the types, required fields, allowed values, limits and the response schema. The method and path stay in the spec, which the service reads them from. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
+The generator copies what the spec doesn't already give the block into the definition: allowed values, limits and the response schema. The method, path, credits, and each field's location, type and whether it's required stay in the spec, which definitions read when they load. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
 
 `result.thing` wraps the response as an existing thing type, so a migrated block keeps `{{result('x').mention}}` working, and `result.list` a list of them. Without it the result is the plain JSON, like Discord API Request.
 

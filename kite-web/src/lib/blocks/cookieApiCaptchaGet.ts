@@ -17,11 +17,8 @@ export const cookieApiCaptchaGet: BlockDefinition = {
   fields: [
     {
       name: "captcha_id",
-      in: "query",
-      type: "string",
       label: "Captcha ID",
       description: "ID of the captcha, from the Create captcha block.",
-      required: true,
     },
   ],
   result: {

@@ -18,9 +18,7 @@ const parts: Record<string, string> = {
 const partFields: BlockField[] = Object.entries(parts).map(
   ([target, what]) => ({
     name: `include_${target.replace(/\B([A-Z])/g, "_$1").toLowerCase()}`,
-    in: "query",
     target,
-    type: "boolean",
     label: target.replace(/\B([A-Z])/g, " $1"),
     description: `Whether to include ${what}.`,
   })

@@ -48,27 +48,21 @@ export const discordMemberVoiceEdit: BlockDefinition = {
     userTargetField,
     {
       name: "member_voice_mute",
-      in: "body",
       target: "mute",
-      type: "boolean",
       schema: voiceStateChangeSchema(
         'Whether to server-mute the member, "true" or "false". Empty leaves it unchanged.'
       ),
     },
     {
       name: "member_voice_deaf",
-      in: "body",
       target: "deaf",
-      type: "boolean",
       schema: voiceStateChangeSchema(
         'Whether to server-deafen the member, "true" or "false". Empty leaves it unchanged.'
       ),
     },
     {
       name: "channel_target",
-      in: "body",
       target: "channel_id",
-      type: "snowflake",
       label: "Move to Channel",
       description:
         "ID of the voice channel to move the member to. Leave empty to keep the member where they are.",

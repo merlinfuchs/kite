@@ -16,10 +16,6 @@ export const discordRoleEdit: BlockDefinition = {
     integration: "discord",
     operation: "update_guild_role",
   },
-  fields: [
-    guildField,
-    { ...roleTargetField, required: true },
-    ...roleDataFields(true),
-  ],
+  fields: [guildField, roleTargetField, ...roleDataFields(true)],
   result: { thing: "discord_role" },
 };

@@ -17,7 +17,6 @@ export const cookieApiCardCreate: BlockDefinition = {
   fields: [
     {
       name: "card_data",
-      in: "body",
       type: "json_object",
       label: "Card",
       description:

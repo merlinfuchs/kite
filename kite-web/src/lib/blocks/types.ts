@@ -36,13 +36,15 @@ export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
   // other blocks have too keep their meaning, e.g. channel_target is a channel.
   name: string;
-  // Where a request block sends the setting. Settings of custom blocks have
-  // none.
+  // Where a request block sends the setting, from the parameter of its
+  // operation with the field's target. Not written in definitions, see
+  // withOperation in index.ts. Settings of custom blocks have none.
   in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
   // How a request sends the setting, and the generated schema and input of a
-  // setting without a schema. Other settings don't need one.
+  // setting without a schema. Request blocks default to the type of the
+  // parameter, so it's only needed for what Kite converts, like seconds.
   type?: BlockFieldType;
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
@@ -56,6 +58,8 @@ export interface BlockField {
   // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
+  // Request blocks require what their operation requires, unless the field
+  // has a fallback. Set it to require more.
   required?: boolean;
   // Used when the field is left empty.
   fallback?: "guild" | "channel";

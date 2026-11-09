@@ -278,8 +278,8 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		return fmt.Errorf("unsupported block run: %s %s %s", block.Run.Kind, block.Run.Integration, block.Run.Operation)
 	}
 
-	pathParams := make(map[string]string)
-	query := url.Values{}
+	pathParams := make(map[string]thing.Thing)
+	query := make(map[string]thing.Thing)
 	body := make(map[string]any)
 	hasBody := false
 
@@ -326,18 +326,9 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 		switch field.In {
 		case "path":
-			pathParams[field.Target], err = apiPathSegment(field.Name, fmt.Sprint(v))
-			if err != nil {
-				return settingErr(err)
-			}
+			pathParams[field.Target] = paramThing(v)
 		case "query":
-			if list, ok := v.([]string); ok {
-				for _, item := range list {
-					query.Add(field.Target, item)
-				}
-			} else {
-				query.Set(field.Target, fmt.Sprint(v))
-			}
+			query[field.Target] = paramThing(v)
 		case "body":
 			body[field.Target] = v
 		}
@@ -354,11 +345,9 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		hasBody = true
 	}
 
-	path := pathParamRe.ReplaceAllStringFunc(op.Path, func(m string) string {
-		return pathParams[m[1:len(m)-1]]
-	})
-	if len(query) > 0 {
-		path += "?" + query.Encode()
+	path, err := operationPath(op, pathParams, query, nil)
+	if err != nil {
+		return err
 	}
 
 	var reqBody []byte
@@ -393,6 +382,19 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	}
 
 	return n.ExecuteChildren(ctx)
+}
+
+// paramThing is a field's value, after its type converted it, as a path or
+// query parameter for operationPath.
+func paramThing(v any) thing.Thing {
+	if list, ok := v.([]string); ok {
+		items := make([]thing.Thing, len(list))
+		for i, item := range list {
+			items[i] = thing.NewString(item)
+		}
+		return thing.NewArray(items)
+	}
+	return thing.NewString(fmt.Sprint(v))
 }
 
 func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {

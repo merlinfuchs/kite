@@ -22,7 +22,6 @@ export const discordMemberTimeout: BlockDefinition = {
     userTargetField,
     {
       name: "member_timeout_duration_seconds",
-      in: "body",
       target: "communication_disabled_until",
       type: "seconds_until",
       required: true,

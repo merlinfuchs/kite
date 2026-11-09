@@ -17,11 +17,8 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
   fields: [
     {
       name: "captcha_provider",
-      in: "query",
-      type: "string",
       label: "Provider",
       description: "Who shows the captcha.",
-      required: true,
       options: [
         { value: "Cloudflare", label: "Cloudflare Turnstile" },
         { value: "Google", label: "Google reCAPTCHA" },
@@ -29,9 +26,7 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
     },
     {
       name: "captcha_color",
-      in: "query",
       target: "color",
-      type: "string",
       label: "Color",
       description: "Accent color of the page as a hex code, like #4EAF54.",
     },

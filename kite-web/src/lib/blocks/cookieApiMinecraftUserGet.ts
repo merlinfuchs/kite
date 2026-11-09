@@ -17,13 +17,10 @@ export const cookieApiMinecraftUserGet: BlockDefinition = {
   fields: [
     {
       name: "minecraft_code",
-      in: "query",
       target: "code",
-      type: "string",
       label: "Code",
       description:
         "The code the player got when joining verify.cookie-api.com in Minecraft.",
-      required: true,
     },
   ],
   result: {

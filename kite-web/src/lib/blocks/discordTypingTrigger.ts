@@ -17,9 +17,7 @@ export const discordTypingTrigger: BlockDefinition = {
   fields: [
     {
       name: "channel_target",
-      in: "path",
       target: "channel_id",
-      type: "snowflake",
       label: "Channel",
       description:
         "ID of the channel the bot shows as typing in. Leave empty to use the channel the flow runs in.",

@@ -22,13 +22,11 @@ export const discordMessageBulkDelete: BlockDefinition = {
     flowChannelField,
     {
       name: "message_ids",
-      in: "body",
       target: "messages",
       type: "snowflake_list",
       label: "Messages",
       description:
         "2 to 100 message IDs separated by commas, or a placeholder with a list of messages like the result of List channel messages. Messages older than 2 weeks can't be deleted.",
-      required: true,
       min: 2,
       max: 100,
     },

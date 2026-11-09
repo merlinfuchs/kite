@@ -16,13 +16,10 @@ export const erlcCommandRun: BlockDefinition = {
   fields: [
     {
       name: "erlc_command",
-      in: "body",
       target: "command",
-      type: "string",
       label: "Command",
       description:
         'The command to run, like ":h Hello everyone!". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.',
-      required: true,
     },
   ],
 };

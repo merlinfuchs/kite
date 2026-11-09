@@ -19,8 +19,6 @@ export const discordMessageList: BlockDefinition = {
     flowChannelField,
     {
       name: "limit",
-      in: "query",
-      type: "integer",
       label: "Number of Messages",
       description: "How many messages to get, from 1 to 100. Defaults to 50.",
       min: 1,
@@ -28,15 +26,11 @@ export const discordMessageList: BlockDefinition = {
     },
     {
       name: "before",
-      in: "query",
-      type: "snowflake",
       label: "Before Message",
       description: "Only get messages sent before the message with this ID.",
     },
     {
       name: "after",
-      in: "query",
-      type: "snowflake",
       label: "After Message",
       description: "Only get messages sent after the message with this ID.",
     },

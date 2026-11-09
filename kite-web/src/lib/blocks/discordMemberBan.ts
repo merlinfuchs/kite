@@ -21,7 +21,6 @@ export const discordMemberBan: BlockDefinition = {
     userTargetField,
     {
       name: "member_ban_delete_message_duration_seconds",
-      in: "body",
       target: "delete_message_seconds",
       type: "seconds",
       min: 0,
