@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -223,7 +224,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 
 		res, err := c.sendOperation(op, path, body, "")
 		if err != nil {
-			return nil, err
+			return nil, callError(err)
 		}
 		if len(bytes.TrimSpace(res)) == 0 {
 			return json.RawMessage("null"), nil
@@ -353,4 +354,29 @@ func executeActionLog(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
 	return n.ExecuteChildren(ctx)
+}
+
+// callError is err of a request from code, with the status and code of the
+// response the code can check.
+func callError(err error) error {
+	var discordErr *httputil.HTTPError
+	var integrationErr *integrationError
+	switch {
+	case errors.As(err, &discordErr):
+		msg := discordErr.Message
+		if msg == "" {
+			msg = "Discord returned an error"
+		}
+		if len(discordErr.Errors) > 0 {
+			msg += ": " + string(discordErr.Errors)
+		}
+		return &js.CallError{
+			Err:    fmt.Errorf("%s (%d)", msg, discordErr.Status),
+			Status: discordErr.Status,
+			Code:   int(discordErr.Code),
+		}
+	case errors.As(err, &integrationErr):
+		return &js.CallError{Err: integrationErr, Status: integrationErr.Status}
+	}
+	return err
 }

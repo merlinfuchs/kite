@@ -3,13 +3,17 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +26,7 @@ type operationsTestProvider struct {
 
 	mu        sync.Mutex
 	responses map[string]string
+	errors    map[string]error
 	paths     []string
 }
 
@@ -30,6 +35,9 @@ func (p *operationsTestProvider) APIRequest(ctx context.Context, req provider.Di
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.paths = append(p.paths, req.Method+" "+req.Path)
+	if err := p.errors[req.Path]; err != nil {
+		return nil, err
+	}
 	return []byte(p.responses[req.Path]), nil
 }
 
@@ -85,6 +93,23 @@ func TestJavaScriptRunOperationErrors(t *testing.T) {
 			assert.Empty(t, p.paths)
 		})
 	}
+}
+
+func TestJavaScriptRunAPIErrors(t *testing.T) {
+	p := &operationsTestProvider{errors: map[string]error{
+		// Like util.DiscordAPIRequest returns them.
+		"/channels/5": fmt.Errorf("failed to send Discord API request: %w", &httputil.HTTPError{Status: 404, Code: 10003, Message: "Unknown Channel"}),
+	}}
+	c, err := runJavaScriptOperations(t, `
+try { await discord.getChannel({channel_id: "5"}) } catch (e) { return [e.message, e.status, e.code] }`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["discord.getChannel: Unknown Channel (404)",404,10003]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+
+	err = callError(&integrationError{Integration: "erlc", Status: 403, Err: errors.New("ER:LC returned 403 Forbidden: bad key")})
+	var callErr *js.CallError
+	require.ErrorAs(t, err, &callErr)
+	assert.Equal(t, 403, callErr.Status)
+	assert.Equal(t, "ER:LC returned 403 Forbidden: bad key", err.Error())
 }
 
 func TestJavaScriptRunOperationCredits(t *testing.T) {

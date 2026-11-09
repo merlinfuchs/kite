@@ -91,7 +91,16 @@ The argument is an object with the endpoint's parameters by name, like `{ channe
 
 The result is the JSON the API returns, with its own field names. A member has `nick` and `user.global_name`, not the `display_name` of placeholders.
 
-If a request fails, like with "Missing Access", the promise is rejected with the error. Catch it with `try` and `catch`, or the block fails.
+If a request fails, the promise is rejected with an `Error`, like `discord.getChannel: Unknown Channel (404)`. Its `status` is the HTTP status of the response, and for Discord its `code` is [Discord's error code](https://discord.com/developers/docs/topics/opcodes-and-status-codes#json-json-error-codes), like `10003` for an unknown channel. Errors from before the request was sent, like a wrong parameter, have neither. Catch the error with `try` and `catch`, or the block fails.
+
+```js
+try {
+  return await discord.getGuildMember({ guild_id: input.guild, user_id: input.user });
+} catch (e) {
+  if (e.status === 404) return null;
+  throw e;
+}
+```
 
 Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
 
