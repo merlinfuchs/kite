@@ -173,7 +173,7 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 
 // javaScriptHost has the operations the code of a Run JavaScript block can
 // call: for now the reads, GET operations, of the integrations the app can
-// use. Each costs the credits of its policy. The calls run at the same time,
+// use. Each costs the credits of its operation. The calls run at the same time,
 // so they take turns with ctx.
 type javaScriptHost struct {
 	ctx *FlowContext
@@ -212,8 +212,8 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 		// Unlike for a block, a call over the limit isn't billed, as code can
 		// catch the error and keep calling.
 		if err == nil {
-			if err = h.ctx.ensureCredits(op.Policy.Credits); err == nil {
-				err = h.ctx.increaseCredits(op.Policy.Credits)
+			if err = h.ctx.ensureCredits(op.Credits); err == nil {
+				err = h.ctx.increaseCredits(op.Credits)
 			}
 		}
 		h.mu.Unlock()

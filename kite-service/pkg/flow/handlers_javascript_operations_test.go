@@ -87,7 +87,7 @@ func TestJavaScriptRunOperationErrors(t *testing.T) {
 }
 
 func TestJavaScriptRunOperationCredits(t *testing.T) {
-	operations["discord"]["get_paid_thing"] = operation{Integration: "discord", ID: "get_paid_thing", Method: "GET", Path: "/paid", Policy: operationPolicy{Credits: 3}}
+	operations["discord"]["get_paid_thing"] = operation{Integration: "discord", ID: "get_paid_thing", Method: "GET", Path: "/paid", Credits: 3}
 	t.Cleanup(func() { delete(operations["discord"], "get_paid_thing") })
 
 	c, err := runJavaScriptOperations(t, `await discord.getPaidThing(); return 1`, &operationsTestProvider{}, 1000)
