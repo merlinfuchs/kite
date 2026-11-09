@@ -111,8 +111,8 @@ func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 		want string
 	}{
 		{"no url", `await http.request({})`, "http.request: missing parameter url"},
-		{"not http", `await http.request({url: "file:///etc/passwd"})`, "http.request: invalid value for parameter url: must start with http:// or https://"},
-		{"method", `await http.request({url: "https://example.com", method: "TRACE"})`, "http.request: invalid value for parameter method: must be one of GET, POST, PUT, PATCH, DELETE"},
+		{"not http", `await http.request({url: "file:///etc/passwd"})`, "http.request: the URL must start with http:// or https://"},
+		{"method", `await http.request({url: "https://example.com", method: "TRACE"})`, "http.request: the method must be one of GET, POST, PUT, PATCH, DELETE"},
 		{"unknown parameter", `await http.request({url: "https://example.com", foo: 1})`, "http.request: it has no parameter foo"},
 		{"wrong type", `await http.request({url: "https://example.com", body: {a: 1}})`, "http.request: invalid value for parameter body"},
 		{"not an object", `await http.request("https://example.com")`, "http.request: the argument must be an object of its parameters"},
