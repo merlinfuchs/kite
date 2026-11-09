@@ -84,8 +84,11 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 	return v, nil
 }
 
+// CreateVariable returns store.ErrAlreadyExists if the app has a variable
+// with the name.
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
-	return c.createVariableWithTx(ctx, nil, variable)
+	v, err := c.createVariableWithTx(ctx, nil, variable)
+	return v, uniqueViolation(err)
 }
 
 func (c *Client) createVariableWithTx(ctx context.Context, tx pgx.Tx, variable *model.Variable) (*model.Variable, error) {
@@ -133,7 +136,7 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, err
+		return nil, uniqueViolation(err)
 	}
 
 	return rowToVariable(row), nil
