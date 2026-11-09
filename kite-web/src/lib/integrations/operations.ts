@@ -1,11 +1,19 @@
-import { z } from "zod";
+import { toJsonSchema } from "../flow/catalog";
+import { JsonSchema } from "../flow/expressionTypes";
 import { ApiOperation } from "./api";
 import { integrationApis } from "./apis";
-import { handlerOperations } from "./handlerOperations";
+import {
+  HandlerOperationDefinition,
+  handlerOperations,
+} from "./handlerOperations";
 
 // What the service checks when code calls an operation, besides its
 // credits. See "Operations for code" in design/integrations.md.
 export interface OperationPolicy {
+  // Code can call it: Kite's own operations and the reads of integrations,
+  // GET requests outside the interaction, for now. The service only lets
+  // code call these.
+  code: boolean;
   // What the call acts on, so the service can check it's in the app's server
   // once apps can share a bot: guild, channel, webhook, interaction or user
   // from the path, none for reads of nothing in particular, or unknown when
@@ -26,15 +34,16 @@ export interface RequestOperation extends ApiOperation {
 }
 
 // Go code of the service, see handlerOperations.ts.
-export interface HandlerOperation {
+export interface HandlerOperation
+  extends Omit<
+    HandlerOperationDefinition,
+    "params" | "result" | "destructive"
+  > {
   kind: "handler";
   integration: string;
-  id: string;
-  description: string;
-  credits: number;
   // JSON Schemas of the argument and the result.
-  params: unknown;
-  result: unknown;
+  params: JsonSchema;
+  result: JsonSchema;
   policy: OperationPolicy;
 }
 
@@ -46,6 +55,7 @@ export function operationPolicy(
 ): OperationPolicy {
   const discord = integration === "discord";
   return {
+    code: op.method === "GET" && !op.interaction,
     target: discord ? discordTarget(op) : "none",
     destructive:
       op.method === "DELETE" ||
@@ -82,15 +92,13 @@ export function allOperations(): Operation[] {
   const handlers = Object.entries(handlerOperations).flatMap(
     ([integration, ops]) =>
       ops.map(
-        (op): Operation => ({
+        ({ params, result, destructive, ...op }): Operation => ({
           kind: "handler",
           integration,
-          id: op.id,
-          description: op.description,
-          credits: op.credits,
-          params: z.toJSONSchema(op.params),
-          result: z.toJSONSchema(op.result),
-          policy: { target: "none", destructive: !!op.destructive },
+          ...op,
+          params: toJsonSchema(params),
+          result: toJsonSchema(result),
+          policy: { code: true, target: "none", destructive: !!destructive },
         })
       )
   );

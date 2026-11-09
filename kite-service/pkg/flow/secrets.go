@@ -135,6 +135,23 @@ func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.
 	return res, nil
 }
 
+// Fill replaces each placeholder of value that's just a secret, like
+// {{secrets.TOKEN}}, with its value, for text that isn't a template, like
+// the values of a request from code. Other placeholders stay as they are.
+func (s *flowSecrets) Fill(value string) string {
+	return placeholderRe.ReplaceAllStringFunc(value, func(m string) string {
+		inner := placeholderRe.FindStringSubmatch(m)[1]
+		if !plainSecretRe.MatchString(inner) {
+			return m
+		}
+		name := strings.TrimPrefix(strings.TrimSpace(inner), "secrets.")
+		if v, ok := s.values[name]; ok {
+			return v
+		}
+		return m
+	})
+}
+
 // Redact removes the values of the secrets from an error, which can contain
 // them, e.g. a failed request's error contains its URL.
 func (s *flowSecrets) Redact(err error) error {

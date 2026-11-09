@@ -94,6 +94,12 @@ return [res.status, res.body, (await fetch("https://example.com")).ok]`, p, 1000
 	assert.Equal(t, "text/plain;charset=UTF-8", p.reqs[0].Header.Get("Content-Type"))
 }
 
+func TestJavaScriptRunHTTPRequestTooLarge(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", 2<<20)}
+	_, err := runJavaScriptBuiltins(t, `await fetch("https://example.com")`, p, 1000)
+	assert.ErrorContains(t, err, "http.request: the response is larger than 1 MB")
+}
+
 func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 	tests := []struct {
 		name string
