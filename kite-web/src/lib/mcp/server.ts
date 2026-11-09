@@ -560,17 +560,14 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     },
     async ({ query }) => {
       const calls = codeOperations().filter((op) =>
-        matchesSearch(query ?? "", [
-          `${op.namespace}.${op.name}`,
-          op.description,
-        ])
+        matchesSearch(query ?? "", [op.call, op.description])
       );
       if (!query?.trim()) {
-        return json(calls.map((op) => `${op.namespace}.${op.name}`));
+        return json(calls.map((op) => op.call));
       }
       return json(
         calls.slice(0, maxSearchResults).map((op) => ({
-          name: `${op.namespace}.${op.name}`,
+          name: op.call,
           description: op.description,
         }))
       );
@@ -593,13 +590,12 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
       annotations: read,
     },
     async ({ names }) => {
-      const calls = codeOperations();
-      const found = calls.filter((op) =>
-        names.includes(`${op.namespace}.${op.name}`)
-      );
-      const unknown = names.filter(
-        (name) => !found.some((op) => `${op.namespace}.${op.name}` === name)
-      );
+      const byName = new Map(codeOperations().map((op) => [op.call, op]));
+      const found = [...new Set(names)].flatMap((name) => {
+        const op = byName.get(name);
+        return op ? [op] : [];
+      });
+      const unknown = names.filter((name) => !byName.has(name));
       if (!found.length) {
         throw new Error(
           `Unknown calls ${unknown.join(
@@ -609,7 +605,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
       }
       return json({
         calls: found.map((op) => ({
-          name: `${op.namespace}.${op.name}`,
+          name: op.call,
           credits: op.credits,
           // A method of the namespace, in TypeScript.
           signature: codeSignature(op),

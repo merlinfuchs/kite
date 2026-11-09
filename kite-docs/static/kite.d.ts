@@ -4,10 +4,7 @@
 /** The values of the block's inputs, by name. */
 declare const input: Record<string, any>;
 
-/** Formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". */
-declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;
-
-/** Sends a request with http.request. Costs 3 credits. */
+/** Sends a request to a URL with http.request. Costs 3 credits. */
 declare function fetch(url: string, init?: {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   headers?: Record<string, string> | [string, string][];
@@ -21,6 +18,9 @@ declare function fetch(url: string, init?: {
   text(): Promise<string>;
   json(): Promise<any>;
 }>;
+
+/** Formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". */
+declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;
 
 declare const discord: {
   /** Applications get activity instance, GET /applications/{application_id}/activity-instances/{instance_id}. Costs nothing. */

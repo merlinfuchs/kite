@@ -3,7 +3,7 @@ import {
   CompletionContext,
   CompletionResult,
 } from "@codemirror/autocomplete";
-import { CodeOperation, codeOperations } from "../integrations/sdk";
+import { codeGlobals, codeOperations, costText } from "../integrations/sdk";
 
 // What the code of a Run JavaScript block has besides its calls.
 export interface CodeNames {
@@ -11,16 +11,6 @@ export interface CodeNames {
   inputs: string[];
   // The names of its stored variables, for variables.get({ name }).
   variables: string[];
-}
-
-let operations: CodeOperation[] | undefined;
-function calls() {
-  return (operations ??= codeOperations());
-}
-
-function cost(op: CodeOperation) {
-  if (!op.credits) return "Costs nothing.";
-  return op.credits === 1 ? "Costs 1 credit." : `Costs ${op.credits} credits.`;
 }
 
 const word = /^[\w$]*$/;
@@ -50,7 +40,7 @@ export function codeCompletions(names: () => CodeNames) {
           validFor: word,
         };
       }
-      const op = calls().find(
+      const op = codeOperations().find(
         (o) => o.namespace === namespace && o.name === name
       );
       if (!op) return null;
@@ -82,7 +72,7 @@ export function codeCompletions(names: () => CodeNames) {
       if (namespace === "input") {
         options = names().inputs.map((label) => ({ label, type: "property" }));
       } else {
-        options = calls()
+        options = codeOperations()
           .filter((op) => op.namespace === namespace)
           .map((op) => ({
             label: op.name,
@@ -91,7 +81,7 @@ export function codeCompletions(names: () => CodeNames) {
               .filter((p) => p.required)
               .map((p) => p.name)
               .join(", ")})`,
-            info: `${op.description} ${cost(op)}`,
+            info: `${op.description} ${costText(op.credits)}`,
           }));
       }
       if (!options.length) return null;
@@ -107,25 +97,14 @@ export function codeCompletions(names: () => CodeNames) {
 }
 
 function globals(): Completion[] {
-  const namespaces = [...new Set(calls().map((op) => op.namespace))];
+  const namespaces = new Set(codeOperations().map((op) => op.namespace));
   return [
-    {
-      label: "input",
-      type: "variable",
-      info: "The values of the block's inputs, by name.",
-    },
-    {
-      label: "fetch",
-      type: "function",
-      detail: "(url, { method, headers, body })",
-      info: "Sends a request to a URL. Costs 3 credits.",
-    },
-    {
-      label: "formatDate",
-      type: "function",
-      detail: "(date, format, timeZone)",
-      info: 'Formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin".',
-    },
-    ...namespaces.map((label) => ({ label, type: "namespace" })),
+    ...codeGlobals().map((g) => ({
+      label: g.name,
+      type: g.kind,
+      detail: g.detail,
+      info: g.description,
+    })),
+    ...[...namespaces].map((label) => ({ label, type: "namespace" })),
   ];
 }

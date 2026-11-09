@@ -1,3 +1,4 @@
+import { discordApiOperationLabel } from "../flow/discordApi";
 import { ApiParam } from "./api";
 import { allOperations, Operation } from "./operations";
 
@@ -10,6 +11,8 @@ export function camelName(name: string) {
 }
 
 export interface CodeOperation {
+  // The full name, like discord.getChannel.
+  call: string;
   // The namespace code calls it in, like discord.
   namespace: string;
   // Its name in the namespace, like getChannel.
@@ -28,20 +31,22 @@ export interface CodeParam {
   description?: string;
 }
 
-// The operations code can call: reads of integrations and Kite's own
-// operations. Matches javaScriptHost.lookup in kite-service/pkg/flow.
+let operations: CodeOperation[] | undefined;
+
+// The operations code can call, see OperationPolicy.code.
 export function codeOperations(): CodeOperation[] {
-  return allOperations()
-    .filter(
-      (op) => op.kind === "handler" || (op.method === "GET" && !op.interaction)
-    )
-    .map(codeOperation);
+  return (operations ??= allOperations()
+    .filter((op) => op.policy.code)
+    .map(codeOperation));
 }
 
 function codeOperation(op: Operation): CodeOperation {
+  const namespace = camelName(op.integration);
+  const name = camelName(op.id);
   const base = {
-    namespace: camelName(op.integration),
-    name: camelName(op.id),
+    call: `${namespace}.${name}`,
+    namespace,
+    name,
     credits: op.credits,
   };
   if (op.kind === "handler") {
@@ -58,12 +63,9 @@ function codeOperation(op: Operation): CodeOperation {
       result: schemaType(op.result as JSONSchema),
     };
   }
-  const words = op.id.replaceAll("_", " ");
   return {
     ...base,
-    description: `${words.charAt(0).toUpperCase()}${words.slice(1)}, ${
-      op.method
-    } ${op.path}.`,
+    description: `${discordApiOperationLabel(op.id)}, ${op.method} ${op.path}.`,
     params: [...op.path_params, ...op.query_params].map((p) => ({
       name: p.name,
       type: paramType(p),
@@ -138,6 +140,68 @@ function wrap(type: string) {
   return type.includes("|") ? `(${type})` : type;
 }
 
+export function costText(credits: number) {
+  if (!credits) return "Costs nothing.";
+  return credits === 1 ? "Costs 1 credit." : `Costs ${credits} credits.`;
+}
+
+// What the prelude of kite-service/pkg/js defines besides the calls.
+export interface CodeGlobal {
+  name: string;
+  kind: "variable" | "function";
+  // Its parameters, for completions.
+  detail?: string;
+  description: string;
+  // Its TypeScript declaration.
+  declaration: string;
+}
+
+export function codeGlobals(): CodeGlobal[] {
+  const request = codeOperations().find((op) => op.call === "http.request");
+  return [
+    {
+      name: "input",
+      kind: "variable",
+      description: "The values of the block's inputs, by name.",
+      declaration: "declare const input: Record<string, any>;",
+    },
+    {
+      name: "fetch",
+      kind: "function",
+      detail: "(url, { method, headers, body })",
+      description: `Sends a request to a URL with http.request. ${costText(
+        request?.credits ?? 0
+      )}`,
+      declaration: [
+        "declare function fetch(url: string, init?: {",
+        `  method?: ${
+          request?.params.find((p) => p.name === "method")?.type ?? "string"
+        };`,
+        "  headers?: Record<string, string> | [string, string][];",
+        "  body?: string;",
+        "}): Promise<{",
+        "  ok: boolean;",
+        "  status: number;",
+        "  statusText: string;",
+        "  url: string;",
+        "  headers: { get(name: string): string | null; has(name: string): boolean };",
+        "  text(): Promise<string>;",
+        "  json(): Promise<any>;",
+        "}>;",
+      ].join("\n"),
+    },
+    {
+      name: "formatDate",
+      kind: "function",
+      detail: "(date, format, timeZone)",
+      description:
+        'Formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin".',
+      declaration:
+        "declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;",
+    },
+  ];
+}
+
 // The call as a TypeScript method, with what it does and costs.
 export function codeSignature(op: CodeOperation, indent = "") {
   const params = op.params.map(
@@ -147,9 +211,8 @@ export function codeSignature(op: CodeOperation, indent = "") {
       }: ${p.type};`
   );
   const optional = op.params.every((p) => !p.required) ? "?" : "";
-  const cost = op.credits === 1 ? "1 credit" : `${op.credits} credits`;
   return [
-    `${indent}/** ${op.description} Costs ${op.credits ? cost : "nothing"}. */`,
+    `${indent}/** ${op.description} ${costText(op.credits)} */`,
     op.params.length
       ? `${indent}${op.name}(arg${optional}: {\n${params.join(
           "\n"
@@ -169,28 +232,10 @@ export function codeDeclarations() {
   const parts = [
     "// What the code of Kite's Run JavaScript block can use besides JavaScript",
     "// itself. See https://docs.kite.onl/reference/blocks/actions/action_javascript_run",
-    "",
-    "/** The values of the block's inputs, by name. */",
-    "declare const input: Record<string, any>;",
-    "",
-    '/** Formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". */',
-    "declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;",
-    "",
-    "/** Sends a request with http.request. Costs 3 credits. */",
-    "declare function fetch(url: string, init?: {",
-    '  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";',
-    "  headers?: Record<string, string> | [string, string][];",
-    "  body?: string;",
-    "}): Promise<{",
-    "  ok: boolean;",
-    "  status: number;",
-    "  statusText: string;",
-    "  url: string;",
-    "  headers: { get(name: string): string | null; has(name: string): boolean };",
-    "  text(): Promise<string>;",
-    "  json(): Promise<any>;",
-    "}>;",
   ];
+  for (const global of codeGlobals()) {
+    parts.push("", `/** ${global.description} */`, global.declaration);
+  }
   for (const [namespace, ops] of namespaces) {
     parts.push(
       "",

@@ -40,7 +40,7 @@ export default function FlowCodeInput({
   // Shown after the description in the dialog.
   hint?: string;
   // Inputs and stored variables of the block, which the editor completes.
-  names?: CodeNames;
+  names: CodeNames;
 }) {
   const { resolvedTheme } = useTheme();
   const readOnly = useContext(FlowReadOnlyContext);
@@ -52,9 +52,7 @@ export default function FlowCodeInput({
   namesRef.current = names;
   const [panelExtensions, dialogExtensions] = useMemo(() => {
     const completions = javascriptLanguage.data.of({
-      autocomplete: codeCompletions(
-        () => namesRef.current ?? { inputs: [], variables: [] }
-      ),
+      autocomplete: codeCompletions(() => namesRef.current),
     });
     return [
       // Long lines wrap so the editor fits the settings panel.
