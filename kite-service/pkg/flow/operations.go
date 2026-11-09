@@ -110,8 +110,10 @@ func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, re
 }
 
 // operationRequest builds the path and body of a call of op from code with
-// arg, a JSON object with its path and query parameters by name and the
-// fields of its body, like {"channel_id": "1", "content": "Hi"}.
+// arg, a JSON object with its path and query parameters by name and its body
+// under "body", like {"channel_id": "1", "body": {"content": "Hi"}}.
+// "reason" is kept for the audit log reason of writes, see
+// TestOperationParamsAreNotReserved.
 func operationRequest(op operation, arg json.RawMessage) (path string, body []byte, err error) {
 	params := map[string]json.RawMessage{}
 	if arg = bytes.TrimSpace(arg); len(arg) > 0 && string(arg) != "null" {
@@ -136,14 +138,13 @@ func operationRequest(op operation, arg json.RawMessage) (path string, body []by
 		return "", nil, err
 	}
 
+	if v, ok := params["body"]; ok && op.HasBody {
+		body = v
+		delete(params, "body")
+	}
 	if len(params) > 0 {
-		if !op.HasBody {
-			names := slices.Sorted(maps.Keys(params))
-			return "", nil, fmt.Errorf("it has no parameter %s", names[0])
-		}
-		if body, err = json.Marshal(params); err != nil {
-			return "", nil, err
-		}
+		names := slices.Sorted(maps.Keys(params))
+		return "", nil, fmt.Errorf("it has no parameter %s", names[0])
 	}
 	return path, body, nil
 }

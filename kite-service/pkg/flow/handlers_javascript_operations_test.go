@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -158,5 +159,34 @@ func TestEveryIntegrationHasANamespace(t *testing.T) {
 		c, err := runJavaScriptOperations(t, "return typeof "+namespace, &operationsTestProvider{}, 1000)
 		require.NoError(t, err)
 		assert.Equal(t, "object", c.GetNodeResult("js_1").String(), integration)
+	}
+}
+
+func TestOperationRequestBody(t *testing.T) {
+	path, body, err := operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","body":{"content":"Hi"}}`))
+	require.NoError(t, err)
+	assert.Equal(t, "/channels/5/messages", path)
+	assert.JSONEq(t, `{"content":"Hi"}`, string(body))
+
+	// Bodies that are lists work the same.
+	_, body, err = operationRequest(operations["discord"]["bulk_update_guild_roles"], json.RawMessage(`{"guild_id":"7","body":[{"id":"8","position":1}]}`))
+	require.NoError(t, err)
+	assert.JSONEq(t, `[{"id":"8","position":1}]`, string(body))
+
+	_, _, err = operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","content":"Hi"}`))
+	assert.EqualError(t, err, "it has no parameter content")
+	_, _, err = operationRequest(operations["discord"]["get_channel"], json.RawMessage(`{"channel_id":"5","body":{}}`))
+	assert.EqualError(t, err, "it has no parameter body")
+}
+
+// Code passes the body and the audit log reason of writes next to the path
+// and query parameters, so no operation can have parameters of those names.
+func TestOperationParamsAreNotReserved(t *testing.T) {
+	for _, ops := range operations {
+		for _, op := range ops {
+			for _, p := range slices.Concat(op.PathParams, op.QueryParams) {
+				assert.NotContains(t, []string{"body", "reason"}, p.Name, "%s.%s", op.Integration, op.ID)
+			}
+		}
 	}
 }
