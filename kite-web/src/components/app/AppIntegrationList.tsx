@@ -178,6 +178,72 @@ function AppIntegrationEntry({
   );
 }
 
+// Enables an integration that isn't enabled, by entering its key if it needs
+// one. The link variant is underlined text, for inside other text like on a
+// block.
+export function AppIntegrationEnableButton({
+  integration,
+  variant = "button",
+  label = "Enable",
+}: {
+  integration: Integration;
+  variant?: "button" | "link";
+  label?: string;
+}) {
+  const updateMutation = useAppIntegrationUpdateMutation(
+    useAppId(),
+    integration.id
+  );
+
+  const link = (onClick?: () => void) => (
+    <button
+      type="button"
+      className="underline"
+      onClick={onClick}
+      disabled={updateMutation.isPending}
+    >
+      {label}
+    </button>
+  );
+
+  if (needsCredential(integration)) {
+    return (
+      <AppIntegrationConnectDialog integration={integration} replace={false}>
+        {variant === "link" ? link() : <Button size="sm">{label}</Button>}
+      </AppIntegrationConnectDialog>
+    );
+  }
+
+  function enable() {
+    updateMutation.mutate(
+      { enabled: true },
+      {
+        onSuccess(res) {
+          if (res.success) {
+            track("integration_enabled", { integration: integration.id });
+          } else {
+            toast.error(
+              `Failed to enable ${integration.name}: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }
+
+  if (variant === "link") return link(enable);
+
+  return (
+    <LoadingButton
+      size="sm"
+      onClick={enable}
+      loading={updateMutation.isPending}
+    >
+      {label}
+    </LoadingButton>
+  );
+}
+
 // Enables an integration by entering its key, or replaces the key.
 function AppIntegrationConnectDialog({
   integration,

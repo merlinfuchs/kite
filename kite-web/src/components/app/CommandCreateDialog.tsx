@@ -25,7 +25,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
-import { getNodeId } from "@/lib/flow/nodes";
+import { newCommandFlow } from "@/lib/flow/newFlows";
 import { track } from "@/lib/analytics";
 
 interface FormFields {
@@ -56,14 +56,14 @@ export default function CommandCreateDialog({
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(data.name, data.description),
+        flow_source: newCommandFlow(data.name, data.description),
         enabled: true,
       },
       {
         onSuccess(res) {
           if (res.success) {
             track("command_created", { source: "blank" });
-            toast.success("Command created!");
+            toast.success("Command created.");
             setOpen(false);
 
             setTimeout(
@@ -96,7 +96,7 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Command</DialogTitle>
+          <DialogTitle>Create command</DialogTitle>
           <DialogDescription>
             Create a new command with a name and description.
           </DialogDescription>
@@ -139,18 +139,4 @@ export default function CommandCreateDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function getInitialFlowData(name: string, description: string) {
-  return {
-    nodes: [
-      {
-        id: getNodeId("entry_command"),
-        position: { x: 0, y: 0 },
-        data: { name, description },
-        type: "entry_command",
-      },
-    ],
-    edges: [],
-  };
 }

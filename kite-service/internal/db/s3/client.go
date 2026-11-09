@@ -3,12 +3,28 @@ package s3
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
+
+func init() {
+	// Package-wide in minio. Its 1s default gives up on a throttled request
+	// within ~5s, and Hetzner throttles for longer than that. With minio's 10
+	// retries, requests now retry for ~15s on average.
+	minio.DefaultRetryCap = 5 * time.Second
+}
+
+// RetryLonger makes every request of this process retry for ~5min on
+// average, ~9min at most. It's for processes nobody waits on, like backups,
+// which should outlast throttling and short outages rather than fail.
+func RetryLonger() {
+	minio.MaxRetry = 25
+	minio.DefaultRetryCap = 30 * time.Second
+}
 
 type Client struct {
 	client     *minio.Client

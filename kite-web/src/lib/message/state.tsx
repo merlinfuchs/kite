@@ -24,14 +24,19 @@ type ContextValue = {
   documentStore: ReturnType<typeof createDocumentStore>;
   validationStore: ReturnType<typeof createValidationErrorStore>;
   flowStore: ReturnType<typeof createFlowStore>;
+  noPlaceholders: boolean;
 };
 
 const CurrentMessageStoreContext = createContext<ContextValue | null>(null);
 
 export function CurrentMessageStoreProvider({
   children,
+  noPlaceholders = false,
 }: {
   children: ReactNode;
+  // Nothing fills in placeholders, like in the message creator, which sends
+  // with a webhook from the browser.
+  noPlaceholders?: boolean;
 }) {
   const [documentStore] = useState(() => createDocumentStore());
   const [validationStore] = useState(() => createValidationErrorStore());
@@ -42,8 +47,9 @@ export function CurrentMessageStoreProvider({
       documentStore,
       validationStore,
       flowStore,
+      noPlaceholders,
     }),
-    [documentStore, validationStore, flowStore]
+    [documentStore, validationStore, flowStore, noPlaceholders]
   );
 
   return (
@@ -61,6 +67,10 @@ function useStoreContext(hook: string) {
     );
   }
   return value;
+}
+
+export function useNoPlaceholders() {
+  return useStoreContext("useNoPlaceholders").noPlaceholders;
 }
 
 export function useDocumentStoreApi() {

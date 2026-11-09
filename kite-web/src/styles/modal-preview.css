@@ -1,0 +1,407 @@
+/*
+The modal preview of the Show Modal block, styled like Discord's modals.
+It reuses the markdown styles of the message preview for text displays.
+*/
+
+.kite-modal-backdrop {
+  --kite-modal-bg: #2b2d31;
+  --kite-modal-footer-bg: #232428;
+  --kite-modal-border: #3f4147;
+  --kite-modal-input-bg: #1e1f22;
+  --kite-modal-input-border: #1e1f22;
+  --kite-modal-header: #f2f3f5;
+  --kite-modal-text: #dbdee1;
+  --kite-modal-muted: #b5bac1;
+  --kite-modal-faint: #87898c;
+  --kite-modal-hover: rgba(78, 80, 88, 0.3);
+  --kite-modal-blurple: #5865f2;
+  --kite-modal-red: #f23f42;
+  --kite-modal-highlight: rgba(88, 101, 242, 0.55);
+
+  background-color: #313338;
+  font-family: Whitney, Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px 16px;
+  min-height: 100%;
+}
+
+.kite-modal-backdrop.discord-light-theme {
+  --kite-modal-bg: #ffffff;
+  --kite-modal-footer-bg: #f2f3f5;
+  --kite-modal-border: #e3e5e8;
+  --kite-modal-input-bg: #ebedef;
+  --kite-modal-input-border: #e3e5e8;
+  --kite-modal-header: #060607;
+  --kite-modal-text: #313338;
+  --kite-modal-muted: #4e5058;
+  --kite-modal-faint: #80848e;
+  --kite-modal-hover: rgba(116, 127, 141, 0.12);
+
+  background-color: #ffffff;
+}
+
+.kite-modal {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--kite-modal-bg);
+  color: var(--kite-modal-text);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--kite-modal-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  line-height: 1.375;
+}
+
+.kite-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 8px 16px;
+}
+
+.kite-modal-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  flex: none;
+}
+
+.kite-modal-title {
+  flex: auto;
+  min-width: 0;
+  color: var(--kite-modal-header);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+
+.kite-modal-close {
+  color: var(--kite-modal-muted);
+  flex: none;
+  opacity: 0.8;
+}
+
+.kite-modal-body {
+  padding: 8px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kite-modal-empty {
+  color: var(--kite-modal-faint);
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* One component of the modal. It can be clicked to edit it. */
+.kite-modal-component {
+  position: relative;
+  border-radius: 6px;
+  margin: -6px;
+  padding: 6px;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  transition: outline-color 0.12s ease;
+}
+
+.kite-modal-component:hover {
+  outline-color: var(--kite-modal-hover);
+}
+
+.kite-modal-component-active,
+.kite-modal-component-active:hover {
+  outline-color: var(--kite-modal-highlight);
+}
+
+.kite-modal-component-error::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: var(--kite-modal-red);
+}
+
+.kite-modal-label {
+  color: var(--kite-modal-header);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.kite-modal-title-empty,
+.kite-modal-label-empty {
+  color: var(--kite-modal-faint);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.kite-modal-required {
+  color: var(--kite-modal-red);
+  padding-left: 4px;
+}
+
+.kite-modal-description {
+  color: var(--kite-modal-muted);
+  font-size: 14px;
+  line-height: 18px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.kite-modal-field {
+  margin-top: 8px;
+}
+
+.kite-modal-input {
+  display: block;
+  width: 100%;
+  background-color: var(--kite-modal-input-bg);
+  border: 1px solid var(--kite-modal-input-border);
+  color: var(--kite-modal-text);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 16px;
+  line-height: 20px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+
+.kite-modal-input::placeholder {
+  color: var(--kite-modal-faint);
+}
+
+.kite-modal-input:focus {
+  border-color: var(--kite-modal-blurple);
+}
+
+.kite-modal-textarea {
+  min-height: 88px;
+}
+
+.kite-modal-counter {
+  color: var(--kite-modal-faint);
+  font-size: 12px;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.kite-modal-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  background-color: var(--kite-modal-input-bg);
+  border: 1px solid var(--kite-modal-input-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.kite-modal-select-open {
+  border-color: var(--kite-modal-blurple);
+}
+
+.kite-modal-select-value {
+  flex: auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.kite-modal-select-placeholder {
+  color: var(--kite-modal-faint);
+}
+
+.kite-modal-emoji {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  object-fit: contain;
+  flex: none;
+}
+
+.kite-modal-emoji-large {
+  width: 22px;
+  height: 22px;
+}
+
+.kite-modal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--kite-modal-bg);
+  border-radius: 4px;
+  font-size: 14px;
+  padding: 0 6px;
+}
+
+.kite-modal-select-icon {
+  color: var(--kite-modal-muted);
+  flex: none;
+}
+
+.kite-modal-select-menu {
+  margin-top: 4px;
+  background-color: var(--kite-modal-input-bg);
+  border: 1px solid var(--kite-modal-input-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kite-modal-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.kite-modal-option:hover {
+  background-color: var(--kite-modal-hover);
+}
+
+.kite-modal-option-text {
+  flex: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kite-modal-option-label {
+  color: var(--kite-modal-text);
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.kite-modal-option-description {
+  color: var(--kite-modal-muted);
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.kite-modal-options {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -10px;
+}
+
+.kite-modal-radio,
+.kite-modal-checkbox {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--kite-modal-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.kite-modal-radio {
+  border-radius: 9999px;
+}
+
+.kite-modal-checkbox {
+  border-radius: 6px;
+}
+
+.kite-modal-radio-checked {
+  border-color: var(--kite-modal-blurple);
+}
+
+.kite-modal-radio-checked::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background-color: var(--kite-modal-blurple);
+}
+
+.kite-modal-checkbox-checked {
+  background-color: var(--kite-modal-blurple);
+  border-color: var(--kite-modal-blurple);
+}
+
+.kite-modal-single-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kite-modal-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 2px dashed var(--kite-modal-faint);
+  border-radius: 8px;
+  padding: 18px 10px;
+  color: var(--kite-modal-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.kite-modal-upload-browse {
+  color: #00a8fc;
+  font-weight: 500;
+}
+
+.kite-modal-text-display {
+  white-space: pre-wrap;
+}
+
+.kite-modal .discord-message {
+  padding: 0;
+  margin: 0;
+  color: var(--kite-modal-text);
+  font-size: 16px;
+}
+
+.kite-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background-color: var(--kite-modal-footer-bg);
+}
+
+.kite-modal-button {
+  height: 38px;
+  min-width: 96px;
+  padding: 2px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--kite-modal-text);
+}
+
+.kite-modal-button:hover {
+  text-decoration: underline;
+}
+
+.kite-modal-button-primary {
+  background-color: var(--kite-modal-blurple);
+  color: #fff;
+}
+
+.kite-modal-button-primary:hover {
+  text-decoration: none;
+  background-color: #4752c4;
+}

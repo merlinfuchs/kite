@@ -17,7 +17,8 @@ const methods = ["get", "post", "put", "patch", "delete"];
 // Endpoints the bot could call but a flow shouldn't.
 function isDenied(method, path) {
   // Kite responds to interactions itself, and webhook tokens are credentials
-  // of their own that don't need the bot token.
+  // of their own that don't need the bot token. Followups and edits of the
+  // flow's own interaction are added below.
   if (
     path.startsWith("/interactions") ||
     path.includes("{webhook_token}") ||
@@ -28,7 +29,10 @@ function isDenied(method, path) {
   // Commands, emojis and the app's settings are managed by Kite.
   if (path.startsWith("/applications") && method !== "get") return true;
   // The bot's name and avatar are managed by Kite.
-  return path === "/users/@me" && method === "patch";
+  if (path === "/users/@me" && method === "patch") return true;
+  // Server profiles are a premium feature, set with the Edit server profile
+  // block or in the app's servers.
+  return path === "/guilds/{guild_id}/members/@me" && method === "patch";
 }
 
 function paramType(schema) {
@@ -39,7 +43,9 @@ function paramType(schema) {
   if (["integer", "number", "boolean"].includes(type)) return type;
   if (type) return "string";
   // Nullable properties are a union with null.
-  const variant = (schema.oneOf ?? schema.anyOf)?.find((s) => s.type !== "null");
+  const variant = (schema.oneOf ?? schema.anyOf)?.find(
+    (s) => s.type !== "null"
+  );
   return variant ? paramType(variant) : "string";
 }
 
@@ -82,6 +88,50 @@ function bodyParams(content) {
   }));
 }
 
+function operation(id, method, path, content, params) {
+  const paramsIn = (location) =>
+    params
+      .filter((p) => p.in === location)
+      .map((p) => ({
+        name: p.name,
+        type: paramType(p.schema),
+        required: !!p.required,
+      }));
+
+  return {
+    id,
+    method: method.toUpperCase(),
+    path,
+    path_params: paramsIn("path"),
+    query_params: paramsIn("query"),
+    has_body: !!content,
+    body_params: bodyParams(content),
+  };
+}
+
+// Endpoints only flows can call, not MCP clients: ones where one wrong call
+// does a lot of damage that can't be undone, and ones that return webhook
+// tokens, which would let a token that can only read send messages.
+const flowOnlyOperations = new Set([
+  "bulk_ban_users_from_guild",
+  "bulk_delete_messages",
+  "get_guild_webhooks",
+  "get_webhook",
+  "leave_guild",
+  "list_channel_webhooks",
+  "prune_guild",
+]);
+
+// Followups and edits of the interaction the flow runs with, which the spec
+// only has as webhook endpoints. The service fills in the app's ID and the
+// interaction's token, so a flow never sees the token, and their query
+// parameters are only for other webhooks.
+const interactionOperations = {
+  execute_webhook: "create_followup_message",
+  update_original_webhook_message: "update_original_interaction_response",
+  update_webhook_message: "update_followup_message",
+};
+
 const operations = [];
 for (const [path, item] of Object.entries(spec.paths)) {
   const pathParams = (item.parameters ?? []).map(resolve);
@@ -89,6 +139,24 @@ for (const [path, item] of Object.entries(spec.paths)) {
   for (const method of methods) {
     const op = item[method];
     if (!op) continue;
+
+    const interactionId = interactionOperations[op.operationId];
+    if (interactionId) {
+      operations.push({
+        ...operation(
+          interactionId,
+          method,
+          path
+            .replace("{webhook_id}", "{application_id}")
+            .replace("{webhook_token}", "{interaction_token}"),
+          op.requestBody?.content,
+          pathParams.filter((p) => !p.name.startsWith("webhook_"))
+        ),
+        interaction: true,
+      });
+      continue;
+    }
+
     if (!op.security?.some((s) => "BotToken" in s)) continue;
     if (isDenied(method, path)) continue;
 
@@ -97,23 +165,9 @@ for (const [path, item] of Object.entries(spec.paths)) {
     if (content && !content["application/json"]) continue;
 
     const params = [...pathParams, ...(op.parameters ?? []).map(resolve)];
-    const paramsIn = (location) =>
-      params
-        .filter((p) => p.in === location)
-        .map((p) => ({
-          name: p.name,
-          type: paramType(p.schema),
-          required: !!p.required,
-        }));
-
     operations.push({
-      id: op.operationId,
-      method: method.toUpperCase(),
-      path,
-      path_params: paramsIn("path"),
-      query_params: paramsIn("query"),
-      has_body: !!content,
-      body_params: bodyParams(content),
+      ...operation(op.operationId, method, path, content, params),
+      ...(flowOnlyOperations.has(op.operationId) ? { flow_only: true } : {}),
     });
   }
 }

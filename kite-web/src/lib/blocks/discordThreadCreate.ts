@@ -4,12 +4,14 @@ import { BlockDefinition } from "./types";
 
 export const discordThreadCreate: BlockDefinition = {
   type: "action_thread_create",
+  id_prefix: "thread",
   title: "Create thread",
   description: "Create a thread",
   icon: "message-circle-plus",
   category: "Channels",
   requires: ["discord"],
   credits: 1,
+  permissions: ["CREATE_PUBLIC_THREADS"],
   fields: [
     {
       name: "message_target",

@@ -1,9 +1,11 @@
 package wire
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -13,12 +15,61 @@ type AppStateStatus struct {
 
 type StateStatusGetResponse = AppStateStatus
 
+// StateUser is the Discord user the app's bot sends messages as. It's empty
+// while the app isn't running.
+type StateUser struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
+	// Empty if the bot has no banner.
+	BannerURL string `json:"banner_url"`
+}
+
+func StateUserToWire(user *discord.User) *StateUser {
+	return &StateUser{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+		BannerURL: user.BannerURL(),
+	}
+}
+
+type StateUserGetResponse = StateUser
+
+// StateGuildProfile is the bot's profile in a server. Fields are empty where
+// it uses its own profile. Discord doesn't return the About Me.
+type StateGuildProfile struct {
+	Nick      string `json:"nick"`
+	AvatarURL string `json:"avatar_url"`
+	BannerURL string `json:"banner_url"`
+}
+
+type StateGuildProfileGetResponse = StateGuildProfile
+
+// StateUserUpdateRequest changes the bot's avatar and banner. A field that
+// isn't set stays as it is, and an empty one removes the image.
+type StateUserUpdateRequest struct {
+	// Avatar and Banner are data URIs of the image.
+	Avatar *string `json:"avatar,omitempty"`
+	Banner *string `json:"banner,omitempty"`
+}
+
+func (req StateUserUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
+		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
+	)
+}
+
+type StateUserUpdateResponse = StateUser
+
 type Guild struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	IconURL     null.String `json:"icon_url"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	Description    string      `json:"description"`
+	IconURL        null.String `json:"icon_url"`
+	CreatedAt      time.Time   `json:"created_at"`
+	BotPermissions null.String `json:"bot_permissions,omitempty"`
 }
 
 type StateGuildListResponse = []*Guild
@@ -60,6 +111,30 @@ type ForumTag struct {
 type StateGuildChannelListResponse = []*Channel
 
 type StateGuildLeaveResponse = Empty
+
+// StateGuildProfileUpdateRequest changes the bot's profile in a server. A
+// field that isn't set stays as it is, and an empty one resets to the bot's
+// own profile.
+type StateGuildProfileUpdateRequest struct {
+	Nick *string `json:"nick,omitempty"`
+	Bio  *string `json:"bio,omitempty"`
+	// Avatar and Banner are data URIs of the image.
+	Avatar *string `json:"avatar,omitempty"`
+	Banner *string `json:"banner,omitempty"`
+}
+
+var profileImageRegex = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,`)
+
+func (req StateGuildProfileUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Nick, validation.RuneLength(0, 32)),
+		validation.Field(&req.Bio, validation.RuneLength(0, 190)),
+		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
+		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
+	)
+}
+
+type StateGuildProfileUpdateResponse = Empty
 
 func ChannelToWire(channel *discord.Channel) *Channel {
 	if channel == nil {
@@ -104,3 +179,13 @@ func RoleToWire(role *discord.Role) *Role {
 		Position: role.Position,
 	}
 }
+
+// StateGuildEmojis are the custom emojis of one guild the app is in. The app
+// can use them in messages and components like its own emojis.
+type StateGuildEmojis struct {
+	GuildID   string      `json:"guild_id"`
+	GuildName string      `json:"guild_name"`
+	Emojis    []*AppEmoji `json:"emojis"`
+}
+
+type StateEmojiListResponse = []*StateGuildEmojis

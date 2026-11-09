@@ -49,17 +49,27 @@ func (q *Queries) DeleteSession(ctx context.Context, keyHash string) error {
 }
 
 const getSession = `-- name: GetSession :one
-SELECT key_hash, user_id, created_at, expires_at FROM sessions WHERE key_hash = $1
+SELECT sessions.key_hash, sessions.user_id, sessions.created_at, sessions.expires_at, user_bans.reason AS kite_ban_reason
+FROM sessions
+LEFT JOIN user_bans ON user_bans.user_id = sessions.user_id AND user_bans.feature = 'kite'
+WHERE sessions.key_hash = $1
 `
 
-func (q *Queries) GetSession(ctx context.Context, keyHash string) (Session, error) {
+type GetSessionRow struct {
+	Session       Session
+	KiteBanReason pgtype.Text
+}
+
+// With the reason if Kite banned the user, so checking needs no extra query.
+func (q *Queries) GetSession(ctx context.Context, keyHash string) (GetSessionRow, error) {
 	row := q.db.QueryRow(ctx, getSession, keyHash)
-	var i Session
+	var i GetSessionRow
 	err := row.Scan(
-		&i.KeyHash,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.ExpiresAt,
+		&i.Session.KeyHash,
+		&i.Session.UserID,
+		&i.Session.CreatedAt,
+		&i.Session.ExpiresAt,
+		&i.KiteBanReason,
 	)
 	return i, err
 }

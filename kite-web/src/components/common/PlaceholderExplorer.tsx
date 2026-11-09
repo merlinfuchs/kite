@@ -37,10 +37,12 @@ export default function PlaceholderExplorer({
   tab,
   tabs,
   onTabChange,
+  onOpenChange: onOpenChangeProp,
+  header,
   hideBrackets,
 }: {
   children: ReactNode;
-  onSelect: (value: string) => void;
+  onSelect: (value: string, raw?: boolean) => void;
   placeholders: PlaceholderGroup[];
   tab?: string;
   tabs?: {
@@ -48,6 +50,9 @@ export default function PlaceholderExplorer({
     value: string;
   }[];
   onTabChange?: (value: string) => void;
+  onOpenChange?: (open: boolean) => void;
+  // Shown above the placeholders, e.g. for inputs that change them.
+  header?: ReactNode;
   hideBrackets?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -90,7 +95,7 @@ export default function PlaceholderExplorer({
       Math.max(
         0,
         ...group.placeholders.map((p) =>
-          defaultFilter(p.value, search, [p.label, group.label])
+          defaultFilter(p.value, search, placeholderKeywords(p, group))
         )
       );
     return flatGroups
@@ -111,9 +116,12 @@ export default function PlaceholderExplorer({
     ? [activeGroup]
     : [];
 
-  const highlighted = visibleGroups
-    .flatMap((g) => g.placeholders)
-    .find((p) => p.value === selected);
+  // Values can change while they're shown, like the timestamps of a time the
+  // header sets, so a value that's gone falls back to the first one.
+  const visiblePlaceholders = visibleGroups.flatMap((g) => g.placeholders);
+  const highlighted =
+    visiblePlaceholders.find((p) => p.value === selected) ??
+    visiblePlaceholders[0];
 
   // The fields of an opened value leave out its value, like .name of
   // user.top_role.name, as it's the same for all of them.
@@ -151,7 +159,7 @@ export default function PlaceholderExplorer({
       showFields(placeholder, group);
       return;
     }
-    onSelect(placeholder.value);
+    onSelect(placeholder.value, placeholder.raw);
     onOpenChange(false);
   }
 
@@ -184,6 +192,7 @@ export default function PlaceholderExplorer({
 
   function onOpenChange(open: boolean) {
     setOpen(open);
+    onOpenChangeProp?.(open);
     if (!open) {
       setSearch("");
       setSelected("");
@@ -230,7 +239,7 @@ export default function PlaceholderExplorer({
       >
         <Command
           className="min-h-0"
-          value={selected}
+          value={highlighted?.value ?? ""}
           onValueChange={setSelected}
           onKeyDown={onKeyDown}
         >
@@ -271,6 +280,10 @@ export default function PlaceholderExplorer({
                 </TabsList>
               </Tabs>
             </div>
+          )}
+          {header && (
+            // Keys typed into the header must not move the list selection.
+            <div onKeyDown={(e) => e.stopPropagation()}>{header}</div>
           )}
           {/* On small screens the categories are a row above the list, so
               the list keeps the full width. */}
@@ -327,7 +340,7 @@ export default function PlaceholderExplorer({
                     <CommandItem
                       key={placeholder.value}
                       value={placeholder.value}
-                      keywords={[placeholder.label, group.label]}
+                      keywords={placeholderKeywords(placeholder, group)}
                       onSelect={() => pick(placeholder, group)}
                       className="flex items-center gap-3"
                     >
@@ -336,9 +349,18 @@ export default function PlaceholderExplorer({
                       </span>
                       {/* The labels of search results are long, like User
                           Top Role Name, and the footer shows the value. */}
+                      {/* Raw values are long, like <t:...:R>, so the
+                          description says what they are instead. */}
                       {!searching && (
-                        <span className="max-w-[40%] truncate font-mono text-xs text-muted-foreground">
-                          {shortValue(placeholder.value)}
+                        <span
+                          className={cn(
+                            "max-w-[40%] truncate text-xs text-muted-foreground",
+                            !placeholder.raw && "font-mono"
+                          )}
+                        >
+                          {placeholder.raw
+                            ? placeholder.description
+                            : shortValue(placeholder.value)}
                         </span>
                       )}
                       {!!placeholder.fields?.length && (
@@ -350,26 +372,30 @@ export default function PlaceholderExplorer({
               ))}
             </CommandList>
           </div>
-          {highlighted && (
-            <div className="border-t px-3 py-2 text-xs">
-              {highlighted.fields?.length ? (
-                <div className="text-muted-foreground">
-                  {fieldsSummary(highlighted.fields)}
-                </div>
-              ) : (
-                <div className="font-mono break-all">
-                  {hideBrackets
-                    ? highlighted.value
-                    : `{{${highlighted.value}}}`}
-                </div>
-              )}
-              {highlighted.description && (
-                <div className="mt-1 text-muted-foreground">
-                  {highlighted.description}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Always two lines high, so the list doesn't move when only some
+              placeholders have a description. */}
+          <div className="border-t px-3 py-2 text-xs flex-none min-h-[52px]">
+            {highlighted && (
+              <>
+                {highlighted.fields?.length ? (
+                  <div className="text-muted-foreground">
+                    {fieldsSummary(highlighted.fields)}
+                  </div>
+                ) : (
+                  <div className="font-mono break-all">
+                    {hideBrackets || highlighted.raw
+                      ? highlighted.value
+                      : `{{${highlighted.value}}}`}
+                  </div>
+                )}
+                {highlighted.description && (
+                  <div className="mt-1 text-muted-foreground">
+                    {highlighted.description}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
@@ -387,4 +413,12 @@ function fieldsSummary(fields: Placeholder[]) {
   return fields.length > names.length
     ? `${fields.length} fields, like ${list}`
     : `Fields: ${list}`;
+}
+
+// The search terms of a placeholder besides its value.
+function placeholderKeywords(
+  placeholder: Placeholder,
+  group: PlaceholderGroup
+) {
+  return [placeholder.label, group.label, ...(placeholder.keywords ?? [])];
 }

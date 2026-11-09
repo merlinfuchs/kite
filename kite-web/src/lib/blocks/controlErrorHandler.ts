@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const controlErrorHandler: BlockDefinition = {
   type: "control_error_handler",
+  id_prefix: "error",
   title: "Handle Errors",
   description: "Handle errors that occur in the flow after this block.",
   icon: "circle-alert",

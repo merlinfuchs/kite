@@ -31,7 +31,7 @@ export default function MessageSendInstanceEntry({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Message instance updated!");
+            toast.success("Message instance updated.");
           } else {
             toast.error(
               `Failed to update message instance: ${res.error.message} (${res.error.code})`

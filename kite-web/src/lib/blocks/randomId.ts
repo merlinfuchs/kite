@@ -8,6 +8,7 @@ const lengthMessage = "Must be a whole number, or a single {{ }} placeholder";
 
 export const randomId: BlockDefinition = {
   type: "action_random_id",
+  id_prefix: "randomid",
   title: "Generate Random ID",
   description: "Generate a random ID or code",
   icon: "fingerprint",

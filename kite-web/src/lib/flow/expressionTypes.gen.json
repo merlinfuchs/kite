@@ -29,6 +29,11 @@
         "name": "latency",
         "type": "int",
         "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+      },
+      {
+        "name": "user_install_count",
+        "type": "int",
+        "description": "Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"
       }
     ],
     "attachment": [
@@ -76,6 +81,11 @@
         "name": "type",
         "type": "string",
         "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
+      },
+      {
+        "name": "guild_id",
+        "type": "string",
+        "description": "The ID of the server the channel is in, empty for direct messages and if it isn't known"
       },
       {
         "name": "category_id",
@@ -349,6 +359,29 @@
         "name": "author",
         "type": "user",
         "description": "Empty if only the ID of the message is known, like for reactions"
+      },
+      {
+        "name": "reactions",
+        "type": "reaction",
+        "list": true,
+        "description": "Empty for the message of an event, get the message with a block to count its reactions"
+      },
+      {
+        "name": "mentions",
+        "type": "user",
+        "list": true,
+        "description": "Users the message pings, including the author of the message it replies to if the reply pings them"
+      }
+    ],
+    "reaction": [
+      {
+        "name": "emoji",
+        "type": "emoji"
+      },
+      {
+        "name": "count",
+        "type": "int",
+        "description": "How many users reacted with the emoji"
       }
     ],
     "roblox_user": [
@@ -384,6 +417,11 @@
       {
         "name": "external_app_display_name",
         "type": "string"
+      },
+      {
+        "name": "avatar_url",
+        "type": "string",
+        "description": "URL of a 150x150 PNG of the avatar's head, empty if Roblox has none. Expires after about 30 days"
       }
     ],
     "role": [

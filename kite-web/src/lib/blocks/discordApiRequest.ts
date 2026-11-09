@@ -5,11 +5,12 @@ import { BlockDefinition } from "./types";
 
 export const discordApiRequest: BlockDefinition = {
   type: "action_discord_api_request",
+  id_prefix: "api",
   title: "Discord API Request",
   description:
     "Send a request to any endpoint of the Discord API, for things no other block does",
   icon: "braces",
-  category: "API Requests",
+  category: "API requests",
   requires: ["discord"],
   credits: 1,
   fields: [

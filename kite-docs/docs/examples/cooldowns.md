@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Long Cooldowns with Stored Variables
+# Long cooldowns with stored variables
 
 For most commands, use the [Command Cooldown](../reference/blocks/options/option_command_cooldown.md) block. It's kept in memory, so it's limited to 1 hour and resets when Kite restarts.
 
@@ -12,15 +12,15 @@ Build the cooldown from stored variables instead when you need:
 - Cooldowns on event listeners, which can't use the block.
 - A cooldown on only part of a flow, like one branch, or one that only starts once the flow succeeds.
 
-![Cooldown Result](./img/cooldown-result.png)
+![Cooldown Result](./img/cooldown-result.webp)
 
-## Step 1 - Creating a variable
+## Step 1. Creating a variable
 
-- Create a variable named \"cooldown\" from your [Kite](https://kite.onl/) dashboard - **Stored Variables** tab.
+- Create a variable named \"cooldown\" from your [Kite](https://kite.onl/) dashboard, on the **Stored variables** page.
 - Set the variable as scoped.
 
 :::info
-### Usage of scopes ⚙️
+### Usage of scopes
  
 - **`user.id` - for user-specific cooldowns**
    - _if `x` user invokes the command, it won't affect `y` user._
@@ -31,7 +31,7 @@ Build the cooldown from stored variables instead when you need:
 
 :::
 
-## Step 2 - Comparing values
+## Step 2. Comparing values
 
 - Add these blocks before your actual command flow/actions :
   - **Get Stored Variable**
@@ -61,7 +61,7 @@ Replace "2m" with your desired duration. (see below)
 :::
 
 ::::info
-### 📌 Correct Usage for `duration`
+### Correct usage of `duration`
 
 - Valid time units are \"s\", \"m\", \"h\".  
 _for eg._
@@ -78,21 +78,21 @@ Days tag - **\"d\" is not accepted**
 :::
 ::::
 
-## Step 3 - Response
+## Step 3. Responding
 
 - **_if the condition is true_** :
   - _You're on cooldown. You can run the command again - `<t:{{result('GET_VARIABLE') + duration("2m").Seconds()}}:R>`_
 - **else** :
   - _connect your original command flow_
 
-## Step 4 - Setting variable value
+## Step 4. Setting the variable's value
 At the end of your actual command flow, add the **Set Stored Variable** block
 - **Variable** : `cooldown`
 - **Scope** : `{{user.id}}` / `{{guild.id}}` / `0`  [ see above for correct usage ]
 - **Operation** - `overwrite`
 - **Value** - `{{now().Unix()}}`
 
-![Cooldown Flow](./img/cooldowns-flow.png)
+![Cooldown Flow](./img/cooldowns-flow.webp)
 
 :::tip
 *If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*

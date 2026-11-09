@@ -3,51 +3,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CopyButton from "@/tools/common/components/CopyButton";
 import { useEffect, useState } from "react";
-import { formatRelative } from "@/tools/common/utils/time";
-
-const styles: {
-  style: string;
-  name: string;
-  format: Intl.DateTimeFormatOptions | "relative";
-}[] = [
-  { style: "t", name: "Short time", format: { timeStyle: "short" } },
-  { style: "T", name: "Long time", format: { timeStyle: "medium" } },
-  {
-    style: "d",
-    name: "Short date",
-    format: { year: "numeric", month: "2-digit", day: "2-digit" },
-  },
-  { style: "D", name: "Long date", format: { dateStyle: "long" } },
-  {
-    style: "f",
-    name: "Short date and time",
-    format: { dateStyle: "long", timeStyle: "short" },
-  },
-  {
-    style: "F",
-    name: "Long date and time",
-    format: { dateStyle: "full", timeStyle: "short" },
-  },
-  { style: "R", name: "Relative", format: "relative" },
-];
-
-function preview(
-  unix: number,
-  format: Intl.DateTimeFormatOptions | "relative"
-) {
-  if (format === "relative") return formatRelative(unix);
-  return new Intl.DateTimeFormat(undefined, format).format(unix * 1000);
-}
+import {
+  discordTimestampStyles,
+  formatDiscordTimestampStyle,
+  toLocalInput,
+} from "@/tools/common/utils/time";
 
 // The latest moment a JavaScript Date can hold, in seconds.
 const maxUnix = 8.64e12;
-
-// The value of a datetime-local input is in the local time zone, without one.
-function toLocalInput(unix: number) {
-  const date = new Date(unix * 1000);
-  const offset = date.getTimezoneOffset() * 60 * 1000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 19);
-}
 
 export default function TimestampGenerator() {
   // Starts empty so the server render doesn't depend on the current time.
@@ -107,7 +70,7 @@ export default function TimestampGenerator() {
       </div>
 
       <div className="rounded-lg border divide-y">
-        {styles.map(({ style, name, format }) => {
+        {discordTimestampStyles.map(({ style, name }) => {
           const code = `<t:${unix}:${style}>`;
           return (
             <div
@@ -121,7 +84,7 @@ export default function TimestampGenerator() {
               <div className="flex-auto">
                 {/* Discord highlights timestamps like this in messages. */}
                 <span className="rounded bg-[#e3e5e8] dark:bg-[#3f4147] px-1.5 py-0.5">
-                  {preview(unix, format)}
+                  {formatDiscordTimestampStyle(unix, style)}
                 </span>
               </div>
               <CopyButton value={code} />

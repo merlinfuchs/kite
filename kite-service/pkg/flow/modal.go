@@ -254,7 +254,7 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 		if err != nil {
 			return nil, err
 		}
-		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxSelectOptions, maxValues)
+		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxSelectOptions, maxValues, true)
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +280,7 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 			return nil, err
 		}
 	case ModalComponentTypeRadioGroup:
-		options, err := buildModalOptions(ctx, c.Options, modalMinRadioOptions, modalMaxGroupOptions, 1)
+		options, err := buildModalOptions(ctx, c.Options, modalMinRadioOptions, modalMaxGroupOptions, 1, false)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 		if err != nil {
 			return nil, err
 		}
-		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxGroupOptions, maxValues)
+		options, err := buildModalOptions(ctx, c.Options, 1, modalMaxGroupOptions, maxValues, false)
 		if err != nil {
 			return nil, err
 		}
@@ -318,8 +318,9 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 }
 
 // buildModalOptions evaluates the options of an input that up to maxValues of
-// can be picked.
-func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min, max, maxValues int) ([]map[string]any, error) {
+// can be picked. Discord only shows emojis on the options of select menus, so
+// withEmoji is false for radio and checkbox groups.
+func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min, max, maxValues int, withEmoji bool) ([]map[string]any, error) {
 	if len(options) < min || len(options) > max {
 		return nil, fmt.Errorf("modal input must have between %d and %d options, got %d", min, max, len(options))
 	}
@@ -368,6 +369,17 @@ func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min
 		if o.Default {
 			option["default"] = true
 			defaults++
+		}
+		if o.Emoji != nil && (o.Emoji.ID != "" || o.Emoji.Name != "") {
+			if !withEmoji {
+				return nil, fmt.Errorf("option %d has an emoji, but only the options of select menus can have one", i+1)
+			}
+			if o.Emoji.ID != "" {
+				if _, err := discord.ParseSnowflake(o.Emoji.ID); err != nil {
+					return nil, fmt.Errorf("option %d has an invalid emoji ID: %w", i+1, err)
+				}
+			}
+			option["emoji"] = o.Emoji
 		}
 
 		res[i] = option

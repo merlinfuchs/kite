@@ -5,11 +5,13 @@ import { BlockDefinition } from "./types";
 
 export const discordThreadMemberAdd: BlockDefinition = {
   type: "action_thread_member_add",
+  id_prefix: "thread",
   title: "Add member to thread",
   description: "Add a member to a thread",
   icon: "user-plus",
   category: "Channels",
   credits: 1,
+  permissions: ["MANAGE_THREADS"],
   run: {
     kind: "request",
     integration: "discord",

@@ -14,13 +14,13 @@ describe("applyFlowEdits", () => {
     getOwnedChildTypes("action_log");
     getOwnerTypes("action_log");
 
-    // The first ID is log_aaaaa, which is taken, then log_bbbbb.
+    // The first ID is log_aaa, which is taken, then log_bbb.
     let calls = 0;
     vi.spyOn(Math, "random").mockImplementation(() =>
-      calls++ < 5 ? 0 : 1 / 36
+      calls++ < 3 ? 0 : 1 / 36
     );
 
-    const entry = testNode("log_aaaaa", "entry_command", {
+    const entry = testNode("log_aaa", "entry_command", {
       name: "test",
       description: "Test",
     });
@@ -32,13 +32,13 @@ describe("applyFlowEdits", () => {
           ref: "$log",
           type: "action_log",
           data: { log_level: "info", log_message: "hi" },
-          after: "log_aaaaa",
+          after: "log_aaa",
         },
       ],
       "command"
     );
-    expect(res.refs.$log).toBe("log_bbbbb");
-    expect(res.nodes.map((n) => n.id)).toEqual(["log_aaaaa", "log_bbbbb"]);
+    expect(res.refs.$log).toBe("log_bbb");
+    expect(res.nodes.map((n) => n.id)).toEqual(["log_aaa", "log_bbb"]);
     expect(res.issues).toEqual([]);
   });
 });

@@ -1,0 +1,37 @@
+{
+  "name": "Kite",
+  "short_name": "Kite",
+  "description": "A free Discord bot maker. Build commands and event listeners by connecting blocks, and Kite hosts the bot 24/7.",
+  "id": "/apps",
+  "start_url": "/apps",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#141211",
+  "theme_color": "#141211",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

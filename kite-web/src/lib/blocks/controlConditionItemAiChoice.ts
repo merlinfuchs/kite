@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionItemAiChoice: BlockDefinition = {
   type: "control_condition_item_ai_choice",
+  id_prefix: "condition",
   title: "Option",
   description: "Run actions if the AI picks this option.",
   icon: "circle-help",

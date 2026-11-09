@@ -108,7 +108,7 @@ export default function LogSummaryCard() {
               },
             }}
           >
-            View Logs
+            View logs
           </Link>
         </Button>
       </CardFooter>

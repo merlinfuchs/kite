@@ -23,7 +23,7 @@ export default function AppLogsPage() {
             target="_blank"
             className="text-primary hover:underline"
           >
-            Learn More
+            Learn more
           </a>
         </p>
       </div>

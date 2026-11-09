@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
@@ -100,6 +101,12 @@ func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
 		return false
 	}
 
+	// Derived events like guildevent.MessageDelete can have the type of the
+	// Discord event they come from, which plugins already get.
+	if _, ok := event.(guildevent.Event); ok {
+		return false
+	}
+
 	return p.eventTypes[event.EventType()]
 }
 
@@ -136,7 +143,7 @@ func (p *pluginInstance) pluginContext(ctx context.Context, session *state.State
 		Context:       ctx,
 		ValueProvider: NewValueProvider(p.model.ID, p.env.PluginValueStore),
 		appID:         p.model.AppID,
-		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, p.env.FeatureProvider, p.env.BlockRateLimiter, session),
+		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, p.env.FeatureProvider, p.env.BlockRateLimiter, p.env.WebhookCache, session, p.env.Voice),
 	}
 }
 

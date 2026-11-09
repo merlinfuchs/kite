@@ -56,8 +56,9 @@ function defaultValues(value?: VariableValue): FormFields {
 }
 
 // Values a flow stored that can't be entered as text, ones too large to load,
-// and ones whose scope doesn't fit the variable, like a scoped value in an
-// unscoped variable, can only be viewed.
+// and ones whose scope doesn't fit the variable, like a scoped value flows
+// stored in an unscoped variable before they ignored the scope, can only be
+// viewed.
 export function isValueReadOnly(variable: Variable, value: VariableValue) {
   return (
     value.read_only ||
@@ -100,7 +101,7 @@ export default function VariableValueDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Value saved!");
+            toast.success("Value saved.");
             setOpen(false);
           } else if (res.error.code === "validation_failed") {
             setValidationErrors(form, res.error.data);
@@ -127,7 +128,7 @@ export default function VariableValueDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {readOnly ? "View Value" : value ? "Edit Value" : "Add Value"}
+            {readOnly ? "View value" : value ? "Edit value" : "Add value"}
           </DialogTitle>
           <DialogDescription>
             {readOnly

@@ -23,13 +23,20 @@ var (
 	secretMentionRe = regexp.MustCompile(`(?:^|[^.\w])secrets\b`)
 )
 
-// secretNames are the secrets the templates reference. Only placeholders are
-// searched, as text like secrets.txt in a URL doesn't reference a secret.
+// secretNames are the secrets the templates reference.
 func secretNames(templates []string) []string {
+	return placeholderReferences(templates, secretReferenceRe)
+}
+
+// placeholderReferences are the names the placeholders of the templates use
+// after a root like secrets or params, in the order they're first used. Only
+// placeholders are searched, as text like secrets.txt in a URL doesn't
+// reference anything.
+func placeholderReferences(templates []string, re *regexp.Regexp) []string {
 	var names []string
 	for _, template := range templates {
 		for _, p := range placeholderRe.FindAllStringSubmatch(template, -1) {
-			for _, m := range secretReferenceRe.FindAllStringSubmatch(p[1], -1) {
+			for _, m := range re.FindAllStringSubmatch(p[1], -1) {
 				if !slices.Contains(names, m[1]) {
 					names = append(names, m[1])
 				}

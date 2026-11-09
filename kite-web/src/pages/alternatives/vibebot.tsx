@@ -4,14 +4,14 @@ import ComparisonPage, {
 import { freeFaq, noCodeFaq, openSourcePoint } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free VibeBot Alternative",
+  title: "Free VibeBot alternative",
   description:
     "Looking for a VibeBot alternative? Kite is a free, open source Discord bot maker. Get your own bot with AI help and 24/7 hosting. No trial and no credit card.",
   competitor: "VibeBot",
   lastChecked: "October 2026",
-  heading: "A Free VibeBot Alternative",
+  heading: "A free VibeBot alternative",
   intro:
-    "Kite and VibeBot both let you make a Discord bot by describing what it should do. VibeBot's AI writes code for your bot, while Kite's AI builds blocks you can see and change. On VibeBot your own bot costs from $5 a month after a 3-day trial. On Kite it's free.",
+    "Kite and VibeBot both let you make a Discord bot by describing what it should do. VibeBot's AI writes code for your bot. Kite's Flow AI builds blocks you can see and change. On VibeBot your own bot costs $5 a month, or $10 with the AI builder, and the 3-day trial turns into the $10 plan. On Kite it's free.",
   chooseKite: [
     "You want your own bot without paying",
     "You don't want to add a card to get started",
@@ -27,7 +27,7 @@ const content: ComparisonPageContent = {
     {
       feature: "Your own bot",
       kite: "Free",
-      competitor: "From $5/month after a 3-day trial",
+      competitor: "$5/month, $10/month with the AI builder",
     },
     {
       feature: "Free plan",
@@ -67,17 +67,17 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "Your Own Bot for Free",
+      title: "Your own bot for free",
       description:
         "VibeBot's free option is a shared bot that always has the VibeBot name and avatar. Your own bot needs Lite ($5/month) or Pro ($10/month) after the trial. On Kite your bot has your own name and avatar for free.",
     },
     {
-      title: "See Every Step",
+      title: "See every step",
       description:
-        "When Kite's AI builds a command, you get connected blocks you can read and change. You don't need to read code to know what your bot does.",
+        "When Flow AI builds a command, you get connected blocks you can read and change. You don't need to read code to know what your bot does.",
     },
     {
-      title: "Up to 10 Free Bots",
+      title: "Up to 10 free bots",
       description:
         "VibeBot's plans include 1 bot and each extra bot costs $5 a month. You can make up to 10 bots on Kite without paying.",
     },

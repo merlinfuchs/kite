@@ -53,3 +53,22 @@ export function formatNumber(x: number | undefined | null) {
 export function formatInterval(seconds: number) {
   return formatDuration(intervalToDuration({ start: 0, end: seconds * 1000 }));
 }
+
+// Credits and AI prompts are counted per calendar month in UTC.
+export function monthlyResetDate(now = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1));
+}
+
+export function formatMonthlyResetDate(): string {
+  return formatUTCDay(monthlyResetDate());
+}
+
+// formatUTCDay formats a date like "November 1" on the UTC calendar, which
+// credits are counted by.
+export function formatUTCDay(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}

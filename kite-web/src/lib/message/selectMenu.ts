@@ -6,17 +6,17 @@ export const selectMenuTypes: {
   /** What the flow receives in interaction.values when something is picked. */
   values: string;
 }[] = [
-  { type: 3, label: "Select Menu", values: "the values of the picked options" },
-  { type: 5, label: "User Select", values: "the IDs of the picked users" },
-  { type: 6, label: "Role Select", values: "the IDs of the picked roles" },
+  { type: 3, label: "Select menu", values: "the values of the picked options" },
+  { type: 5, label: "User select", values: "the IDs of the picked users" },
+  { type: 6, label: "Role select", values: "the IDs of the picked roles" },
   {
     type: 7,
-    label: "Mentionable Select",
+    label: "Mentionable select",
     values: "the IDs of the picked users and roles",
   },
   {
     type: 8,
-    label: "Channel Select",
+    label: "Channel select",
     values: "the IDs of the picked channels",
   },
 ];
@@ -33,9 +33,9 @@ export const channelTypeOptions = [
   { label: "Voice", value: "2" },
   { label: "Category", value: "4" },
   { label: "Announcement", value: "5" },
-  { label: "Announcement Thread", value: "10" },
-  { label: "Public Thread", value: "11" },
-  { label: "Private Thread", value: "12" },
+  { label: "Announcement thread", value: "10" },
+  { label: "Public thread", value: "11" },
+  { label: "Private thread", value: "12" },
   { label: "Stage", value: "13" },
   { label: "Forum", value: "15" },
   { label: "Media", value: "16" },

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
 	"sync"
 	"time"
 
@@ -32,6 +30,10 @@ type GatewayManagerConfig struct {
 	RemoveDanglingInterval time.Duration
 	PopulateOverlap        time.Duration
 	StartInterval          time.Duration
+
+	// AppBaseURL is where the Kite app runs, for the link in the reply of
+	// paused apps.
+	AppBaseURL string
 }
 
 // defaultStartInterval paces gateway starts when none is configured.
@@ -124,6 +126,24 @@ func (m *GatewayManager) Run(ctx context.Context) {
 		}
 	}()
 
+	// Separate from the loop above, so disabling apps while the database is
+	// slow doesn't hold up starting and stopping gateways.
+	go func() {
+		guildLimitsTicker := time.NewTicker(time.Minute)
+		defer guildLimitsTicker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-guildLimitsTicker.C:
+				if err := m.enforceGuildLimits(ctx); err != nil {
+					slog.With("error", err).Error("failed to enforce guild limits")
+				}
+			}
+		}
+	}()
+
 	// Separate from the loop above, as a batch of requests to Discord can
 	// take a while.
 	go func() {
@@ -166,20 +186,28 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
 	}
 
-	queryStart = time.Now()
-	changedReqAppIDs, err := m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
-	metrics.ObservePoll("gateway_requirements_changed", queryStart)
-	if err != nil {
-		return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+	// Without gateways, like on the first poll, there are no intents to
+	// refresh. Skipping the query then saves reading every flow, since the
+	// cursor is still zero.
+	m.Lock()
+	hasGateways := len(m.gateways) != 0
+	m.Unlock()
+
+	var changedReqAppIDs []string
+	if hasGateways {
+		queryStart = time.Now()
+		changedReqAppIDs, err = m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
+		metrics.ObservePoll("gateway_requirements_changed", queryStart)
+		if err != nil {
+			return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+		}
 	}
 
 	m.removeGateways(disabledAppIDs)
 
-	// Must stay ahead of startGateways. On the first poll the cursor is zero,
-	// so changedReqAppIDs contains every app that has any listener or plugin
-	// instance -- tens of thousands. Running before any gateway exists makes
-	// those all cheap map misses; running after would instead mean one
-	// database query and one Discord round trip each, serially.
+	// Must stay ahead of startGateways. Running after would mean one database
+	// query and one Discord round trip for each app that changed, serially,
+	// including the ones whose gateways were just started.
 	//
 	// Nothing is lost by refreshing first: gateways started below compute
 	// their intents from the same rows before they connect.
@@ -273,6 +301,59 @@ func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) erro
 
 	for _, g := range gateways {
 		g.rotatePresence(ctx, now, features[g.appID].RotatingStatus)
+	}
+	return nil
+}
+
+// enforceGuildLimits disables apps whose bot is in more servers than their
+// plan allows, once for each READY. It runs here instead of on READY, so a
+// reconnect of every gateway doesn't look up the plan of every app at once,
+// and a failed lookup or disable is retried instead of limiting paid apps to
+// the default plan.
+func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
+	// No plan allows fewer servers than the default one.
+	defaultLimit := m.planManager.DefaultFeatures().MaxGuilds
+
+	m.Lock()
+	guilds := map[*Gateway]int{}
+	var appIDs []string
+	for _, g := range m.gateways {
+		if count := int(g.readyGuilds.Load()); count > defaultLimit {
+			guilds[g] = count
+			appIDs = append(appIDs, g.appID)
+		}
+	}
+	m.Unlock()
+
+	if len(appIDs) == 0 {
+		return nil
+	}
+
+	lookupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	features, err := m.planManager.AppFeaturesForApps(lookupCtx, appIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+
+	for g, count := range guilds {
+		limit := features[g.appID].MaxGuilds
+		if count > limit {
+			reason := fmt.Sprintf(
+				"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
+				count, limit,
+			)
+			disabled, err := g.disableApp(reason)
+			if err != nil {
+				continue
+			}
+			if disabled {
+				g.createLogEntry(model.LogLevelError, reason)
+			}
+		}
+		// Unless a new READY came in meanwhile.
+		g.readyGuilds.CompareAndSwap(int64(count), 0)
 	}
 	return nil
 }
@@ -399,7 +480,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry, m.config.AppBaseURL)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}
@@ -422,20 +503,30 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	return g, nil
 }
 
-// AppIDs returns the apps with a gateway on this cluster.
+// AppIDs returns the apps with a gateway on this cluster that run flows, like
+// AppSession.
 func (m *GatewayManager) AppIDs() []string {
 	m.Lock()
 	defer m.Unlock()
 
-	return slices.Collect(maps.Keys(m.gateways))
+	ids := make([]string, 0, len(m.gateways))
+	for id, g := range m.gateways {
+		if !g.paused() {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
+// AppSession is what flows run with, so it's missing for paused apps, which
+// run no flows. Schedules, webhooks and timers then wait as if the app was
+// offline.
 func (m *GatewayManager) AppSession(ctx context.Context, appID string) (*state.State, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	g, ok := m.gateways[appID]
-	if !ok {
+	if !ok || g.paused() {
 		return nil, store.ErrNotFound
 	}
 

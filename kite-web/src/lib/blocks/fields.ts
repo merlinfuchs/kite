@@ -1,5 +1,6 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import {
+  numericOrPlaceholder,
   channelDataSchema,
   channelTargetSchema,
   guildTargetSchema,
@@ -14,7 +15,7 @@ import {
   variableScopeSchema,
 } from "../flow/dataSchema";
 import { onlyPlainSecrets, templateSecretNames } from "../flow/templateSecrets";
-import { BlockField } from "./types";
+import { BlockField, SettingsSchema } from "./types";
 
 // Settings many blocks share, with the schema and editor input they have in
 // every block.
@@ -54,6 +55,33 @@ export const responseTargetSetting: BlockField = {
 export const channelDataSetting: BlockField = {
   name: "channel_data",
   schema: channelDataSchema,
+};
+
+// The user of the Roblox blocks, by ID or username, or a Roblox user result.
+export const robloxUserSettings: BlockField[] = [
+  {
+    name: "roblox_user_target",
+    schema: templated(
+      z.string(),
+      "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member."
+    ),
+  },
+  {
+    name: "roblox_lookup_mode",
+    schema: z
+      .enum(["id", "username"])
+      .optional()
+      .describe(
+        "Whether roblox_user_target is an ID or a username. Defaults to id."
+      ),
+  },
+];
+
+export const robloxGroupIdSetting: BlockField = {
+  name: "roblox_group_id",
+  schema: numericOrPlaceholder(
+    "ID of the Roblox group, the number in the group's link."
+  ),
 };
 
 export const variableSettings: BlockField[] = [
@@ -154,7 +182,7 @@ export function conditionFields(
 // like condition_item_user_mode.
 export function conditionItemFields(
   kind: string,
-  modeSchema: z.ZodTypeAny,
+  modeSchema: z.ZodType,
   valueDescription: string
 ): BlockField[] {
   return [
@@ -173,8 +201,9 @@ export function conditionItemFields(
 
 // A secret in a condition's value only works on its own, like
 // {{secrets.TOKEN}}, and with equal and not equal. Otherwise whoever controls
-// the base value could guess it.
-export function secretsOnlyWithEquality(schema: AnyZodObject) {
+// the base value could guess it. Ignoring case would let a token with the
+// wrong case through.
+export function secretsOnlyWithEquality(schema: SettingsSchema) {
   return schema.superRefine((data, ctx) => {
     const value = data.condition_item_value ?? "";
     if (templateSecretNames(value).length === 0) return;
@@ -195,6 +224,14 @@ export function secretsOnlyWithEquality(schema: AnyZodObject) {
         path: ["condition_item_value"],
       });
     }
+
+    if (data.condition_item_ignore_case) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can't be compared with Ignore Case",
+        path: ["condition_item_ignore_case"],
+      });
+    }
   });
 }
 
@@ -213,11 +250,76 @@ export const messageTemplateField: BlockField = {
   ).optional(),
 };
 
-export function requireMessage(schema: AnyZodObject) {
+export function requireMessage(schema: SettingsSchema) {
   return schema
     .refine(
       (data) => !!data.message_data || !!data.message_template_id,
       "Either message_data or message_template_id is required"
     )
     .describe("Set either message_data or message_template_id.");
+}
+
+// The settings of a role, for creating one or editing one, where empty
+// settings keep what the role has.
+export function roleDataFields(edit: boolean): BlockField[] {
+  const describe = (description: string, created = "") =>
+    `${description} ${
+      edit ? "Leave empty to keep the current one." : created
+    }`.trim();
+  return [
+    {
+      name: "name",
+      in: "body",
+      type: "string",
+      label: "Name",
+      description: describe("Name of the role.", "Defaults to 'new role'."),
+      max_length: 100,
+    },
+    {
+      name: "permissions",
+      in: "body",
+      type: "string",
+      label: "Permissions",
+      description: describe(
+        "Permissions of the role.",
+        "Defaults to the ones of @everyone."
+      ),
+      widget: "permissions",
+    },
+    {
+      name: "color",
+      in: "body",
+      type: "color",
+      label: "Color",
+      description: describe(
+        `Color of the role, a hex code like #ff0000 or a number like 16711680. ${
+          edit ? "0 removes it." : ""
+        }`.trim(),
+        "Defaults to no color."
+      ),
+      min: 0,
+      max: 16777215,
+    },
+    {
+      name: "hoist",
+      in: "body",
+      type: "boolean",
+      label: "Show Separately",
+      description: describe(
+        "Whether members with the role are shown separately in the member list."
+      ),
+    },
+    {
+      name: "mentionable",
+      in: "body",
+      type: "boolean",
+      label: "Mentionable",
+      description: describe("Whether everyone can mention the role."),
+    },
+  ];
+}
+
+// values are the values of select options, for z.enum.
+export function values<T extends string>(options: readonly { value: T }[]) {
+  return options.map((o) => o.value) as [T, ...T[]];
 }

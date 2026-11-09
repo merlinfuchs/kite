@@ -22,3 +22,17 @@ func decodeRows[R, M any](rows []R, decode func(R) (M, error), attrs func(R) []a
 	}
 	return res
 }
+
+// decodeAll decodes the rows, or fails if one of them can't be. Unlike
+// decodeRows it's for loads where a skipped row would be taken as deleted.
+func decodeAll[R, M any](rows []R, decode func(R) (M, error)) ([]M, error) {
+	res := make([]M, len(rows))
+	for i, row := range rows {
+		m, err := decode(row)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = m
+	}
+	return res, nil
+}

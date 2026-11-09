@@ -1,8 +1,5 @@
 import { CronExpressionParser } from "cron-parser";
 import cronstrue from "cronstrue";
-import { Node } from "@xyflow/react";
-import { getNodeCreditsCost, getNodeValues } from "./nodes";
-import { NodeData } from "./dataSchema";
 
 // Mirrors the server, which checks the same number of upcoming runs.
 const gapSamples = 100;
@@ -61,17 +58,4 @@ export function describeSchedule(cron: string): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-// getFlowCreditsCost is the cost of one run if every block runs once.
-export function getFlowCreditsCost(nodes: Node[]) {
-  return nodes.reduce(
-    (sum, node) =>
-      sum +
-      (getNodeCreditsCost(
-        getNodeValues(node.type || ""),
-        node.data as NodeData
-      ) ?? 0),
-    0
-  );
 }

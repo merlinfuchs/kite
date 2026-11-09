@@ -80,6 +80,7 @@ func (c *Client) Answer(ctx context.Context, instructions string, history []Turn
 		PromptCacheKey: openai.String("kite-support"),
 		// Lets OpenAI tell users apart for abuse detection.
 		SafetyIdentifier: openai.String(hex.EncodeToString(userHash[:])),
+		Store:            openai.Bool(false),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create response: %w", err)

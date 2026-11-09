@@ -89,6 +89,18 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
 		},
 		{
+			// A boost removal is the booster role being taken away, which
+			// only arrives with the guild members intent.
+			name: "boost remove listener adds guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildBoostRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
+		},
+		{
 			name: "bot joined and left server listeners need guilds only",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
@@ -133,6 +145,34 @@ func TestIntentsForRequirements(t *testing.T) {
 			},
 			flags: allPrivilegedFlags,
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
+		},
+		{
+			name: "audit log listeners add moderation",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
+		},
+		{
+			name: "voice state update listeners add voice states",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordVoiceStateUpdate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
+			name: "flows that play audio add voice states",
+			reqs: model.AppGatewayRequirements{
+				UsesVoice: true,
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
 		},
 		{
 			name: "starboard plugin adds reactions but not messages",
@@ -212,7 +252,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

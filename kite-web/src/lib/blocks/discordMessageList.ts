@@ -3,11 +3,13 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageList: BlockDefinition = {
   type: "action_message_list",
+  id_prefix: "message",
   title: "List channel messages",
   description: "Get the latest messages of a channel",
   icon: "messages-square",
   category: "Messages",
-  credits: 1,
+  credits: 0,
+  permissions: ["READ_MESSAGE_HISTORY"],
   strict_settings: true,
   run: {
     kind: "request",

@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionItemChannel: BlockDefinition = {
   type: "control_condition_item_channel",
+  id_prefix: "condition",
   title: "Match Channel",
   description: "Run actions if the channel meets the criteria.",
   icon: "circle-help",

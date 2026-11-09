@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  changeModalInputType,
+  duplicateModalComponent,
+  importModalData,
   modalComponentNumber,
+  modalIdentifierFromLabel,
   newModalOption,
   nextModalInputNumber,
   normalizeModalComponents,
@@ -277,5 +281,246 @@ describe("modal numbering", () => {
       label: "Option 3",
       value: "option_3",
     });
+  });
+});
+
+describe("modal editor helpers", () => {
+  const label = (id: string) => ({
+    type: "label",
+    label: id,
+    components: [{ type: "text_input", custom_id: id, style: 1 }],
+  });
+
+  it("keeps the options and placeholder when the type changes", () => {
+    const select = {
+      type: "string_select",
+      custom_id: "color",
+      required: false,
+      placeholder: "Pick one",
+      options: [
+        { label: "Red", default: true, emoji: { name: "🔴" } },
+        { label: "Blue", default: true },
+      ],
+    };
+
+    expect(changeModalInputType(select, "radio_group")).toEqual({
+      type: "radio_group",
+      custom_id: "color",
+      required: false,
+      options: [{ label: "Red", default: true }, { label: "Blue" }],
+    });
+    expect(changeModalInputType(select, "user_select")).toEqual({
+      type: "user_select",
+      custom_id: "color",
+      required: false,
+      placeholder: "Pick one",
+    });
+  });
+
+  it("adds options a type needs at least", () => {
+    const res = changeModalInputType(
+      { type: "checkbox_group", custom_id: "a", options: [{ label: "A" }] },
+      "radio_group"
+    );
+    expect(res.options).toHaveLength(2);
+  });
+
+  it("makes identifiers from labels", () => {
+    expect(modalIdentifierFromLabel("Your favorite color?", [])).toBe(
+      "your_favorite_color"
+    );
+    expect(modalIdentifierFromLabel("{{user.name}}", [])).toBe("input");
+    expect(modalIdentifierFromLabel("Color", [label("color")])).toBe("color_2");
+    expect(modalIdentifierFromLabel("Color", [label("color")], 0)).toBe(
+      "color"
+    );
+  });
+
+  it("gives duplicated inputs their own identifier", () => {
+    const components = [label("name"), label("name_copy")];
+    expect(
+      duplicateModalComponent(components, 0).components?.[0].custom_id
+    ).toBe("name_copy_2");
+    expect(components[0].components[0].custom_id).toBe("name");
+  });
+});
+
+describe("importModalData", () => {
+  const schema = getNodeValues("suspend_response_modal").dataSchema!;
+
+  it("imports modals in the format of Discord's API", () => {
+    const { modal, ignored } = importModalData({
+      title: "Developer Onboarding",
+      components: [
+        { type: "text_display", content: "### Welcome" },
+        {
+          type: "label",
+          label: "Focus",
+          component: {
+            type: "string_select",
+            custom_id: "focus_select",
+            required: true,
+            options: [
+              { label: "Frontend", value: "frontend", emoji: { name: "💻" } },
+              { label: "Backend", value: "backend" },
+            ],
+          },
+        },
+        {
+          type: 18,
+          label: "Experience",
+          component: {
+            type: 4,
+            custom_id: "experience_text",
+            style: "paragraph",
+            min_length: 10,
+          },
+          components: [{}],
+        },
+      ],
+    });
+
+    expect(modal.components?.[1].components?.[0].options?.[0]).toEqual({
+      label: "Frontend",
+      value: "frontend",
+      emoji: { name: "💻" },
+    });
+    expect(modal.components?.[2]).toEqual({
+      type: "label",
+      label: "Experience",
+      components: [
+        {
+          type: "text_input",
+          custom_id: "experience_text",
+          style: 2,
+          min_length: 10,
+        },
+      ],
+    });
+    expect(ignored).toEqual([]);
+    expect(schema.safeParse({ modal_data: modal }).success).toBe(true);
+  });
+
+  it("leaves out emojis of options that can't show them", () => {
+    const { modal, ignored } = importModalData({
+      components: [
+        {
+          type: "label",
+          label: "Pick",
+          component: {
+            type: "radio_group",
+            custom_id: "pick",
+            options: [
+              { label: "A", emoji: { name: "🔴" } },
+              { label: "B", emoji: { id: "1", name: "b", animated: true } },
+            ],
+          },
+        },
+      ],
+    });
+    expect(modal.components?.[0].components?.[0].options).toEqual([
+      { label: "A" },
+      { label: "B" },
+    ]);
+    expect(ignored).toEqual(["option.emoji"]);
+  });
+
+  it("rejects emojis on options of groups", () => {
+    const issues = (type: string) => {
+      const res = schema.safeParse({
+        modal_data: {
+          title: "Form",
+          components: [
+            {
+              type: "label",
+              label: "Pick",
+              components: [
+                {
+                  type,
+                  custom_id: "pick",
+                  options: [
+                    { label: "A", emoji: { name: "🔴" } },
+                    { label: "B" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      });
+      return res.success ? [] : res.error.issues.map((i) => i.path.join("."));
+    };
+    expect(issues("string_select")).toEqual([]);
+    expect(issues("radio_group")).toEqual([
+      "modal_data.components.0.components.0.options.0.emoji",
+    ]);
+  });
+
+  it("keeps modals in Kite's format as they are", () => {
+    const data = {
+      title: "Form",
+      components: [
+        {
+          type: "label",
+          label: "Name",
+          components: [{ type: "text_input", custom_id: "name", style: 1 }],
+        },
+      ],
+    };
+    expect(importModalData(data)).toEqual({ modal: data, ignored: [] });
+  });
+
+  it("leaves out fields of the wrong type", () => {
+    const { modal, ignored } = importModalData({
+      components: [
+        { type: "text_display", content: { text: "Hi" } },
+        { type: 1, components: "nope" },
+        {
+          type: "label",
+          label: ["Pick"],
+          component: {
+            type: "string_select",
+            custom_id: 5,
+            options: "a,b",
+          },
+        },
+        {
+          type: "label",
+          label: "Color",
+          component: {
+            type: "string_select",
+            custom_id: "color",
+            options: [{ label: "Red", emoji: { id: 123, name: "red" } }],
+          },
+        },
+      ],
+    });
+    expect(modal.components).toEqual([
+      { type: "text_display" },
+      { type: "label", components: [{ type: "string_select" }] },
+      {
+        type: "label",
+        label: "Color",
+        components: [
+          {
+            type: "string_select",
+            custom_id: "color",
+            options: [{ label: "Red", emoji: { name: "red" } }],
+          },
+        ],
+      },
+    ]);
+    expect(ignored).toEqual([
+      "component.content",
+      "component.label",
+      "input.custom_id",
+      "input.options",
+      "option.emoji.id",
+    ]);
+  });
+
+  it("rejects what isn't a modal", () => {
+    expect(() => importModalData([])).toThrow();
+    expect(() => importModalData({ components: {} })).toThrow();
   });
 });

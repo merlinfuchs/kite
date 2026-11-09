@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,4 +67,12 @@ func TestParseBodyErrors(t *testing.T) {
 			assert.Contains(t, aerr.Message, tc.message)
 		})
 	}
+}
+
+func TestItemChangeSource(t *testing.T) {
+	c := &Context{Session: &model.Session{UserID: "user"}}
+	assert.Equal(t, store.EditorChange("user", "session"), c.ItemChange("session"))
+
+	c.APIToken = &model.APIToken{ID: "token"}
+	assert.Equal(t, store.APITokenChange("user", "token"), c.ItemChange("session"))
 }

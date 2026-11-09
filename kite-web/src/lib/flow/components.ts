@@ -12,7 +12,7 @@ import FlowNodeOptionCommandArgument from "@/components/flow/FlowNodeOptionComma
 import FlowNodeControlLoop from "@/components/flow/FlowNodeControlLoop";
 import FlowNodeControlLoopEach from "@/components/flow/FlowNodeControlLoopEach";
 import FlowNodeControlLoopEnd from "@/components/flow/FlowNodeControlLoopEnd";
-import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
+import FlowNodeTerminal from "@/components/flow/FlowNodeTerminal";
 import FlowNodeCondition from "@/components/flow/FlowNodeCondition";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
@@ -20,6 +20,8 @@ import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeBranches from "@/components/flow/FlowNodeBranches";
+import FlowNodeNote from "@/components/flow/FlowNodeNote";
+import { noteNodeType } from "./notes";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -34,18 +36,22 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   control_loop: FlowNodeControlLoop,
   control_loop_each: FlowNodeControlLoopEach,
   control_loop_end: FlowNodeControlLoopEnd,
-  control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
+  terminal: FlowNodeTerminal,
   branches: FlowNodeBranches,
   suspend: FlowNodeSuspendBase,
 };
 
-export const nodeTypes = Object.fromEntries(
-  blockDefinitions.map((block) => [
-    block.type,
-    blockComponents[block.component ?? "action"],
-  ])
-);
+export const nodeTypes = {
+  ...Object.fromEntries(
+    blockDefinitions.map((block) => [
+      block.type,
+      blockComponents[block.component ?? "action"],
+    ])
+  ),
+  // Notes aren't blocks, see notes.ts.
+  [noteNodeType]: FlowNodeNote,
+};
 
 export const edgeTypes = {
   delete_button: FlowEdgeDeleteButton,
