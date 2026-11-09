@@ -2558,9 +2558,9 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
 
 function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
   const inputs = data.javascript_data?.inputs || [];
-  const inputNames = inputs
-    .filter((input) => input.name)
-    .map((input) => `input.${input.name}`);
+  const inputNames = inputs.flatMap((input) =>
+    input.name ? [input.name] : []
+  );
   const codeVariables = data.javascript_data?.variables || [];
   const appVariables = useFlowVariables();
 
@@ -2600,9 +2600,15 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
         error={errors["javascript_data.code"]}
         hint={
           inputNames.length > 0
-            ? `The inputs are ${inputNames.join(", ")}.`
+            ? `The inputs are ${inputNames
+                .map((name) => `input.${name}`)
+                .join(", ")}.`
             : undefined
         }
+        names={{
+          inputs: inputNames,
+          variables: codeVariables.flatMap((v) => (v.name ? [v.name] : [])),
+        }}
       />
       <div>
         <div className="font-medium text-foreground mb-1">Inputs</div>

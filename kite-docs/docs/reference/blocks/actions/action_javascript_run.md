@@ -145,6 +145,10 @@ The body has to be text, so turn objects into JSON with `JSON.stringify` and set
 
 `fetch` calls `http.request({ url, method, headers, body })`, which returns `{ status, status_text, headers, body }` with the names of the headers in lowercase. Each request costs [3 credits](../../credit-system.md#cost-breakdown), like a Send API Request block. Test runs don't send them.
 
+## Writing the code
+
+The editor completes the calls, their parameters, the inputs and the stored variables of the block. To write the code in your own editor, like VS Code, download [kite.d.ts](pathname:///kite.d.ts), put it next to your file and add `/// <reference path="kite.d.ts" />` as the file's first line. The editor then knows the calls and what they take. Write the code inside `async function run() { ... }` there, as editors don't allow `return` and `await` outside a function, and paste the body into the block.
+
 ## Limits
 
 The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.

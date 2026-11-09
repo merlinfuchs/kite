@@ -1,9 +1,10 @@
-import { javascript } from "@codemirror/lang-javascript";
+import { javascript, javascriptLanguage } from "@codemirror/lang-javascript";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import ReactCodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { CircleAlertIcon, Maximize2Icon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useContext, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
+import { CodeNames, codeCompletions } from "@/lib/flow/codeCompletions";
 import { FlowReadOnlyContext } from "@/lib/flow/context";
 import { Button } from "../ui/button";
 import {
@@ -16,9 +17,6 @@ import {
 } from "../ui/dialog";
 
 const basicSetup = { foldGutter: false, indentOnInput: true };
-// Long lines wrap so the editor fits the settings panel.
-const panelExtensions = [javascript(), EditorView.lineWrapping];
-const dialogExtensions = [javascript()];
 
 // JavaScript code, with highlighting and line numbers, which errors refer to.
 // The expand button opens the same code in a wide dialog, which edits it
@@ -31,6 +29,7 @@ export default function FlowCodeInput({
   placeholder,
   error,
   hint,
+  names,
 }: {
   title: string;
   description?: string;
@@ -40,11 +39,27 @@ export default function FlowCodeInput({
   error?: string;
   // Shown after the description in the dialog.
   hint?: string;
+  // Inputs and stored variables of the block, which the editor completes.
+  names: CodeNames;
 }) {
   const { resolvedTheme } = useTheme();
   const readOnly = useContext(FlowReadOnlyContext);
   const [expanded, setExpanded] = useState(false);
   const theme = resolvedTheme === "dark" ? githubDark : githubLight;
+
+  // Read when completing, so the extensions aren't rebuilt on every change.
+  const namesRef = useRef(names);
+  namesRef.current = names;
+  const [panelExtensions, dialogExtensions] = useMemo(() => {
+    const completions = codeCompletions(() => namesRef.current).map(
+      (autocomplete) => javascriptLanguage.data.of({ autocomplete })
+    );
+    return [
+      // Long lines wrap so the editor fits the settings panel.
+      [javascript(), ...completions, EditorView.lineWrapping],
+      [javascript(), ...completions],
+    ];
+  }, []);
 
   const editorProps = {
     className: "rounded overflow-hidden border text-sm min-w-0",
