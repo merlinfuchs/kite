@@ -54,15 +54,25 @@ export default function FlowCodeInput({
     const completions = codeCompletions(() => namesRef.current).map(
       (autocomplete) => javascriptLanguage.data.of({ autocomplete })
     );
+    // The description of a completion goes next to the list, which only
+    // fits in the dialog when it's narrow. The dialog's transform makes it
+    // cut off what's outside it.
+    const narrowInfo = EditorView.theme({
+      ".cm-tooltip.cm-completionInfo": {
+        maxWidth: "16rem !important",
+        overflowWrap: "anywhere",
+      },
+    });
     return [
       // Long lines wrap so the editor fits the settings panel.
-      [javascript(), ...completions, EditorView.lineWrapping],
-      [javascript(), ...completions],
+      [javascript(), ...completions, narrowInfo, EditorView.lineWrapping],
+      [javascript(), ...completions, narrowInfo],
     ];
   }, []);
 
   const editorProps = {
-    className: "rounded overflow-hidden border text-sm min-w-0",
+    className:
+      "rounded border text-sm min-w-0 [&_.cm-editor]:rounded [&_.cm-gutters]:rounded-l",
     value,
     placeholder,
     basicSetup,
