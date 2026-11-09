@@ -99,9 +99,22 @@ type AppStore interface {
 	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
 	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
 	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
-	// ClaimCollaboratorInvites adds the user as a collaborator to every app that
-	// invited their Discord username and deletes the invites.
-	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
+	CollaboratorInvite(ctx context.Context, appID string, discordUsername string) (*model.AppCollaboratorInvite, error)
+	// CollaboratorInvitesByUser returns the pending invites of the user, by
+	// their ID or, for invites from before they used Kite, their username.
+	CollaboratorInvitesByUser(ctx context.Context, userID string, discordUsername string, now time.Time) ([]*model.AppCollaboratorInvite, error)
+	// AcceptCollaboratorInvite deletes the user's invite to the app and adds
+	// them as a collaborator. It returns store.ErrNotFound without an invite.
+	AcceptCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string, now time.Time) (*model.AppCollaborator, error)
+	// DeclineCollaboratorInvite deletes the user's invite to the app. It
+	// returns store.ErrNotFound without an invite.
+	DeclineCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string) error
+
+	CreateAppAuditLogEntry(ctx context.Context, entry *model.AppAuditLogEntry) error
+	// AppAuditLogEntries returns the newest entries of the app, before the
+	// entry with beforeID unless it's 0.
+	AppAuditLogEntries(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.AppAuditLogEntry, error)
+	DeleteAppAuditLogEntriesBefore(ctx context.Context, before time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
 	// HasAppFlows reports whether the app has an enabled command or event

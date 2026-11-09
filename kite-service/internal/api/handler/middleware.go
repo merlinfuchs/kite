@@ -47,6 +47,7 @@ func TypedWithBody[REQ any, RESP any](next func(c *Context, r REQ) (*RESP, error
 		if err != nil {
 			return err
 		}
+		c.response = resp
 
 		return c.JSON(http.StatusOK, wire.APIResponse[*RESP]{
 			Success: true,
@@ -61,6 +62,7 @@ func Typed[RESP any](next func(c *Context) (*RESP, error)) HandlerFunc {
 		if err != nil {
 			return err
 		}
+		c.response = resp
 
 		return c.JSON(http.StatusOK, wire.APIResponse[*RESP]{
 			Success: true,

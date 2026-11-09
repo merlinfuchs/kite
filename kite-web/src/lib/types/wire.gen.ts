@@ -108,6 +108,11 @@ export interface App {
    * the app used 80% or all of its credits for the month.
    */
   credit_notices_enabled: boolean;
+  /**
+   * UserRole is the role of the current user in the app, only set when
+   * getting a single app.
+   */
+  user_role?: string;
 }
 export interface CommandsDeployError {
   message: string;
@@ -941,7 +946,12 @@ export interface AppCollaborator {
 export type AppCollaboratorListResponse = (AppCollaborator | undefined)[];
 export interface AppCollaboratorInvite {
   discord_username: string;
+  /**
+   * UserID is set when the invited user already uses Kite.
+   */
+  user_id: null | string;
   role: string;
+  invited_by_user_id: null | string;
   created_at: string /* RFC3339 */;
   expires_at: string /* RFC3339 */;
 }
@@ -953,16 +963,63 @@ export interface AppCollaboratorCreateRequest {
   role: string;
 }
 /**
- * AppCollaboratorCreateResponse has the invite instead of the collaborator when
- * the user hasn't logged in to Kite yet.
+ * AppCollaboratorCreateResponse is the invite, the user becomes a
+ * collaborator once they accept it.
  */
 export interface AppCollaboratorCreateResponse {
-  collaborator?: AppCollaborator;
   invite?: AppCollaboratorInvite;
 }
+export interface AppCollaboratorUpdateRequest {
+  role: string;
+}
+export type AppCollaboratorUpdateResponse = AppCollaborator;
 export type AppCollaboratorDeleteResponse = Empty;
 export type AppCollaboratorInviteListResponse = (AppCollaboratorInvite | undefined)[];
 export type AppCollaboratorInviteDeleteResponse = Empty;
+/**
+ * UserCollaboratorInvite is an invite of the current user to another app.
+ */
+export interface UserCollaboratorInvite {
+  app: UserCollaboratorInviteApp;
+  role: string;
+  invited_by?: User;
+  created_at: string /* RFC3339 */;
+  expires_at: string /* RFC3339 */;
+}
+/**
+ * UserCollaboratorInviteApp is what the invited user sees of the app before
+ * they accept.
+ */
+export interface UserCollaboratorInviteApp {
+  id: string;
+  name: string;
+  description: null | string;
+  discord_id: string;
+}
+export type UserCollaboratorInviteListResponse = (UserCollaboratorInvite | undefined)[];
+export type UserCollaboratorInviteAcceptResponse = AppCollaborator;
+export type UserCollaboratorInviteDeclineResponse = Empty;
+/**
+ * AppAuditLogEntry is something a collaborator did in the app.
+ */
+export interface AppAuditLogEntry {
+  id: string;
+  /**
+   * User is null once they deleted their account.
+   */
+  user?: User;
+  action: string;
+  target_type: string;
+  target_id: string;
+  target_name: string;
+  /**
+   * ViaAPIToken is whether the change was made with an API token, like
+   * by an MCP client.
+   */
+  via_api_token: boolean;
+  created_at: string /* RFC3339 */;
+}
+export type AppAuditLogListResponse = (AppAuditLogEntry | undefined)[];
 
 //////////
 // source: command.go

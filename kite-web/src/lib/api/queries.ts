@@ -1,6 +1,13 @@
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQueries,
+  useQuery,
+} from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppAuditLogListResponse,
+  UserCollaboratorInviteListResponse,
   AppCollaboratorInviteListResponse,
   OAuthAuthorizeGetResponse,
   AppCollaboratorListResponse,
@@ -673,6 +680,40 @@ export function useAppCollaboratorInvitesQuery(appId: string) {
         `/v1/apps/${appId}/collaborators/invites`
       ),
     enabled: !!appId,
+  });
+}
+
+export const auditLogPageSize = 50;
+
+export function useAppAuditLogQuery(appId: string) {
+  return useInfiniteQuery({
+    queryKey: ["apps", appId, "audit-log"],
+    queryFn: ({ pageParam }) =>
+      apiRequest<AppAuditLogListResponse>(
+        `/v1/apps/${appId}/audit-log?limit=${auditLogPageSize}${
+          pageParam ? `&before=${pageParam}` : ""
+        }`
+      ),
+    initialPageParam: "",
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.success || lastPage.data.length < auditLogPageSize) {
+        return undefined;
+      }
+      return lastPage.data[lastPage.data.length - 1]?.id;
+    },
+    enabled: !!appId,
+  });
+}
+
+// The invites of the current user to other apps. Polled so the account menu
+// shows new ones without a reload.
+export function useUserInvitesQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["users", "@me", "invites"],
+    queryFn: () =>
+      apiRequest<UserCollaboratorInviteListResponse>(`/v1/users/@me/invites`),
+    refetchInterval: 1000 * 60,
+    enabled,
   });
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 func (c *Client) Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error) {
@@ -118,6 +119,8 @@ func (c *Client) UpsertCollaboratorInvite(ctx context.Context, invite *model.App
 		AppID:           invite.AppID,
 		DiscordUsername: invite.DiscordUsername,
 		Role:            string(invite.Role),
+		UserID:          pgtype.Text{String: invite.UserID.String, Valid: invite.UserID.Valid},
+		InvitedByUserID: pgtype.Text{String: invite.InvitedByUserID.String, Valid: invite.InvitedByUserID.Valid},
 		CreatedAt:       pgtype.Timestamp{Time: invite.CreatedAt.UTC(), Valid: true},
 		ExpiresAt:       pgtype.Timestamp{Time: invite.ExpiresAt.UTC(), Valid: true},
 	})
@@ -135,19 +138,84 @@ func (c *Client) DeleteCollaboratorInvite(ctx context.Context, appID string, dis
 	})
 }
 
-func (c *Client) ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error {
-	return c.Q.ClaimCollaboratorInvites(ctx, pgmodel.ClaimCollaboratorInvitesParams{
+func (c *Client) CollaboratorInvite(ctx context.Context, appID string, discordUsername string) (*model.AppCollaboratorInvite, error) {
+	row, err := c.Q.GetCollaboratorInvite(ctx, pgmodel.GetCollaboratorInviteParams{
+		AppID:           appID,
 		DiscordUsername: discordUsername,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToCollaboratorInvite(row), nil
+}
+
+func (c *Client) CollaboratorInvitesByUser(ctx context.Context, userID string, discordUsername string, now time.Time) ([]*model.AppCollaboratorInvite, error) {
+	rows, err := c.Q.GetCollaboratorInvitesByUser(ctx, pgmodel.GetCollaboratorInvitesByUserParams{
 		UserID:          userID,
+		DiscordUsername: discordUsername,
 		Now:             pgtype.Timestamp{Time: now.UTC(), Valid: true},
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	invites := make([]*model.AppCollaboratorInvite, len(rows))
+	for i, row := range rows {
+		invite := rowToCollaboratorInvite(row.CollaboratorInvite)
+		app, err := rowToApp(row.App)
+		if err != nil {
+			return nil, err
+		}
+		invite.App = app
+		invites[i] = invite
+	}
+
+	return invites, nil
+}
+
+func (c *Client) AcceptCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string, now time.Time) (*model.AppCollaborator, error) {
+	row, err := c.Q.AcceptCollaboratorInvite(ctx, pgmodel.AcceptCollaboratorInviteParams{
+		AppID:           appID,
+		UserID:          userID,
+		DiscordUsername: discordUsername,
+		Now:             pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToCollaborator(row, nil), nil
+}
+
+func (c *Client) DeclineCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string) error {
+	deleted, err := c.Q.DeclineCollaboratorInvite(ctx, pgmodel.DeclineCollaboratorInviteParams{
+		AppID:           appID,
+		UserID:          userID,
+		DiscordUsername: discordUsername,
+	})
+	if err != nil {
+		return err
+	}
+	if deleted == 0 {
+		return store.ErrNotFound
+	}
+	return nil
 }
 
 func rowToCollaboratorInvite(row pgmodel.CollaboratorInvite) *model.AppCollaboratorInvite {
 	return &model.AppCollaboratorInvite{
 		AppID:           row.AppID,
 		DiscordUsername: row.DiscordUsername,
+		UserID:          null.NewString(row.UserID.String, row.UserID.Valid),
 		Role:            model.AppCollaboratorRole(row.Role),
+		InvitedByUserID: null.NewString(row.InvitedByUserID.String, row.InvitedByUserID.Valid),
 		CreatedAt:       row.CreatedAt.Time,
 		ExpiresAt:       row.ExpiresAt.Time,
 	}

@@ -18,6 +18,7 @@ const (
 	// Only the current month is ever read, the rest is slack for support.
 	UsageRecordExpiry = 40 * 24 * time.Hour
 	LogEntryExpiry    = 30 * 24 * time.Hour
+	AuditLogExpiry    = 90 * 24 * time.Hour
 
 	// Buttons stop working once these expire, so they count from last use, not creation.
 	ResumePointExpiry              = 90 * 24 * time.Hour
@@ -131,6 +132,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupLogEntries(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup log entries",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupAuditLog(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup audit log",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -397,6 +404,16 @@ func (m *UsageManager) cleanupLogEntries(ctx context.Context) error {
 	err := m.logStore.DeleteLogEntriesBefore(ctx, expiry)
 	if err != nil {
 		return fmt.Errorf("failed to delete log entries: %w", err)
+	}
+	return nil
+}
+
+func (m *UsageManager) cleanupAuditLog(ctx context.Context) error {
+	expiry := time.Now().UTC().Add(-AuditLogExpiry)
+
+	err := m.appStore.DeleteAppAuditLogEntriesBefore(ctx, expiry)
+	if err != nil {
+		return fmt.Errorf("failed to delete audit log entries: %w", err)
 	}
 	return nil
 }

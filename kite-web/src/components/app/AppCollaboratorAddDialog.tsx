@@ -19,15 +19,19 @@ import {
   FormMessage,
 } from "../ui/form";
 import { useForm } from "react-hook-form";
+import { useAppCollaboratorCreateMutation } from "@/lib/api/mutations";
 import {
-  useAppCollaboratorCreateMutation,
-  useAppCreateMutation,
-} from "@/lib/api/mutations";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { useAppRole } from "@/lib/hooks/api";
+import { collaboratorRoles, invitableRoles } from "@/lib/collaborators";
 import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
-import { CircleHelpIcon } from "lucide-react";
-import env from "@/lib/env/client";
 import { useAppId } from "@/lib/hooks/params";
 import { track } from "@/lib/analytics";
 
@@ -45,11 +49,12 @@ export default function AppCollaboratorAddDialog({
 
   const appId = useAppId();
   const createMutation = useAppCollaboratorCreateMutation(appId);
+  const roles = invitableRoles(useAppRole());
 
   const form = useForm<FormFields>({
     defaultValues: {
       discord_user: "",
-      role: "admin",
+      role: "developer",
     },
   });
 
@@ -63,15 +68,11 @@ export default function AppCollaboratorAddDialog({
           if (res.success) {
             track("collaborator_added", {
               role: data.role,
-              pending: !!res.data.invite,
+              pending: !res.data.invite?.user_id,
             });
-            if (res.data.invite) {
-              toast.success(
-                `@${res.data.invite.discord_username} will be added when they log in to Kite.`
-              );
-            } else {
-              toast.success("Collaborator added.");
-            }
+            toast.success(
+              `Invited @${res.data.invite?.discord_username}. They join once they accept the invite.`
+            );
             form.reset();
             setOpen(false);
           } else {
@@ -79,7 +80,7 @@ export default function AppCollaboratorAddDialog({
               setValidationErrors(form, res.error.data);
             } else {
               toast.error(
-                `Failed to add collaborator: ${res.error.message} (${res.error.code})`
+                `Failed to invite collaborator: ${res.error.message} (${res.error.code})`
               );
             }
           }
@@ -93,9 +94,10 @@ export default function AppCollaboratorAddDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add collaborator</DialogTitle>
+          <DialogTitle>Invite collaborator</DialogTitle>
           <DialogDescription>
-            Add a new collaborator to your app to allow them to manage it.
+            Invite someone to help build your app. They get the invite in their
+            account menu and join once they accept it.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -110,8 +112,39 @@ export default function AppCollaboratorAddDialog({
                     <Input type="text" placeholder="username" {...field} />
                   </FormControl>
                   <FormDescription>
-                    If they haven&apos;t logged in to Kite yet, they&apos;re
-                    added when they first log in.
+                    If they haven&apos;t logged in to Kite yet, they see the
+                    invite when they first log in.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {collaboratorRoles[role].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {
+                      collaboratorRoles[
+                        field.value as keyof typeof collaboratorRoles
+                      ]?.description
+                    }
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +152,7 @@ export default function AppCollaboratorAddDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Add collaborator
+                Send invite
               </LoadingButton>
             </DialogFooter>
           </form>

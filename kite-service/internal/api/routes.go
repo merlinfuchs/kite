@@ -228,15 +228,18 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(5, time.Minute),
 	)
 
-	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
+	// Changes of the app's routes show up in its audit log.
+	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess, accessManager.AuditLog)
+	// Developers can edit everything but the app's settings.
+	appSettingsGroup := appGroup.Group("", accessManager.RequireSettingsAccess)
 	appGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppGet))
-	appGroup.Put("/",
+	appSettingsGroup.Put("/",
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
-	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
-	appGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
-	appGroup.Put("/token",
+	appSettingsGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	appSettingsGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
+	appSettingsGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
@@ -247,10 +250,24 @@ func (s *APIServer) RegisterRoutes(
 	)
 	appGroup.AllowAPIToken().Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
-	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
+	appGroup.Post("/collaborators",
+		handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	appGroup.Patch("/collaborators/{userID}", handler.TypedWithBody(appHandler.HandleAppCollaboratorUpdate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
 	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
 	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
+	appGroup.Get("/audit-log", handler.Typed(appHandler.HandleAppAuditLogList))
+
+	// Invites of the current user to other apps.
+	userInvitesGroup := usersGroup.Group("/@me/invites")
+	userInvitesGroup.Get("/", handler.Typed(appHandler.HandleUserInviteList))
+	userInvitesGroup.Post("/{appID}/accept",
+		handler.Typed(appHandler.HandleUserInviteAccept),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	userInvitesGroup.Delete("/{appID}", handler.Typed(appHandler.HandleUserInviteDecline))
 	appGroup.Post("/share-codes",
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),
@@ -280,8 +297,10 @@ func (s *APIServer) RegisterRoutes(
 
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
-	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
-	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
+	// Everyone reads the plan's limits, but only admins and the owner buy.
+	appBillingSettingsGroup := appBillingGroup.Group("", accessManager.RequireSettingsAccess)
+	appBillingSettingsGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
+	appBillingSettingsGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
 	// MCP clients read the plan's limits, like its monthly credits.
 	appBillingGroup.AllowAPIToken().Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
@@ -557,7 +576,7 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup := appGroup.Group("/state")
 	stateGroup.AllowAPIToken().Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.AllowAPIToken().Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
-	stateGroup.Patch("/user",
+	stateGroup.Group("", accessManager.RequireSettingsAccess).Patch("/user",
 		handler.TypedWithBody(stateHandler.HandleStateUserUpdate),
 		handler.RateLimitByUser(10, time.Minute),
 	)

@@ -11,28 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const claimCollaboratorInvites = `-- name: ClaimCollaboratorInvites :exec
-WITH claimed AS (
+const acceptCollaboratorInvite = `-- name: AcceptCollaboratorInvite :one
+WITH accepted AS (
     DELETE FROM collaborator_invites
-    WHERE discord_username = lower($3)
-    RETURNING app_id, discord_username, role, created_at, expires_at
+    WHERE collaborator_invites.app_id = $3::text
+        AND (collaborator_invites.user_id = $1::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($4::text)))
+        AND collaborator_invites.expires_at > $2::timestamp
+    RETURNING app_id, discord_username, role, created_at, expires_at, user_id, invited_by_user_id
 )
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
-SELECT claimed.app_id, $1::text, claimed.role, $2::timestamp, $2::timestamp FROM claimed
-JOIN apps ON apps.id = claimed.app_id
-WHERE claimed.expires_at > $2::timestamp AND apps.owner_user_id != $1::text
-ON CONFLICT DO NOTHING
+SELECT accepted.app_id, $1::text, accepted.role, $2::timestamp, $2::timestamp FROM accepted
+JOIN apps ON apps.id = accepted.app_id
+WHERE apps.owner_user_id != $1::text
+LIMIT 1
+ON CONFLICT (user_id, app_id) DO UPDATE SET role = EXCLUDED.role, updated_at = EXCLUDED.updated_at
+RETURNING user_id, app_id, role, created_at, updated_at
 `
 
-type ClaimCollaboratorInvitesParams struct {
+type AcceptCollaboratorInviteParams struct {
 	UserID          string
 	Now             pgtype.Timestamp
+	AppID           string
 	DiscordUsername string
 }
 
-func (q *Queries) ClaimCollaboratorInvites(ctx context.Context, arg ClaimCollaboratorInvitesParams) error {
-	_, err := q.db.Exec(ctx, claimCollaboratorInvites, arg.UserID, arg.Now, arg.DiscordUsername)
-	return err
+func (q *Queries) AcceptCollaboratorInvite(ctx context.Context, arg AcceptCollaboratorInviteParams) (Collaborator, error) {
+	row := q.db.QueryRow(ctx, acceptCollaboratorInvite,
+		arg.UserID,
+		arg.Now,
+		arg.AppID,
+		arg.DiscordUsername,
+	)
+	var i Collaborator
+	err := row.Scan(
+		&i.UserID,
+		&i.AppID,
+		&i.Role,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const countCollaboratorsAndInvitesByApp = `-- name: CountCollaboratorsAndInvitesByApp :one
@@ -84,6 +102,26 @@ func (q *Queries) CreateCollaborator(ctx context.Context, arg CreateCollaborator
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const declineCollaboratorInvite = `-- name: DeclineCollaboratorInvite :execrows
+DELETE FROM collaborator_invites
+WHERE collaborator_invites.app_id = $1::text
+    AND (collaborator_invites.user_id = $2::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($3::text)))
+`
+
+type DeclineCollaboratorInviteParams struct {
+	AppID           string
+	UserID          string
+	DiscordUsername string
+}
+
+func (q *Queries) DeclineCollaboratorInvite(ctx context.Context, arg DeclineCollaboratorInviteParams) (int64, error) {
+	result, err := q.db.Exec(ctx, declineCollaboratorInvite, arg.AppID, arg.UserID, arg.DiscordUsername)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const deleteCollaborator = `-- name: DeleteCollaborator :exec
@@ -153,8 +191,33 @@ func (q *Queries) GetCollaborator(ctx context.Context, arg GetCollaboratorParams
 	return i, err
 }
 
+const getCollaboratorInvite = `-- name: GetCollaboratorInvite :one
+SELECT app_id, discord_username, role, created_at, expires_at, user_id, invited_by_user_id FROM collaborator_invites
+WHERE app_id = $1 AND discord_username = $2
+`
+
+type GetCollaboratorInviteParams struct {
+	AppID           string
+	DiscordUsername string
+}
+
+func (q *Queries) GetCollaboratorInvite(ctx context.Context, arg GetCollaboratorInviteParams) (CollaboratorInvite, error) {
+	row := q.db.QueryRow(ctx, getCollaboratorInvite, arg.AppID, arg.DiscordUsername)
+	var i CollaboratorInvite
+	err := row.Scan(
+		&i.AppID,
+		&i.DiscordUsername,
+		&i.Role,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.UserID,
+		&i.InvitedByUserID,
+	)
+	return i, err
+}
+
 const getCollaboratorInvitesByApp = `-- name: GetCollaboratorInvitesByApp :many
-SELECT app_id, discord_username, role, created_at, expires_at FROM collaborator_invites
+SELECT app_id, discord_username, role, created_at, expires_at, user_id, invited_by_user_id FROM collaborator_invites
 WHERE app_id = $1 AND expires_at > $2
 ORDER BY created_at
 `
@@ -179,6 +242,80 @@ func (q *Queries) GetCollaboratorInvitesByApp(ctx context.Context, arg GetCollab
 			&i.Role,
 			&i.CreatedAt,
 			&i.ExpiresAt,
+			&i.UserID,
+			&i.InvitedByUserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCollaboratorInvitesByUser = `-- name: GetCollaboratorInvitesByUser :many
+
+SELECT collaborator_invites.app_id, collaborator_invites.discord_username, collaborator_invites.role, collaborator_invites.created_at, collaborator_invites.expires_at, collaborator_invites.user_id, collaborator_invites.invited_by_user_id, apps.id, apps.name, apps.description, apps.enabled, apps.owner_user_id, apps.creator_user_id, apps.discord_token, apps.discord_id, apps.created_at, apps.updated_at, apps.discord_status, apps.disabled_reason, apps.commands_deploy_at, apps.commands_deployed_hash, apps.commands_deploy_error, apps.discord_guild_count, apps.discord_user_install_count, apps.discord_counts_updated_at, apps.discord_verify_key, apps.credits_paused_at, apps.credit_notices_enabled FROM collaborator_invites
+JOIN apps ON apps.id = collaborator_invites.app_id
+WHERE (collaborator_invites.user_id = $1::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($2::text)))
+    AND collaborator_invites.expires_at > $3::timestamp
+    AND apps.owner_user_id != $1::text
+ORDER BY collaborator_invites.created_at DESC
+`
+
+type GetCollaboratorInvitesByUserParams struct {
+	UserID          string
+	DiscordUsername string
+	Now             pgtype.Timestamp
+}
+
+type GetCollaboratorInvitesByUserRow struct {
+	CollaboratorInvite CollaboratorInvite
+	App                App
+}
+
+// Invites of users that already used Kite are matched by their ID, the others
+// by the Discord username they were invited with.
+func (q *Queries) GetCollaboratorInvitesByUser(ctx context.Context, arg GetCollaboratorInvitesByUserParams) ([]GetCollaboratorInvitesByUserRow, error) {
+	rows, err := q.db.Query(ctx, getCollaboratorInvitesByUser, arg.UserID, arg.DiscordUsername, arg.Now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCollaboratorInvitesByUserRow
+	for rows.Next() {
+		var i GetCollaboratorInvitesByUserRow
+		if err := rows.Scan(
+			&i.CollaboratorInvite.AppID,
+			&i.CollaboratorInvite.DiscordUsername,
+			&i.CollaboratorInvite.Role,
+			&i.CollaboratorInvite.CreatedAt,
+			&i.CollaboratorInvite.ExpiresAt,
+			&i.CollaboratorInvite.UserID,
+			&i.CollaboratorInvite.InvitedByUserID,
+			&i.App.ID,
+			&i.App.Name,
+			&i.App.Description,
+			&i.App.Enabled,
+			&i.App.OwnerUserID,
+			&i.App.CreatorUserID,
+			&i.App.DiscordToken,
+			&i.App.DiscordID,
+			&i.App.CreatedAt,
+			&i.App.UpdatedAt,
+			&i.App.DiscordStatus,
+			&i.App.DisabledReason,
+			&i.App.CommandsDeployAt,
+			&i.App.CommandsDeployedHash,
+			&i.App.CommandsDeployError,
+			&i.App.DiscordGuildCount,
+			&i.App.DiscordUserInstallCount,
+			&i.App.DiscordCountsUpdatedAt,
+			&i.App.DiscordVerifyKey,
+			&i.App.CreditsPausedAt,
+			&i.App.CreditNoticesEnabled,
 		); err != nil {
 			return nil, err
 		}
@@ -268,19 +405,23 @@ func (q *Queries) UpdateCollaborator(ctx context.Context, arg UpdateCollaborator
 }
 
 const upsertCollaboratorInvite = `-- name: UpsertCollaboratorInvite :one
-INSERT INTO collaborator_invites (app_id, discord_username, role, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO collaborator_invites (app_id, discord_username, role, user_id, invited_by_user_id, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (app_id, discord_username) DO UPDATE SET
     role = EXCLUDED.role,
+    user_id = EXCLUDED.user_id,
+    invited_by_user_id = EXCLUDED.invited_by_user_id,
     created_at = EXCLUDED.created_at,
     expires_at = EXCLUDED.expires_at
-RETURNING app_id, discord_username, role, created_at, expires_at
+RETURNING app_id, discord_username, role, created_at, expires_at, user_id, invited_by_user_id
 `
 
 type UpsertCollaboratorInviteParams struct {
 	AppID           string
 	DiscordUsername string
 	Role            string
+	UserID          pgtype.Text
+	InvitedByUserID pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	ExpiresAt       pgtype.Timestamp
 }
@@ -290,6 +431,8 @@ func (q *Queries) UpsertCollaboratorInvite(ctx context.Context, arg UpsertCollab
 		arg.AppID,
 		arg.DiscordUsername,
 		arg.Role,
+		arg.UserID,
+		arg.InvitedByUserID,
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
@@ -300,6 +443,8 @@ func (q *Queries) UpsertCollaboratorInvite(ctx context.Context, arg UpsertCollab
 		&i.Role,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.UserID,
+		&i.InvitedByUserID,
 	)
 	return i, err
 }

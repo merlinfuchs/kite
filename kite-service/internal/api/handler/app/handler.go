@@ -55,7 +55,9 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 }
 
 func (h *AppHandler) HandleAppGet(c *handler.Context) (*wire.AppGetResponse, error) {
-	return wire.AppToWire(c.App), nil
+	res := wire.AppToWire(c.App)
+	res.UserRole = string(c.UserAppRole)
+	return res, nil
 }
 
 func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateRequest) (*wire.AppCreateResponse, error) {

@@ -46,6 +46,7 @@ export type AnalyticsEvent =
   | "plugin_enabled"
   | "integration_enabled"
   | "collaborator_added"
+  | "collaborator_invite_accepted"
   | "flow_exported"
   | "bundle_imported"
   | "app_deleted"

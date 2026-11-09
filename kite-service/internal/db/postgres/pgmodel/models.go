@@ -48,6 +48,18 @@ type App struct {
 	CreditNoticesEnabled    bool
 }
 
+type AppAuditLog struct {
+	ID         int64
+	AppID      string
+	UserID     pgtype.Text
+	Action     string
+	TargetType string
+	TargetID   string
+	TargetName string
+	ApiTokenID pgtype.Text
+	CreatedAt  pgtype.Timestamp
+}
+
 type AppIntegration struct {
 	ID            string
 	AppID         string
@@ -199,6 +211,8 @@ type CollaboratorInvite struct {
 	Role            string
 	CreatedAt       pgtype.Timestamp
 	ExpiresAt       pgtype.Timestamp
+	UserID          pgtype.Text
+	InvitedByUserID pgtype.Text
 }
 
 type Command struct {
