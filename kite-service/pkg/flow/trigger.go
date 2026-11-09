@@ -79,13 +79,13 @@ func (t FlowTrigger) MarshalJSON() ([]byte, error) {
 	aux := flowTriggerJSON{Interaction: t.Interaction}
 
 	if t.Interaction != nil {
-		// Unknown components keep what Discord sent, component_type included.
-		if c, ok := t.Interaction.Data.(discord.ComponentInteraction); ok {
-			if _, unknown := c.(*discord.UnknownComponent); !unknown {
-				stored := *t.Interaction
-				stored.Data = typedComponent{c}
-				aux.Interaction = &stored
-			}
+		switch c := t.Interaction.Data.(type) {
+		case *discord.UnknownComponent:
+			// Keeps what Discord sent, component_type included.
+		case discord.ComponentInteraction:
+			stored := *t.Interaction
+			stored.Data = typedComponent{c}
+			aux.Interaction = &stored
 		}
 	}
 
