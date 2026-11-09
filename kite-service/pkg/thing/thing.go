@@ -4,7 +4,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
@@ -349,15 +348,6 @@ func NewHTTPResponse(v HTTPResponseValue) Thing {
 		Type:  TypeHTTPResponse,
 		Value: v,
 	}
-}
-
-func NewFromHTTPResponse(v *http.Response) (Thing, error) {
-	val, err := NewHTTPResponseValue(v)
-	if err != nil {
-		return Thing{}, fmt.Errorf("failed to create http response value: %w", err)
-	}
-
-	return NewHTTPResponse(val), nil
 }
 
 func NewArray(v []Thing) Thing {

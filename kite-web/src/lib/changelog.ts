@@ -14,6 +14,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-09",
+    title:
+      "Run JavaScript can read Discord, use stored variables, and send requests",
+    description:
+      "The code of a Run JavaScript block can read from Discord, ER:LC, and Cookie API, read and change stored variables, and send requests to other websites with fetch. Put {{secrets.NAME}} in a request to send a secret without the code seeing it. The editor completes these calls as you type.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run`,
+  },
+  {
+    date: "2026-11-09",
+    title: "Append and Prepend add to lists",
+    description:
+      "Set stored variable in Append or Prepend mode adds the value as one item when the variable holds a list, instead of turning the list into text. Changes from runs at the same time no longer overwrite each other, also for the first value of a variable.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_variable_set`,
+  },
+  {
     date: "2026-11-08",
     title: "Run JavaScript block",
     description:
