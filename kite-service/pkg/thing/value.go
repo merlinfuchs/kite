@@ -17,24 +17,22 @@ type HTTPResponseValue struct {
 	Headers    map[string]string `json:"headers"`
 }
 
-// NewHTTPResponseValue reads the response, with a body of up to maxBody
-// bytes, like MaxBodySize.
+// NewHTTPResponseValue reads the response. A body of more than maxBody bytes
+// is cut off, or an error if its Content-Length says so.
 func NewHTTPResponseValue(v *http.Response, maxBody int) (HTTPResponseValue, error) {
 	headers := make(map[string]string, len(v.Header))
 	for k, v := range v.Header {
 		headers[k] = strings.Join(v, ",")
 	}
 
-	tooLarge := fmt.Errorf("the response is larger than %s", byteSize(maxBody))
 	if v.ContentLength > int64(maxBody) {
-		return HTTPResponseValue{}, tooLarge
+		return HTTPResponseValue{}, fmt.Errorf("body size exceeds max body size of %d bytes", maxBody)
 	}
-	body, err := io.ReadAll(io.LimitReader(v.Body, int64(maxBody)+1))
+
+	limitedBody := io.LimitReader(v.Body, int64(maxBody))
+	body, err := io.ReadAll(limitedBody)
 	if err != nil {
 		return HTTPResponseValue{}, err
-	}
-	if len(body) > maxBody {
-		return HTTPResponseValue{}, tooLarge
 	}
 
 	return HTTPResponseValue{
@@ -43,14 +41,6 @@ func NewHTTPResponseValue(v *http.Response, maxBody int) (HTTPResponseValue, err
 		Body:       body,
 		Headers:    headers,
 	}, nil
-}
-
-// byteSize is n bytes in MB or KB, like 4 MB.
-func byteSize(n int) string {
-	if n >= 1<<20 {
-		return fmt.Sprintf("%d MB", n>>20)
-	}
-	return fmt.Sprintf("%d KB", n>>10)
 }
 
 type RobloxUserValue struct {

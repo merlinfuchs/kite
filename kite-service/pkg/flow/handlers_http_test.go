@@ -56,7 +56,15 @@ func TestHTTPRequestBlockRejectsOtherSchemes(t *testing.T) {
 }
 
 func TestHTTPRequestBlockResponseLimit(t *testing.T) {
+	// Like before it ran through http.request, a long body without a
+	// Content-Length is cut off.
 	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", thing.MaxBodySize+1)}
-	_, err := runHTTPRequestBlock(t, HTTPRequestData{URL: "https://example.com", Method: "GET"}, p)
-	assert.ErrorContains(t, err, "the response is larger than 4 MB")
+	c, err := runHTTPRequestBlock(t, HTTPRequestData{URL: "https://example.com", Method: "GET"}, p)
+	require.NoError(t, err)
+	assert.Len(t, c.GetNodeResult("1").HTTPResponse().Body, thing.MaxBodySize)
+
+	// Any method works, also ones the editor doesn't offer.
+	_, err = runHTTPRequestBlock(t, HTTPRequestData{URL: "https://example.com", Method: "HEAD"}, p)
+	require.NoError(t, err)
+	assert.Equal(t, "HEAD", p.reqs[len(p.reqs)-1].Method)
 }

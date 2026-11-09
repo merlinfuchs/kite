@@ -23,13 +23,6 @@ func newHTTPRequest(c *FlowContext, method string, rawURL string, query url.Valu
 	if method == "" {
 		method = http.MethodGet
 	}
-	if !slices.Contains(httpRequestMethods, method) {
-		return nil, fmt.Errorf("the method must be one of %s", strings.Join(httpRequestMethods, ", "))
-	}
-	if !isHTTPURL(rawURL) {
-		return nil, errors.New("the URL must start with http:// or https://")
-	}
-
 	// Bound to the flow context so the execution deadline and an explicit
 	// Cancel both abort the request. With a background request a slow or
 	// non-responding host pins the goroutine and its connection past the
@@ -37,6 +30,9 @@ func newHTTPRequest(c *FlowContext, method string, rawURL string, query url.Valu
 	req, err := http.NewRequestWithContext(c, method, rawURL, body)
 	if err != nil {
 		return nil, err
+	}
+	if (req.URL.Scheme != "http" && req.URL.Scheme != "https") || req.URL.Host == "" {
+		return nil, errors.New("the URL must start with http:// or https://")
 	}
 	if len(query) > 0 {
 		q := req.URL.Query()
@@ -49,12 +45,10 @@ func newHTTPRequest(c *FlowContext, method string, rawURL string, query url.Valu
 }
 
 // sendHTTP sends the request out of Kite and reads the response, whatever
-// its status, with a body of up to maxBody bytes. Test runs don't send it.
-// secrets are the secrets its values used, which are removed from errors.
+// its status, with a body of up to maxBody bytes, see
+// thing.NewHTTPResponseValue. secrets are the secrets its values used,
+// which are removed from errors. Test runs don't call it.
 func sendHTTP(c *FlowContext, req *http.Request, secrets *flowSecrets, maxBody int) (thing.HTTPResponseValue, error) {
-	if c.Test != nil {
-		return thing.HTTPResponseValue{}, errors.New("test runs don't send requests outside of Discord")
-	}
 	resp, err := c.HTTP.HTTPRequest(c, req)
 	if err != nil {
 		return thing.HTTPResponseValue{}, secrets.Redact(err)
@@ -78,9 +72,16 @@ func httpRequestOperation(call operationCall) (any, error) {
 	if arg.URL == "" {
 		return nil, errors.New("missing parameter url")
 	}
+	// Blocks only allow these too, in the editor.
+	if arg.Method != "" && !slices.Contains(httpRequestMethods, strings.ToUpper(arg.Method)) {
+		return nil, fmt.Errorf("invalid value for parameter method: must be one of %s", strings.Join(httpRequestMethods, ", "))
+	}
+	c := call.ctx
+	if c.Test != nil {
+		return nil, errors.New("test runs don't send requests outside of Discord")
+	}
 
 	// Code has no placeholders, only secrets are filled in.
-	c := call.ctx
 	templates := []string{arg.URL}
 	for _, v := range arg.Headers {
 		templates = append(templates, v)
@@ -108,17 +109,17 @@ func httpRequestOperation(call operationCall) (any, error) {
 		req.Header.Set("Content-Type", "text/plain;charset=UTF-8")
 	}
 
-	// Like sendHTTP, before the call is charged.
-	if c.Test != nil {
-		return nil, errors.New("test runs don't send requests outside of Discord")
-	}
 	if err := call.charge(); err != nil {
 		return nil, err
 	}
-	// The code parses it in its 8 MB of memory.
-	res, err := sendHTTP(c, req, secrets, js.MaxInputLength)
+	// The code parses it in its 8 MB of memory. One more byte than it can
+	// take tells a response that's too large from one that fits.
+	res, err := sendHTTP(c, req, secrets, js.MaxInputLength+1)
 	if err != nil {
 		return nil, err
+	}
+	if len(res.Body) > js.MaxInputLength {
+		return nil, fmt.Errorf("the response is larger than %d MB", js.MaxInputLength>>20)
 	}
 
 	headers := make(map[string]string, len(res.Headers))
