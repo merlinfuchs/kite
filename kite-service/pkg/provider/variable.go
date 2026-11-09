@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -21,6 +22,15 @@ const (
 func (o VariableOperation) IsOverwrite() bool {
 	return o == VariableOperationOverwrite || o == ""
 }
+
+// MaxVariableValueSize is how large the JSON of a stored variable's value can
+// be. Values that grow with every run, like chat histories, stop there instead
+// of being rewritten in full on every change.
+const MaxVariableValueSize = 64 << 10
+
+// ErrVariableValueTooLarge is returned for a change that would make a value
+// larger than MaxVariableValueSize.
+var ErrVariableValueTooLarge = errors.New("the value would be larger than 64 KB, the most a stored variable can hold")
 
 // VariableProvider provides access to user-defined variables and their values.
 type VariableProvider interface {
