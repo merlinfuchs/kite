@@ -7,6 +7,7 @@ import { aiModelTiers } from "../flow/aiModels";
 import { eventFlowContext } from "../flow/bundleExport";
 import { buildFlowCatalog } from "../flow/catalog";
 import { flowContextTypes } from "../flow/context";
+import { codeOperations, codeSignature } from "../integrations/sdk";
 import { matchesSearch } from "../search";
 import {
   App,
@@ -539,6 +540,81 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
         // Shared by all blocks, so types they have in common are listed once.
         types: referencedTypes(blocks),
         unknown_types: unknown.length ? unknown : undefined,
+      });
+    }
+  );
+
+  server.registerTool(
+    "search_code_calls",
+    {
+      title: "Search code calls",
+      description:
+        "Searches the calls the code of a Run JavaScript block (action_javascript_run) can make, like discord.getChannel, variables.get or http.request, by words in their name or description. Without words it lists all of them by name only.",
+      inputSchema: {
+        query: z
+          .string()
+          .optional()
+          .describe('Words to search for, like "guild member".'),
+      },
+      annotations: read,
+    },
+    async ({ query }) => {
+      const calls = codeOperations().filter((op) =>
+        matchesSearch(query ?? "", [
+          `${op.namespace}.${op.name}`,
+          op.description,
+        ])
+      );
+      if (!query?.trim()) {
+        return json(calls.map((op) => `${op.namespace}.${op.name}`));
+      }
+      return json(
+        calls.slice(0, maxSearchResults).map((op) => ({
+          name: `${op.namespace}.${op.name}`,
+          description: op.description,
+        }))
+      );
+    }
+  );
+
+  server.registerTool(
+    "get_code_calls",
+    {
+      title: "Get code calls",
+      description:
+        "Gets calls the code of a Run JavaScript block can make as TypeScript: what each does and costs, and the parameters of the one object it takes. Calls return promises.",
+      inputSchema: {
+        names: z
+          .array(z.string())
+          .min(1)
+          .max(maxBlocks)
+          .describe("The calls, like discord.getGuildMember."),
+      },
+      annotations: read,
+    },
+    async ({ names }) => {
+      const calls = codeOperations();
+      const found = calls.filter((op) =>
+        names.includes(`${op.namespace}.${op.name}`)
+      );
+      const unknown = names.filter(
+        (name) => !found.some((op) => `${op.namespace}.${op.name}` === name)
+      );
+      if (!found.length) {
+        throw new Error(
+          `Unknown calls ${unknown.join(
+            ", "
+          )}, use search_code_calls to find them.`
+        );
+      }
+      return json({
+        calls: found.map((op) => ({
+          name: `${op.namespace}.${op.name}`,
+          credits: op.credits,
+          // A method of the namespace, in TypeScript.
+          signature: codeSignature(op),
+        })),
+        unknown_calls: unknown.length ? unknown : undefined,
       });
     }
   );

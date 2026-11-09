@@ -2603,6 +2603,10 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
             ? `The inputs are ${inputNames.join(", ")}.`
             : undefined
         }
+        names={{
+          inputs: inputs.flatMap((input) => (input.name ? [input.name] : [])),
+          variables: codeVariables.flatMap((v) => (v.name ? [v.name] : [])),
+        }}
       />
       <div>
         <div className="font-medium text-foreground mb-1">Inputs</div>
