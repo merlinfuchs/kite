@@ -216,26 +216,30 @@ func variableGetOperation(call operationCall) (any, error) {
 	return codeVariableResult(arg.Name, v, err)
 }
 
-func variableSetOperation(call operationCall) (any, error) {
-	var arg struct {
-		variableArg
-		Value json.RawMessage `json:"value"`
+// variableValueOperation is a handler that updates the value of a variable
+// with op and the value code passes, like variables.set.
+func variableValueOperation(op provider.VariableOperation) operationHandler {
+	return func(call operationCall) (any, error) {
+		var arg struct {
+			variableArg
+			Value json.RawMessage `json:"value"`
+		}
+		if err := decodeOperationArg(call.arg, &arg); err != nil {
+			return nil, err
+		}
+		var value any
+		if len(arg.Value) == 0 {
+			return nil, errors.New("missing parameter value")
+		} else if err := json.Unmarshal(arg.Value, &value); err != nil {
+			return nil, errors.New("invalid value for parameter value")
+		}
+		c, err := codeVariableCall(call, arg.variableArg)
+		if err != nil {
+			return nil, err
+		}
+		v, err := updateVariable(c, op, thing.NewFromJSONValue(value))
+		return codeVariableResult(arg.Name, v, err)
 	}
-	if err := decodeOperationArg(call.arg, &arg); err != nil {
-		return nil, err
-	}
-	var value any
-	if len(arg.Value) == 0 {
-		return nil, errors.New("missing parameter value")
-	} else if err := json.Unmarshal(arg.Value, &value); err != nil {
-		return nil, errors.New("invalid value for parameter value")
-	}
-	c, err := codeVariableCall(call, arg.variableArg)
-	if err != nil {
-		return nil, err
-	}
-	v, err := updateVariable(c, provider.VariableOperationOverwrite, thing.NewFromJSONValue(value))
-	return codeVariableResult(arg.Name, v, err)
 }
 
 func variableIncrementOperation(call operationCall) (any, error) {

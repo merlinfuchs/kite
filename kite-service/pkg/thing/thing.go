@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -829,9 +830,21 @@ func (w Thing) IsNil() bool {
 	return w.Value == nil
 }
 
+// Append adds other to the end of a list as one item. Anything else is
+// text, which other is joined to.
 func (w Thing) Append(other Thing) Thing {
-	// TODO: implement for arrays
+	if w.Type == TypeArray {
+		return NewArray(append(slices.Clone(w.Array()), other))
+	}
 	return NewString(w.String() + other.String())
+}
+
+// Prepend is Append at the start.
+func (w Thing) Prepend(other Thing) Thing {
+	if w.Type == TypeArray {
+		return NewArray(append([]Thing{other}, w.Array()...))
+	}
+	return NewString(other.String() + w.String())
 }
 
 func (w Thing) Add(other Thing) Thing {

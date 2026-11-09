@@ -109,7 +109,7 @@ export const javascriptRun: BlockDefinition = {
             })
             .optional()
             .describe(
-              "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit."
+              "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), append({name, scope, value}) and prepend, which add an item to a list or text, increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit."
             ),
         })
         .describe("The code to run and the values it gets."),

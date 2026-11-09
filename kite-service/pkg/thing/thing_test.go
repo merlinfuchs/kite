@@ -309,3 +309,17 @@ func TestEquals(t *testing.T) {
 		assert.Equal(t, tc.want, tc.b.Equals(&tc.a), "%v == %v", tc.b.Value, tc.a.Value)
 	}
 }
+
+func TestAppendAndPrepend(t *testing.T) {
+	assert.Equal(t, "ab", NewString("a").Append(NewString("b")).String())
+	assert.Equal(t, "ba", NewString("a").Prepend(NewString("b")).String())
+	assert.Equal(t, "12", NewInt(1).Append(NewInt(2)).String())
+
+	list := NewArray([]Thing{NewInt(1)})
+	assert.Equal(t, []any{int64(1), "x"}, list.Append(NewString("x")).JSONValue())
+	assert.Equal(t, []any{"x", int64(1)}, list.Prepend(NewString("x")).JSONValue())
+	// A list is added as one item.
+	assert.Len(t, list.Append(list).Array(), 2)
+	// The list itself isn't changed.
+	assert.Len(t, list.Array(), 1)
+}

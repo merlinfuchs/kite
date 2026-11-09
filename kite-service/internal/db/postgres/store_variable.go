@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -290,12 +291,37 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	}
 	defer tx.Rollback(ctx)
 
+	// Updates of the same value wait for each other, also when it doesn't
+	// exist yet and there's no row to lock. Otherwise two runs that both find
+	// no value would both store the first one, and one change would be lost.
+	// The lock is released when the transaction ends.
+	_, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", value.VariableID+"/"+value.Scope.String+"/"+strconv.FormatBool(value.Scope.Valid))
+	if err != nil {
+		return nil, fmt.Errorf("failed to lock variable value: %w", err)
+	}
+
 	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
+	if errors.Is(err, store.ErrNotFound) {
+		// The first value is inserted, unless it was set in the meantime
+		// without the lock, which overwrites do. That value is then updated
+		// like any other.
+		first := value
+		first.Data = firstVariableValue(operation, value.Data)
+		inserted, err := c.insertVariableValueWithTx(ctx, tx, appID, first)
+		if err == nil {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, fmt.Errorf("failed to commit transaction: %w", err)
+			}
+			return inserted, nil
+		}
+		if !errors.Is(err, store.ErrNotFound) {
+			return nil, fmt.Errorf("failed to insert variable value: %w", err)
+		}
+		currentValue, err = c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
+	}
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Current transaction is rolled back, we set the value outside of the transaction
-			value.Data = firstVariableValue(operation, value.Data)
-			return c.setVariableValueWithTx(ctx, nil, appID, value)
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
 	}
@@ -304,7 +330,7 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	case provider.VariableOperationAppend:
 		value.Data = currentValue.Data.Append(value.Data)
 	case provider.VariableOperationPrepend:
-		value.Data = value.Data.Append(currentValue.Data)
+		value.Data = currentValue.Data.Prepend(value.Data)
 	case provider.VariableOperationIncrement:
 		value.Data = currentValue.Data.Add(value.Data)
 	case provider.VariableOperationDecrement:
@@ -410,6 +436,36 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 		return nil, err
 	}
 
+	return &v, nil
+}
+
+// insertVariableValueWithTx is setVariableValueWithTx for a value that
+// doesn't exist yet. It returns store.ErrNotFound if it does, or if the
+// variable isn't the app's.
+func (c *Client) insertVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
+	data, err := json.Marshal(value.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+	}
+
+	row, err := c.Q.WithTx(tx).InsertVariableValue(ctx, pgmodel.InsertVariableValueParams{
+		VariableID: value.VariableID,
+		AppID:      appID,
+		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Value:      data,
+		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
+		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	v, err := rowToVariableValue(row)
+	if err != nil {
+		return nil, err
+	}
 	return &v, nil
 }
 

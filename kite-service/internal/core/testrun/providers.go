@@ -486,7 +486,7 @@ func (p *testVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 			case provider.VariableOperationAppend:
 				newValue = current.Append(value)
 			case provider.VariableOperationPrepend:
-				newValue = value.Append(current)
+				newValue = current.Prepend(value)
 			case provider.VariableOperationIncrement:
 				newValue = current.Add(value)
 			case provider.VariableOperationDecrement:

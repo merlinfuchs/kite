@@ -116,9 +116,12 @@ return `You have ${total} XP. The top is ${top.map((v) => v.value).join(", ")}.`
 
 - `variables.get({ name, scope })` returns the value, or `null` if there's none.
 - `variables.set({ name, scope, value })` stores a value, which can be text, a number, a list or an object.
-- `variables.increment({ name, scope, by })` adds `by`, 1 if it's left out, and returns the new number. Runs at the same time don't overwrite each other's changes, unlike a `get` followed by a `set`.
+- `variables.append({ name, scope, value })` adds `value` to the end of a list as one item, or to the end of text, and returns the new value. To start a list, set the variable to `[]` first. `variables.prepend` adds it at the start.
+- `variables.increment({ name, scope, by })` adds `by`, 1 if it's left out, and returns the new number.
 - `variables.delete({ name, scope })` deletes the value.
 - `variables.list({ name, scope_prefix, sort, limit, skip })` returns values like the [List stored variable values](./action_variable_list.md) block, each with `scope`, `value` and `updated_at`.
+
+Runs at the same time don't overwrite each other's `append`, `prepend` and `increment`, unlike a `get` followed by a `set`.
 
 A scoped variable needs a `scope`, like a user ID, and an unscoped one ignores it. The name stays the same when the variable is renamed, and when the flow is part of a template, apps that add it get their own copy of the variable. Getting a value is free, the others cost [1 credit](../../credit-system.md#cost-breakdown) each, like the blocks.
 

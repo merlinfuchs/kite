@@ -33,6 +33,21 @@ export const variablesOperations: HandlerOperationDefinition[] = [
     result: value,
   },
   {
+    id: "append",
+    description:
+      "Add an item to the end of the list in a stored variable, or text to the end of other values, and get the new value. Set the variable to an empty list first to start a list. Calls at the same time don't overwrite each other.",
+    credits: 1,
+    params: z.object({ name, scope, value }).strict(),
+    result: value,
+  },
+  {
+    id: "prepend",
+    description: "Like append, at the start of the list or the text.",
+    credits: 1,
+    params: z.object({ name, scope, value }).strict(),
+    result: value,
+  },
+  {
     id: "increment",
     description:
       "Add to the number in a stored variable, which starts at 0, and get the new value. Calls at the same time don't overwrite each other, unlike get and set.",

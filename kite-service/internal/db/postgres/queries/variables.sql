@@ -91,6 +91,28 @@ ON CONFLICT (variable_id, scope) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
+-- name: InsertVariableValue :one
+-- Like SetVariableValue, but inserts nothing (ErrNoRows) when the value
+-- exists, also when another transaction inserted it and hasn't committed yet,
+-- which it waits for.
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+)
+SELECT
+    variables.id,
+    sqlc.narg(scope)::text,
+    @value::jsonb,
+    @created_at::timestamp,
+    @updated_at::timestamp
+FROM variables
+WHERE variables.id = @variable_id AND variables.app_id = @app_id
+ON CONFLICT (variable_id, scope) DO NOTHING
+RETURNING *;
+
 -- name: DeleteVariableValue :exec
 -- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
 -- same as the get queries above. Plain `= NULL` never matches and made
