@@ -257,6 +257,8 @@ export const settingInputs: Record<string, any> = {
   audio_channel_target: AudioChannelTargetInput,
   audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
+  tts_text: TTSTextInput,
+  tts_language: TTSLanguageInput,
   status_data: StatusDataInput,
   server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
@@ -4633,6 +4635,36 @@ function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
       value={!!data.audio_leave_after}
       updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
+    />
+  );
+}
+
+function TTSTextInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="tts_text"
+      title="Text"
+      description="What the bot says out loud, up to 500 characters."
+      value={data.tts_text || ""}
+      updateValue={(v) => updateData({ tts_text: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function TTSLanguageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="tts_language"
+      title="Language"
+      description="The language code the text is read in, like en, en-GB, de, fr, es, it, pt-BR, ja or ko. Defaults to English."
+      value={data.tts_language || ""}
+      updateValue={(v) => updateData({ tts_language: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }

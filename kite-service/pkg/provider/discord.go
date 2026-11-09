@@ -49,6 +49,8 @@ type DiscordProvider interface {
 	// background, replacing what the bot plays in the server. It returns once
 	// playback started.
 	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
+	// SpeakText turns the text into speech and plays it like PlayAudio.
+	SpeakText(ctx context.Context, opts SpeakTextOpts) error
 	// StopAudio stops what the bot plays in the server. The bot stays in the
 	// voice channel.
 	StopAudio(ctx context.Context, guildID discord.GuildID) error
@@ -73,6 +75,17 @@ type PlayAudioOpts struct {
 	// AssetID is the ID of the asset of the uploaded sound.
 	AssetID string
 	// LeaveAfter makes the bot leave the voice channel once the sound ended.
+	LeaveAfter bool
+}
+
+// SpeakTextOpts are the options of DiscordProvider.SpeakText.
+type SpeakTextOpts struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	Text      string
+	// Language is a language code like en or pt-BR, empty for English.
+	Language string
+	// LeaveAfter makes the bot leave the voice channel once it spoke.
 	LeaveAfter bool
 }
 
@@ -258,6 +271,10 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 }
 
 func (p *MockDiscordProvider) PlayAudio(ctx context.Context, opts PlayAudioOpts) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) SpeakText(ctx context.Context, opts SpeakTextOpts) error {
 	return nil
 }
 

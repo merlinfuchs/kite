@@ -19,6 +19,7 @@ func init() {
 		FlowNodeTypeActionVoiceChannelLeave: executeActionVoiceChannelLeave,
 		FlowNodeTypeActionVoiceAudioPlay:    executeActionVoiceAudioPlay,
 		FlowNodeTypeActionVoiceAudioStop:    executeActionVoiceAudioStop,
+		FlowNodeTypeActionVoiceTTSSpeak:     executeActionVoiceTTSSpeak,
 		FlowNodeTypeActionStatusSet:         executeActionStatusSet,
 		FlowNodeTypeActionServerLeave:       executeActionServerLeave,
 		FlowNodeTypeActionServerProfileEdit: executeActionServerProfileEdit,
@@ -99,6 +100,51 @@ func executeActionVoiceAudioPlay(n *CompiledFlowNode, ctx *FlowContext) error {
 		GuildID:    channel.GuildID,
 		ChannelID:  channel.ID,
 		AssetID:    n.Data.AudioAssetID,
+		LeaveAfter: n.Data.AudioLeaveAfter,
+	})
+	if err != nil {
+		return err
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionVoiceTTSSpeak(n *CompiledFlowNode, ctx *FlowContext) error {
+	text, err := ctx.EvalTemplate(n.Data.TTSText)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(text.String()) == "" {
+		return fmt.Errorf("there is no text to speak")
+	}
+
+	language, err := ctx.EvalTemplate(n.Data.TTSLanguage)
+	if err != nil {
+		return err
+	}
+
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return err
+	}
+
+	// Like Play audio, the guild comes from the channel.
+	channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelTarget.Snowflake()))
+	if err != nil {
+		return err
+	}
+	if !channelTypeSupportsVoice(channel.Type) {
+		return fmt.Errorf("channel %s is not a voice channel", channel.ID)
+	}
+	if channel.Type == discord.GuildStageVoice {
+		return fmt.Errorf("speaking in stage channels isn't supported")
+	}
+
+	err = ctx.Discord.SpeakText(ctx, provider.SpeakTextOpts{
+		GuildID:    channel.GuildID,
+		ChannelID:  channel.ID,
+		Text:       text.String(),
+		Language:   language.String(),
 		LeaveAfter: n.Data.AudioLeaveAfter,
 	})
 	if err != nil {

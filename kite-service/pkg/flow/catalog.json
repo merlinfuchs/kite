@@ -4747,6 +4747,66 @@
       },
       "result_schema": null
     },
+    "action_voice_tts_speak": {
+      "title": "Speak text",
+      "description": "Bot reads a text out loud in a voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the voice channel to speak in. The bot joins it, or moves there from another channel of the server."
+          },
+          "tts_text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What the bot says, up to 500 characters. Placeholders like {{arg('text')}} work.",
+            "x-templated": true
+          },
+          "tts_language": {
+            "description": "The language the text is read in, as a code like en, de, fr, es or pt-BR. Defaults to English.",
+            "x-templated": true,
+            "type": "string"
+          },
+          "audio_leave_after": {
+            "description": "Whether the bot leaves the voice channel once it finished speaking. Otherwise it stays until it's told to leave.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel_target",
+          "tts_text"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_soundboard_sound_play": {
       "title": "Play soundboard sound",
       "description": "Bot plays a soundboard sound in its voice channel",

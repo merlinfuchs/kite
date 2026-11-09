@@ -107,6 +107,7 @@ export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_ch
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
 export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
+export const FlowNodeTypeActionVoiceTTSSpeak: FlowNodeType = "action_voice_tts_speak";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
@@ -258,6 +259,11 @@ export interface FlowNodeData {
    */
   audio_asset_id?: string;
   audio_leave_after?: boolean;
+  /**
+   * Voice TTS Speak, also uses AudioLeaveAfter
+   */
+  tts_text?: string;
+  tts_language?: string;
   /**
    * Status Set
    */

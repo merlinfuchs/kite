@@ -141,9 +141,16 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 		return fmt.Errorf("the file isn't a sound, upload it again in the block")
 	}
 
+	return m.PlaySound(ctx, appID, session, opts, asset.Content)
+}
+
+// PlaySound joins the voice channel and starts playing the Ogg Opus sound,
+// like one made by sound.Convert, in the background.
+func (m *VoiceManager) PlaySound(ctx context.Context, appID string, session *state.State, opts provider.PlayAudioOpts, content []byte) error {
 	key := voiceKey{appID: appID, guildID: opts.GuildID}
 
 	var p *voicePlayer
+	var err error
 	for {
 		p, err = m.player(key, true)
 		if err != nil {
@@ -219,7 +226,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 			p.disconnect()
 		}
 		m.remove(p)
-	}(p.voice, asset.Content)
+	}(p.voice, content)
 
 	return nil
 }
