@@ -25,11 +25,17 @@ func (o VariableOperation) IsOverwrite() bool {
 
 // Apply is the value the operation stores, from the current value and the
 // value it was given. A missing value counts as 0 for decrement, so taking 50
-// from it stores -50. The other operations store the given value then.
+// from it stores -50. Append and prepend of an object or a list to it start a
+// list, see thing.Append. The other operations store the given value then.
 func (o VariableOperation) Apply(current thing.Thing, exists bool, value thing.Thing) thing.Thing {
 	if !exists {
-		if o == VariableOperationDecrement {
+		switch o {
+		case VariableOperationDecrement:
 			return thing.NewInt(0).Sub(value)
+		case VariableOperationAppend, VariableOperationPrepend:
+			if value.Type == thing.TypeArray || value.Type == thing.TypeObject {
+				return thing.NewArray([]thing.Thing{value})
+			}
 		}
 		return value
 	}

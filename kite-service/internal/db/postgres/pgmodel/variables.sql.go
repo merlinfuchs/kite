@@ -392,7 +392,7 @@ func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID stri
 	return items, nil
 }
 
-const insertVariableValue = `-- name: InsertVariableValue :one
+const insertOrLockVariableValue = `-- name: InsertOrLockVariableValue :one
 INSERT INTO variable_values (
     variable_id,
     scope,
@@ -408,11 +408,11 @@ SELECT
     $4::timestamp
 FROM variables
 WHERE variables.id = $5 AND variables.app_id = $6
-ON CONFLICT (variable_id, scope) DO NOTHING
-RETURNING id, variable_id, scope, value, created_at, updated_at
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at, (xmax = 0)::boolean AS inserted
 `
 
-type InsertVariableValueParams struct {
+type InsertOrLockVariableValueParams struct {
 	Scope      pgtype.Text
 	Value      []byte
 	CreatedAt  pgtype.Timestamp
@@ -421,11 +421,17 @@ type InsertVariableValueParams struct {
 	AppID      string
 }
 
-// Like SetVariableValue, but inserts nothing (ErrNoRows) when the value
-// exists, also when another transaction inserted it and hasn't committed yet,
-// which it waits for.
-func (q *Queries) InsertVariableValue(ctx context.Context, arg InsertVariableValueParams) (VariableValue, error) {
-	row := q.db.QueryRow(ctx, insertVariableValue,
+type InsertOrLockVariableValueRow struct {
+	VariableValue VariableValue
+	Inserted      bool
+}
+
+// Inserts the first value, or locks and returns the existing one, also when
+// another transaction inserted it and hasn't committed yet, which it waits
+// for. inserted says which. A variable from another app returns nothing
+// (ErrNoRows).
+func (q *Queries) InsertOrLockVariableValue(ctx context.Context, arg InsertOrLockVariableValueParams) (InsertOrLockVariableValueRow, error) {
+	row := q.db.QueryRow(ctx, insertOrLockVariableValue,
 		arg.Scope,
 		arg.Value,
 		arg.CreatedAt,
@@ -433,14 +439,15 @@ func (q *Queries) InsertVariableValue(ctx context.Context, arg InsertVariableVal
 		arg.VariableID,
 		arg.AppID,
 	)
-	var i VariableValue
+	var i InsertOrLockVariableValueRow
 	err := row.Scan(
-		&i.ID,
-		&i.VariableID,
-		&i.Scope,
-		&i.Value,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.VariableValue.ID,
+		&i.VariableValue.VariableID,
+		&i.VariableValue.Scope,
+		&i.VariableValue.Value,
+		&i.VariableValue.CreatedAt,
+		&i.VariableValue.UpdatedAt,
+		&i.Inserted,
 	)
 	return i, err
 }
@@ -526,22 +533,6 @@ func (q *Queries) ListVariableValues(ctx context.Context, arg ListVariableValues
 		return nil, err
 	}
 	return items, nil
-}
-
-const lockVariableValue = `-- name: LockVariableValue :exec
-SELECT pg_advisory_xact_lock(hashtext('variable:' || $1::text || ':' || coalesce($2::text, '')))
-`
-
-type LockVariableValueParams struct {
-	VariableID string
-	Scope      pgtype.Text
-}
-
-// Locks a value that may not exist yet, so updates that find no value wait for
-// each other instead of each storing a first one.
-func (q *Queries) LockVariableValue(ctx context.Context, arg LockVariableValueParams) error {
-	_, err := q.db.Exec(ctx, lockVariableValue, arg.VariableID, arg.Scope)
-	return err
 }
 
 const searchVariableValues = `-- name: SearchVariableValues :many

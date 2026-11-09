@@ -275,13 +275,13 @@ func (c *Client) VariableValue(ctx context.Context, appID string, variableID str
 }
 
 func (c *Client) SetVariableValue(ctx context.Context, appID string, value model.VariableValue) error {
-	_, err := c.writeVariableValueWithTx(ctx, nil, appID, value, false)
+	_, err := c.writeVariableValueWithTx(ctx, nil, appID, value)
 	return err
 }
 
 func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
-	if operation == provider.VariableOperationOverwrite {
-		return c.writeVariableValueWithTx(ctx, nil, appID, value, false)
+	if operation.IsOverwrite() {
+		return c.writeVariableValueWithTx(ctx, nil, appID, value)
 	}
 
 	tx, err := c.DB.Begin(ctx)
@@ -290,55 +290,41 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	}
 	defer tx.Rollback(ctx)
 
-	var currentValue *model.VariableValue
-	locked := false
-	for attempt := 0; ; attempt++ {
-		currentValue, err = c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
-		if !errors.Is(err, store.ErrNotFound) {
-			break
-		}
-		if !locked {
-			// There's no row to lock yet. Runs that find no value wait for
-			// each other on a lock of the value instead, and read it again,
-			// as the one before may have stored it. Otherwise each would
-			// store its first value and only the last change would count.
-			err = c.Q.WithTx(tx).LockVariableValue(ctx, pgmodel.LockVariableValueParams{
-				VariableID: value.VariableID,
-				Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to lock variable value: %w", err)
-			}
-			locked = true
-			continue
-		}
-
+	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
+	if errors.Is(err, store.ErrNotFound) {
+		// There's no row to lock yet, so the first value is inserted. If
+		// another run inserted one in the meantime, the insert waits for it
+		// and locks it instead, and this change is made to it. Otherwise each
+		// would store its first value and only the last change would count.
 		first := value
 		first.Data = operation.Apply(thing.Null, false, value.Data)
-		inserted, err := c.writeVariableValueWithTx(ctx, tx, appID, first, true)
-		if err == nil {
+		data, err := encodeVariableValue(first.Data)
+		if err != nil {
+			return nil, err
+		}
+		row, err := c.Q.WithTx(tx).InsertOrLockVariableValue(ctx, pgmodel.InsertOrLockVariableValueParams(variableValueParams(appID, first, data)))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to insert variable value: %w", err)
+		}
+		v, err := rowToVariableValue(row.VariableValue)
+		if err != nil {
+			return nil, err
+		}
+		if row.Inserted {
 			if err := tx.Commit(ctx); err != nil {
 				return nil, fmt.Errorf("failed to commit transaction: %w", err)
 			}
-			return inserted, nil
+			return &v, nil
 		}
-		if !errors.Is(err, store.ErrNotFound) {
-			return nil, fmt.Errorf("failed to insert variable value: %w", err)
-		}
-		// An overwrite, which takes no lock, stored it in the meantime. The
-		// next read can still miss it while that finishes, so it's read a
-		// few times. ErrNotFound after that means the variable isn't the
-		// app's.
-		if attempt > 5 {
-			return nil, store.ErrNotFound
-		}
-	}
-	if err != nil {
+		currentValue = &v
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
 	}
 
 	value.Data = operation.Apply(currentValue.Data, true, value.Data)
-	newValue, err := c.writeVariableValueWithTx(ctx, tx, appID, value, false)
+	newValue, err := c.writeVariableValueWithTx(ctx, tx, appID, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set variable value: %w", err)
 	}
@@ -406,10 +392,9 @@ func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, appID strin
 	return &v, nil
 }
 
-// writeVariableValueWithTx stores the value. With insertOnly it only stores
-// one that doesn't exist yet, and returns store.ErrNotFound if it does. Either
-// returns it if the variable isn't the app's.
-func (c *Client) writeVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue, insertOnly bool) (*model.VariableValue, error) {
+// writeVariableValueWithTx stores the value. It returns store.ErrNotFound
+// if the variable isn't the app's.
+func (c *Client) writeVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
 	q := c.Q
 	if tx != nil {
 		q = c.Q.WithTx(tx)
@@ -419,20 +404,7 @@ func (c *Client) writeVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID 
 	if err != nil {
 		return nil, err
 	}
-	params := pgmodel.SetVariableValueParams{
-		VariableID: value.VariableID,
-		AppID:      appID,
-		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
-		Value:      data,
-		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
-		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
-	}
-	var row pgmodel.VariableValue
-	if insertOnly {
-		row, err = q.InsertVariableValue(ctx, pgmodel.InsertVariableValueParams(params))
-	} else {
-		row, err = q.SetVariableValue(ctx, params)
-	}
+	row, err := q.SetVariableValue(ctx, variableValueParams(appID, value, data))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, store.ErrNotFound
 	} else if err != nil {
@@ -444,6 +416,17 @@ func (c *Client) writeVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID 
 		return nil, err
 	}
 	return &v, nil
+}
+
+func variableValueParams(appID string, value model.VariableValue, data []byte) pgmodel.SetVariableValueParams {
+	return pgmodel.SetVariableValueParams{
+		VariableID: value.VariableID,
+		AppID:      appID,
+		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Value:      data,
+		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
+		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
+	}
 }
 
 // encodeVariableValue is the JSON a value is stored as, which can be up to

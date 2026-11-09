@@ -322,4 +322,12 @@ func TestAppendAndPrepend(t *testing.T) {
 	assert.Len(t, list.Append(list).Array(), 2)
 	// The list itself isn't changed.
 	assert.Len(t, list.Array(), 1)
+
+	// Nothing adds nothing.
+	assert.Len(t, list.Append(Null).Array(), 1)
+	assert.Len(t, list.Append(NewString("")).Array(), 1)
+	// Objects and lists can't be joined to text, they start a list.
+	obj := NewObject(map[string]Thing{"id": NewInt(1)})
+	assert.Equal(t, []any{"a", map[string]any{"id": int64(1)}}, NewString("a").Append(obj).JSONValue())
+	assert.Equal(t, []any{map[string]any{"id": int64(1)}}, Null.Append(obj).JSONValue())
 }

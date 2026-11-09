@@ -91,15 +91,11 @@ ON CONFLICT (variable_id, scope) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
--- Locks a value that may not exist yet, so updates that find no value wait for
--- each other instead of each storing a first one.
--- name: LockVariableValue :exec
-SELECT pg_advisory_xact_lock(hashtext('variable:' || @variable_id::text || ':' || coalesce(sqlc.narg(scope)::text, '')));
-
--- name: InsertVariableValue :one
--- Like SetVariableValue, but inserts nothing (ErrNoRows) when the value
--- exists, also when another transaction inserted it and hasn't committed yet,
--- which it waits for.
+-- name: InsertOrLockVariableValue :one
+-- Inserts the first value, or locks and returns the existing one, also when
+-- another transaction inserted it and hasn't committed yet, which it waits
+-- for. inserted says which. A variable from another app returns nothing
+-- (ErrNoRows).
 INSERT INTO variable_values (
     variable_id,
     scope,
@@ -115,8 +111,8 @@ SELECT
     @updated_at::timestamp
 FROM variables
 WHERE variables.id = @variable_id AND variables.app_id = @app_id
-ON CONFLICT (variable_id, scope) DO NOTHING
-RETURNING *;
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING sqlc.embed(variable_values), (xmax = 0)::boolean AS inserted;
 
 -- name: DeleteVariableValue :exec
 -- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,

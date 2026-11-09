@@ -116,7 +116,7 @@ return `You have ${total} XP. The top is ${top.map((v) => v.value).join(", ")}.`
 
 - `variables.get({ name, scope })` returns the value, or `null` if there's none.
 - `variables.set({ name, scope, value })` stores a value, which can be text, a number, a list or an object.
-- `variables.append({ name, scope, value })` adds `value` to the end of a list as one item, or to the end of text, and returns the new value. To start a list, set the variable to `[]` first. `variables.prepend` adds it at the start.
+- `variables.append({ name, scope, value })` adds `value` to the end of a list as one item, or to the end of text, and returns the new value. An object or a list appended to an empty variable or to text starts a list. For a list of text or numbers, set the variable to `[]` first. `variables.prepend` adds the value at the start, and an empty value adds nothing.
 - `variables.increment({ name, scope, by })` adds `by`, 1 if it's left out, and returns the new number.
 - `variables.delete({ name, scope })` deletes the value.
 - `variables.list({ name, scope_prefix, sort, limit, skip })` returns values like the [List stored variable values](./action_variable_list.md) block, each with `scope`, `value` and `updated_at`.
