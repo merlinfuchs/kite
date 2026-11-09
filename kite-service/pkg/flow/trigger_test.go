@@ -115,6 +115,20 @@ func TestRecordTriggerRoundTripsComponents(t *testing.T) {
 	}
 }
 
+func TestResumeTriggerRoundTripsComponent(t *testing.T) {
+	component := &discord.UserSelectInteraction{CustomID: "user", Values: []discord.UserID{10}}
+	state := NewFlowContextState()
+	state.ResumeTrigger = newFlowTrigger(&TestContextData{interaction: &discord.InteractionEvent{
+		ID:     1,
+		Member: &discord.Member{User: discord.User{ID: 3}},
+		Data:   component,
+	}})
+
+	res := roundTrip(t, *state)
+	require.NotNil(t, res.ResumeTrigger)
+	assert.Equal(t, component, res.ResumeTrigger.Interaction.Data)
+}
+
 func TestRecordTriggerRoundTripsEvent(t *testing.T) {
 	state := NewFlowContextState()
 	state.recordTrigger(&eventData{event: &gateway.MessageCreateEvent{
