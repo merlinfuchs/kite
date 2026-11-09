@@ -45,6 +45,14 @@ const (
 	VariableListSortUpdatedAsc  VariableListSort = "updated_asc"
 )
 
+// VariableListSorts are all sorts.
+var VariableListSorts = []VariableListSort{
+	VariableListSortValueDesc,
+	VariableListSortValueAsc,
+	VariableListSortUpdatedDesc,
+	VariableListSortUpdatedAsc,
+}
+
 type VariableListOptions struct {
 	// Only values whose scope starts with it, all values if empty.
 	ScopePrefix string

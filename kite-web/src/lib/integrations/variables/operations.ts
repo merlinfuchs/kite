@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { variableListSorts } from "../../blocks/variableList";
 import { HandlerOperationDefinition } from "../handlerOperations";
 
 // The stored variables the Run JavaScript block lets the code use, by the
@@ -71,7 +72,7 @@ export const variablesOperations: HandlerOperationDefinition[] = [
             "Only values whose scope starts with it, like the server ID for scopes like <server ID>:<user ID>."
           ),
         sort: z
-          .enum(["value_desc", "value_asc", "updated_desc", "updated_asc"])
+          .enum(variableListSorts.map((s) => s.value))
           .optional()
           .describe("Defaults to value_desc, the highest values first."),
         limit: z
