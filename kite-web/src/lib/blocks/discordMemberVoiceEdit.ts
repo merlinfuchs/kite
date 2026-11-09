@@ -30,7 +30,6 @@ export const discordMemberVoiceEdit: BlockDefinition = {
   description: "Server-mute, deafen or move a member to another voice channel",
   icon: "audio-lines",
   category: "Voice",
-  credits: 1,
   permissions: (data) => [
     ...(isChange(data.member_voice_mute) ? (["MUTE_MEMBERS"] as const) : []),
     ...(isChange(data.member_voice_deaf) ? (["DEAFEN_MEMBERS"] as const) : []),

@@ -8,7 +8,6 @@ export const discordMemberUnban: BlockDefinition = {
   description: "Unban a member from the server",
   icon: "user-round-check",
   category: "Members",
-  credits: 1,
   permissions: ["BAN_MEMBERS"],
   audit_log_reason: true,
   run: {

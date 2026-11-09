@@ -8,7 +8,6 @@ export const cookieApiCaptchaGet: BlockDefinition = {
   description: "Check if a captcha from Cookie API was solved",
   icon: "shield-question",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

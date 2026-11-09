@@ -8,7 +8,6 @@ export const discordMemberRoleAdd: BlockDefinition = {
   description: "Add a role to a member",
   icon: "bookmark-plus",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   run: {

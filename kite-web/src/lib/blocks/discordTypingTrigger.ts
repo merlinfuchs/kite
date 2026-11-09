@@ -8,7 +8,6 @@ export const discordTypingTrigger: BlockDefinition = {
   icon: "message-circle-more",
   category: "Messages",
   permissions: ["SEND_MESSAGES"],
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

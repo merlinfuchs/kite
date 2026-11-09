@@ -92,7 +92,6 @@ export const discordRoleCreate: BlockDefinition = {
   description: "Create a new role in the server",
   icon: "shield-plus",
   category: "Roles",
-  credits: 1,
   audit_log_reason: true,
   run: {
     kind: "request",
@@ -179,7 +178,7 @@ The service embeds all definitions and builds a table of node type to block defi
 
 The credential is only ever added to requests to the integration's own base URL, which comes from the repo, never from a flow. It never appears in templates, results, errors or logs. This is the same property Discord API Request has for the bot token, extended to every integration.
 
-Credits come from the operation in the `api.json`, and request blocks have a copy a test checks, as pages that show costs don't load the specs. Partner APIs that charge Kite can cost more.
+Credits come from the operation in the `api.json`, the same as for calls from code. Partner APIs that charge Kite can cost more.
 
 ## Editor
 

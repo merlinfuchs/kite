@@ -10,7 +10,6 @@ export const discordThreadMemberRemove: BlockDefinition = {
   description: "Remove a member from a thread",
   icon: "user-minus",
   category: "Channels",
-  credits: 1,
   permissions: ["MANAGE_THREADS"],
   run: {
     kind: "request",

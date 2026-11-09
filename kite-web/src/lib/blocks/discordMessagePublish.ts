@@ -9,7 +9,6 @@ export const discordMessagePublish: BlockDefinition = {
   icon: "megaphone",
   category: "Messages",
   permissions: ["MANAGE_MESSAGES"],
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

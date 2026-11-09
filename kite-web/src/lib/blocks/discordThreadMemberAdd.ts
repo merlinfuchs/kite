@@ -10,7 +10,6 @@ export const discordThreadMemberAdd: BlockDefinition = {
   description: "Add a member to a thread",
   icon: "user-plus",
   category: "Channels",
-  credits: 1,
   permissions: ["MANAGE_THREADS"],
   run: {
     kind: "request",

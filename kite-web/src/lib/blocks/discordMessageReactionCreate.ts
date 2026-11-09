@@ -9,7 +9,6 @@ export const discordMessageReactionCreate: BlockDefinition = {
   description: "Bot adds a reaction to a message",
   icon: "smile-plus",
   category: "Messages",
-  credits: 1,
   permissions: ["ADD_REACTIONS", "READ_MESSAGE_HISTORY"],
   run: {
     kind: "request",

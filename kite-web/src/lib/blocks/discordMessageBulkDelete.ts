@@ -8,7 +8,6 @@ export const discordMessageBulkDelete: BlockDefinition = {
   description: "Delete 2 to 100 messages of a channel at once",
   icon: "trash-2",
   category: "Messages",
-  credits: 1,
   permissions: ["MANAGE_MESSAGES"],
   audit_log_reason: true,
   // Destructive, but Discord only deletes up to 100 messages that are less

@@ -37,7 +37,6 @@ export const erlcServerGet: BlockDefinition = {
   description: "Get the status of your ER:LC private server",
   icon: "siren",
   category: "ER:LC",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

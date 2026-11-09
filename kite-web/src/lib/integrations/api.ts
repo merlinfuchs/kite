@@ -17,8 +17,7 @@ export interface ApiOperation {
   id: string;
   method: string;
   path: string;
-  // Credits each request costs, for request blocks and for calls from code.
-  // blocks.test.ts checks request blocks charge the same.
+  // Credits each request costs, from request blocks and from code.
   credits: number;
   path_params: ApiParam[];
   query_params: ApiParam[];

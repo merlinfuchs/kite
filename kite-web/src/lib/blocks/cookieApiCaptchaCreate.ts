@@ -8,7 +8,6 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
   description: "Create a captcha page with Cookie API for a user to solve",
   icon: "shield-check",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

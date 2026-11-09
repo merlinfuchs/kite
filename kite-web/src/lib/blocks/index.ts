@@ -126,6 +126,7 @@ import { variableGet } from "./variableGet";
 import { variableList } from "./variableList";
 import { variableSet } from "./variableSet";
 import { webhookResponseCreate } from "./webhookResponseCreate";
+import { integrationApis } from "../integrations/apis";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -243,7 +244,21 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,
-];
+].map(withOperationCredits);
+
+// Request blocks cost what their operation in the integration's api.json
+// costs, the same as a call of it from code.
+function withOperationCredits(block: BlockDefinition): BlockDefinition {
+  if (block.run.kind !== "request") return block;
+  if (block.credits !== undefined) {
+    throw new Error(`${block.type} gets its credits from its operation`);
+  }
+  const { integration, operation } = block.run;
+  const op = integrationApis[integration]?.operations.find(
+    (o) => o.id === operation
+  );
+  return { ...block, credits: op?.credits };
+}
 
 const definitionsByType = new Map(blockDefinitions.map((b) => [b.type, b]));
 

@@ -8,7 +8,6 @@ export const discordMessagePin: BlockDefinition = {
   description: "Bot pins a message in a channel",
   icon: "pin",
   category: "Messages",
-  credits: 1,
   permissions: ["PIN_MESSAGES"],
   audit_log_reason: true,
   run: {

@@ -8,7 +8,6 @@ export const discordRoleCreate: BlockDefinition = {
   description: "Create a new role in the server",
   icon: "shield-plus",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   strict_settings: true,

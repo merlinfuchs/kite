@@ -8,7 +8,6 @@ export const cookieApiMinecraftUserGet: BlockDefinition = {
   description: "Get the Minecraft player a Cookie API verification code is for",
   icon: "pickaxe",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

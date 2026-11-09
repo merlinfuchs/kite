@@ -7,7 +7,6 @@ export const erlcCommandRun: BlockDefinition = {
   description: "Run a command in your ER:LC private server",
   icon: "square-terminal",
   category: "ER:LC",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",

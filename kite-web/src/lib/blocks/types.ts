@@ -171,6 +171,7 @@ export interface BlockDefinition {
   requires?: string[];
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
+  // Request blocks leave it out, they cost the credits of their operation.
   credits?: number | ((data: NodeData) => number);
   permissions?: PermissionFlag[] | ((data: NodeData) => PermissionFlag[]);
   // The block's settings, from which its schema and editor are generated.
@@ -210,6 +211,6 @@ export type BlockResult =
 export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];
-  // The service reads it for requests, so it can't depend on the settings.
+  // From the operation, see withOperationCredits in index.ts.
   credits: number;
 };

@@ -8,7 +8,6 @@ export const discordSoundboardSoundPlay: BlockDefinition = {
   description: "Bot plays a soundboard sound in its voice channel",
   icon: "audio-lines",
   category: "Voice",
-  credits: 1,
   permissions: (data) => {
     const perms: PermissionFlag[] = ["SPEAK", "USE_SOUNDBOARD"];
     if (data?.source_guild_id) {

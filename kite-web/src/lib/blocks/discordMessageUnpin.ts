@@ -8,7 +8,6 @@ export const discordMessageUnpin: BlockDefinition = {
   description: "Bot unpins a message in a channel",
   icon: "pin-off",
   category: "Messages",
-  credits: 1,
   permissions: ["PIN_MESSAGES"],
   audit_log_reason: true,
   run: {

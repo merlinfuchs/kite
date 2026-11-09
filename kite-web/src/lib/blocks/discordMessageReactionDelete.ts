@@ -9,7 +9,6 @@ export const discordMessageReactionDelete: BlockDefinition = {
   description: "Bot deletes a reaction from a message",
   icon: "frown",
   category: "Messages",
-  credits: 1,
   run: {
     kind: "request",
     integration: "discord",

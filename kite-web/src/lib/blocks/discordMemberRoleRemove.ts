@@ -8,7 +8,6 @@ export const discordMemberRoleRemove: BlockDefinition = {
   description: "Remove a role from a member",
   icon: "bookmark-minus",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   run: {
