@@ -495,6 +495,13 @@ func (p *testVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 		}
 	}
 
+	// Like the database, see encodeVariableValue.
+	if data, err := json.Marshal(newValue); err != nil {
+		return thing.Null, err
+	} else if len(data) > provider.MaxVariableValueSize {
+		return thing.Null, provider.ErrVariableValueTooLarge
+	}
+
 	p.s.setVariable(id, scope, newValue, false)
 	p.run.AddEffect(flow.TestEffect{
 		Action: "set_variable",

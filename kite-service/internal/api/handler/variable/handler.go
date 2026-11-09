@@ -241,6 +241,9 @@ func (h *VariableHandler) HandleVariableValueSet(c *handler.Context, req wire.Va
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_variable", "Variable not found")
 		}
+		if errors.Is(err, provider.ErrVariableValueTooLarge) {
+			return nil, validation.Errors{"value": errors.New("can be up to 64 KB")}
+		}
 		return nil, fmt.Errorf("failed to set variable value: %w", err)
 	}
 
