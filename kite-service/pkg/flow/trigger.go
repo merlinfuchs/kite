@@ -50,8 +50,44 @@ type flowTriggerJSON struct {
 	Event       json.RawMessage           `json:"event,omitempty"`
 }
 
+// typedComponent writes the component_type that arikawa leaves out when it
+// marshals a button or select interaction. Without it, the interaction is
+// read back as an unknown component and loses its values.
+type typedComponent struct {
+	discord.ComponentInteraction
+}
+
+func (c typedComponent) MarshalJSON() ([]byte, error) {
+	data, err := json.Marshal(c.ComponentInteraction)
+	if err != nil {
+		return nil, err
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return nil, err
+	}
+	fields["component_type"], err = json.Marshal(c.Type())
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(fields)
+}
+
 func (t FlowTrigger) MarshalJSON() ([]byte, error) {
 	aux := flowTriggerJSON{Interaction: t.Interaction}
+
+	if t.Interaction != nil {
+		// Unknown components keep what Discord sent, component_type included.
+		if c, ok := t.Interaction.Data.(discord.ComponentInteraction); ok {
+			if _, unknown := c.(*discord.UnknownComponent); !unknown {
+				stored := *t.Interaction
+				stored.Data = typedComponent{c}
+				aux.Interaction = &stored
+			}
+		}
+	}
 
 	if t.Event != nil {
 		data, err := json.Marshal(t.Event)
