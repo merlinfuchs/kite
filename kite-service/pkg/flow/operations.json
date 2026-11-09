@@ -1,6 +1,7 @@
 {
   "operations": [
     {
+      "kind": "request",
       "integration": "discord",
       "id": "action_guild_join_request",
       "method": "PATCH",
@@ -38,6 +39,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_group_dm_user",
       "method": "PUT",
@@ -75,6 +77,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_guild_member",
       "method": "PUT",
@@ -132,6 +135,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_guild_member_role",
       "method": "PUT",
@@ -162,6 +166,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_invite_target_user",
       "method": "PUT",
@@ -187,6 +192,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_lobby_member",
       "method": "PUT",
@@ -229,6 +235,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_my_message_reaction",
       "method": "PUT",
@@ -259,6 +266,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_thread_member",
       "method": "PUT",
@@ -284,6 +292,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "applications_get_activity_instance",
       "method": "GET",
@@ -309,6 +318,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "ban_user_from_guild",
       "method": "PUT",
@@ -346,6 +356,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bot_partner_sdk_token",
       "method": "POST",
@@ -377,6 +388,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bot_partner_sdk_unmerge_provisional_account",
       "method": "POST",
@@ -398,6 +410,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_add_invite_target_users",
       "method": "POST",
@@ -425,6 +438,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_ban_users_from_guild",
       "method": "POST",
@@ -458,6 +472,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_delete_messages",
       "method": "POST",
@@ -486,6 +501,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_remove_invite_target_users",
       "method": "POST",
@@ -513,6 +529,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_guild_channels",
       "method": "PATCH",
@@ -533,6 +550,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_guild_roles",
       "method": "PATCH",
@@ -553,6 +571,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_lobby_members",
       "method": "POST",
@@ -573,6 +592,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "count_guild_scheduled_event_users",
       "method": "GET",
@@ -604,6 +624,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_auto_moderation_rule",
       "method": "POST",
@@ -666,6 +687,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_channel_invite",
       "method": "POST",
@@ -733,6 +755,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_dm",
       "method": "POST",
@@ -764,6 +787,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_followup_message",
       "method": "POST",
@@ -841,6 +865,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_channel",
       "method": "POST",
@@ -958,6 +983,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_emoji",
       "method": "POST",
@@ -995,6 +1021,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_role",
       "method": "POST",
@@ -1057,6 +1084,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_scheduled_event",
       "method": "POST",
@@ -1129,6 +1157,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_scheduled_event_exception",
       "method": "POST",
@@ -1176,6 +1205,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_soundboard_sound",
       "method": "POST",
@@ -1223,6 +1253,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_template",
       "method": "POST",
@@ -1255,6 +1286,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_self",
       "method": "POST",
@@ -1275,6 +1307,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_user",
       "method": "POST",
@@ -1300,6 +1333,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_lobby",
       "method": "POST",
@@ -1341,6 +1375,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_lobby_message",
       "method": "POST",
@@ -1428,6 +1463,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_message",
       "method": "POST",
@@ -1515,6 +1551,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_or_join_lobby",
       "method": "PUT",
@@ -1556,6 +1593,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_pin",
       "method": "PUT",
@@ -1581,6 +1619,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_stage_instance",
       "method": "POST",
@@ -1622,6 +1661,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_thread",
       "method": "POST",
@@ -1679,6 +1719,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_thread_from_message",
       "method": "POST",
@@ -1721,6 +1762,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_webhook",
       "method": "POST",
@@ -1753,6 +1795,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "crosspost_message",
       "method": "POST",
@@ -1778,6 +1821,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_all_message_reactions",
       "method": "DELETE",
@@ -1803,6 +1847,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_all_message_reactions_by_emoji",
       "method": "DELETE",
@@ -1833,6 +1878,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_auto_moderation_rule",
       "method": "DELETE",
@@ -1858,6 +1904,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_channel",
       "method": "DELETE",
@@ -1878,6 +1925,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_channel_permission_overwrite",
       "method": "DELETE",
@@ -1903,6 +1951,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_group_dm_user",
       "method": "DELETE",
@@ -1928,6 +1977,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_emoji",
       "method": "DELETE",
@@ -1953,6 +2003,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_integration",
       "method": "DELETE",
@@ -1978,6 +2029,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_member",
       "method": "DELETE",
@@ -2003,6 +2055,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_member_role",
       "method": "DELETE",
@@ -2033,6 +2086,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_role",
       "method": "DELETE",
@@ -2058,6 +2112,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_scheduled_event",
       "method": "DELETE",
@@ -2083,6 +2138,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_scheduled_event_exception",
       "method": "DELETE",
@@ -2113,6 +2169,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_soundboard_sound",
       "method": "DELETE",
@@ -2138,6 +2195,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_sticker",
       "method": "DELETE",
@@ -2163,6 +2221,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_template",
       "method": "DELETE",
@@ -2188,6 +2247,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_lobby",
       "method": "DELETE",
@@ -2208,6 +2268,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_lobby_member",
       "method": "DELETE",
@@ -2233,6 +2294,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_message",
       "method": "DELETE",
@@ -2258,6 +2320,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_my_message_reaction",
       "method": "DELETE",
@@ -2288,6 +2351,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_pin",
       "method": "DELETE",
@@ -2313,6 +2377,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_stage_instance",
       "method": "DELETE",
@@ -2333,6 +2398,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_thread_member",
       "method": "DELETE",
@@ -2358,6 +2424,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_user_message_reaction",
       "method": "DELETE",
@@ -2393,6 +2460,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_webhook",
       "method": "DELETE",
@@ -2413,6 +2481,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_create_pin",
       "method": "PUT",
@@ -2438,6 +2507,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_delete_pin",
       "method": "DELETE",
@@ -2463,6 +2533,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_list_pins",
       "method": "GET",
@@ -2483,6 +2554,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "edit_lobby",
       "method": "PATCH",
@@ -2530,6 +2602,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "edit_lobby_channel_link",
       "method": "PATCH",
@@ -2557,6 +2630,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "follow_channel",
       "method": "POST",
@@ -2584,6 +2658,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_active_guild_threads",
       "method": "GET",
@@ -2604,6 +2679,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_answer_voters",
       "method": "GET",
@@ -2645,6 +2721,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application",
       "method": "GET",
@@ -2665,6 +2742,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_command",
       "method": "GET",
@@ -2690,6 +2768,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_emoji",
       "method": "GET",
@@ -2715,6 +2794,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_role_connections_metadata",
       "method": "GET",
@@ -2735,6 +2815,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_auto_moderation_rule",
       "method": "GET",
@@ -2760,6 +2841,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_bot_gateway",
       "method": "GET",
@@ -2774,6 +2856,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_channel",
       "method": "GET",
@@ -2794,6 +2877,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_entitlement",
       "method": "GET",
@@ -2819,6 +2903,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_entitlements",
       "method": "GET",
@@ -2885,6 +2970,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_gateway",
       "method": "GET",
@@ -2899,6 +2985,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild",
       "method": "GET",
@@ -2925,6 +3012,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_application_command",
       "method": "GET",
@@ -2955,6 +3043,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_application_command_permissions",
       "method": "GET",
@@ -2985,6 +3074,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_ban",
       "method": "GET",
@@ -3010,6 +3100,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_emoji",
       "method": "GET",
@@ -3035,6 +3126,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_join_requests",
       "method": "GET",
@@ -3076,6 +3168,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_member",
       "method": "GET",
@@ -3101,6 +3194,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_new_member_welcome",
       "method": "GET",
@@ -3121,6 +3215,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_preview",
       "method": "GET",
@@ -3141,6 +3236,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_role",
       "method": "GET",
@@ -3166,6 +3262,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_scheduled_event",
       "method": "GET",
@@ -3197,6 +3294,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_soundboard_sound",
       "method": "GET",
@@ -3222,6 +3320,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_sticker",
       "method": "GET",
@@ -3247,6 +3346,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_template",
       "method": "GET",
@@ -3267,6 +3367,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_vanity_url",
       "method": "GET",
@@ -3287,6 +3388,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_webhooks",
       "method": "GET",
@@ -3308,6 +3410,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_welcome_screen",
       "method": "GET",
@@ -3328,6 +3431,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget",
       "method": "GET",
@@ -3348,6 +3452,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget_png",
       "method": "GET",
@@ -3374,6 +3479,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget_settings",
       "method": "GET",
@@ -3394,6 +3500,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guilds_onboarding",
       "method": "GET",
@@ -3414,6 +3521,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_invite_target_users",
       "method": "GET",
@@ -3434,6 +3542,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_invite_target_users_job_status",
       "method": "GET",
@@ -3454,6 +3563,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_lobby",
       "method": "GET",
@@ -3474,6 +3584,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_lobby_messages",
       "method": "GET",
@@ -3500,6 +3611,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_message",
       "method": "GET",
@@ -3525,6 +3637,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_application",
       "method": "GET",
@@ -3539,6 +3652,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_oauth2_application",
       "method": "GET",
@@ -3553,6 +3667,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_oauth2_authorization",
       "method": "GET",
@@ -3567,6 +3682,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_user",
       "method": "GET",
@@ -3581,6 +3697,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_openid_connect_userinfo",
       "method": "GET",
@@ -3595,6 +3712,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_public_keys",
       "method": "GET",
@@ -3609,6 +3727,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_self_voice_state",
       "method": "GET",
@@ -3629,6 +3748,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sku_subscription",
       "method": "GET",
@@ -3660,6 +3780,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sku_subscriptions",
       "method": "GET",
@@ -3701,6 +3822,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_soundboard_default_sounds",
       "method": "GET",
@@ -3715,6 +3837,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_stage_instance",
       "method": "GET",
@@ -3735,6 +3858,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sticker",
       "method": "GET",
@@ -3755,6 +3879,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sticker_pack",
       "method": "GET",
@@ -3775,6 +3900,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_thread_member",
       "method": "GET",
@@ -3806,6 +3932,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_user",
       "method": "GET",
@@ -3826,6 +3953,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_voice_state",
       "method": "GET",
@@ -3851,6 +3979,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_webhook",
       "method": "GET",
@@ -3872,6 +4001,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "guild_role_member_counts",
       "method": "GET",
@@ -3892,6 +4022,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "guild_search",
       "method": "GET",
@@ -4033,6 +4164,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "invite_resolve",
       "method": "GET",
@@ -4074,6 +4206,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "invite_revoke",
       "method": "DELETE",
@@ -4094,6 +4227,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "join_thread",
       "method": "PUT",
@@ -4114,6 +4248,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_guild",
       "method": "DELETE",
@@ -4135,6 +4270,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_lobby",
       "method": "DELETE",
@@ -4155,6 +4291,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_thread",
       "method": "DELETE",
@@ -4175,6 +4312,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_application_commands",
       "method": "GET",
@@ -4201,6 +4339,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_application_emojis",
       "method": "GET",
@@ -4221,6 +4360,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_auto_moderation_rules",
       "method": "GET",
@@ -4241,6 +4381,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_channel_invites",
       "method": "GET",
@@ -4261,6 +4402,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_channel_webhooks",
       "method": "GET",
@@ -4282,6 +4424,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_application_command_permissions",
       "method": "GET",
@@ -4307,6 +4450,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_application_commands",
       "method": "GET",
@@ -4338,6 +4482,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_audit_log_entries",
       "method": "GET",
@@ -4389,6 +4534,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_bans",
       "method": "GET",
@@ -4425,6 +4571,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_channels",
       "method": "GET",
@@ -4445,6 +4592,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_emojis",
       "method": "GET",
@@ -4465,6 +4613,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_integrations",
       "method": "GET",
@@ -4485,6 +4634,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_invites",
       "method": "GET",
@@ -4505,6 +4655,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_members",
       "method": "GET",
@@ -4536,6 +4687,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_roles",
       "method": "GET",
@@ -4556,6 +4708,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_event_exception_users",
       "method": "GET",
@@ -4607,6 +4760,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_event_users",
       "method": "GET",
@@ -4653,6 +4807,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_events",
       "method": "GET",
@@ -4679,6 +4834,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_soundboard_sounds",
       "method": "GET",
@@ -4699,6 +4855,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_stickers",
       "method": "GET",
@@ -4719,6 +4876,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_templates",
       "method": "GET",
@@ -4739,6 +4897,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_voice_regions",
       "method": "GET",
@@ -4759,6 +4918,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_message_reactions_by_emoji",
       "method": "GET",
@@ -4805,6 +4965,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_messages",
       "method": "GET",
@@ -4846,6 +5007,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_connections",
       "method": "GET",
@@ -4860,6 +5022,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_guilds",
       "method": "GET",
@@ -4900,6 +5063,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_private_archived_threads",
       "method": "GET",
@@ -4931,6 +5095,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_pins",
       "method": "GET",
@@ -4962,6 +5127,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_private_archived_threads",
       "method": "GET",
@@ -4993,6 +5159,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_public_archived_threads",
       "method": "GET",
@@ -5024,6 +5191,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_sticker_packs",
       "method": "GET",
@@ -5038,6 +5206,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_thread_members",
       "method": "GET",
@@ -5074,6 +5243,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_voice_regions",
       "method": "GET",
@@ -5088,6 +5258,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "partner_sdk_token",
       "method": "POST",
@@ -5124,6 +5295,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "partner_sdk_unmerge_provisional_account",
       "method": "POST",
@@ -5160,6 +5332,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "poll_expire",
       "method": "POST",
@@ -5185,6 +5358,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "preview_prune_guild",
       "method": "GET",
@@ -5216,6 +5390,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "prune_guild",
       "method": "POST",
@@ -5254,6 +5429,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "put_guilds_onboarding",
       "method": "PUT",
@@ -5296,6 +5472,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "remove_invite_target_user",
       "method": "DELETE",
@@ -5321,6 +5498,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "search_guild_members",
       "method": "GET",
@@ -5352,6 +5530,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "send_soundboard_sound",
       "method": "POST",
@@ -5384,6 +5563,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "set_channel_permission_overwrite",
       "method": "PUT",
@@ -5426,6 +5606,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "sync_guild_template",
       "method": "PUT",
@@ -5451,6 +5632,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "thread_search",
       "method": "GET",
@@ -5527,6 +5709,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "trigger_typing_indicator",
       "method": "POST",
@@ -5547,6 +5730,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "unban_user_from_guild",
       "method": "DELETE",
@@ -5573,6 +5757,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_auto_moderation_rule",
       "method": "PATCH",
@@ -5640,6 +5825,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_channel",
       "method": "PATCH",
@@ -5792,6 +5978,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_followup_message",
       "method": "PATCH",
@@ -5850,6 +6037,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild",
       "method": "PATCH",
@@ -5977,6 +6165,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_emoji",
       "method": "PATCH",
@@ -6014,6 +6203,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_incident_actions",
       "method": "PUT",
@@ -6046,6 +6236,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_member",
       "method": "PATCH",
@@ -6108,6 +6299,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_role",
       "method": "PATCH",
@@ -6175,6 +6367,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_scheduled_event",
       "method": "PATCH",
@@ -6257,6 +6450,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_scheduled_event_exception",
       "method": "PATCH",
@@ -6304,6 +6498,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_soundboard_sound",
       "method": "PATCH",
@@ -6351,6 +6546,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_sticker",
       "method": "PATCH",
@@ -6393,6 +6589,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_template",
       "method": "PATCH",
@@ -6430,6 +6627,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_welcome_screen",
       "method": "PATCH",
@@ -6467,6 +6665,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_widget_settings",
       "method": "PATCH",
@@ -6499,6 +6698,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_lobby_message_external_moderation_metadata",
       "method": "PUT",
@@ -6524,6 +6724,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_message",
       "method": "PATCH",
@@ -6586,6 +6787,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_original_interaction_response",
       "method": "PATCH",
@@ -6638,6 +6840,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_self_voice_state",
       "method": "PATCH",
@@ -6675,6 +6878,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_stage_instance",
       "method": "PATCH",
@@ -6707,6 +6911,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_user_message_external_moderation_metadata",
       "method": "PUT",
@@ -6737,6 +6942,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_voice_channel_status",
       "method": "PUT",
@@ -6764,6 +6970,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_voice_state",
       "method": "PATCH",
@@ -6801,6 +7008,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_webhook",
       "method": "PATCH",
@@ -6838,6 +7046,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_transcript",
       "method": "POST",
@@ -6900,6 +7109,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_card",
       "method": "POST",
@@ -6925,6 +7135,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_qr_code",
       "method": "POST",
@@ -6965,6 +7176,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_captcha",
       "method": "POST",
@@ -7004,6 +7216,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_captcha",
       "method": "GET",
@@ -7024,6 +7237,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_minecraft_user",
       "method": "GET",
@@ -7044,6 +7258,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_current_time",
       "method": "GET",
@@ -7058,6 +7273,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "erlc",
       "id": "get_server",
       "method": "GET",
@@ -7118,6 +7334,7 @@
       }
     },
     {
+      "kind": "request",
       "integration": "erlc",
       "id": "run_command",
       "method": "POST",
@@ -7133,6 +7350,91 @@
           "required": true
         }
       ],
+      "policy": {
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "http",
+      "id": "request",
+      "description": "Send an HTTP request to a URL, like the Send API Request block. {{secrets.NAME}} in the URL, the headers and the body is replaced with the app's secret, which the code never sees. Responses that aren't 2xx resolve too, only failing to get a response rejects. fetch(url, init) calls it.",
+      "credits": 3,
+      "params": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL, starting with http:// or https://."
+          },
+          "method": {
+            "description": "Defaults to GET.",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "headers": {
+            "description": "Headers by name.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body": {
+            "description": "The body as text, like JSON.stringify(data).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "description": "The HTTP status, like 200."
+          },
+          "status_text": {
+            "type": "string",
+            "description": "Like OK."
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers by name in lower case, several values joined by commas."
+          },
+          "body": {
+            "type": "string",
+            "description": "The body as text, up to 4 MB."
+          }
+        },
+        "required": [
+          "status",
+          "status_text",
+          "headers",
+          "body"
+        ],
+        "additionalProperties": false
+      },
       "policy": {
         "target": "none",
         "destructive": false

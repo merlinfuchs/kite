@@ -38,8 +38,10 @@ type apiParam struct {
 	Required bool         `json:"required"`
 }
 
-// operation is an endpoint of an integration's API.
+// operation is an endpoint of an integration's API, or for kind "handler" Go
+// code in operationHandlers, which has none of the request's fields.
 type operation struct {
+	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
 	ID          string `json:"id"`
 	Method      string `json:"method"`

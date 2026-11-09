@@ -51,8 +51,8 @@ func TestRun(t *testing.T) {
 		{"microtask", `const seen = []; queueMicrotask(() => seen.push(1)); await null; return seen`, nil, `[1]`},
 		{"escaped wrapper", `}), (function () { return 1`, nil, `1`},
 		{"unhandled rejection", `Promise.reject(new Error("ignored")); (async () => { throw 1 })(); return 1`, nil, `1`},
-		{"no globals", `return [typeof std, typeof os, typeof kite, typeof require, typeof fetch, typeof setTimeout, typeof process, typeof Deno]`, nil,
-			`["undefined","undefined","undefined","undefined","undefined","undefined","undefined","undefined"]`},
+		{"no globals", `return [typeof std, typeof os, typeof kite, typeof require, typeof setTimeout, typeof process, typeof Deno]`, nil,
+			`["undefined","undefined","undefined","undefined","undefined","undefined","undefined"]`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -291,6 +291,11 @@ func TestRunMicrotaskError(t *testing.T) {
 }
 
 var testHost = map[string]HostFunc{
+	// Answers with what fetch sent.
+	"http.request": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		body, _ := json.Marshal(string(arg))
+		return json.RawMessage(`{"status":201,"status_text":"Created","headers":{"content-type":"application/json"},"body":` + string(body) + `}`), nil
+	},
 	"discord.not_found": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 		return nil, &CallError{Err: errors.New("Unknown Channel (404)"), Status: 404, Code: 10003}
 	},
@@ -362,6 +367,21 @@ func TestHostCalls(t *testing.T) {
 	assert.EqualError(t, err, "Error: discord.fail: Missing Permissions")
 	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
 	assert.EqualError(t, err, "Error: the code made more than 20 calls")
+}
+
+func TestFetch(t *testing.T) {
+	res, err := runHost(t, `
+const res = await fetch("https://example.com", {method: "post", headers: {Authorization: "Bearer {{secrets.TOKEN}}"}, body: "hi"})
+return [res.ok, res.status, res.statusText, res.headers.get("Content-Type"), res.headers.get("nope"), await res.json()]`)
+	require.NoError(t, err)
+	assert.JSONEq(t, `[true,201,"Created","application/json",null,{"url":"https://example.com","method":"POST","headers":{"Authorization":"Bearer {{secrets.TOKEN}}"},"body":"hi"}]`, res)
+
+	res, err = runHost(t, `return await (await fetch("https://example.com", {headers: [["A", 1]]})).json()`)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"url":"https://example.com","headers":{"A":"1"}}`, res)
+
+	_, err = runHost(t, `await fetch("https://example.com", {method: "POST", body: {a: 1}})`)
+	assert.EqualError(t, err, "TypeError: fetch: the body must be text, like JSON.stringify(data)")
 }
 
 func TestHostCallsDontUseTime(t *testing.T) {

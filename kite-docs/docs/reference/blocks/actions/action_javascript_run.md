@@ -49,7 +49,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can read from Discord and the app's integrations, see below, but can't change anything or send other requests. Use the other blocks for that, before or after this one. There's no `fetch`, `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can read from Discord and the app's integrations and send requests to other websites, see below. Changes in Discord, like sending a message, still need the other blocks, before or after this one. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
 `await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
@@ -104,9 +104,32 @@ try {
 
 Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
 
+## Sending requests to other websites
+
+`fetch` sends a request to any URL, like the [Send API Request](./action_http_request.md) block. It takes the method, the headers and a text body. The response has `ok`, `status`, `statusText`, `headers.get()`, `text()` and `json()`.
+
+```js
+const res = await fetch("https://api.example.com/scores", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer {{secrets.API_KEY}}",
+  },
+  body: JSON.stringify({ user: input.user.id, points: 5 }),
+});
+if (!res.ok) throw new Error(`The API answered ${res.status}`);
+return await res.json();
+```
+
+`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Other placeholders aren't filled in, pass values in as inputs instead.
+
+The body has to be text, so turn objects into JSON with `JSON.stringify` and set the `Content-Type` header. Without that header, the body is sent as plain text. Like in a browser, a response with an error status like 404 doesn't throw. Check `res.ok` or `res.status` instead. Only a request that gets no response at all throws, like one to a website that doesn't exist. The response can be up to 4 MB, and it's read as text, so images and other files don't come through.
+
+`fetch` calls `http.request({ url, method, headers, body })`, which returns `{ status, status_text, headers, body }` with the names of the headers in lowercase. Each request costs [3 credits](../../credit-system.md#cost-breakdown), like a Send API Request block. Test runs don't send them.
+
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can read from Discord and integrations 20 times per run, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 

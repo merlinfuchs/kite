@@ -9,9 +9,10 @@
   // waits for its promise. Which calls exist is up to the host of the run.
   // Names objects have anyway, like then, which await looks for, aren't
   // calls.
+  const namespaces = {};
   for (const namespace of ["discord", "erlc", "cookieApi", "http", "variables"]) {
     const prefix = namespace + ".";
-    globalThis[namespace] = new Proxy(
+    globalThis[namespace] = namespaces[namespace] = new Proxy(
       {},
       {
         get: (_, name) =>
@@ -21,6 +22,37 @@
       }
     );
   }
+
+  // fetch(url, init) sends the request with http.request, for code written
+  // for fetch. It takes a text body and headers as an object or pairs, and
+  // the response has ok, status, statusText, headers.get(), text() and
+  // json(). Like fetch, only failing to get a response rejects.
+  globalThis.fetch = async (url, init = {}) => {
+    const { method, headers = {}, body } = init ?? {};
+    if (body != null && typeof body !== "string") {
+      throw new TypeError("fetch: the body must be text, like JSON.stringify(data)");
+    }
+    const pairs = Array.isArray(headers) ? headers : Object.entries(headers);
+    const res = await namespaces.http.request({
+      url: String(url),
+      method: method == null ? undefined : String(method).toUpperCase(),
+      headers: Object.fromEntries(pairs.map(([name, value]) => [String(name), String(value)])),
+      body: body ?? undefined,
+    });
+    const header = (name) => {
+      const key = String(name).toLowerCase();
+      return Object.hasOwn(res.headers, key) ? res.headers[key] : null;
+    };
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      status: res.status,
+      statusText: res.status_text,
+      url: String(url),
+      headers: { get: header, has: (name) => header(name) !== null },
+      text: async () => res.body,
+      json: async () => JSON.parse(res.body),
+    };
+  };
 
   const show = (v) => {
     if (typeof v === "string") return v;

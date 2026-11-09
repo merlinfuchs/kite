@@ -35,7 +35,7 @@ Features (feature | what it means for the user | free or paid):
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free
-- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from Discord, ER:LC, and Cookie API | free, 10 credits a run, plus 1 for each read from ER:LC or Cookie API
+- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from Discord, ER:LC, and Cookie API and send requests to other websites | free, 10 credits a run, plus 1 for each read from ER:LC or Cookie API and 3 for each request to another website
 - Integrations: ER:LC, Roblox, and Cookie API | ready blocks for ER:LC private servers, Roblox users and groups, and Cookie API | free, ER:LC needs your server key
 - Collaborators | others edit the same bot with you | free, 3 including you, more on paid plans
 - MCP server at https://kite.onl/api/mcp | build and change the bot from Claude, ChatGPT, Codex, Cursor, or VS Code | free

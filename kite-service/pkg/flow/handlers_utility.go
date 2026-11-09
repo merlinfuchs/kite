@@ -173,19 +173,64 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 }
 
 // javaScriptHost has the operations the code of a Run JavaScript block can
-// call: for now the reads, GET operations, of the integrations the app can
-// use. Each costs the credits of its operation. The calls run at the same time,
-// so they take turns with ctx.
+// call: the reads, GET operations, of the integrations the app can use, and
+// the handler operations of Kite's own features. Each costs the credits of
+// its operation. The calls run at the same time, so they take turns with ctx.
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
 }
 
+// callContext is a copy of the flow's context that's canceled with the call.
+// Calls only read it, and count and charge through charge.
+func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
+	h.mu.Lock()
+	c := *h.ctx
+	h.mu.Unlock()
+	c.Context = callCtx
+	return &c
+}
+
+// charge counts a call of op against the flow's operations and charges its
+// credits. Unlike for a block, a call over the limit isn't billed, as code
+// can catch the error and keep calling.
+func (h *javaScriptHost) charge(op operation) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if err := h.ctx.increaseOperations(); err != nil {
+		return err
+	}
+	if err := h.ctx.ensureCredits(op.Credits); err != nil {
+		return err
+	}
+	return h.ctx.increaseCredits(op.Credits)
+}
+
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
 	integration, id, _ := strings.Cut(name, ".")
 	op, ok := operations[integration][id]
+	if !ok {
+		return nil
+	}
+	if op.Kind == "handler" {
+		handler := operationHandlers[name]
+		if handler == nil {
+			return nil
+		}
+		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+			res, err := handler(operationCall{
+				ctx:    h.callContext(callCtx),
+				arg:    arg,
+				charge: func() error { return h.charge(op) },
+			})
+			if err != nil {
+				return nil, err
+			}
+			return json.Marshal(res)
+		}
+	}
 	// Operations of the interaction are all writes.
-	if !ok || op.Method != http.MethodGet || op.Interaction {
+	if op.Method != http.MethodGet || op.Interaction {
 		return nil
 	}
 
@@ -195,30 +240,14 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			return nil, err
 		}
 
-		// A copy that's canceled with the call, which only reads ctx.
-		h.mu.Lock()
-		c := *h.ctx
-		h.mu.Unlock()
-		c.Context = callCtx
-
+		c := h.callContext(callCtx)
 		if err := c.checkIntegration(op.Integration); err != nil {
 			return nil, err
 		}
 		if c.Test != nil && op.Integration != "discord" {
 			return nil, errors.New("test runs don't send requests outside of Discord")
 		}
-
-		h.mu.Lock()
-		err = h.ctx.increaseOperations()
-		// Unlike for a block, a call over the limit isn't billed, as code can
-		// catch the error and keep calling.
-		if err == nil {
-			if err = h.ctx.ensureCredits(op.Credits); err == nil {
-				err = h.ctx.increaseCredits(op.Credits)
-			}
-		}
-		h.mu.Unlock()
-		if err != nil {
+		if err := h.charge(op); err != nil {
 			return nil, err
 		}
 

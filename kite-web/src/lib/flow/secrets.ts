@@ -10,7 +10,11 @@ export function getReferencedSecretNames(flow: FlowData) {
   for (const node of flow.nodes) {
     const fields = getBlockDefinition(node.type)?.fields ?? [];
     for (const field of fields.filter((f) => f.secrets)) {
-      const data = JSON.stringify(node.data[field.name] ?? "");
+      let value = node.data[field.name];
+      if (typeof field.secrets === "string") {
+        value = (value as Record<string, unknown> | undefined)?.[field.secrets];
+      }
+      const data = JSON.stringify(value ?? "");
       for (const name of templateSecretNames(data)) {
         names.add(name);
       }

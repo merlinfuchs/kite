@@ -15,6 +15,7 @@ describe("operations", () => {
     // the application could change its interactions endpoint.
     const writes = operations.filter(
       (op) =>
+        op.kind === "request" &&
         op.integration === "discord" &&
         op.method !== "GET" &&
         (op.path.startsWith("/applications/") || op.path.startsWith("/oauth2/"))
@@ -24,7 +25,11 @@ describe("operations", () => {
 
   it("makes Discord reads free", () => {
     for (const op of operations) {
-      if (op.integration === "discord" && op.method === "GET") {
+      if (
+        op.kind === "request" &&
+        op.integration === "discord" &&
+        op.method === "GET"
+      ) {
         expect(op.credits, op.id).toBe(0);
       }
     }

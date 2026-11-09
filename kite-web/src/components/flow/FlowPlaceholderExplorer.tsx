@@ -51,9 +51,13 @@ export default function FlowPlaceholderExplorer({
     const isResponseTarget =
       field === "message_target" &&
       !!selected?.type?.startsWith("action_response_");
-    const allowsSecrets = !!getBlockDefinition(selected?.type)?.fields?.find(
+    const secretsIn = getBlockDefinition(selected?.type)?.fields?.find(
       (f) => f.name === field?.split(".")[0]
     )?.secrets;
+    const allowsSecrets =
+      typeof secretsIn === "string"
+        ? field === `${field?.split(".")[0]}.${secretsIn}`
+        : !!secretsIn;
 
     const res = [
       ...getAvailablePlaceholders(

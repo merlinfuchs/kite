@@ -1,5 +1,7 @@
+import { z } from "zod";
 import { ApiOperation } from "./api";
 import { integrationApis } from "./apis";
+import { handlerOperations } from "./handlerOperations";
 
 // What the service checks when code calls an operation, besides its
 // credits. See "Operations for code" in design/integrations.md.
@@ -16,10 +18,27 @@ export interface OperationPolicy {
   destructive: boolean;
 }
 
-export interface Operation extends ApiOperation {
+// A request to an integration's API, from its api.json.
+export interface RequestOperation extends ApiOperation {
+  kind: "request";
   integration: string;
   policy: OperationPolicy;
 }
+
+// Go code of the service, see handlerOperations.ts.
+export interface HandlerOperation {
+  kind: "handler";
+  integration: string;
+  id: string;
+  description: string;
+  credits: number;
+  // JSON Schemas of the argument and the result.
+  params: unknown;
+  result: unknown;
+  policy: OperationPolicy;
+}
+
+export type Operation = RequestOperation | HandlerOperation;
 
 export function operationPolicy(
   integration: string,
@@ -49,11 +68,31 @@ function discordTarget(op: ApiOperation): string {
 // Every operation of every integration, which the service embeds as
 // kite-service/pkg/flow/operations.json.
 export function allOperations(): Operation[] {
-  return Object.entries(integrationApis).flatMap(([integration, api]) =>
-    api.operations.map((op) => ({
-      integration,
-      ...op,
-      policy: operationPolicy(integration, op),
-    }))
+  const requests = Object.entries(integrationApis).flatMap(
+    ([integration, api]) =>
+      api.operations.map(
+        (op): Operation => ({
+          kind: "request",
+          integration,
+          ...op,
+          policy: operationPolicy(integration, op),
+        })
+      )
   );
+  const handlers = Object.entries(handlerOperations).flatMap(
+    ([integration, ops]) =>
+      ops.map(
+        (op): Operation => ({
+          kind: "handler",
+          integration,
+          id: op.id,
+          description: op.description,
+          credits: op.credits,
+          params: z.toJSONSchema(op.params),
+          result: z.toJSONSchema(op.result),
+          policy: { target: "none", destructive: !!op.destructive },
+        })
+      )
+  );
+  return [...requests, ...handlers];
 }
