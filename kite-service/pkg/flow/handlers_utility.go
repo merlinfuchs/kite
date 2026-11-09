@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
@@ -209,7 +208,7 @@ func (h *javaScriptHost) charge(op operation) error {
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
 	integration, id, _ := strings.Cut(name, ".")
 	op, ok := operations[integration][id]
-	if !ok {
+	if !ok || !op.Policy.Code {
 		return nil
 	}
 	if op.Kind == "handler" {
@@ -226,12 +225,13 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			if err != nil {
 				return nil, err
 			}
-			return json.Marshal(res)
+			// Without escaping <, > and &, which code doesn't need.
+			var b bytes.Buffer
+			enc := json.NewEncoder(&b)
+			enc.SetEscapeHTML(false)
+			err = enc.Encode(res)
+			return b.Bytes(), err
 		}
-	}
-	// Operations of the interaction are all writes.
-	if op.Method != http.MethodGet || op.Interaction {
-		return nil
 	}
 
 	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {

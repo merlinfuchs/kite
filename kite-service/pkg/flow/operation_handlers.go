@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -53,19 +53,13 @@ func decodeOperationArg(arg json.RawMessage, v any) error {
 
 	var typeErr *json.UnmarshalTypeError
 	switch {
-	case errors.As(err, &typeErr) && typeErr.Field == "":
-		return errors.New("the argument must be an object of its parameters")
-	case errors.As(err, &typeErr):
+	case errors.As(err, &typeErr) && typeErr.Field != "":
 		return fmt.Errorf("invalid value for parameter %s", typeErr.Field)
 	case strings.HasPrefix(err.Error(), "json: unknown field "):
 		return fmt.Errorf("it has no parameter %s", strings.Trim(strings.TrimPrefix(err.Error(), "json: unknown field "), `"`))
 	}
 	return errors.New("the argument must be an object of its parameters")
 }
-
-// codeSecretRe is a secret in a value of code, like {{secrets.TOKEN}}. Code
-// has no placeholders, so other {{...}} stay as they are.
-var codeSecretRe = regexp.MustCompile(`\{\{\s*secrets\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}`)
 
 var httpRequestMethods = []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete}
 
@@ -108,29 +102,20 @@ func httpRequestOperation(call operationCall) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	fill := func(s string) string {
-		return codeSecretRe.ReplaceAllStringFunc(s, func(m string) string {
-			if v, ok := secrets.values[codeSecretRe.FindStringSubmatch(m)[1]]; ok {
-				return v
-			}
-			return m
-		})
-	}
-
-	u, err := url.Parse(fill(arg.URL))
+	u, err := url.Parse(secrets.Fill(arg.URL))
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return nil, errors.New("invalid value for parameter url: must start with http:// or https://")
 	}
 	var body io.Reader
 	if arg.Body != nil {
-		body = strings.NewReader(fill(*arg.Body))
+		body = strings.NewReader(secrets.Fill(*arg.Body))
 	}
 	req, err := http.NewRequestWithContext(c, method, u.String(), body)
 	if err != nil {
 		return nil, secrets.Redact(err)
 	}
 	for name, v := range arg.Headers {
-		req.Header.Set(name, fill(v))
+		req.Header.Set(name, secrets.Fill(v))
 	}
 	// Like fetch, which sends text unless the code says otherwise.
 	if arg.Body != nil && req.Header.Get("Content-Type") == "" {
@@ -148,6 +133,10 @@ func httpRequestOperation(call operationCall) (any, error) {
 	resp.Body.Close()
 	if err != nil {
 		return nil, err
+	}
+	// The code parses it in its 8 MB of memory.
+	if len(res.Body) > js.MaxInputLength {
+		return nil, fmt.Errorf("the response is larger than %d MB", js.MaxInputLength>>20)
 	}
 
 	headers := make(map[string]string, len(res.Headers))
