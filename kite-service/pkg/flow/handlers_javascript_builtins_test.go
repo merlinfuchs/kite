@@ -172,16 +172,7 @@ func (p *codeVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	current, ok := p.values[p.key(id, scope)]
-	if ok {
-		switch op {
-		case provider.VariableOperationIncrement:
-			value = current.Add(value)
-		case provider.VariableOperationAppend:
-			value = current.Append(value)
-		case provider.VariableOperationPrepend:
-			value = current.Prepend(value)
-		}
-	}
+	value = op.Apply(current, ok, value)
 	p.values[p.key(id, scope)] = value
 	return value, nil
 }

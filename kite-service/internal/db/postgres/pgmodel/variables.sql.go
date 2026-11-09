@@ -528,6 +528,22 @@ func (q *Queries) ListVariableValues(ctx context.Context, arg ListVariableValues
 	return items, nil
 }
 
+const lockVariableValue = `-- name: LockVariableValue :exec
+SELECT pg_advisory_xact_lock(hashtext('variable:' || $1::text || ':' || coalesce($2::text, '')))
+`
+
+type LockVariableValueParams struct {
+	VariableID string
+	Scope      pgtype.Text
+}
+
+// Locks a value that may not exist yet, so updates that find no value wait for
+// each other instead of each storing a first one.
+func (q *Queries) LockVariableValue(ctx context.Context, arg LockVariableValueParams) error {
+	_, err := q.db.Exec(ctx, lockVariableValue, arg.VariableID, arg.Scope)
+	return err
+}
+
 const searchVariableValues = `-- name: SearchVariableValues :many
 SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
 JOIN variables ON variables.id = variable_values.variable_id

@@ -21,16 +21,16 @@ func init() {
 // The variable blocks are presets of the operations of stored variables in
 // operation_handlers_variables.go, with their settings as templates.
 
-// blockVariableCall is the variableCall of a variable block.
-func blockVariableCall(n *CompiledFlowNode, ctx *FlowContext) variableCall {
+// blockVariableCall is the variableCall of a variable block, with the
+// template of its scope, or of the start of the scopes for a list.
+func blockVariableCall(n *CompiledFlowNode, ctx *FlowContext, scope string) variableCall {
 	return variableCall{
 		ctx: ctx,
 		id:  n.Data.VariableID,
 		scope: func() (string, error) {
-			scope, err := ctx.EvalTemplate(n.Data.VariableScope)
-			return scope.String(), err
+			v, err := ctx.EvalTemplate(scope)
+			return v.String(), err
 		},
-		charge: func() error { return nil },
 	}
 }
 
@@ -46,7 +46,7 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	newValue, err := updateVariable(blockVariableCall(n, ctx), n.Data.VariableOperation, value)
+	newValue, err := updateVariable(blockVariableCall(n, ctx, n.Data.VariableScope), n.Data.VariableOperation, value)
 	if err != nil {
 		return err
 	}
@@ -55,14 +55,14 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 func executeActionVariableDelete(n *CompiledFlowNode, ctx *FlowContext) error {
-	if err := deleteVariable(blockVariableCall(n, ctx)); err != nil {
+	if err := deleteVariable(blockVariableCall(n, ctx, n.Data.VariableScope)); err != nil {
 		return err
 	}
 	return n.ExecuteChildren(ctx)
 }
 
 func executeActionVariableGet(n *CompiledFlowNode, ctx *FlowContext) error {
-	value, err := getVariable(blockVariableCall(n, ctx))
+	value, err := getVariable(blockVariableCall(n, ctx, n.Data.VariableScope))
 	if err != nil {
 		return err
 	}
@@ -80,14 +80,10 @@ func executeActionVariableList(n *CompiledFlowNode, ctx *FlowContext) error {
 		return fmt.Errorf("the number of values to skip must be a whole number from 0 to %d", maxVariableListSkip)
 	}
 
-	values, err := listVariable(blockVariableCall(n, ctx), variableListOptions{
+	values, err := listVariable(blockVariableCall(n, ctx, n.Data.VariableScopePrefix), variableListOptions{
 		Sort:  n.Data.VariableSort,
 		Limit: limit,
 		Skip:  skip,
-		scopePrefix: func() (string, error) {
-			prefix, err := ctx.EvalTemplate(n.Data.VariableScopePrefix)
-			return prefix.String(), err
-		},
 	})
 	if err != nil {
 		return err

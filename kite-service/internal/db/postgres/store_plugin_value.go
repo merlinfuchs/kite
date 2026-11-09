@@ -64,16 +64,7 @@ func (c *Client) UpdatePluginValue(ctx context.Context, operation model.PluginVa
 		return nil, fmt.Errorf("failed to get current plugin value: %w", err)
 	}
 
-	switch operation {
-	case provider.VariableOperationAppend:
-		value.Value = currentValue.Value.Append(value.Value)
-	case provider.VariableOperationPrepend:
-		value.Value = value.Value.Append(currentValue.Value)
-	case provider.VariableOperationIncrement:
-		value.Value = currentValue.Value.Add(value.Value)
-	case provider.VariableOperationDecrement:
-		value.Value = currentValue.Value.Sub(value.Value)
-	}
+	value.Value = operation.Apply(currentValue.Value, true, value.Value)
 
 	newValue, err := c.setPluginValueWithTx(ctx, tx, value)
 	if err != nil {

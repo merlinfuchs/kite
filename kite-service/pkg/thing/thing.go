@@ -834,7 +834,7 @@ func (w Thing) IsNil() bool {
 // text, which other is joined to.
 func (w Thing) Append(other Thing) Thing {
 	if w.Type == TypeArray {
-		return NewArray(append(slices.Clone(w.Array()), other))
+		return NewArray(slices.Concat(w.Array(), []Thing{other}))
 	}
 	return NewString(w.String() + other.String())
 }
@@ -842,7 +842,7 @@ func (w Thing) Append(other Thing) Thing {
 // Prepend is Append at the start.
 func (w Thing) Prepend(other Thing) Thing {
 	if w.Type == TypeArray {
-		return NewArray(append([]Thing{other}, w.Array()...))
+		return NewArray(slices.Concat([]Thing{other}, w.Array()))
 	}
 	return NewString(other.String() + w.String())
 }

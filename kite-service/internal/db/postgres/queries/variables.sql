@@ -91,6 +91,11 @@ ON CONFLICT (variable_id, scope) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
+-- Locks a value that may not exist yet, so updates that find no value wait for
+-- each other instead of each storing a first one.
+-- name: LockVariableValue :exec
+SELECT pg_advisory_xact_lock(hashtext('variable:' || @variable_id::text || ':' || coalesce(sqlc.narg(scope)::text, '')));
+
 -- name: InsertVariableValue :one
 -- Like SetVariableValue, but inserts nothing (ErrNoRows) when the value
 -- exists, also when another transaction inserted it and hasn't committed yet,
