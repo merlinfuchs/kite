@@ -141,6 +141,8 @@ github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1 h1:qiTuuY
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08 h1:GMKYkoAIYASuQitNVmAF+UwILeHLCIdOOANXiQocn6c=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152914-afdb544a6f4c h1:qAyMbcxloFxLwoR5iXhxyCBud7JaCQq5o4+xo7AMO90=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152914-afdb544a6f4c/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18 h1:TzcHgTqhzmYpx2nz5BhZzh1RqDj40BYV/wzsbTntXQ0=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18/go.mod h1:HTdfVqfNwFuLMZu43+UDFOXUseQ8NvkG50KsTRBuBQk=
 github.com/minio/md5-simd v1.1.2 h1:Gdi1DZK69+ZVMoNHRXJyNcxrMA4dSxoYHZSQbirFg34=
