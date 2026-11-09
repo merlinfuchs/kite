@@ -35,6 +35,17 @@ describe("getReferencedSecretNames", () => {
           position: { x: 0, y: 0 },
           data: { condition_item_value: "{{secrets.TOKEN}}" },
         },
+        {
+          id: "5",
+          type: "action_javascript_run",
+          position: { x: 0, y: 0 },
+          data: {
+            javascript_data: {
+              code: 'await fetch("https://x.com/{{secrets.CODE}}")',
+              inputs: [{ name: "a", value: "{{secrets.INPUT}}" }],
+            },
+          },
+        },
       ],
       edges: [],
     };
@@ -42,6 +53,7 @@ describe("getReferencedSecretNames", () => {
       "API_KEY",
       "OTHER",
       "TOKEN",
+      "CODE",
     ]);
   });
 });

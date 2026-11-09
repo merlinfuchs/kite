@@ -1,4 +1,5 @@
 import { getBlockDefinition } from "@/lib/blocks";
+import { secretsPath } from "@/lib/flow/secrets";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
 import { getAvailablePlaceholders } from "@/lib/flow/placeholders";
@@ -51,9 +52,12 @@ export default function FlowPlaceholderExplorer({
     const isResponseTarget =
       field === "message_target" &&
       !!selected?.type?.startsWith("action_response_");
-    const allowsSecrets = !!getBlockDefinition(selected?.type)?.fields?.find(
+    const definition = getBlockDefinition(selected?.type)?.fields?.find(
       (f) => f.name === field?.split(".")[0]
-    )?.secrets;
+    );
+    const path = definition && secretsPath(definition);
+    const allowsSecrets =
+      !!path && (field === path || !!field?.startsWith(`${path}.`));
 
     const res = [
       ...getAvailablePlaceholders(

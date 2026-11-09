@@ -1,6 +1,7 @@
 {
   "operations": [
     {
+      "kind": "request",
       "integration": "discord",
       "id": "action_guild_join_request",
       "method": "PATCH",
@@ -33,11 +34,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_group_dm_user",
       "method": "PUT",
@@ -70,11 +73,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_guild_member",
       "method": "PUT",
@@ -127,11 +132,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_guild_member_role",
       "method": "PUT",
@@ -157,11 +164,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_invite_target_user",
       "method": "PUT",
@@ -182,11 +191,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_lobby_member",
       "method": "PUT",
@@ -224,11 +235,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_my_message_reaction",
       "method": "PUT",
@@ -254,11 +267,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "add_thread_member",
       "method": "PUT",
@@ -279,11 +294,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "applications_get_activity_instance",
       "method": "GET",
@@ -304,11 +321,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "ban_user_from_guild",
       "method": "PUT",
@@ -341,11 +360,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bot_partner_sdk_token",
       "method": "POST",
@@ -372,11 +393,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bot_partner_sdk_unmerge_provisional_account",
       "method": "POST",
@@ -393,11 +416,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_add_invite_target_users",
       "method": "POST",
@@ -420,11 +445,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_ban_users_from_guild",
       "method": "POST",
@@ -453,11 +480,13 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_delete_messages",
       "method": "POST",
@@ -481,11 +510,13 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_remove_invite_target_users",
       "method": "POST",
@@ -508,11 +539,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_guild_channels",
       "method": "PATCH",
@@ -528,11 +561,13 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_guild_roles",
       "method": "PATCH",
@@ -548,11 +583,13 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "bulk_update_lobby_members",
       "method": "POST",
@@ -568,11 +605,13 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "count_guild_scheduled_event_users",
       "method": "GET",
@@ -599,11 +638,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_auto_moderation_rule",
       "method": "POST",
@@ -661,11 +702,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_channel_invite",
       "method": "POST",
@@ -728,11 +771,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_dm",
       "method": "POST",
@@ -759,11 +804,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "user",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_followup_message",
       "method": "POST",
@@ -836,11 +883,13 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_channel",
       "method": "POST",
@@ -953,11 +1002,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_emoji",
       "method": "POST",
@@ -990,11 +1041,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_role",
       "method": "POST",
@@ -1052,11 +1105,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_scheduled_event",
       "method": "POST",
@@ -1124,11 +1179,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_scheduled_event_exception",
       "method": "POST",
@@ -1171,11 +1228,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_soundboard_sound",
       "method": "POST",
@@ -1218,11 +1277,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_guild_template",
       "method": "POST",
@@ -1250,11 +1311,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_self",
       "method": "POST",
@@ -1270,11 +1333,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_linked_lobby_guild_invite_for_user",
       "method": "POST",
@@ -1295,11 +1360,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_lobby",
       "method": "POST",
@@ -1336,11 +1403,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_lobby_message",
       "method": "POST",
@@ -1423,11 +1492,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_message",
       "method": "POST",
@@ -1510,11 +1581,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_or_join_lobby",
       "method": "PUT",
@@ -1551,11 +1624,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_pin",
       "method": "PUT",
@@ -1576,11 +1651,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_stage_instance",
       "method": "POST",
@@ -1617,11 +1694,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_thread",
       "method": "POST",
@@ -1674,11 +1753,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_thread_from_message",
       "method": "POST",
@@ -1716,11 +1797,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "create_webhook",
       "method": "POST",
@@ -1748,11 +1831,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "crosspost_message",
       "method": "POST",
@@ -1773,11 +1858,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_all_message_reactions",
       "method": "DELETE",
@@ -1798,11 +1885,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_all_message_reactions_by_emoji",
       "method": "DELETE",
@@ -1828,11 +1917,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_auto_moderation_rule",
       "method": "DELETE",
@@ -1853,11 +1944,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_channel",
       "method": "DELETE",
@@ -1873,11 +1966,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_channel_permission_overwrite",
       "method": "DELETE",
@@ -1898,11 +1993,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_group_dm_user",
       "method": "DELETE",
@@ -1923,11 +2020,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_emoji",
       "method": "DELETE",
@@ -1948,11 +2047,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_integration",
       "method": "DELETE",
@@ -1973,11 +2074,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_member",
       "method": "DELETE",
@@ -1998,11 +2101,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_member_role",
       "method": "DELETE",
@@ -2028,11 +2133,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_role",
       "method": "DELETE",
@@ -2053,11 +2160,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_scheduled_event",
       "method": "DELETE",
@@ -2078,11 +2187,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_scheduled_event_exception",
       "method": "DELETE",
@@ -2108,11 +2219,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_soundboard_sound",
       "method": "DELETE",
@@ -2133,11 +2246,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_sticker",
       "method": "DELETE",
@@ -2158,11 +2273,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_guild_template",
       "method": "DELETE",
@@ -2183,11 +2300,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_lobby",
       "method": "DELETE",
@@ -2203,11 +2322,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_lobby_member",
       "method": "DELETE",
@@ -2228,11 +2349,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_message",
       "method": "DELETE",
@@ -2253,11 +2376,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_my_message_reaction",
       "method": "DELETE",
@@ -2283,11 +2408,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_pin",
       "method": "DELETE",
@@ -2308,11 +2435,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_stage_instance",
       "method": "DELETE",
@@ -2328,11 +2457,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_thread_member",
       "method": "DELETE",
@@ -2353,11 +2484,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_user_message_reaction",
       "method": "DELETE",
@@ -2388,11 +2521,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "delete_webhook",
       "method": "DELETE",
@@ -2408,11 +2543,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "webhook",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_create_pin",
       "method": "PUT",
@@ -2433,11 +2570,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_delete_pin",
       "method": "DELETE",
@@ -2458,11 +2597,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "deprecated_list_pins",
       "method": "GET",
@@ -2478,11 +2619,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "edit_lobby",
       "method": "PATCH",
@@ -2525,11 +2668,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "edit_lobby_channel_link",
       "method": "PATCH",
@@ -2552,11 +2697,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "follow_channel",
       "method": "POST",
@@ -2579,11 +2726,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_active_guild_threads",
       "method": "GET",
@@ -2599,11 +2748,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_answer_voters",
       "method": "GET",
@@ -2640,11 +2791,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application",
       "method": "GET",
@@ -2660,11 +2813,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_command",
       "method": "GET",
@@ -2685,11 +2840,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_emoji",
       "method": "GET",
@@ -2710,11 +2867,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_application_role_connections_metadata",
       "method": "GET",
@@ -2730,11 +2889,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_auto_moderation_rule",
       "method": "GET",
@@ -2755,11 +2916,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_bot_gateway",
       "method": "GET",
@@ -2769,11 +2932,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_channel",
       "method": "GET",
@@ -2789,11 +2954,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_entitlement",
       "method": "GET",
@@ -2814,11 +2981,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_entitlements",
       "method": "GET",
@@ -2880,11 +3049,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_gateway",
       "method": "GET",
@@ -2894,11 +3065,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild",
       "method": "GET",
@@ -2920,11 +3093,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_application_command",
       "method": "GET",
@@ -2950,11 +3125,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_application_command_permissions",
       "method": "GET",
@@ -2980,11 +3157,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_ban",
       "method": "GET",
@@ -3005,11 +3184,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_emoji",
       "method": "GET",
@@ -3030,11 +3211,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_join_requests",
       "method": "GET",
@@ -3071,11 +3254,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_member",
       "method": "GET",
@@ -3096,11 +3281,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_new_member_welcome",
       "method": "GET",
@@ -3116,11 +3303,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_preview",
       "method": "GET",
@@ -3136,11 +3325,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_role",
       "method": "GET",
@@ -3161,11 +3352,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_scheduled_event",
       "method": "GET",
@@ -3192,11 +3385,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_soundboard_sound",
       "method": "GET",
@@ -3217,11 +3412,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_sticker",
       "method": "GET",
@@ -3242,11 +3439,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_template",
       "method": "GET",
@@ -3262,11 +3461,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_vanity_url",
       "method": "GET",
@@ -3282,11 +3483,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_webhooks",
       "method": "GET",
@@ -3303,11 +3506,13 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_welcome_screen",
       "method": "GET",
@@ -3323,11 +3528,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget",
       "method": "GET",
@@ -3343,11 +3550,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget_png",
       "method": "GET",
@@ -3369,11 +3578,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guild_widget_settings",
       "method": "GET",
@@ -3389,11 +3600,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_guilds_onboarding",
       "method": "GET",
@@ -3409,11 +3622,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_invite_target_users",
       "method": "GET",
@@ -3429,11 +3644,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_invite_target_users_job_status",
       "method": "GET",
@@ -3449,11 +3666,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_lobby",
       "method": "GET",
@@ -3469,11 +3688,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_lobby_messages",
       "method": "GET",
@@ -3495,11 +3716,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_message",
       "method": "GET",
@@ -3520,11 +3743,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_application",
       "method": "GET",
@@ -3534,11 +3759,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_oauth2_application",
       "method": "GET",
@@ -3548,11 +3775,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_oauth2_authorization",
       "method": "GET",
@@ -3562,11 +3791,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_my_user",
       "method": "GET",
@@ -3576,11 +3807,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_openid_connect_userinfo",
       "method": "GET",
@@ -3590,11 +3823,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_public_keys",
       "method": "GET",
@@ -3604,11 +3839,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_self_voice_state",
       "method": "GET",
@@ -3624,11 +3861,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sku_subscription",
       "method": "GET",
@@ -3655,11 +3894,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sku_subscriptions",
       "method": "GET",
@@ -3696,11 +3937,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_soundboard_default_sounds",
       "method": "GET",
@@ -3710,11 +3953,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_stage_instance",
       "method": "GET",
@@ -3730,11 +3975,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sticker",
       "method": "GET",
@@ -3750,11 +3997,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_sticker_pack",
       "method": "GET",
@@ -3770,11 +4019,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_thread_member",
       "method": "GET",
@@ -3801,11 +4052,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_user",
       "method": "GET",
@@ -3821,11 +4074,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_voice_state",
       "method": "GET",
@@ -3846,11 +4101,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "get_webhook",
       "method": "GET",
@@ -3867,11 +4124,13 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "webhook",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "guild_role_member_counts",
       "method": "GET",
@@ -3887,11 +4146,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "guild_search",
       "method": "GET",
@@ -4028,11 +4289,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "invite_resolve",
       "method": "GET",
@@ -4069,11 +4332,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "invite_revoke",
       "method": "DELETE",
@@ -4089,11 +4354,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "join_thread",
       "method": "PUT",
@@ -4109,11 +4376,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_guild",
       "method": "DELETE",
@@ -4130,11 +4399,13 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_lobby",
       "method": "DELETE",
@@ -4150,11 +4421,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "leave_thread",
       "method": "DELETE",
@@ -4170,11 +4443,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_application_commands",
       "method": "GET",
@@ -4196,11 +4471,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_application_emojis",
       "method": "GET",
@@ -4216,11 +4493,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_auto_moderation_rules",
       "method": "GET",
@@ -4236,11 +4515,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_channel_invites",
       "method": "GET",
@@ -4256,11 +4537,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_channel_webhooks",
       "method": "GET",
@@ -4277,11 +4560,13 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_application_command_permissions",
       "method": "GET",
@@ -4302,11 +4587,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_application_commands",
       "method": "GET",
@@ -4333,11 +4620,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_audit_log_entries",
       "method": "GET",
@@ -4384,11 +4673,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_bans",
       "method": "GET",
@@ -4420,11 +4711,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_channels",
       "method": "GET",
@@ -4440,11 +4733,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_emojis",
       "method": "GET",
@@ -4460,11 +4755,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_integrations",
       "method": "GET",
@@ -4480,11 +4777,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_invites",
       "method": "GET",
@@ -4500,11 +4799,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_members",
       "method": "GET",
@@ -4531,11 +4832,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_roles",
       "method": "GET",
@@ -4551,11 +4854,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_event_exception_users",
       "method": "GET",
@@ -4602,11 +4907,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_event_users",
       "method": "GET",
@@ -4648,11 +4955,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_scheduled_events",
       "method": "GET",
@@ -4674,11 +4983,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_soundboard_sounds",
       "method": "GET",
@@ -4694,11 +5005,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_stickers",
       "method": "GET",
@@ -4714,11 +5027,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_templates",
       "method": "GET",
@@ -4734,11 +5049,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_guild_voice_regions",
       "method": "GET",
@@ -4754,11 +5071,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_message_reactions_by_emoji",
       "method": "GET",
@@ -4800,11 +5119,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_messages",
       "method": "GET",
@@ -4841,11 +5162,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_connections",
       "method": "GET",
@@ -4855,11 +5178,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_guilds",
       "method": "GET",
@@ -4895,11 +5220,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_my_private_archived_threads",
       "method": "GET",
@@ -4926,11 +5253,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_pins",
       "method": "GET",
@@ -4957,11 +5286,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_private_archived_threads",
       "method": "GET",
@@ -4988,11 +5319,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_public_archived_threads",
       "method": "GET",
@@ -5019,11 +5352,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_sticker_packs",
       "method": "GET",
@@ -5033,11 +5368,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_thread_members",
       "method": "GET",
@@ -5069,11 +5406,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "list_voice_regions",
       "method": "GET",
@@ -5083,11 +5422,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "partner_sdk_token",
       "method": "POST",
@@ -5119,11 +5460,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "partner_sdk_unmerge_provisional_account",
       "method": "POST",
@@ -5155,11 +5498,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "poll_expire",
       "method": "POST",
@@ -5180,11 +5525,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "preview_prune_guild",
       "method": "GET",
@@ -5211,11 +5558,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "prune_guild",
       "method": "POST",
@@ -5249,11 +5598,13 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "put_guilds_onboarding",
       "method": "PUT",
@@ -5291,11 +5642,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "remove_invite_target_user",
       "method": "DELETE",
@@ -5316,11 +5669,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "search_guild_members",
       "method": "GET",
@@ -5347,11 +5702,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "send_soundboard_sound",
       "method": "POST",
@@ -5379,11 +5736,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "set_channel_permission_overwrite",
       "method": "PUT",
@@ -5421,11 +5780,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "sync_guild_template",
       "method": "PUT",
@@ -5446,11 +5807,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "thread_search",
       "method": "GET",
@@ -5522,11 +5885,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "trigger_typing_indicator",
       "method": "POST",
@@ -5542,11 +5907,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "unban_user_from_guild",
       "method": "DELETE",
@@ -5568,11 +5935,13 @@
       "has_body": true,
       "body_params": [],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_auto_moderation_rule",
       "method": "PATCH",
@@ -5635,11 +6004,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_channel",
       "method": "PATCH",
@@ -5787,11 +6158,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_followup_message",
       "method": "PATCH",
@@ -5845,11 +6218,13 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild",
       "method": "PATCH",
@@ -5972,11 +6347,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_emoji",
       "method": "PATCH",
@@ -6009,11 +6386,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_incident_actions",
       "method": "PUT",
@@ -6041,11 +6420,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_member",
       "method": "PATCH",
@@ -6103,11 +6484,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_role",
       "method": "PATCH",
@@ -6170,11 +6553,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_scheduled_event",
       "method": "PATCH",
@@ -6252,11 +6637,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_scheduled_event_exception",
       "method": "PATCH",
@@ -6299,11 +6686,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_soundboard_sound",
       "method": "PATCH",
@@ -6346,11 +6735,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_sticker",
       "method": "PATCH",
@@ -6388,11 +6779,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_template",
       "method": "PATCH",
@@ -6425,11 +6818,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_welcome_screen",
       "method": "PATCH",
@@ -6462,11 +6857,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_guild_widget_settings",
       "method": "PATCH",
@@ -6494,11 +6891,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_lobby_message_external_moderation_metadata",
       "method": "PUT",
@@ -6519,11 +6918,13 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_message",
       "method": "PATCH",
@@ -6581,11 +6982,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_original_interaction_response",
       "method": "PATCH",
@@ -6633,11 +7036,13 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_self_voice_state",
       "method": "PATCH",
@@ -6670,11 +7075,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_stage_instance",
       "method": "PATCH",
@@ -6702,11 +7109,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_user_message_external_moderation_metadata",
       "method": "PUT",
@@ -6732,11 +7141,13 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_voice_channel_status",
       "method": "PUT",
@@ -6759,11 +7170,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_voice_state",
       "method": "PATCH",
@@ -6796,11 +7209,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "discord",
       "id": "update_webhook",
       "method": "PATCH",
@@ -6833,11 +7248,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "webhook",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_transcript",
       "method": "POST",
@@ -6895,11 +7312,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_card",
       "method": "POST",
@@ -6920,11 +7339,13 @@
       ],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_qr_code",
       "method": "POST",
@@ -6960,11 +7381,13 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "create_captcha",
       "method": "POST",
@@ -6999,11 +7422,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_captcha",
       "method": "GET",
@@ -7019,11 +7444,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_minecraft_user",
       "method": "GET",
@@ -7039,11 +7466,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "cookie_api",
       "id": "get_current_time",
       "method": "GET",
@@ -7053,11 +7482,13 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "erlc",
       "id": "get_server",
       "method": "GET",
@@ -7113,11 +7544,13 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
     },
     {
+      "kind": "request",
       "integration": "erlc",
       "id": "run_command",
       "method": "POST",
@@ -7134,6 +7567,91 @@
         }
       ],
       "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "http",
+      "id": "request",
+      "description": "Send an HTTP request to a URL, like the Send API Request block. {{secrets.NAME}} in the URL, the headers and the body is replaced with the app's secret, which the code never sees. Responses that aren't 2xx resolve too, only failing to get a response rejects. fetch(url, init) calls it.",
+      "credits": 3,
+      "params": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL, starting with http:// or https://."
+          },
+          "method": {
+            "description": "Defaults to GET.",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "headers": {
+            "description": "Headers by name.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body": {
+            "description": "The body as text, like JSON.stringify(data).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "description": "The HTTP status, like 200."
+          },
+          "status_text": {
+            "type": "string",
+            "description": "Like OK."
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers by name in lower case, several values joined by commas."
+          },
+          "body": {
+            "type": "string",
+            "description": "The body as text, up to 1 MB."
+          }
+        },
+        "required": [
+          "status",
+          "status_text",
+          "headers",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }

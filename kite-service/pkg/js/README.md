@@ -8,7 +8,7 @@ The package is made of these files:
 
 - `js.go` has `Run`, the limits and the conversion of errors.
 - `runtime.go` compiles the module, takes the snapshot every run starts from, and has the host functions.
-- `prelude.js` runs once before the snapshot. It defines the globals scripts get, like `formatDate`, and removes `kite.call` so scripts only reach what it wraps.
+- `prelude.js` runs once before the snapshot. It defines the globals scripts get, like `formatDate` and `fetch`, which wraps the `http.request` call, and removes `kite.call` so scripts only reach what it wraps.
 - `wasm/kite.c` is the C glue between QuickJS-NG and Go: the imports from Go, `kite_init` and `kite_run`.
 - `kite.wasm` is QuickJS-NG and `kite.c` built by `wasm/build.sh`. It's committed, because building it needs wasi-sdk.
 

@@ -1,9 +1,19 @@
+import { toJsonSchema } from "../flow/catalog";
+import { JsonSchema } from "../flow/expressionTypes";
 import { ApiOperation } from "./api";
 import { integrationApis } from "./apis";
+import {
+  HandlerOperationDefinition,
+  handlerOperations,
+} from "./handlerOperations";
 
 // What the service checks when code calls an operation, besides its
 // credits. See "Operations for code" in design/integrations.md.
 export interface OperationPolicy {
+  // Code can call it: Kite's own operations and the reads of integrations,
+  // GET requests outside the interaction, for now. The service only lets
+  // code call these.
+  code: boolean;
   // What the call acts on, so the service can check it's in the app's server
   // once apps can share a bot: guild, channel, webhook, interaction or user
   // from the path, none for reads of nothing in particular, or unknown when
@@ -16,10 +26,28 @@ export interface OperationPolicy {
   destructive: boolean;
 }
 
-export interface Operation extends ApiOperation {
+// A request to an integration's API, from its api.json.
+export interface RequestOperation extends ApiOperation {
+  kind: "request";
   integration: string;
   policy: OperationPolicy;
 }
+
+// Go code of the service, see handlerOperations.ts.
+export interface HandlerOperation
+  extends Omit<
+    HandlerOperationDefinition,
+    "params" | "result" | "destructive"
+  > {
+  kind: "handler";
+  integration: string;
+  // JSON Schemas of the argument and the result.
+  params: JsonSchema;
+  result: JsonSchema;
+  policy: OperationPolicy;
+}
+
+export type Operation = RequestOperation | HandlerOperation;
 
 export function operationPolicy(
   integration: string,
@@ -27,6 +55,7 @@ export function operationPolicy(
 ): OperationPolicy {
   const discord = integration === "discord";
   return {
+    code: op.method === "GET" && !op.interaction,
     target: discord ? discordTarget(op) : "none",
     destructive:
       op.method === "DELETE" ||
@@ -49,11 +78,29 @@ function discordTarget(op: ApiOperation): string {
 // Every operation of every integration, which the service embeds as
 // kite-service/pkg/flow/operations.json.
 export function allOperations(): Operation[] {
-  return Object.entries(integrationApis).flatMap(([integration, api]) =>
-    api.operations.map((op) => ({
-      integration,
-      ...op,
-      policy: operationPolicy(integration, op),
-    }))
+  const requests = Object.entries(integrationApis).flatMap(
+    ([integration, api]) =>
+      api.operations.map(
+        (op): Operation => ({
+          kind: "request",
+          integration,
+          ...op,
+          policy: operationPolicy(integration, op),
+        })
+      )
   );
+  const handlers = Object.entries(handlerOperations).flatMap(
+    ([integration, ops]) =>
+      ops.map(
+        ({ params, result, destructive, ...op }): Operation => ({
+          kind: "handler",
+          integration,
+          ...op,
+          params: toJsonSchema(params),
+          result: toJsonSchema(result),
+          policy: { code: true, target: "none", destructive: !!destructive },
+        })
+      )
+  );
+  return [...requests, ...handlers];
 }

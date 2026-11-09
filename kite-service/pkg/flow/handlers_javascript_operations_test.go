@@ -113,7 +113,7 @@ try { await discord.getChannel({channel_id: "5"}) } catch (e) { return [e.messag
 }
 
 func TestJavaScriptRunOperationCredits(t *testing.T) {
-	operations["discord"]["get_paid_thing"] = operation{Integration: "discord", ID: "get_paid_thing", Method: "GET", Path: "/paid", Credits: 3}
+	operations["discord"]["get_paid_thing"] = operation{Integration: "discord", ID: "get_paid_thing", Method: "GET", Path: "/paid", Credits: 3, Policy: operationPolicy{Code: true}}
 	t.Cleanup(func() { delete(operations["discord"], "get_paid_thing") })
 
 	c, err := runJavaScriptOperations(t, `await discord.getPaidThing(); return 1`, &operationsTestProvider{}, 1000)

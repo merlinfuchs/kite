@@ -73,8 +73,10 @@ export interface BlockField {
   options?: { value: string; label: string }[];
   widget?: "permissions";
   // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
-  // handler has to evaluate it with them, see flowSecrets in the service.
-  secrets?: boolean;
+  // handler has to evaluate it with them, see flowSecrets in the service. The
+  // name of a property for settings where only it can, like the code of Run
+  // JavaScript and not its inputs.
+  secrets?: boolean | string;
   // Left out of the flow catalog, so the flow AI doesn't set it. For settings
   // it can't get right, like IDs of blocks, which it only knows by ref for the
   // blocks it adds.

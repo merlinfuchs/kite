@@ -27,4 +27,11 @@ describe("javascriptRun", () => {
       false
     );
   });
+
+  it("accepts secrets, which fetch fills in", () => {
+    const code = (s: string) => schema.safeParse({ code: s }).success;
+    expect(code('await fetch("https://x.com/{{secrets.API_KEY}}")')).toBe(true);
+    expect(code('"{{ secrets.API_KEY }}" + "{{user.id}}"')).toBe(false);
+    expect(code('"{{secrets.API_KEY.length}}"')).toBe(false);
+  });
 });

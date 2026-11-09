@@ -38,8 +38,10 @@ type apiParam struct {
 	Required bool         `json:"required"`
 }
 
-// operation is an endpoint of an integration's API.
+// operation is an endpoint of an integration's API, or for kind "handler" Go
+// code in operationHandlers, which has none of the request's fields.
 type operation struct {
+	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
 	ID          string `json:"id"`
 	Method      string `json:"method"`
@@ -60,6 +62,9 @@ type operation struct {
 
 // operationPolicy is what a call of an operation from code acts on.
 type operationPolicy struct {
+	// Code can call it, see OperationPolicy in
+	// kite-web/src/lib/integrations/operations.ts.
+	Code bool `json:"code"`
 	// What the call acts on, see OperationPolicy in
 	// kite-web/src/lib/integrations/operations.ts. It isn't checked yet, as
 	// every app has its own bot, which can act in any server it's in.

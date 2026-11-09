@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
+import { onlySecretPlaceholders } from "../flow/templateSecrets";
+import { httpRequest } from "./httpRequest";
 import { BlockDefinition } from "./types";
 
 // Match MaxCodeLength and MaxInputs in kite-service/pkg/js/js.go.
@@ -22,18 +24,21 @@ export const javascriptRun: BlockDefinition = {
   fields: [
     {
       name: "javascript_data",
+      secrets: "code",
       schema: z
         .object({
           code: z
             .string()
             .min(1)
             .max(maxCodeLength)
-            .refine((code) => !/\{\{[^{}]+\}\}/.test(code), {
+            // Secrets are the only placeholders code can have, which fetch
+            // fills in when it sends the request.
+            .refine(onlySecretPlaceholders, {
               message:
                 "Placeholders don't work in code. Add an input and read it as input.name instead.",
             })
             .describe(
-              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. A failed request throws an Error with status, like 404, and Discord's error code as code. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit, up to 20 per run. It can't change anything, and has no fetch, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
+              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. A failed request throws an Error with status, like 404, and Discord's error code as code. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit. Up to 20 calls per run. fetch(url, {method, headers, body}) sends a request to any URL for ${httpRequest.credits} credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It can't change anything in Discord, and has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
             ),
           inputs: z
             .array(
