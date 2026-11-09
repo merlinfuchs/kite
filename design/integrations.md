@@ -98,7 +98,6 @@ export const discordRoleCreate: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "create_guild_role",
-    method: "POST",
   },
   fields: [
     {
@@ -134,7 +133,7 @@ A block's integrations are those of its requests and its `requires` together. Di
 
 A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Field types are `snowflake`, `snowflake_list`, `integer`, `boolean` and `string`, checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
 
-The generator copies what the spec knows into the definition: the method, types, required fields, allowed values, limits and the response schema. The path stays in the spec, which the service reads it from. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
+The generator copies what the spec knows into the definition: the types, required fields, allowed values, limits and the response schema. The method and path stay in the spec, which the service reads them from. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
 
 `result.thing` wraps the response as an existing thing type, so a migrated block keeps `{{result('x').mention}}` working, and `result.list` a list of them. Without it the result is the plain JSON, like Discord API Request.
 

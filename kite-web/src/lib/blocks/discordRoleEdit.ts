@@ -16,7 +16,6 @@ export const discordRoleEdit: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "update_guild_role",
-    method: "PATCH",
   },
   fields: [
     guildField,

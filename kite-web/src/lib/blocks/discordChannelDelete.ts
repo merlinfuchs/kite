@@ -15,7 +15,6 @@ export const discordChannelDelete: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_channel",
-    method: "DELETE",
   },
   fields: [channelTargetField],
 };

@@ -14,7 +14,6 @@ export const cookieApiCardCreate: BlockDefinition = {
     kind: "request",
     integration: "cookie_api",
     operation: "create_card",
-    method: "POST",
   },
   fields: [
     {

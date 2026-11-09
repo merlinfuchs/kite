@@ -16,7 +16,6 @@ export const discordThreadMemberAdd: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "add_thread_member",
-    method: "PUT",
   },
   fields: [
     {

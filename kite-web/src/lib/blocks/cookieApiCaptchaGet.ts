@@ -14,7 +14,6 @@ export const cookieApiCaptchaGet: BlockDefinition = {
     kind: "request",
     integration: "cookie_api",
     operation: "get_captcha",
-    method: "GET",
   },
   fields: [
     {

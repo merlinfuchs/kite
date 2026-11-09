@@ -130,7 +130,14 @@ describe("block definitions", () => {
       expect(op, block.type).toBeDefined();
       if (!op) continue;
 
-      expect(block.run.method, block.type).toEqual(op.method);
+      // Booleans with a schema have their own input.
+      for (const field of block.fields.filter(
+        (f) => f.type === "boolean" && !f.schema
+      )) {
+        expect(!!field.keep, `${block.type}.${field.name}`).toBe(
+          op.method === "PATCH"
+        );
+      }
 
       const targets = (location: string) =>
         block.fields

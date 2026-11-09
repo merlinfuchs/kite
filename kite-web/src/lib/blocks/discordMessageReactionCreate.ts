@@ -15,7 +15,6 @@ export const discordMessageReactionCreate: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "add_my_message_reaction",
-    method: "PUT",
   },
   fields: [
     channelTargetField,

@@ -14,7 +14,6 @@ export const discordTypingTrigger: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "trigger_typing_indicator",
-    method: "POST",
   },
   fields: [
     {

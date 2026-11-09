@@ -16,7 +16,6 @@ export const discordMemberBan: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "ban_user_from_guild",
-    method: "PUT",
   },
   fields: [
     guildTargetField,

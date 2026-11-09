@@ -15,7 +15,6 @@ export const discordMessagePublish: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "crosspost_message",
-    method: "POST",
   },
   fields: [channelTargetField, messageTargetField],
   result: {

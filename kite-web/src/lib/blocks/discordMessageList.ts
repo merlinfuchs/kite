@@ -15,7 +15,6 @@ export const discordMessageList: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "list_messages",
-    method: "GET",
   },
   fields: [
     flowChannelField,

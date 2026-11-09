@@ -1828,11 +1828,7 @@ function BlockFieldInput({
     );
   }
   // Edits keep what's left out, so they need "No" besides leaving it empty.
-  if (
-    field.type === "boolean" &&
-    definition?.run.kind === "request" &&
-    definition.run.method === "PATCH"
-  ) {
+  if (field.type === "boolean" && field.keep) {
     return (
       <BaseKeepSelect
         field={key}

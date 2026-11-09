@@ -15,7 +15,6 @@ export const discordMemberUnban: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "unban_user_from_guild",
-    method: "DELETE",
   },
   fields: [guildTargetField, userTargetField],
 };

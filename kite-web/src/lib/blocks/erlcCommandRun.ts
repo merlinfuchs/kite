@@ -13,7 +13,6 @@ export const erlcCommandRun: BlockDefinition = {
     kind: "request",
     integration: "erlc",
     operation: "run_command",
-    method: "POST",
   },
   fields: [
     {

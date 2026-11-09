@@ -14,7 +14,6 @@ export const discordMessageReactionDelete: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_my_message_reaction",
-    method: "DELETE",
   },
   fields: [
     channelTargetField,

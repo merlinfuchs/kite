@@ -21,7 +21,6 @@ export const discordSoundboardSoundPlay: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "send_soundboard_sound",
-    method: "POST",
   },
   fields: [
     {

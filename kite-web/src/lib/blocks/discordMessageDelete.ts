@@ -15,7 +15,6 @@ export const discordMessageDelete: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_message",
-    method: "DELETE",
   },
   fields: [channelTargetField, messageTargetField],
 };

@@ -16,7 +16,6 @@ export const discordInviteCreate: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "create_channel_invite",
-    method: "POST",
   },
   fields: [
     {

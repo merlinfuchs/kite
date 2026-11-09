@@ -15,7 +15,6 @@ export const discordMessagePin: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "deprecated_create_pin",
-    method: "PUT",
   },
   fields: [channelTargetField, messageTargetField],
 };

@@ -315,8 +315,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_message",
-        "method": "DELETE"
+        "operation": "delete_message"
       },
       "fields": [
         {
@@ -408,8 +407,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "trigger_typing_indicator",
-        "method": "POST"
+        "operation": "trigger_typing_indicator"
       },
       "fields": [
         {
@@ -438,8 +436,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_my_message_reaction",
-        "method": "PUT"
+        "operation": "add_my_message_reaction"
       },
       "fields": [
         {
@@ -492,8 +489,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_my_message_reaction",
-        "method": "DELETE"
+        "operation": "delete_my_message_reaction"
       },
       "fields": [
         {
@@ -546,8 +542,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "deprecated_create_pin",
-        "method": "PUT"
+        "operation": "deprecated_create_pin"
       },
       "fields": [
         {
@@ -588,8 +583,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "deprecated_delete_pin",
-        "method": "DELETE"
+        "operation": "deprecated_delete_pin"
       },
       "fields": [
         {
@@ -630,8 +624,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "crosspost_message",
-        "method": "POST"
+        "operation": "crosspost_message"
       },
       "fields": [
         {
@@ -692,8 +685,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "list_messages",
-        "method": "GET"
+        "operation": "list_messages"
       },
       "fields": [
         {
@@ -761,8 +753,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "bulk_delete_messages",
-        "method": "POST"
+        "operation": "bulk_delete_messages"
       },
       "fields": [
         {
@@ -803,8 +794,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "ban_user_from_guild",
-        "method": "PUT"
+        "operation": "ban_user_from_guild"
       },
       "fields": [
         {
@@ -857,8 +847,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "unban_user_from_guild",
-        "method": "DELETE"
+        "operation": "unban_user_from_guild"
       },
       "fields": [
         {
@@ -899,8 +888,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_member",
-        "method": "DELETE"
+        "operation": "delete_guild_member"
       },
       "fields": [
         {
@@ -942,7 +930,6 @@
         "kind": "request",
         "integration": "discord",
         "operation": "update_guild_member",
-        "method": "PATCH",
         "partial": true
       },
       "fields": [
@@ -1044,8 +1031,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_guild_member_role",
-        "method": "PUT"
+        "operation": "add_guild_member_role"
       },
       "fields": [
         {
@@ -1098,8 +1084,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_member_role",
-        "method": "DELETE"
+        "operation": "delete_guild_member_role"
       },
       "fields": [
         {
@@ -1169,8 +1154,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "create_guild_role",
-        "method": "POST"
+        "operation": "create_guild_role"
       },
       "fields": [
         {
@@ -1262,8 +1246,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "update_guild_role",
-        "method": "PATCH"
+        "operation": "update_guild_role"
       },
       "fields": [
         {
@@ -1367,8 +1350,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_role",
-        "method": "DELETE"
+        "operation": "delete_guild_role"
       },
       "fields": [
         {
@@ -1460,8 +1442,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_channel",
-        "method": "DELETE"
+        "operation": "delete_channel"
       },
       "fields": [
         {
@@ -1541,8 +1522,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_thread_member",
-        "method": "PUT"
+        "operation": "add_thread_member"
       },
       "fields": [
         {
@@ -1583,8 +1563,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_thread_member",
-        "method": "DELETE"
+        "operation": "delete_thread_member"
       },
       "fields": [
         {
@@ -1625,8 +1604,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "create_channel_invite",
-        "method": "POST"
+        "operation": "create_channel_invite"
       },
       "fields": [
         {
@@ -1735,7 +1713,6 @@
         "kind": "request",
         "integration": "discord",
         "operation": "update_guild_member",
-        "method": "PATCH",
         "partial": true
       },
       "fields": [
@@ -1841,8 +1818,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "send_soundboard_sound",
-        "method": "POST"
+        "operation": "send_soundboard_sound"
       },
       "fields": [
         {
@@ -2085,7 +2061,6 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "create_transcript",
-        "method": "POST",
         "inject": [
           {
             "in": "body",
@@ -2160,8 +2135,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_card",
-        "method": "POST"
+        "operation": "create_card"
       },
       "fields": [
         {
@@ -2193,8 +2167,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_qr_code",
-        "method": "POST"
+        "operation": "create_qr_code"
       },
       "fields": [
         {
@@ -2265,8 +2238,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_captcha",
-        "method": "POST"
+        "operation": "create_captcha"
       },
       "fields": [
         {
@@ -2313,8 +2285,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "get_captcha",
-        "method": "GET"
+        "operation": "get_captcha"
       },
       "fields": [
         {
@@ -2346,8 +2317,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "get_minecraft_user",
-        "method": "GET"
+        "operation": "get_minecraft_user"
       },
       "fields": [
         {
@@ -2379,8 +2349,7 @@
       "run": {
         "kind": "request",
         "integration": "erlc",
-        "operation": "get_server",
-        "method": "GET"
+        "operation": "get_server"
       },
       "fields": [
         {
@@ -2508,8 +2477,7 @@
       "run": {
         "kind": "request",
         "integration": "erlc",
-        "operation": "run_command",
-        "method": "POST"
+        "operation": "run_command"
       },
       "fields": [
         {

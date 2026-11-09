@@ -43,7 +43,6 @@ export const erlcServerGet: BlockDefinition = {
     kind: "request",
     integration: "erlc",
     operation: "get_server",
-    method: "GET",
   },
   fields: partFields,
   result: {

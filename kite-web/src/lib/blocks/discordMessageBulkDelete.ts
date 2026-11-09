@@ -18,7 +18,6 @@ export const discordMessageBulkDelete: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "bulk_delete_messages",
-    method: "POST",
   },
   fields: [
     flowChannelField,

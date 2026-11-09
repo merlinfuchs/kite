@@ -68,6 +68,10 @@ export interface BlockField {
   // The values a string field can have, picked from a list in the editor.
   options?: { value: string; label: string }[];
   widget?: "permissions";
+  // A boolean of an edit, which keeps the current value when it's left out.
+  // The editor offers "No" besides leaving it empty then. blocks.test.ts
+  // checks it's set on the booleans of PATCH requests.
+  keep?: boolean;
   // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
   // handler has to evaluate it with them, see flowSecrets in the service.
   secrets?: boolean;
@@ -84,11 +88,9 @@ export interface BlockRequest {
   // ID of the integration, see ../integrations.
   integration: string;
   // operationId in the integration's spec. The service sends the request
-  // with the operation's path from kite-service/pkg/flow/operations.json.
+  // with the operation's method and path from
+  // kite-service/pkg/flow/operations.json.
   operation: string;
-  // The operation's method too, for the editor, which shows edits
-  // differently and doesn't load the specs.
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   // Values Kite adds to the request, which aren't settings.
   inject?: BlockRequestInject[];
   // The block does one of several things the endpoint does, like a timeout

@@ -15,7 +15,6 @@ export const discordMemberKick: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_guild_member",
-    method: "DELETE",
   },
   fields: [guildTargetField, userTargetField],
 };

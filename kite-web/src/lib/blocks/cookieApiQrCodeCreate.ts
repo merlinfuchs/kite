@@ -14,7 +14,6 @@ export const cookieApiQrCodeCreate: BlockDefinition = {
     kind: "request",
     integration: "cookie_api",
     operation: "create_qr_code",
-    method: "POST",
   },
   fields: [
     {

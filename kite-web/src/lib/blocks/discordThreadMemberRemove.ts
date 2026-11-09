@@ -16,7 +16,6 @@ export const discordThreadMemberRemove: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_thread_member",
-    method: "DELETE",
   },
   fields: [
     {

@@ -16,7 +16,6 @@ export const discordRoleCreate: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "create_guild_role",
-    method: "POST",
   },
   fields: [guildField, ...roleDataFields(false)],
   result: { thing: "discord_role" },
