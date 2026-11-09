@@ -10,7 +10,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
-	"github.com/tidwall/sjson"
 )
 
 // maxStoredTriggers bounds how many triggers a resume point keeps: the one that
@@ -51,34 +50,8 @@ type flowTriggerJSON struct {
 	Event       json.RawMessage           `json:"event,omitempty"`
 }
 
-// typedComponent writes the component_type that arikawa leaves out when it
-// marshals a button or select interaction. Without it, the interaction is
-// read back as an unknown component and loses its values.
-type typedComponent struct {
-	discord.ComponentInteraction
-}
-
-func (c typedComponent) MarshalJSON() ([]byte, error) {
-	data, err := json.Marshal(c.ComponentInteraction)
-	if err != nil {
-		return nil, err
-	}
-	return sjson.SetBytes(data, "component_type", c.Type())
-}
-
 func (t FlowTrigger) MarshalJSON() ([]byte, error) {
 	aux := flowTriggerJSON{Interaction: t.Interaction}
-
-	if t.Interaction != nil {
-		switch c := t.Interaction.Data.(type) {
-		case *discord.UnknownComponent:
-			// Keeps what Discord sent, component_type included.
-		case discord.ComponentInteraction:
-			stored := *t.Interaction
-			stored.Data = typedComponent{c}
-			aux.Interaction = &stored
-		}
-	}
 
 	if t.Event != nil {
 		data, err := json.Marshal(t.Event)

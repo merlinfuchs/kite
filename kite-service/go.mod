@@ -34,7 +34,6 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tetratelabs/wazero v1.12.0
 	github.com/thomas-vilte/dave-go v0.5.1
-	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/oauth2 v0.27.0
@@ -91,6 +90,7 @@ require (
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
@@ -106,4 +106,4 @@ require (
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152658-dcee8f42a968

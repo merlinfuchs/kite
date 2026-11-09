@@ -38,6 +38,8 @@ github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1 h1:qiTuuY
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08 h1:GMKYkoAIYASuQitNVmAF+UwILeHLCIdOOANXiQocn6c=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152658-dcee8f42a968 h1:AtBrNZfnHL59eHAJGpHe0g0rhBq9+aDu6GTTUD1jw0M=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152658-dcee8f42a968/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
