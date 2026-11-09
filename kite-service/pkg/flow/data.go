@@ -751,12 +751,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// An empty sort means VariableListSortValueDesc, the default the
 		// editor shows.
 		validation.Field(&d.VariableSort, validation.When(nodeType == FlowNodeTypeActionVariableList,
-			validation.In(
-				provider.VariableListSortValueDesc,
-				provider.VariableListSortValueAsc,
-				provider.VariableListSortUpdatedDesc,
-				provider.VariableListSortUpdatedAsc,
-			),
+			validation.In(anys(provider.VariableListSorts)...),
 		)),
 
 		// Command Cooldown
@@ -1715,4 +1710,13 @@ func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
 // limit for the given channel type.
 func channelTypeSupportsVoice(t discord.ChannelType) bool {
 	return t == discord.GuildVoice || t == discord.GuildStageVoice
+}
+
+// anys is values for validation.In.
+func anys[T any](values []T) []any {
+	res := make([]any, len(values))
+	for i, v := range values {
+		res[i] = v
+	}
+	return res
 }

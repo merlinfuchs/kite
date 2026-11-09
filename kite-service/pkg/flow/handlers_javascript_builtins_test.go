@@ -46,14 +46,18 @@ func (p *codeHTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req 
 	return p.HTTPRequest(ctx, req)
 }
 
-func runJavaScriptBuiltins(t *testing.T, code string, httpProvider *codeHTTPProvider, maxCredits int) (*FlowContext, error) {
-	c := javaScriptTestContext(t, FlowProviders{
-		HTTP:   httpProvider,
-		Secret: &secretTestProvider{values: map[string]string{"TOKEN": "s3cret-t0ken"}},
-		Log:    &provider.MockLogProvider{},
-	}, maxCredits, eval.Env{})
-	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: code}}}
+// runJavaScriptCode runs a Run JavaScript block with the providers, and a
+// secret TOKEN.
+func runJavaScriptCode(t *testing.T, providers FlowProviders, data JavaScriptData, maxCredits int) (*FlowContext, error) {
+	providers.Secret = &secretTestProvider{values: map[string]string{"TOKEN": "s3cret-t0ken"}}
+	providers.Log = &provider.MockLogProvider{}
+	c := javaScriptTestContext(t, providers, maxCredits, eval.Env{})
+	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &data}}
 	return c, node.Execute(c)
+}
+
+func runJavaScriptBuiltins(t *testing.T, code string, httpProvider *codeHTTPProvider, maxCredits int) (*FlowContext, error) {
+	return runJavaScriptCode(t, FlowProviders{HTTP: httpProvider}, JavaScriptData{Code: code}, maxCredits)
 }
 
 func TestJavaScriptRunFetch(t *testing.T) {
@@ -92,6 +96,12 @@ return [res.status, res.body, (await fetch("https://example.com")).ok]`, p, 1000
 	_, err = runJavaScriptBuiltins(t, `await fetch("https://example.com", {method: "POST", body: "hi"})`, p, 1000)
 	require.NoError(t, err)
 	assert.Equal(t, "text/plain;charset=UTF-8", p.reqs[0].Header.Get("Content-Type"))
+}
+
+func TestJavaScriptRunHTTPRequestTooLarge(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", 2<<20)}
+	_, err := runJavaScriptBuiltins(t, `await fetch("https://example.com")`, p, 1000)
+	assert.ErrorContains(t, err, "http.request: the response is larger than 1 MB")
 }
 
 func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
@@ -204,16 +214,14 @@ func (p *codeVariableProvider) VariableValues(ctx context.Context, id string, op
 }
 
 func runJavaScriptVariables(t *testing.T, code string, p *codeVariableProvider, maxCredits int) (*FlowContext, error) {
-	c := javaScriptTestContext(t, FlowProviders{Variable: p, Log: &provider.MockLogProvider{}}, maxCredits, eval.Env{})
-	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{
+	return runJavaScriptCode(t, FlowProviders{Variable: p}, JavaScriptData{
 		Code: code,
 		Variables: []JavaScriptVariable{
 			{Name: "xp", VariableID: "var_xp"},
 			{Name: "motd", VariableID: "var_motd"},
 			{Name: "unpicked"},
 		},
-	}}}
-	return c, node.Execute(c)
+	}, maxCredits)
 }
 
 func TestJavaScriptRunVariables(t *testing.T) {
@@ -250,7 +258,7 @@ func TestJavaScriptRunVariableErrors(t *testing.T) {
 		{"no scope", `await variables.increment({name: "xp"})`, "variables.increment: xp has a value per scope, pass the scope, like a user ID"},
 		{"no value", `await variables.set({name: "motd"})`, "variables.set: missing parameter value"},
 		{"no name", `await variables.get({})`, "variables.get: missing parameter name"},
-		{"sort", `await variables.list({name: "xp", sort: "random"})`, "variables.list: invalid value for parameter sort: must be value_desc, value_asc, updated_desc or updated_asc"},
+		{"sort", `await variables.list({name: "xp", sort: "random"})`, "variables.list: invalid value for parameter sort: must be one of value_desc, value_asc, updated_desc, updated_asc"},
 		{"limit", `await variables.list({name: "xp", limit: 500})`, "variables.list: invalid value for parameter limit: must be from 1 to 100"},
 		{"scope type", `await variables.get({name: "xp", scope: 5})`, "variables.get: invalid value for parameter scope"},
 	}

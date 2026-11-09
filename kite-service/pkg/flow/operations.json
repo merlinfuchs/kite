@@ -34,6 +34,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -72,6 +73,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -130,6 +132,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -161,6 +164,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -187,6 +191,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -230,6 +235,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -261,6 +267,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -287,6 +294,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -313,6 +321,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -351,6 +360,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -383,6 +393,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -405,6 +416,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -433,6 +445,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -467,6 +480,7 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -496,6 +510,7 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -524,6 +539,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -545,6 +561,7 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -566,6 +583,7 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -587,6 +605,7 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -619,6 +638,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -682,6 +702,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -750,6 +771,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -782,6 +804,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "user",
         "destructive": false
       }
@@ -860,6 +883,7 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
@@ -978,6 +1002,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1016,6 +1041,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1079,6 +1105,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1152,6 +1179,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1200,6 +1228,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1248,6 +1277,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1281,6 +1311,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -1302,6 +1333,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1328,6 +1360,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1370,6 +1403,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1458,6 +1492,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1546,6 +1581,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1588,6 +1624,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1614,6 +1651,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1656,6 +1694,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -1714,6 +1753,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1757,6 +1797,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1790,6 +1831,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1816,6 +1858,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -1842,6 +1885,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -1873,6 +1917,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -1899,6 +1944,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -1920,6 +1966,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -1946,6 +1993,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -1972,6 +2020,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -1998,6 +2047,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2024,6 +2074,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2050,6 +2101,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2081,6 +2133,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2107,6 +2160,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2133,6 +2187,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2164,6 +2219,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2190,6 +2246,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2216,6 +2273,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2242,6 +2300,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -2263,6 +2322,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -2289,6 +2349,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -2315,6 +2376,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2346,6 +2408,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2372,6 +2435,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2393,6 +2457,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2419,6 +2484,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2455,6 +2521,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2476,6 +2543,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "webhook",
         "destructive": true
       }
@@ -2502,6 +2570,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -2528,6 +2597,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -2549,6 +2619,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -2597,6 +2668,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -2625,6 +2697,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -2653,6 +2726,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -2674,6 +2748,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -2716,6 +2791,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -2737,6 +2813,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2763,6 +2840,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2789,6 +2867,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2810,6 +2889,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2836,6 +2916,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -2851,6 +2932,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -2872,6 +2954,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -2898,6 +2981,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2965,6 +3049,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -2980,6 +3065,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3007,6 +3093,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3038,6 +3125,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3069,6 +3157,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3095,6 +3184,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3121,6 +3211,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3163,6 +3254,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3189,6 +3281,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3210,6 +3303,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3231,6 +3325,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3257,6 +3352,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3289,6 +3385,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3315,6 +3412,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3341,6 +3439,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3362,6 +3461,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3383,6 +3483,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3405,6 +3506,7 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3426,6 +3528,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3447,6 +3550,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3474,6 +3578,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3495,6 +3600,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3516,6 +3622,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3537,6 +3644,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3558,6 +3666,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3579,6 +3688,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3606,6 +3716,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3632,6 +3743,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -3647,6 +3759,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3662,6 +3775,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3677,6 +3791,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3692,6 +3807,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
@@ -3707,6 +3823,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3722,6 +3839,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3743,6 +3861,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3775,6 +3894,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3817,6 +3937,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3832,6 +3953,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -3853,6 +3975,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -3874,6 +3997,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3895,6 +4019,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -3927,6 +4052,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -3948,6 +4074,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
@@ -3974,6 +4101,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -3996,6 +4124,7 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "webhook",
         "destructive": false
       }
@@ -4017,6 +4146,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4159,6 +4289,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4201,6 +4332,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -4222,6 +4354,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -4243,6 +4376,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -4265,6 +4399,7 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -4286,6 +4421,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -4307,6 +4443,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": true
       }
@@ -4334,6 +4471,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -4355,6 +4493,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "unknown",
         "destructive": false
       }
@@ -4376,6 +4515,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4397,6 +4537,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -4419,6 +4560,7 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -4445,6 +4587,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4477,6 +4620,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4529,6 +4673,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4566,6 +4711,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4587,6 +4733,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4608,6 +4755,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4629,6 +4777,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4650,6 +4799,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4682,6 +4832,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4703,6 +4854,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4755,6 +4907,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4802,6 +4955,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4829,6 +4983,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4850,6 +5005,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4871,6 +5027,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4892,6 +5049,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4913,6 +5071,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -4960,6 +5119,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5002,6 +5162,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5017,6 +5178,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
@@ -5058,6 +5220,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "user",
         "destructive": false
       }
@@ -5090,6 +5253,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5122,6 +5286,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5154,6 +5319,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5186,6 +5352,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5201,6 +5368,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -5238,6 +5406,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5253,6 +5422,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -5290,6 +5460,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -5327,6 +5498,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -5353,6 +5525,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -5385,6 +5558,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -5424,6 +5598,7 @@
       ],
       "flow_only": true,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -5467,6 +5642,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -5493,6 +5669,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": true
       }
@@ -5525,6 +5702,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "guild",
         "destructive": false
       }
@@ -5558,6 +5736,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -5601,6 +5780,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -5627,6 +5807,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -5704,6 +5885,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "channel",
         "destructive": false
       }
@@ -5725,6 +5907,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -5752,6 +5935,7 @@
       "has_body": true,
       "body_params": [],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": true
       }
@@ -5820,6 +6004,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -5973,6 +6158,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -6032,6 +6218,7 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
@@ -6160,6 +6347,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6198,6 +6386,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6231,6 +6420,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6294,6 +6484,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6362,6 +6553,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6445,6 +6637,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6493,6 +6686,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6541,6 +6735,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6584,6 +6779,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6622,6 +6818,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6660,6 +6857,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6693,6 +6891,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6719,6 +6918,7 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -6782,6 +6982,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -6835,6 +7036,7 @@
       ],
       "interaction": true,
       "policy": {
+        "code": false,
         "target": "interaction",
         "destructive": false
       }
@@ -6873,6 +7075,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -6906,6 +7109,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -6937,6 +7141,7 @@
       "query_params": [],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "unknown",
         "destructive": false
       }
@@ -6965,6 +7170,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "channel",
         "destructive": false
       }
@@ -7003,6 +7209,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "guild",
         "destructive": false
       }
@@ -7041,6 +7248,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "webhook",
         "destructive": false
       }
@@ -7104,6 +7312,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
@@ -7130,6 +7339,7 @@
       ],
       "has_body": true,
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
@@ -7171,6 +7381,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
@@ -7211,6 +7422,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
@@ -7232,6 +7444,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7253,6 +7466,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7268,6 +7482,7 @@
       "query_params": [],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7329,6 +7544,7 @@
       ],
       "has_body": false,
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7351,6 +7567,7 @@
         }
       ],
       "policy": {
+        "code": false,
         "target": "none",
         "destructive": false
       }
@@ -7362,7 +7579,6 @@
       "description": "Send an HTTP request to a URL, like the Send API Request block. {{secrets.NAME}} in the URL, the headers and the body is replaced with the app's secret, which the code never sees. Responses that aren't 2xx resolve too, only failing to get a response rejects. fetch(url, init) calls it.",
       "credits": 3,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "url": {
@@ -7401,7 +7617,6 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "status": {
@@ -7424,7 +7639,7 @@
           },
           "body": {
             "type": "string",
-            "description": "The body as text, up to 4 MB."
+            "description": "The body as text, up to 1 MB."
           }
         },
         "required": [
@@ -7436,6 +7651,7 @@
         "additionalProperties": false
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7447,7 +7663,6 @@
       "description": "Get the value of a stored variable, or null if it has none.",
       "credits": 0,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "name": {
@@ -7465,10 +7680,10 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The value: text, a number, a list, an object, or null."
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7480,7 +7695,6 @@
       "description": "Set the value of a stored variable, and get it back.",
       "credits": 1,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "name": {
@@ -7502,10 +7716,10 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The value: text, a number, a list, an object, or null."
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7517,7 +7731,6 @@
       "description": "Add to the number in a stored variable, which starts at 0, and get the new value. Calls at the same time don't overwrite each other, unlike get and set.",
       "credits": 1,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "name": {
@@ -7539,10 +7752,10 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "number"
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
@@ -7554,7 +7767,6 @@
       "description": "Delete the value of a stored variable.",
       "credits": 1,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "name": {
@@ -7572,10 +7784,10 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "null"
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": true
       }
@@ -7587,7 +7799,6 @@
       "description": "List the values of a stored variable, like a leaderboard of the highest ones.",
       "credits": 1,
       "params": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
           "name": {
@@ -7627,7 +7838,6 @@
         "additionalProperties": false
       },
       "result": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "array",
         "items": {
           "type": "object",
@@ -7655,6 +7865,7 @@
         }
       },
       "policy": {
+        "code": true,
         "target": "none",
         "destructive": false
       }
