@@ -385,9 +385,9 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 		q = c.Q.WithTx(tx)
 	}
 
-	data, err := json.Marshal(value.Data)
+	data, err := encodeVariableValue(value.Data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+		return nil, err
 	}
 
 	row, err := q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
@@ -411,6 +411,19 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 	}
 
 	return &v, nil
+}
+
+// encodeVariableValue is the JSON a value is stored as, which can be up to
+// provider.MaxVariableValueSize.
+func encodeVariableValue(v thing.Thing) ([]byte, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+	}
+	if len(data) > provider.MaxVariableValueSize {
+		return nil, provider.ErrVariableValueTooLarge
+	}
+	return data, nil
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {

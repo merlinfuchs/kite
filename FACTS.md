@@ -29,7 +29,7 @@ Features (feature | what it means for the user | free or paid):
 - Scheduled tasks | run a flow on a schedule | free, every 5 minutes at most, every minute on Kite Premium
 - Webhooks | start a flow from another website or service | free
 - Message templates | design embeds, buttons, and select menus and see them as Discord shows them | free
-- Stored variables | keep points, counts, and settings per member or server | free
+- Stored variables | keep points, counts, and settings per member or server, up to 64 KB per value | free
 - Marketplace templates | add a ready-made bot, like moderation or giveaways, then change it | free
 - Share and list your own templates | anyone with the link can add it, and listed ones show in the Marketplace | free
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
