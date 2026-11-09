@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -324,7 +325,9 @@ func (s Env) storeLogEntry(entry model.LogEntry) {
 
 	// Create log entry which will be displayed in the dashboard
 	err := s.LogStore.CreateLogEntry(ctx, entry)
-	if err != nil {
+	// Deleted while it ran, like an event listener removed in the meantime,
+	// so there's nowhere to show the entry.
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		slog.With("error", err).With("app_id", entry.AppID).Error("Failed to create log entry from engine")
 	}
 }

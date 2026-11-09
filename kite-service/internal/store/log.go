@@ -8,6 +8,8 @@ import (
 )
 
 type LogStore interface {
+	// CreateLogEntry returns ErrNotFound if the app, or the command, event
+	// listener or message the entry is about, was deleted.
 	CreateLogEntry(ctx context.Context, entry model.LogEntry) error
 	LogEntriesByApp(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.LogEntry, error)
 	LogEntriesByCommand(ctx context.Context, appID string, commandID string, beforeID int64, limit int) ([]*model.LogEntry, error)
