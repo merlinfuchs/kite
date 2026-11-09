@@ -147,7 +147,7 @@ The body has to be text, so turn objects into JSON with `JSON.stringify` and set
 
 ## Writing the code
 
-The editor completes the calls, their parameters, the inputs and the stored variables of the block. To write the code in your own editor, like VS Code, download [kite.d.ts](pathname:///kite.d.ts) and put it next to the file, so the editor knows the calls and what they take.
+The editor completes the calls, their parameters, the inputs and the stored variables of the block. To write the code in your own editor, like VS Code, download [kite.d.ts](pathname:///kite.d.ts), put it next to your file and add `/// <reference path="kite.d.ts" />` as the file's first line. The editor then knows the calls and what they take. Write the code inside `async function run() { ... }` there, as editors don't allow `return` and `await` outside a function, and paste the body into the block.
 
 ## Limits
 

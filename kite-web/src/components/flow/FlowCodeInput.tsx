@@ -51,13 +51,13 @@ export default function FlowCodeInput({
   const namesRef = useRef(names);
   namesRef.current = names;
   const [panelExtensions, dialogExtensions] = useMemo(() => {
-    const completions = javascriptLanguage.data.of({
-      autocomplete: codeCompletions(() => namesRef.current),
-    });
+    const completions = codeCompletions(() => namesRef.current).map(
+      (autocomplete) => javascriptLanguage.data.of({ autocomplete })
+    );
     return [
       // Long lines wrap so the editor fits the settings panel.
-      [javascript(), completions, EditorView.lineWrapping],
-      [javascript(), completions],
+      [javascript(), ...completions, EditorView.lineWrapping],
+      [javascript(), ...completions],
     ];
   }, []);
 

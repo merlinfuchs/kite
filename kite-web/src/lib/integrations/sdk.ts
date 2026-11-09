@@ -1,5 +1,4 @@
-import { discordApiOperationLabel } from "../flow/discordApi";
-import { ApiParam } from "./api";
+import { ApiParam, operationLabel } from "./api";
 import { allOperations, Operation } from "./operations";
 
 // What the code of the Run JavaScript block can call, as TypeScript, for the
@@ -65,7 +64,7 @@ function codeOperation(op: Operation): CodeOperation {
   }
   return {
     ...base,
-    description: `${discordApiOperationLabel(op.id)}, ${op.method} ${op.path}.`,
+    description: `${operationLabel(op.id)}, ${op.method} ${op.path}.`,
     params: [...op.path_params, ...op.query_params].map((p) => ({
       name: p.name,
       type: paramType(p),
@@ -174,9 +173,8 @@ export function codeGlobals(): CodeGlobal[] {
       )}`,
       declaration: [
         "declare function fetch(url: string, init?: {",
-        `  method?: ${
-          request?.params.find((p) => p.name === "method")?.type ?? "string"
-        };`,
+        // fetch takes them in any case, like in a browser.
+        `  method?: ${fetchMethods(request)};`,
         "  headers?: Record<string, string> | [string, string][];",
         "  body?: string;",
         "}): Promise<{",
@@ -200,6 +198,14 @@ export function codeGlobals(): CodeGlobal[] {
         "declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;",
     },
   ];
+}
+
+// The methods of http.request in upper and lower case, like "POST" | "post".
+function fetchMethods(request: CodeOperation | undefined) {
+  const type = request?.params.find((p) => p.name === "method")?.type;
+  if (!type) return "string";
+  const methods = type.split(" | ");
+  return [...methods, ...methods.map((m) => m.toLowerCase())].join(" | ");
 }
 
 // The call as a TypeScript method, with what it does and costs.

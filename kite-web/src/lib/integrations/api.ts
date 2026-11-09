@@ -38,3 +38,9 @@ export interface IntegrationApi {
   source: string;
   operations: ApiOperation[];
 }
+
+// create_message -> Create message
+export function operationLabel(id: string) {
+  const words = id.replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

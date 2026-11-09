@@ -6,7 +6,7 @@ declare const input: Record<string, any>;
 
 /** Sends a request to a URL with http.request. Costs 3 credits. */
 declare function fetch(url: string, init?: {
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "get" | "post" | "put" | "patch" | "delete";
   headers?: Record<string, string> | [string, string][];
   body?: string;
 }): Promise<{

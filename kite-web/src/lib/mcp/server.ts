@@ -595,7 +595,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
         const op = byName.get(name);
         return op ? [op] : [];
       });
-      const unknown = names.filter((name) => !byName.has(name));
+      const unknown = [...new Set(names)].filter((name) => !byName.has(name));
       if (!found.length) {
         throw new Error(
           `Unknown calls ${unknown.join(
