@@ -67,12 +67,16 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	})
-	if err != nil {
+	if errors.Is(err, store.ErrAlreadyExists) {
+		return nil, errNameTaken
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to create variable: %w", err)
 	}
 
 	return wire.VariableToWire(variable), nil
 }
+
+var errNameTaken = handler.ErrBadRequest("duplicate_name", "A variable with this name already exists")
 
 // PrepareImport checks that the variables can be added to the app and returns
 // them with their IDs set, without saving them. Names the app already uses get
@@ -157,6 +161,9 @@ func (h *VariableHandler) HandleVariableUpdate(c *handler.Context, req wire.Vari
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_variable", "Variable not found")
+		}
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, errNameTaken
 		}
 		return nil, fmt.Errorf("failed to update variable: %w", err)
 	}
