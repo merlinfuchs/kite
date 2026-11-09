@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
-import { integrationApis } from "../integrations/apis";
-import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
+import {
+  blockDefinitions,
+  blockIntegrations,
+  blockOperation,
+  requestBlocks,
+} from ".";
 import { getNodeValues } from "../flow/nodes";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -124,20 +128,9 @@ describe("block definitions", () => {
 
   it("match their integration's API", () => {
     for (const block of requestBlocks()) {
-      const op = integrationApis[block.run.integration]?.operations.find(
-        (o) => o.id === block.run.operation
-      );
+      const op = blockOperation(block);
       expect(op, block.type).toBeDefined();
       if (!op) continue;
-
-      // Booleans with a schema have their own input.
-      for (const field of block.fields.filter(
-        (f) => f.type === "boolean" && !f.schema
-      )) {
-        expect(!!field.keep, `${block.type}.${field.name}`).toBe(
-          op.method === "PATCH"
-        );
-      }
 
       const targets = (location: string) =>
         block.fields

@@ -24,7 +24,11 @@ import {
   aiPromptLimits,
   getAiModelTier,
 } from "@/lib/flow/aiModels";
-import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
+import {
+  blockIntegrations,
+  blockOperation,
+  getBlockDefinition,
+} from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
@@ -1828,7 +1832,10 @@ function BlockFieldInput({
     );
   }
   // Edits keep what's left out, so they need "No" besides leaving it empty.
-  if (field.type === "boolean" && field.keep) {
+  if (
+    field.type === "boolean" &&
+    blockOperation(definition)?.method === "PATCH"
+  ) {
     return (
       <BaseKeepSelect
         field={key}

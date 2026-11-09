@@ -305,7 +305,6 @@ export function roleDataFields(edit: boolean): BlockField[] {
       in: "body",
       type: "boolean",
       label: "Show Separately",
-      keep: edit,
       description: describe(
         "Whether members with the role are shown separately in the member list."
       ),
@@ -315,7 +314,6 @@ export function roleDataFields(edit: boolean): BlockField[] {
       in: "body",
       type: "boolean",
       label: "Mentionable",
-      keep: edit,
       description: describe("Whether everyone can mention the role."),
     },
   ];

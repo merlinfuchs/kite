@@ -68,10 +68,6 @@ export interface BlockField {
   // The values a string field can have, picked from a list in the editor.
   options?: { value: string; label: string }[];
   widget?: "permissions";
-  // A boolean of an edit, which keeps the current value when it's left out.
-  // The editor offers "No" besides leaving it empty then. blocks.test.ts
-  // checks it's set on the booleans of PATCH requests.
-  keep?: boolean;
   // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
   // handler has to evaluate it with them, see flowSecrets in the service.
   secrets?: boolean;

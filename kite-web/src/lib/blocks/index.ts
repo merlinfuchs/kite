@@ -253,11 +253,16 @@ function withOperationCredits(block: BlockDefinition): BlockDefinition {
   if (block.credits !== undefined) {
     throw new Error(`${block.type} gets its credits from its operation`);
   }
+  return { ...block, credits: blockOperation(block)?.credits };
+}
+
+// The operation a request block sends, from its integration's api.json.
+export function blockOperation(block: BlockDefinition | undefined) {
+  if (block?.run.kind !== "request") return undefined;
   const { integration, operation } = block.run;
-  const op = integrationApis[integration]?.operations.find(
+  return integrationApis[integration]?.operations.find(
     (o) => o.id === operation
   );
-  return { ...block, credits: op?.credits };
 }
 
 const definitionsByType = new Map(blockDefinitions.map((b) => [b.type, b]));
