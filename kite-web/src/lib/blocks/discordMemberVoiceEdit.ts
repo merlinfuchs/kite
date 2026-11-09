@@ -30,7 +30,6 @@ export const discordMemberVoiceEdit: BlockDefinition = {
   description: "Server-mute, deafen or move a member to another voice channel",
   icon: "audio-lines",
   category: "Voice",
-  credits: 1,
   permissions: (data) => [
     ...(isChange(data.member_voice_mute) ? (["MUTE_MEMBERS"] as const) : []),
     ...(isChange(data.member_voice_deaf) ? (["DEAFEN_MEMBERS"] as const) : []),
@@ -42,8 +41,6 @@ export const discordMemberVoiceEdit: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "update_guild_member",
-    method: "PATCH",
-    path: "/guilds/{guild_id}/members/{user_id}",
     partial: true,
   },
   fields: [
@@ -51,27 +48,21 @@ export const discordMemberVoiceEdit: BlockDefinition = {
     userTargetField,
     {
       name: "member_voice_mute",
-      in: "body",
       target: "mute",
-      type: "boolean",
       schema: voiceStateChangeSchema(
         'Whether to server-mute the member, "true" or "false". Empty leaves it unchanged.'
       ),
     },
     {
       name: "member_voice_deaf",
-      in: "body",
       target: "deaf",
-      type: "boolean",
       schema: voiceStateChangeSchema(
         'Whether to server-deafen the member, "true" or "false". Empty leaves it unchanged.'
       ),
     },
     {
       name: "channel_target",
-      in: "body",
       target: "channel_id",
-      type: "snowflake",
       label: "Move to Channel",
       description:
         "ID of the voice channel to move the member to. Leave empty to keep the member where they are.",

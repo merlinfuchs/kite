@@ -17,6 +17,8 @@ export interface ApiOperation {
   id: string;
   method: string;
   path: string;
+  // Credits each request costs, from request blocks and from code.
+  credits: number;
   path_params: ApiParam[];
   query_params: ApiParam[];
   has_body: boolean;

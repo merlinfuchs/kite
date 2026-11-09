@@ -47,6 +47,7 @@ Never edit these by hand. Change the source and regenerate.
 | `kite-service/internal/db/postgres/pgmodel/*`        | `internal/db/postgres/queries` and `migrations`                 | `sqlc generate` in `kite-service`              |
 | `kite-service/pkg/flow/catalog.json`                 | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
 | `kite-service/pkg/flow/block_definitions.json`       | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
+| `kite-service/pkg/flow/operations.json`              | `api.json` files in `kite-web/src/lib/integrations`             | `pnpm test -u` in `kite-web`                   |
 | `kite-service/internal/core/bundle/templates.json`   | templates in `kite-web/src/lib/templates`                       | `pnpm test -u` in `kite-web`                   |
 | `kite-service/internal/core/flowai/instructions.txt` | `kite-web/src/lib/flow/aiInstructions.ts`                       | `pnpm test -u` in `kite-web`                   |
 | `kite-web/src/lib/flow/expressionTypes.gen.json`     | the envs in `kite-service/pkg/eval`                             | `go test ./pkg/eval -update` in `kite-service` |

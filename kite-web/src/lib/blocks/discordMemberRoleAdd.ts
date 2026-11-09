@@ -8,15 +8,12 @@ export const discordMemberRoleAdd: BlockDefinition = {
   description: "Add a role to a member",
   icon: "bookmark-plus",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "add_guild_member_role",
-    method: "PUT",
-    path: "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
   },
   fields: [guildTargetField, userTargetField, roleTargetField],
 };

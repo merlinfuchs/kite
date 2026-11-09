@@ -102,6 +102,9 @@ function operation(id, method, path, content, params) {
     id,
     method: method.toUpperCase(),
     path,
+    // Reads are free like the get blocks, other calls cost 1 like most
+    // actions.
+    credits: method === "get" ? 0 : 1,
     path_params: paramsIn("path"),
     query_params: paramsIn("query"),
     has_body: !!content,

@@ -8,22 +8,17 @@ export const discordMessageList: BlockDefinition = {
   description: "Get the latest messages of a channel",
   icon: "messages-square",
   category: "Messages",
-  credits: 0,
   permissions: ["READ_MESSAGE_HISTORY"],
   strict_settings: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "list_messages",
-    method: "GET",
-    path: "/channels/{channel_id}/messages",
   },
   fields: [
     flowChannelField,
     {
       name: "limit",
-      in: "query",
-      type: "integer",
       label: "Number of Messages",
       description: "How many messages to get, from 1 to 100. Defaults to 50.",
       min: 1,
@@ -31,15 +26,11 @@ export const discordMessageList: BlockDefinition = {
     },
     {
       name: "before",
-      in: "query",
-      type: "snowflake",
       label: "Before Message",
       description: "Only get messages sent before the message with this ID.",
     },
     {
       name: "after",
-      in: "query",
-      type: "snowflake",
       label: "After Message",
       description: "Only get messages sent after the message with this ID.",
     },

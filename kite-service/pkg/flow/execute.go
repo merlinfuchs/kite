@@ -320,7 +320,7 @@ func isResponseNode(n *CompiledFlowNode) bool {
 		return true
 	case FlowNodeTypeActionDiscordAPIRequest:
 		data := n.Data.DiscordAPIRequestData
-		return data != nil && discordAPIOperations[data.Operation].Interaction
+		return data != nil && operations["discord"][data.Operation].Interaction
 	default:
 		return false
 	}

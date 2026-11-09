@@ -91,16 +91,12 @@ export const variableSettings: BlockField[] = [
 
 // Where requests send the shared settings.
 const guildPath = {
-  in: "path",
   target: "guild_id",
-  type: "snowflake",
   fallback: "guild",
 } as const;
 
 const channelPath = {
-  in: "path",
   target: "channel_id",
-  type: "snowflake",
 } as const;
 
 export const guildTargetField: BlockField = {
@@ -115,23 +111,17 @@ export const channelTargetField: BlockField = {
 
 export const messageTargetField: BlockField = {
   ...messageTargetSetting,
-  in: "path",
   target: "message_id",
-  type: "snowflake",
 };
 
 export const userTargetField: BlockField = {
   ...userTargetSetting,
-  in: "path",
   target: "user_id",
-  type: "snowflake",
 };
 
 export const roleTargetField: BlockField = {
   ...roleTargetSetting,
-  in: "path",
   target: "role_id",
-  type: "snowflake",
 };
 
 // The same path parameters for blocks whose schema and editor input are
@@ -269,15 +259,12 @@ export function roleDataFields(edit: boolean): BlockField[] {
   return [
     {
       name: "name",
-      in: "body",
-      type: "string",
       label: "Name",
       description: describe("Name of the role.", "Defaults to 'new role'."),
       max_length: 100,
     },
     {
       name: "permissions",
-      in: "body",
       type: "string",
       label: "Permissions",
       description: describe(
@@ -288,7 +275,6 @@ export function roleDataFields(edit: boolean): BlockField[] {
     },
     {
       name: "color",
-      in: "body",
       type: "color",
       label: "Color",
       description: describe(
@@ -302,8 +288,6 @@ export function roleDataFields(edit: boolean): BlockField[] {
     },
     {
       name: "hoist",
-      in: "body",
-      type: "boolean",
       label: "Show Separately",
       description: describe(
         "Whether members with the role are shown separately in the member list."
@@ -311,8 +295,6 @@ export function roleDataFields(edit: boolean): BlockField[] {
     },
     {
       name: "mentionable",
-      in: "body",
-      type: "boolean",
       label: "Mentionable",
       description: describe("Whether everyone can mention the role."),
     },

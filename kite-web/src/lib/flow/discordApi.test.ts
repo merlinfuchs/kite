@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import spec from "../integrations/discord/api.json";
 import { similarDiscordApiOperations } from "./discordApi";
 import { getNodeValues } from "./nodes";
 
@@ -13,12 +12,6 @@ function issues(data: Record<string, unknown>) {
 }
 
 describe("discord api", () => {
-  it("matches the file embedded in the service", async () => {
-    await expect(JSON.stringify(spec, null, 2) + "\n").toMatchFileSnapshot(
-      "../../../../kite-service/pkg/flow/discord_api.json"
-    );
-  });
-
   it("suggests endpoints for names from the docs", () => {
     expect(similarDiscordApiOperations("modify_guild")).toContain(
       "update_guild"

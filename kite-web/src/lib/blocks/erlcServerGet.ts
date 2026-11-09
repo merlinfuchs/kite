@@ -18,9 +18,7 @@ const parts: Record<string, string> = {
 const partFields: BlockField[] = Object.entries(parts).map(
   ([target, what]) => ({
     name: `include_${target.replace(/\B([A-Z])/g, "_$1").toLowerCase()}`,
-    in: "query",
     target,
-    type: "boolean",
     label: target.replace(/\B([A-Z])/g, " $1"),
     description: `Whether to include ${what}.`,
   })
@@ -37,14 +35,11 @@ export const erlcServerGet: BlockDefinition = {
   description: "Get the status of your ER:LC private server",
   icon: "siren",
   category: "ER:LC",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "erlc",
     operation: "get_server",
-    method: "GET",
-    path: "/v2/server",
   },
   fields: partFields,
   result: {

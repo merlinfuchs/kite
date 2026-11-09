@@ -8,15 +8,12 @@ export const discordMemberUnban: BlockDefinition = {
   description: "Unban a member from the server",
   icon: "user-round-check",
   category: "Members",
-  credits: 1,
   permissions: ["BAN_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "unban_user_from_guild",
-    method: "DELETE",
-    path: "/guilds/{guild_id}/bans/{user_id}",
   },
   fields: [guildTargetField, userTargetField],
 };
