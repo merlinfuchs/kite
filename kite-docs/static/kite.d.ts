@@ -582,6 +582,18 @@ declare const variables: {
     /** Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others. */ scope?: string;
     /** The value: text, a number, a list, an object, or null. */ value: any;
   }): Promise<any>;
+  /** Add an item to the end of the list in a stored variable, or text to the end of other values, and get the new value. An object or a list starts a list. For a list of text or numbers, set the variable to an empty list first. An empty value adds nothing. Calls at the same time don't overwrite each other. Costs 1 credit. */
+  append(arg: {
+    /** Name of the variable under Stored variables of the block. */ name: string;
+    /** Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others. */ scope?: string;
+    /** The value: text, a number, a list, an object, or null. */ value: any;
+  }): Promise<any>;
+  /** Like append, at the start of the list or the text. Costs 1 credit. */
+  prepend(arg: {
+    /** Name of the variable under Stored variables of the block. */ name: string;
+    /** Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others. */ scope?: string;
+    /** The value: text, a number, a list, an object, or null. */ value: any;
+  }): Promise<any>;
   /** Add to the number in a stored variable, which starts at 0, and get the new value. Calls at the same time don't overwrite each other, unlike get and set. Costs 1 credit. */
   increment(arg: {
     /** Name of the variable under Stored variables of the block. */ name: string;

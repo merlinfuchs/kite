@@ -392,6 +392,66 @@ func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID stri
 	return items, nil
 }
 
+const insertOrLockVariableValue = `-- name: InsertOrLockVariableValue :one
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+)
+SELECT
+    variables.id,
+    $1::text,
+    $2::jsonb,
+    $3::timestamp,
+    $4::timestamp
+FROM variables
+WHERE variables.id = $5 AND variables.app_id = $6
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at, (xmax = 0)::boolean AS inserted
+`
+
+type InsertOrLockVariableValueParams struct {
+	Scope      pgtype.Text
+	Value      []byte
+	CreatedAt  pgtype.Timestamp
+	UpdatedAt  pgtype.Timestamp
+	VariableID string
+	AppID      string
+}
+
+type InsertOrLockVariableValueRow struct {
+	VariableValue VariableValue
+	Inserted      bool
+}
+
+// Inserts the first value, or locks and returns the existing one, also when
+// another transaction inserted it and hasn't committed yet, which it waits
+// for. inserted says which. A variable from another app returns nothing
+// (ErrNoRows).
+func (q *Queries) InsertOrLockVariableValue(ctx context.Context, arg InsertOrLockVariableValueParams) (InsertOrLockVariableValueRow, error) {
+	row := q.db.QueryRow(ctx, insertOrLockVariableValue,
+		arg.Scope,
+		arg.Value,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.VariableID,
+		arg.AppID,
+	)
+	var i InsertOrLockVariableValueRow
+	err := row.Scan(
+		&i.VariableValue.ID,
+		&i.VariableValue.VariableID,
+		&i.VariableValue.Scope,
+		&i.VariableValue.Value,
+		&i.VariableValue.CreatedAt,
+		&i.VariableValue.UpdatedAt,
+		&i.Inserted,
+	)
+	return i, err
+}
+
 const listVariableValues = `-- name: ListVariableValues :many
 SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
 JOIN variables ON variables.id = variable_values.variable_id

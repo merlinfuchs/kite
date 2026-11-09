@@ -5005,7 +5005,7 @@
               "increment",
               "decrement"
             ],
-            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number."
+            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number. append and prepend add text to the end or start, or the value as one item to a stored list."
           },
           "variable_value": {
             "type": "string",
@@ -5906,7 +5906,7 @@
                 }
               },
               "variables": {
-                "description": "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit.",
+                "description": "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), append({name, scope, value}) and prepend, which add an item to a list or text, increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {

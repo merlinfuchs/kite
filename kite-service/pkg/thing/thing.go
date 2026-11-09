@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -829,8 +830,38 @@ func (w Thing) IsNil() bool {
 	return w.Value == nil
 }
 
+// Append adds other to the end of a list as one item. An object or a list
+// can't be joined to text, so it starts a list with the value. Anything else
+// is text, which other is joined to. Nothing, like an empty placeholder, adds
+// nothing.
 func (w Thing) Append(other Thing) Thing {
-	// TODO: implement for arrays
+	return w.join(other, false)
+}
+
+// Prepend is Append at the start.
+func (w Thing) Prepend(other Thing) Thing {
+	return w.join(other, true)
+}
+
+func (w Thing) join(other Thing, front bool) Thing {
+	if other.IsNil() || (other.Type == TypeString && other.String() == "") {
+		return w
+	}
+	if w.Type != TypeArray && (other.Type == TypeArray || other.Type == TypeObject) {
+		if w.IsNil() || w.String() == "" {
+			return NewArray([]Thing{other})
+		}
+		w = NewArray([]Thing{w})
+	}
+	if w.Type == TypeArray {
+		if front {
+			return NewArray(slices.Concat([]Thing{other}, w.Array()))
+		}
+		return NewArray(slices.Concat(w.Array(), []Thing{other}))
+	}
+	if front {
+		return NewString(other.String() + w.String())
+	}
 	return NewString(w.String() + other.String())
 }
 

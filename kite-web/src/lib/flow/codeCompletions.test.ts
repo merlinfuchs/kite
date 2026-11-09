@@ -24,6 +24,8 @@ describe("code completions", () => {
     expect(labels("await variables.")).toEqual([
       "get",
       "set",
+      "append",
+      "prepend",
       "increment",
       "delete",
       "list",

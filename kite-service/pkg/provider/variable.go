@@ -23,6 +23,35 @@ func (o VariableOperation) IsOverwrite() bool {
 	return o == VariableOperationOverwrite || o == ""
 }
 
+// Apply is the value the operation stores, from the current value and the
+// value it was given. A missing value counts as 0 for decrement, so taking 50
+// from it stores -50. Append and prepend of an object or a list to it start a
+// list, see thing.Append. The other operations store the given value then.
+func (o VariableOperation) Apply(current thing.Thing, exists bool, value thing.Thing) thing.Thing {
+	if !exists {
+		switch o {
+		case VariableOperationDecrement:
+			return thing.NewInt(0).Sub(value)
+		case VariableOperationAppend, VariableOperationPrepend:
+			if value.Type == thing.TypeArray || value.Type == thing.TypeObject {
+				return thing.NewArray([]thing.Thing{value})
+			}
+		}
+		return value
+	}
+	switch o {
+	case VariableOperationAppend:
+		return current.Append(value)
+	case VariableOperationPrepend:
+		return current.Prepend(value)
+	case VariableOperationIncrement:
+		return current.Add(value)
+	case VariableOperationDecrement:
+		return current.Sub(value)
+	}
+	return value
+}
+
 // MaxVariableValueSize is how large the JSON of a stored variable's value can
 // be. Values that grow with every run, like chat histories, stop there instead
 // of being rewritten in full on every change.

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/js"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -40,7 +41,9 @@ type operationHandler func(call operationCall) (any, error)
 var operationHandlers = map[string]operationHandler{
 	"http.request":        httpRequestOperation,
 	"variables.get":       variableGetOperation,
-	"variables.set":       variableSetOperation,
+	"variables.set":       variableValueOperation(provider.VariableOperationOverwrite),
+	"variables.append":    variableValueOperation(provider.VariableOperationAppend),
+	"variables.prepend":   variableValueOperation(provider.VariableOperationPrepend),
 	"variables.increment": variableIncrementOperation,
 	"variables.delete":    variableDeleteOperation,
 	"variables.list":      variableListOperation,

@@ -171,13 +171,8 @@ func (p *codeVariableProvider) VariableScoped(ctx context.Context, id string) (b
 func (p *codeVariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, op provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if op == provider.VariableOperationIncrement {
-		current, ok := p.values[p.key(id, scope)]
-		if !ok {
-			current = thing.NewInt(0)
-		}
-		value = current.Add(value)
-	}
+	current, ok := p.values[p.key(id, scope)]
+	value = op.Apply(current, ok, value)
 	p.values[p.key(id, scope)] = value
 	return value, nil
 }
@@ -245,6 +240,19 @@ return {before, motd: await variables.get({name: "motd", scope: "ignored"}), xp,
 	}`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	// The block, and set, 4 increments, 2 lists and a delete. Gets are free.
 	assert.Equal(t, 10+8, c.CreditsUsed())
+}
+
+func TestJavaScriptRunVariableAppend(t *testing.T) {
+	p := &codeVariableProvider{scoped: map[string]bool{}, values: map[string]thing.Thing{}}
+	c, err := runJavaScriptVariables(t, `
+await variables.append({name: "motd", value: "b"})
+await variables.append({name: "motd", value: "c"})
+const text = await variables.prepend({name: "motd", value: "a"})
+await variables.set({name: "xp", value: []})
+await variables.append({name: "xp", value: {id: 2}})
+return [text, await variables.prepend({name: "xp", value: 1})]`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["abc", [1, {"id": 2}]]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 }
 
 func TestJavaScriptRunVariableErrors(t *testing.T) {
