@@ -7,9 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand/v2"
+	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 	// formatDate takes time zones by name, and the service image has no
 	// zoneinfo. Here, not in main, so the package works on its own.
 	_ "time/tzdata"
@@ -104,7 +108,7 @@ func (e *engine) newInstance(ctx context.Context) (*instance, error) {
 		}
 	}
 	mem.Write(0, e.snapshot)
-	return &instance{mod: mod}, nil
+	return &instance{mod: mod, runFn: mod.ExportedFunction("kite_run"), resolveFn: mod.ExportedFunction("kite_resolve")}, nil
 }
 
 // snapshotAllocator allocates the memory of an instance with at least
@@ -135,6 +139,9 @@ func (m *sliceMemory) Free() {}
 
 type instance struct {
 	mod api.Module
+	// kite_run and kite_resolve, as wazero sets up a function for each
+	// lookup.
+	runFn, resolveFn api.Function
 }
 
 func (i *instance) close(ctx context.Context) { i.mod.Close(ctx) }
@@ -174,11 +181,9 @@ func (i *instance) output(ctx context.Context) ([]byte, error) {
 	return append([]byte(nil), out...), nil
 }
 
-// run returns the JSON of the script's return value, or the error message the
-// script threw for runError. An error means the instance is dead. The
-// time limit starts when the script does, so a slow start on a busy machine
-// doesn't count against it.
-func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout time.Duration) (out []byte, status runStatus, err error) {
+// run starts the code, and returns the JSON of what it returned, or for
+// runError the error it threw. An error means the instance is dead.
+func (i *instance) run(ctx context.Context, code []byte, input []byte, budget *time.Duration) (out []byte, status runStatus, err error) {
 	codePtr, err := i.write(ctx, code)
 	if err != nil {
 		return nil, 0, err
@@ -187,11 +192,30 @@ func (i *instance) run(ctx context.Context, code []byte, input []byte, timeout t
 	if err != nil {
 		return nil, 0, err
 	}
+	return i.call(ctx, budget, i.runFn, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+}
 
-	stateFrom(ctx).deadline = time.Now().Add(timeout)
-	runCtx, cancel := context.WithTimeout(ctx, timeout+killGrace)
+// resolve settles the promise of a call the code started with its result,
+// and continues the code. It returns like run.
+func (i *instance) resolve(ctx context.Context, r callResult, budget *time.Duration) (out []byte, status runStatus, err error) {
+	st := stateFrom(ctx)
+	n := st.setPending(r.res, r.err)
+	return i.call(ctx, budget, i.resolveFn, uint64(uint32(r.id)), uint64(uint32(n)))
+}
+
+// call calls fn, which runs the code, within what's left of the time budget,
+// and takes what it used from it. Only the time code runs counts, not the
+// time it waits for calls.
+func (i *instance) call(ctx context.Context, budget *time.Duration, fn api.Function, args ...uint64) (out []byte, status runStatus, err error) {
+	if *budget <= 0 {
+		return nil, 0, errTimeout
+	}
+	start := time.Now()
+	stateFrom(ctx).deadline = start.Add(*budget)
+	runCtx, cancel := context.WithTimeout(ctx, *budget+killGrace)
 	defer cancel()
-	res, err := i.mod.ExportedFunction("kite_run").Call(runCtx, uint64(codePtr), uint64(len(code)), uint64(inputPtr), uint64(len(input)))
+	res, err := fn.Call(runCtx, args...)
+	*budget -= time.Since(start)
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
 			return nil, 0, errTimeout
@@ -222,6 +246,89 @@ type runState struct {
 	deadline time.Time
 	log      func(level LogLevel, message string)
 	pending  []byte
+
+	// The calls the code can start, see Options.Host, and the context they
+	// run in.
+	host    func(name string) HostFunc
+	hostCtx context.Context
+	// started counts the calls the code started, inflight those not done.
+	started  int
+	inflight int
+	results  chan callResult
+}
+
+// callResult is what a call the code started returned.
+type callResult struct {
+	id  int32
+	res json.RawMessage
+	err error
+}
+
+// setPending keeps res, or the message of err, for host_take, and returns
+// their length, negative for an error, as kite.c expects.
+func (st *runState) setPending(res []byte, err error) int32 {
+	if err != nil {
+		st.pending = []byte(err.Error())
+		return -int32(len(st.pending))
+	}
+	// Like a call without a result.
+	if len(res) == 0 {
+		res = []byte("null")
+	}
+	st.pending = res
+	return int32(len(res))
+}
+
+// start starts the call the code makes as name, like discord.createMessage,
+// in the background, and returns its ID for kite_resolve.
+func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
+	var fn HostFunc
+	// Only the camel case names, discord.create_message is no other way to
+	// call discord.createMessage.
+	if _, op, _ := strings.Cut(name, "."); st.host != nil && !strings.Contains(op, "_") {
+		fn = st.host(snakeName(name))
+	}
+	if fn == nil {
+		return 0, fmt.Errorf("%s isn't available", name)
+	}
+	if st.started >= MaxCalls {
+		return 0, fmt.Errorf("the code made more than %d calls", MaxCalls)
+	}
+	st.started++
+	st.inflight++
+	id := int32(st.started)
+	go func() {
+		res, err := runHostFunc(st.hostCtx, fn, arg)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", name, err)
+		}
+		st.results <- callResult{id: id, res: res, err: err}
+	}()
+	return id, nil
+}
+
+func runHostFunc(ctx context.Context, fn HostFunc, arg json.RawMessage) (res json.RawMessage, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Script call panicked", slog.Any("panic", r), slog.String("stack", string(debug.Stack())))
+			err = errors.New("the call failed")
+		}
+	}()
+	return fn(ctx, arg)
+}
+
+// snakeName is the name of the call the code makes as name, like
+// discord.create_message for discord.createMessage.
+func snakeName(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		if unicode.IsUpper(r) {
+			b.WriteByte('_')
+			r = unicode.ToLower(r)
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // logLevels are the levels kite.c logs with, by its number for them.
@@ -261,13 +368,7 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 		}
 		name, _ := m.Memory().Read(namePtr, nameLen)
 		arg, _ := m.Memory().Read(argPtr, argLen)
-		res, err := callHost(string(name), arg)
-		if err != nil {
-			st.pending = []byte(err.Error())
-			return -int32(len(st.pending))
-		}
-		st.pending = res
-		return int32(len(res))
+		return st.setPending(callHost(string(name), arg))
 	}).Export("call").
 		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, dst uint32) {
 		if st := stateFrom(ctx); st != nil {
@@ -275,6 +376,20 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 			st.pending = nil
 		}
 	}).Export("take").
+		NewFunctionBuilder().WithFunc(func(ctx context.Context, m api.Module, namePtr, nameLen, argPtr, argLen uint32) int32 {
+		st := stateFrom(ctx)
+		if st == nil {
+			return 0
+		}
+		name, _ := m.Memory().Read(namePtr, nameLen)
+		arg, _ := m.Memory().Read(argPtr, argLen)
+		// Copied, as the call runs after the memory changed.
+		id, err := st.start(string(name), append(json.RawMessage(nil), arg...))
+		if err != nil {
+			return st.setPending(nil, err)
+		}
+		return id
+	}).Export("start").
 		NewFunctionBuilder().WithFunc(func() float64 { return rand.Float64() }).Export("random").
 		Instantiate(ctx)
 	if err != nil {
