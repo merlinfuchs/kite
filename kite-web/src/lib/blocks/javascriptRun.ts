@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { templated, variableIdSchema } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
 // Match MaxCodeLength and MaxInputs in kite-service/pkg/js/js.go.
 const maxCodeLength = 4000;
 export const javascriptMaxInputs = 20;
+// MaxJavaScriptVariables in kite-service/pkg/flow/data.go.
+export const javascriptMaxVariables = 10;
 
 // parameterKeyPattern, which blocks can't import as parameters.ts imports
 // them, and ParameterKeyPattern in kite-service/pkg/flow/params.go.
@@ -82,6 +84,40 @@ export const javascriptRun: BlockDefinition = {
             })
             .optional()
             .describe("Values the code gets from the flow."),
+          variables: z
+            .array(
+              z.object({
+                name: z
+                  .string()
+                  .regex(inputNamePattern, {
+                    message:
+                      "Start with a letter or _ and use letters, digits and _",
+                  })
+                  .max(32)
+                  .describe(
+                    'Name the code uses for the variable, like variables.get({name: "xp", scope: input.user.id}).'
+                  ),
+                variable_id: variableIdSchema,
+              })
+            )
+            .max(javascriptMaxVariables)
+            .superRefine((variables, ctx) => {
+              const names = new Set<string>();
+              variables.forEach((v, i) => {
+                if (names.has(v.name)) {
+                  ctx.addIssue({
+                    code: "custom",
+                    message: `Another variable is named ${v.name} already`,
+                    path: [i, "name"],
+                  });
+                }
+                names.add(v.name);
+              });
+            })
+            .optional()
+            .describe(
+              "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit."
+            ),
         })
         .describe("The code to run and the values it gets."),
     },

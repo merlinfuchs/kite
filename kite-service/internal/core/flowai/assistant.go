@@ -323,11 +323,18 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 	})
 	for _, edit := range r.Edits {
 		data, _ := edit["data"].(map[string]any)
-		id, ok := data["variable_id"].(string)
-		if !ok || ids[id] {
-			continue
+		if id, ok := data["variable_id"].(string); ok && !ids[id] {
+			delete(data, "variable_id")
 		}
-		delete(data, "variable_id")
+		// The stored variables of a Run JavaScript block.
+		code, _ := data["javascript_data"].(map[string]any)
+		variables, _ := code["variables"].([]any)
+		for _, v := range variables {
+			v, _ := v.(map[string]any)
+			if id, ok := v["variable_id"].(string); ok && !ids[id] {
+				delete(v, "variable_id")
+			}
+		}
 	}
 }
 

@@ -33,7 +33,10 @@ import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
-import { javascriptMaxInputs } from "@/lib/blocks/javascriptRun";
+import {
+  javascriptMaxInputs,
+  javascriptMaxVariables,
+} from "@/lib/blocks/javascriptRun";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import { variableListSorts } from "@/lib/blocks/variableList";
 import {
@@ -2558,6 +2561,8 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
   const inputNames = inputs
     .filter((input) => input.name)
     .map((input) => `input.${input.name}`);
+  const codeVariables = data.javascript_data?.variables || [];
+  const appVariables = useFlowVariables();
 
   function update(patch: Partial<NonNullable<typeof data.javascript_data>>) {
     updateData({ javascript_data: { ...data.javascript_data, ...patch } });
@@ -2567,6 +2572,19 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
     update({
       inputs: inputs.map((input, j) =>
         i === j ? { name, value: value || undefined } : input
+      ),
+    });
+  }
+
+  function updateVariable(i: number, name: string, variableId: string) {
+    // Named after the variable until the user names it.
+    const variable = appVariables?.find((v) => v?.id === variableId);
+    if (!name && variable) {
+      name = variable.name.replace(/[^A-Za-z0-9_]/g, "_").replace(/^\d/, "_$&");
+    }
+    update({
+      variables: codeVariables.map((v, j) =>
+        i === j ? { name, variable_id: variableId || undefined } : v
       ),
     });
   }
@@ -2638,6 +2656,83 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
                 >
                   <PlusIcon className="h-5 w-5" />
                 </Button>
+              </div>
+            </EditOnly>
+          )}
+        </div>
+      </div>
+      <div>
+        <div className="font-medium text-foreground mb-1">Stored variables</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          Variables the code can read and change by name, like{" "}
+          {'variables.get({ name: "xp", scope: input.user.id })'}.
+        </div>
+        <div className="flex flex-col gap-3">
+          {codeVariables.map((v, i) => (
+            <div className="flex gap-2" key={i}>
+              <div className="grid grid-cols-2 gap-2 flex-auto">
+                <BaseInput
+                  field={`javascript_data.variables.${i}.name`}
+                  placeholder="Name"
+                  value={v.name || ""}
+                  updateValue={(name) =>
+                    updateVariable(i, name, v.variable_id || "")
+                  }
+                  errors={errors}
+                />
+                <BaseInput
+                  type="select"
+                  field={`javascript_data.variables.${i}.variable_id`}
+                  placeholder="Variable"
+                  options={appVariables?.map((av) => ({
+                    value: av!.id,
+                    label: av!.name,
+                  }))}
+                  value={v.variable_id || ""}
+                  updateValue={(id) => updateVariable(i, v.name, id)}
+                  errors={errors}
+                />
+              </div>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    update({
+                      variables: codeVariables.filter((_, j) => i !== j),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
+            </div>
+          ))}
+          {codeVariables.length < javascriptMaxVariables && (
+            <EditOnly>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    update({ variables: [...codeVariables, { name: "" }] })
+                  }
+                >
+                  <PlusIcon className="h-5 w-5" />
+                </Button>
+                <VariableCreateDialog
+                  onVariableCreated={(id) =>
+                    update({
+                      variables: [
+                        ...codeVariables,
+                        { name: "", variable_id: id },
+                      ],
+                    })
+                  }
+                >
+                  <Button variant="outline">New variable</Button>
+                </VariableCreateDialog>
               </div>
             </EditOnly>
           )}

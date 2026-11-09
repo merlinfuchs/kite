@@ -701,6 +701,24 @@ export interface JavaScriptData {
    */
   code?: string;
   inputs?: JavaScriptInput[];
+  /**
+   * The stored variables the code can use, by the names it uses for them.
+   */
+  variables?: JavaScriptVariable[];
+}
+/**
+ * MaxJavaScriptVariables is how many stored variables a Run JavaScript block
+ * can use.
+ */
+export const MaxJavaScriptVariables = 10;
+/**
+ * JavaScriptVariable is a stored variable the code uses as name, like
+ * variables.get({name: "xp"}). The name stays the same when the variable is
+ * renamed, or gets another ID when a template is added.
+ */
+export interface JavaScriptVariable {
+  name: string;
+  variable_id?: string;
 }
 export interface JavaScriptInput {
   /**
@@ -742,6 +760,14 @@ export interface FlowEdge {
 
 //////////
 // source: modal.go
+
+
+//////////
+// source: operation_handlers.go
+
+
+//////////
+// source: operation_handlers_variables.go
 
 
 //////////

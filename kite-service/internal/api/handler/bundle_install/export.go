@@ -176,14 +176,17 @@ func addUsed(items *bundle.ExportItems, messages []*model.Message, variables []*
 					addMessageFlows(messages[k])
 				}
 			}
-			if id := node.Data.VariableID; id != "" && !slices.ContainsFunc(items.Variables, func(v *model.Variable) bool { return v.ID == id }) {
+			_ = node.Data.RemapVariableIDs(func(id string) (string, error) {
+				if slices.ContainsFunc(items.Variables, func(v *model.Variable) bool { return v.ID == id }) {
+					return id, nil
+				}
 				k := slices.IndexFunc(variables, func(v *model.Variable) bool { return v.ID == id })
 				if k == -1 {
-					node.Data.VariableID = ""
-				} else {
-					items.Variables = append(items.Variables, variables[k])
+					return "", nil
 				}
-			}
+				items.Variables = append(items.Variables, variables[k])
+				return id, nil
+			})
 		}
 	}
 }

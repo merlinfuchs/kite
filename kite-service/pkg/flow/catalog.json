@@ -5904,6 +5904,32 @@
                   ],
                   "additionalProperties": false
                 }
+              },
+              "variables": {
+                "description": "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit.",
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name the code uses for the variable, like variables.get({name: \"xp\", scope: input.user.id})."
+                    },
+                    "variable_id": {
+                      "type": "string",
+                      "description": "ID of an existing stored variable.",
+                      "x-user-picked": true
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "variable_id"
+                  ],
+                  "additionalProperties": false
+                }
               }
             },
             "required": [

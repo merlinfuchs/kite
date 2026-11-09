@@ -31,7 +31,7 @@ Credits pay for what your flows do, not for what they look up. Most actions in f
   - Smartest: 500 credits per execution
 - **`Send API Request` block**: 3 credits per execution
 - **`AI Translate` block**: 1 credit for every 1,000 characters of text
-- **`Run JavaScript` block**: 10 credits per execution, plus 1 credit for each read from an integration other than Discord and 3 credits for each request with `fetch`
+- **`Run JavaScript` block**: 10 credits per execution, plus 1 credit for each read from an integration other than Discord, 1 for each change or list of a stored variable, and 3 for each request with `fetch`
 - **Blocks that only read**: free. That's `Get stored variable` and the blocks that get a server, channel, role, member, user or message, or list messages. Reading from other services, like `Get ER:LC server`, still costs 1 credit.
 
 The costs of `Ask AI` and `Search the Web` cover 8,000 bytes of prompt and 500 tokens of answer. Each further 8,000 bytes of prompt, and an answer over 500 tokens, cost what `Ask AI` costs with the same model once more.

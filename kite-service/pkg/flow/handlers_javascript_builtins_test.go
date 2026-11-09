@@ -4,13 +4,18 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 // codeHTTPProvider answers every request with status and body, and keeps
@@ -135,5 +140,127 @@ func TestEveryHandlerOperationHasAHandler(t *testing.T) {
 	for name := range operationHandlers {
 		integration, id, _ := strings.Cut(name, ".")
 		assert.Equal(t, "handler", operations[integration][id].Kind, name)
+	}
+}
+
+// codeVariableProvider keeps the values of stored variables in memory.
+type codeVariableProvider struct {
+	mu     sync.Mutex
+	scoped map[string]bool
+	values map[string]thing.Thing
+}
+
+func (p *codeVariableProvider) key(id string, scope null.String) string {
+	return id + "/" + scope.String
+}
+
+func (p *codeVariableProvider) VariableScoped(ctx context.Context, id string) (bool, error) {
+	return p.scoped[id], nil
+}
+
+func (p *codeVariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, op provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if op == provider.VariableOperationIncrement {
+		current, ok := p.values[p.key(id, scope)]
+		if !ok {
+			current = thing.NewInt(0)
+		}
+		value = current.Add(value)
+	}
+	p.values[p.key(id, scope)] = value
+	return value, nil
+}
+
+func (p *codeVariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	v, ok := p.values[p.key(id, scope)]
+	if !ok {
+		return thing.Null, provider.ErrNotFound
+	}
+	return v, nil
+}
+
+func (p *codeVariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	delete(p.values, p.key(id, scope))
+	return nil
+}
+
+func (p *codeVariableProvider) VariableValues(ctx context.Context, id string, opts provider.VariableListOptions) ([]provider.VariableValue, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	var res []provider.VariableValue
+	for key, v := range p.values {
+		varID, scope, _ := strings.Cut(key, "/")
+		if varID == id && strings.HasPrefix(scope, opts.ScopePrefix) {
+			res = append(res, provider.VariableValue{Scope: null.NewString(scope, scope != ""), Value: v, UpdatedAt: time.Unix(100, 0)})
+		}
+	}
+	slices.SortFunc(res, func(a, b provider.VariableValue) int { return strings.Compare(a.Scope.String, b.Scope.String) })
+	return res, nil
+}
+
+func runJavaScriptVariables(t *testing.T, code string, p *codeVariableProvider, maxCredits int) (*FlowContext, error) {
+	c := javaScriptTestContext(t, FlowProviders{Variable: p, Log: &provider.MockLogProvider{}}, maxCredits, eval.Env{})
+	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{
+		Code: code,
+		Variables: []JavaScriptVariable{
+			{Name: "xp", VariableID: "var_xp"},
+			{Name: "motd", VariableID: "var_motd"},
+			{Name: "unpicked"},
+		},
+	}}}
+	return c, node.Execute(c)
+}
+
+func TestJavaScriptRunVariables(t *testing.T) {
+	p := &codeVariableProvider{scoped: map[string]bool{"var_xp": true}, values: map[string]thing.Thing{}}
+	c, err := runJavaScriptVariables(t, `
+const before = await variables.get({name: "motd"})
+await variables.set({name: "motd", value: {text: "Hi", n: [1, 2]}})
+await Promise.all([1, 2, 3].map(() => variables.increment({name: "xp", scope: "1"})))
+await variables.increment({name: "xp", scope: "2", by: 10})
+const xp = await variables.get({name: "xp", scope: "1"})
+const top = await variables.list({name: "xp"})
+await variables.delete({name: "xp", scope: "2"})
+return {before, motd: await variables.get({name: "motd", scope: "ignored"}), xp, top, after: await variables.list({name: "xp"})}`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{
+		"before": null,
+		"motd": {"text": "Hi", "n": [1, 2]},
+		"xp": 3,
+		"top": [{"scope": "1", "value": 3, "updated_at": 100}, {"scope": "2", "value": 10, "updated_at": 100}],
+		"after": [{"scope": "1", "value": 3, "updated_at": 100}]
+	}`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	// The block, and set, 4 increments, 2 lists and a delete. Gets are free.
+	assert.Equal(t, 10+8, c.CreditsUsed())
+}
+
+func TestJavaScriptRunVariableErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"not declared", `await variables.get({name: "coins"})`, "variables.get: the block has no stored variable named coins, add it under Stored variables"},
+		{"not picked", `await variables.get({name: "unpicked"})`, "variables.get: no variable is picked for unpicked under Stored variables of the block"},
+		{"no scope", `await variables.increment({name: "xp"})`, "variables.increment: xp has a value per scope, pass the scope, like a user ID"},
+		{"no value", `await variables.set({name: "motd"})`, "variables.set: missing parameter value"},
+		{"no name", `await variables.get({})`, "variables.get: missing parameter name"},
+		{"sort", `await variables.list({name: "xp", sort: "random"})`, "variables.list: invalid value for parameter sort: must be value_desc, value_asc, updated_desc or updated_asc"},
+		{"limit", `await variables.list({name: "xp", limit: 500})`, "variables.list: invalid value for parameter limit: must be from 1 to 100"},
+		{"scope type", `await variables.get({name: "xp", scope: 5})`, "variables.get: invalid value for parameter scope"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &codeVariableProvider{scoped: map[string]bool{"var_xp": true}, values: map[string]thing.Thing{}}
+			c, err := runJavaScriptVariables(t, tt.code, p, 1000)
+			assert.ErrorContains(t, err, tt.want)
+			assert.Empty(t, p.values)
+			assert.Equal(t, 10, c.CreditsUsed())
+		})
 	}
 }

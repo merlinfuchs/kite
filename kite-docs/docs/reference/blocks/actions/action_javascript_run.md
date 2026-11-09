@@ -49,7 +49,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can read from Discord and the app's integrations and send requests to other websites, see below. Changes in Discord, like sending a message, still need the other blocks, before or after this one. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can read from Discord and the app's integrations, use stored variables and send requests to other websites, see below. Changes in Discord, like sending a message, still need the other blocks, before or after this one. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
 `await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
@@ -104,6 +104,24 @@ try {
 
 Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
 
+## Stored variables
+
+Add the [stored variables](../../variable.md) the code uses under _Stored variables_, each with the name the code uses for it. The code then reads and changes them by that name:
+
+```js
+const total = await variables.increment({ name: "xp", scope: input.user.id, by: 5 });
+const top = await variables.list({ name: "xp", limit: 3 });
+return `You have ${total} XP. The top is ${top.map((v) => v.value).join(", ")}.`;
+```
+
+- `variables.get({ name, scope })` returns the value, or `null` if there's none.
+- `variables.set({ name, scope, value })` stores a value, which can be text, a number, a list or an object.
+- `variables.increment({ name, scope, by })` adds `by`, 1 if it's left out, and returns the new number. Runs at the same time don't overwrite each other's changes, unlike a `get` followed by a `set`.
+- `variables.delete({ name, scope })` deletes the value.
+- `variables.list({ name, scope_prefix, sort, limit, skip })` returns values like the [List stored variable values](./action_variable_list.md) block, each with `scope`, `value` and `updated_at`.
+
+A scoped variable needs a `scope`, like a user ID, and an unscoped one ignores it. The name stays the same when the variable is renamed, and when the flow is part of a template, apps that add it get their own copy of the variable. Getting a value is free, the others cost [1 credit](../../credit-system.md#cost-breakdown) each, like the blocks.
+
 ## Sending requests to other websites
 
 `fetch` sends a request to any URL, like the [Send API Request](./action_http_request.md) block. It takes the method, the headers and a text body. The response has `ok`, `status`, `statusText`, `headers.get()`, `text()` and `json()`.
@@ -129,7 +147,7 @@ The body has to be text, so turn objects into JSON with `JSON.stringify` and set
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 

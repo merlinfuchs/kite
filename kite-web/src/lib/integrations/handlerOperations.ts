@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { httpOperations } from "./http/operations";
+import { variablesOperations } from "./variables/operations";
 
 // An operation that runs Go code of the service instead of sending a
 // request, like http.request or the stored variables. The service runs it
@@ -21,4 +22,5 @@ export interface HandlerOperationDefinition {
 // those of integrations, as http.request(arg).
 export const handlerOperations: Record<string, HandlerOperationDefinition[]> = {
   http: httpOperations,
+  variables: variablesOperations,
 };
