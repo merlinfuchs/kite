@@ -583,7 +583,8 @@ func (p *LogProvider) CreateLogEntry(ctx context.Context, level provider.LogLeve
 		MessageID:       p.links.MessageID,
 		CreatedAt:       time.Now().UTC(),
 	})
-	if err != nil {
+	// Like storeLogEntry, entries of what was deleted while it ran are dropped.
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		slog.Error(
 			"Failed to create log entry",
 			slog.String("app_id", p.appID),
