@@ -291,6 +291,9 @@ func TestRunMicrotaskError(t *testing.T) {
 }
 
 var testHost = map[string]HostFunc{
+	"discord.not_found": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return nil, &CallError{Err: errors.New("Unknown Channel (404)"), Status: 404, Code: 10003}
+	},
 	"discord.echo": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { return arg, nil },
 	"discord.get_thing": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 		return json.RawMessage(`{"thing":true}`), nil
@@ -339,6 +342,8 @@ func TestHostCalls(t *testing.T) {
 		{"camel case", `return [await discord.getThing(), await cookieApi.makeCard()]`, `[{"thing":true},"card"]`},
 		{"then", `return (await discord.echo(1)) + await discord.echo(2).then((n) => n * 10)`, `21`},
 		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"discord.fail: Missing Permissions"`},
+		{"status and code", `try { await discord.notFound() } catch (e) { return [e instanceof Error, e.message, e.status, e.code] }`, `[true,"discord.notFound: Unknown Channel (404)",404,10003]`},
+		{"no status", `try { await discord.fail() } catch (e) { return ["status" in e, "code" in e] }`, `[false,false]`},
 		{"unknown", `try { await discord.nope() } catch (e) { return e.message }`, `"discord.nope isn't available"`},
 		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"discord.panic: the call failed"`},
 		{"no result", `return await discord.nothing()`, `null`},

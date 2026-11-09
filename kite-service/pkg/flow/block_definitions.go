@@ -714,22 +714,30 @@ func integrationCredential(ctx *FlowContext, integration Integration) (string, e
 // needs.
 func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 	for _, id := range blockDefinitions[n.Type].Requires {
-		integration, ok := integrations[id]
-		if !ok || integration.Availability == AvailabilityAlways {
-			continue
+		if err := ctx.checkIntegration(id); err != nil {
+			return err
 		}
+	}
+	return nil
+}
 
-		var choice null.Bool
-		if ctx.Integration != nil {
-			var err error
-			choice, err = ctx.Integration.Choice(ctx, id)
-			if err != nil {
-				return err
-			}
+// checkIntegration fails if the app can't use the integration id.
+func (ctx *FlowContext) checkIntegration(id string) error {
+	integration, ok := integrations[id]
+	if !ok || integration.Availability == AvailabilityAlways {
+		return nil
+	}
+
+	var choice null.Bool
+	if ctx.Integration != nil {
+		var err error
+		choice, err = ctx.Integration.Choice(ctx, id)
+		if err != nil {
+			return err
 		}
-		if !integration.Enabled(choice) {
-			return notEnabledError(integration)
-		}
+	}
+	if !integration.Enabled(choice) {
+		return notEnabledError(integration)
 	}
 	return nil
 }

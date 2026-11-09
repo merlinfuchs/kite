@@ -1,12 +1,16 @@
 package flow
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
 // operationsJSON has the operations of every integration's API that Kite
@@ -103,4 +107,44 @@ func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, re
 		})
 	}
 	return integrationRequest(ctx, integration, op.Method, path, body, secrets...)
+}
+
+// operationRequest builds the path and body of a call of op from code with
+// arg, a JSON object with its path and query parameters by name and its body
+// under "body", like {"channel_id": "1", "body": {"content": "Hi"}}.
+// "reason" is kept for the audit log reason of writes, see
+// TestOperationParamsAreNotReserved.
+func operationRequest(op operation, arg json.RawMessage) (path string, body []byte, err error) {
+	params := map[string]json.RawMessage{}
+	if arg = bytes.TrimSpace(arg); len(arg) > 0 && string(arg) != "null" {
+		if err := json.Unmarshal(arg, &params); err != nil {
+			return "", nil, fmt.Errorf("the argument must be an object of its parameters")
+		}
+	}
+
+	take := func(list []apiParam) map[string]thing.Thing {
+		res := make(map[string]thing.Thing, len(list))
+		for _, p := range list {
+			if v, ok := params[p.Name]; ok {
+				res[p.Name] = jsonParamThing(v)
+				delete(params, p.Name)
+			}
+		}
+		return res
+	}
+	pathParams := take(op.PathParams)
+	query := take(op.QueryParams)
+	if path, err = operationPath(op, pathParams, query, nil); err != nil {
+		return "", nil, err
+	}
+
+	if v, ok := params["body"]; ok && op.HasBody {
+		body = v
+		delete(params, "body")
+	}
+	if len(params) > 0 {
+		names := slices.Sorted(maps.Keys(params))
+		return "", nil, fmt.Errorf("it has no parameter %s", names[0])
+	}
+	return path, body, nil
 }

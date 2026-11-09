@@ -125,6 +125,21 @@ type Options struct {
 // has to return soon once ctx is done.
 type HostFunc func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error)
 
+// CallError is an error of a HostFunc from the service it called, whose
+// status and code the code can check, like e.status === 404. They become
+// properties of the Error, and are left out when they're 0.
+type CallError struct {
+	Err error
+	// The HTTP status of the response.
+	Status int
+	// The service's own code for the error, like 10003 for Discord's Unknown
+	// Channel.
+	Code int
+}
+
+func (e *CallError) Error() string { return e.Err.Error() }
+func (e *CallError) Unwrap() error { return e.Err }
+
 // Error is an error of the script, like one it threw or running out of
 // time, with a message for the user.
 type Error struct {

@@ -264,11 +264,11 @@ type callResult struct {
 	err error
 }
 
-// setPending keeps res, or the message of err, for host_take, and returns
-// their length, negative for an error, as kite.c expects.
+// setPending keeps res, or the JSON of err, for host_take, and returns their
+// length, negative for an error, as kite.c expects.
 func (st *runState) setPending(res []byte, err error) int32 {
 	if err != nil {
-		st.pending = []byte(err.Error())
+		st.pending = errorJSON(err)
 		return -int32(len(st.pending))
 	}
 	// Like a call without a result.
@@ -277,6 +277,23 @@ func (st *runState) setPending(res []byte, err error) int32 {
 	}
 	st.pending = res
 	return int32(len(res))
+}
+
+// errorJSON is err as kite.c throws it: its message, and the status and code
+// of a CallError.
+func errorJSON(err error) []byte {
+	v := struct {
+		Message string `json:"message"`
+		Status  int    `json:"status,omitempty"`
+		Code    int    `json:"code,omitempty"`
+	}{Message: err.Error()}
+	var callErr *CallError
+	if errors.As(err, &callErr) {
+		v.Status = callErr.Status
+		v.Code = callErr.Code
+	}
+	b, _ := json.Marshal(v)
+	return b
 }
 
 // start starts the call the code makes as name, like discord.createMessage,

@@ -74,26 +74,46 @@ static int with_host_args(JSContext *ctx, int argc, JSValueConst *argv, host_fn 
   return 0;
 }
 
-// Takes the result Go has pending: n bytes of JSON, or for a negative n an
-// error message, which it throws as a TypeError for helpers like formatDate
-// and as an Error for calls.
+// Takes the result Go has pending: n bytes of JSON, or for a negative n the
+// JSON of an error, with its message and maybe a status and a code. It throws
+// that as a TypeError for helpers like formatDate and as an Error with the
+// status and code for calls.
 static JSValue take(JSContext *ctx, int32_t n, bool type_error) {
   uint32_t len = n < 0 ? -n : n;
   char *buf = js_malloc(ctx, len + 1);
   if (!buf) return JS_EXCEPTION;
   host_take(buf);
   buf[len] = 0;
-
-  JSValue res;
-  if (n >= 0) {
-    res = JS_ParseJSON(ctx, buf, len, "<host>");
-  } else if (type_error) {
-    res = JS_ThrowTypeError(ctx, "%s", buf);
-  } else {
-    res = JS_ThrowPlainError(ctx, "%s", buf);
-  }
+  JSValue res = JS_ParseJSON(ctx, buf, len, "<host>");
   js_free(ctx, buf);
-  return res;
+  if (n >= 0 || JS_IsException(res)) return res;
+
+  JSValue msg = JS_GetPropertyStr(ctx, res, "message");
+  const char *m = JS_ToCString(ctx, msg);
+  JS_FreeValue(ctx, msg);
+  if (!m) {
+    JS_FreeValue(ctx, res);
+    return JS_EXCEPTION;
+  }
+  // Thrown first, so the error has the code's line like other errors.
+  if (type_error) {
+    JS_ThrowTypeError(ctx, "%s", m);
+  } else {
+    JS_ThrowPlainError(ctx, "%s", m);
+  }
+  JS_FreeCString(ctx, m);
+  if (!type_error) {
+    JSValue err = JS_GetException(ctx);
+    static const char *const keys[] = {"status", "code"};
+    for (int i = 0; i < 2; i++) {
+      JSValue v = JS_GetPropertyStr(ctx, res, keys[i]);
+      if (JS_IsUndefined(v)) continue;
+      JS_DefinePropertyValueStr(ctx, err, keys[i], v, JS_PROP_C_W_E);
+    }
+    JS_Throw(ctx, err);
+  }
+  JS_FreeValue(ctx, res);
+  return JS_EXCEPTION;
 }
 
 // Helpers like formatDate run right away.

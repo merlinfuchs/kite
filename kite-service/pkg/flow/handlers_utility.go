@@ -1,15 +1,20 @@
 package flow
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -167,6 +172,67 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// javaScriptHost has the operations the code of a Run JavaScript block can
+// call: for now the reads, GET operations, of the integrations the app can
+// use. Each costs the credits of its operation. The calls run at the same time,
+// so they take turns with ctx.
+type javaScriptHost struct {
+	ctx *FlowContext
+	mu  sync.Mutex
+}
+
+func (h *javaScriptHost) lookup(name string) js.HostFunc {
+	integration, id, _ := strings.Cut(name, ".")
+	op, ok := operations[integration][id]
+	// Operations of the interaction are all writes.
+	if !ok || op.Method != http.MethodGet || op.Interaction {
+		return nil
+	}
+
+	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		path, body, err := operationRequest(op, arg)
+		if err != nil {
+			return nil, err
+		}
+
+		// A copy that's canceled with the call, which only reads ctx.
+		h.mu.Lock()
+		c := *h.ctx
+		h.mu.Unlock()
+		c.Context = callCtx
+
+		if err := c.checkIntegration(op.Integration); err != nil {
+			return nil, err
+		}
+		if c.Test != nil && op.Integration != "discord" {
+			return nil, errors.New("test runs don't send requests outside of Discord")
+		}
+
+		h.mu.Lock()
+		err = h.ctx.increaseOperations()
+		// Unlike for a block, a call over the limit isn't billed, as code can
+		// catch the error and keep calling.
+		if err == nil {
+			if err = h.ctx.ensureCredits(op.Credits); err == nil {
+				err = h.ctx.increaseCredits(op.Credits)
+			}
+		}
+		h.mu.Unlock()
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := c.sendOperation(op, path, body, "")
+		if err != nil {
+			return nil, callError(err)
+		}
+		if len(bytes.TrimSpace(res)) == 0 {
+			return json.RawMessage("null"), nil
+		}
+		return res, nil
+	}
+}
+
 func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	data := n.Data.JavaScriptData
 	if data == nil {
@@ -198,9 +264,11 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
+	host := &javaScriptHost{ctx: ctx}
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,
+		Host:  host.lookup,
 		Log: func(level js.LogLevel, message string) {
 			if n := len(logs); n > 0 && logs[n-1].level == level {
 				logs[n-1].lines = append(logs[n-1].lines, message)
@@ -286,4 +354,29 @@ func executeActionLog(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
 	return n.ExecuteChildren(ctx)
+}
+
+// callError is err of a request from code, with the status and code of the
+// response the code can check.
+func callError(err error) error {
+	var discordErr *httputil.HTTPError
+	var integrationErr *integrationError
+	switch {
+	case errors.As(err, &discordErr):
+		msg := discordErr.Message
+		if msg == "" {
+			msg = "Discord returned an error"
+		}
+		if len(discordErr.Errors) > 0 {
+			msg += ": " + string(discordErr.Errors)
+		}
+		return &js.CallError{
+			Err:    fmt.Errorf("%s (%d)", msg, discordErr.Status),
+			Status: discordErr.Status,
+			Code:   int(discordErr.Code),
+		}
+	case errors.As(err, &integrationErr):
+		return &js.CallError{Err: integrationErr, Status: integrationErr.Status}
+	}
+	return err
 }
