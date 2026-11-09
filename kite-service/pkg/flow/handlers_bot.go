@@ -312,5 +312,5 @@ func evalProfileImage(ctx *FlowContext, tmpl *string) (option.NullableString, er
 
 func isHTTPURL(raw string) bool {
 	u, err := url.Parse(raw)
-	return err == nil && (u.Scheme == "http" || u.Scheme == "https")
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }

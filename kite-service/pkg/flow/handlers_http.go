@@ -1,9 +1,10 @@
 package flow
 
 import (
-	"net/http"
+	"io"
 	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -15,7 +16,8 @@ func init() {
 }
 
 // executeActionHTTPRequest is a preset of the http.request operation, see
-// sendHTTP, with its settings as templates that can use the app's secrets.
+// newHTTPRequest, with its settings as templates that can use the app's
+// secrets.
 func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 	data := n.Data.HTTPRequestData
 	if data == nil {
@@ -38,31 +40,16 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 	if err != nil {
 		return err
 	}
-	u := rawURL.String()
-	if len(data.Query) > 0 {
-		query := make([][2]string, len(data.Query))
-		for i, kv := range data.Query {
-			value, err := secrets.EvalTemplate(ctx, kv.Value)
-			if err != nil {
-				return err
-			}
-			query[i] = [2]string{kv.Key, value.String()}
-		}
-		if u, err = withQuery(u, query); err != nil {
-			return secrets.Redact(err)
-		}
-	}
-
-	header := http.Header{}
-	for _, kv := range data.Headers {
+	query := url.Values{}
+	for _, kv := range data.Query {
 		value, err := secrets.EvalTemplate(ctx, kv.Value)
 		if err != nil {
 			return err
 		}
-		header.Add(kv.Key, value.String())
+		query.Add(kv.Key, value.String())
 	}
 
-	var body *string
+	var body io.Reader
 	if data.BodyJSON != nil {
 		// This can potentially break the JSON if an expression returns a string containing double quotes
 		// We should probably escape the expression results or only run the eval engine on the actual JSON values
@@ -70,37 +57,28 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 		if err != nil {
 			return err
 		}
-		b := value.String()
-		body = &b
-		header.Set("Content-Type", "application/json")
+		body = strings.NewReader(value.String())
 	}
 
-	res, err := sendHTTP(httpCall{
-		ctx:     ctx,
-		method:  data.Method,
-		url:     u,
-		header:  header,
-		body:    body,
-		secrets: secrets,
-	})
+	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, body)
+	if err != nil {
+		return secrets.Redact(err)
+	}
+	for _, kv := range data.Headers {
+		value, err := secrets.EvalTemplate(ctx, kv.Value)
+		if err != nil {
+			return err
+		}
+		req.Header.Add(kv.Key, value.String())
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	res, err := sendHTTP(ctx, req, secrets, thing.MaxBodySize)
 	if err != nil {
 		return err
 	}
-
 	ctx.StoreNodeResult(n, thing.NewHTTPResponse(res))
 	return n.ExecuteChildren(ctx)
-}
-
-// withQuery adds the query parameters to the URL.
-func withQuery(rawURL string, params [][2]string) (string, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", err
-	}
-	query := u.Query()
-	for _, p := range params {
-		query.Add(p[0], p[1])
-	}
-	u.RawQuery = query.Encode()
-	return u.String(), nil
 }

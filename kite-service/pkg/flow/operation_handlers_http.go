@@ -15,70 +15,52 @@ import (
 
 var httpRequestMethods = []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete}
 
-// httpCall is a request of the http.request operation. The Send API Request
-// block is a preset of it, and code calls it with fetch.
-type httpCall struct {
-	ctx *FlowContext
-	// GET if empty.
-	method string
-	url    string
-	header http.Header
-	// No body if nil.
-	body *string
-	// secrets are the secrets the values used, which are removed from
-	// errors.
-	secrets *flowSecrets
-	// charge is operationCall.charge for code. Blocks are charged when they
-	// start, so it's nil for them.
-	charge func() error
-}
-
-// sendHTTP sends the request and reads the response, whatever its status.
-func sendHTTP(c httpCall) (thing.HTTPResponseValue, error) {
-	method := strings.ToUpper(c.method)
+// newHTTPRequest builds a request of the http.request operation. The Send API
+// Request block is a preset of it, and code calls it with fetch. The query is
+// added to the URL's own. The method is GET if it's empty.
+func newHTTPRequest(c *FlowContext, method string, rawURL string, query url.Values, body io.Reader) (*http.Request, error) {
+	method = strings.ToUpper(method)
 	if method == "" {
 		method = http.MethodGet
 	}
 	if !slices.Contains(httpRequestMethods, method) {
-		return thing.HTTPResponseValue{}, fmt.Errorf("the method must be one of %s", strings.Join(httpRequestMethods, ", "))
+		return nil, fmt.Errorf("the method must be one of %s", strings.Join(httpRequestMethods, ", "))
 	}
-	u, err := url.Parse(c.url)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		return thing.HTTPResponseValue{}, errors.New("the URL must start with http:// or https://")
+	if !isHTTPURL(rawURL) {
+		return nil, errors.New("the URL must start with http:// or https://")
 	}
 
-	var body io.Reader
-	if c.body != nil {
-		body = strings.NewReader(*c.body)
-	}
 	// Bound to the flow context so the execution deadline and an explicit
 	// Cancel both abort the request. With a background request a slow or
 	// non-responding host pins the goroutine and its connection past the
 	// end of the flow, in a pool shared with the Discord API client.
-	req, err := http.NewRequestWithContext(c.ctx, method, u.String(), body)
+	req, err := http.NewRequestWithContext(c, method, rawURL, body)
 	if err != nil {
-		return thing.HTTPResponseValue{}, c.secrets.Redact(err)
+		return nil, err
 	}
-	if c.header != nil {
-		req.Header = c.header
-	}
-
-	if c.charge != nil {
-		if err := c.charge(); err != nil {
-			return thing.HTTPResponseValue{}, err
+	if len(query) > 0 {
+		q := req.URL.Query()
+		for name, values := range query {
+			q[name] = append(q[name], values...)
 		}
+		req.URL.RawQuery = q.Encode()
 	}
-	resp, err := c.ctx.HTTP.HTTPRequest(c.ctx, req)
+	return req, nil
+}
+
+// sendHTTP sends the request out of Kite and reads the response, whatever
+// its status, with a body of up to maxBody bytes. Test runs don't send it.
+// secrets are the secrets its values used, which are removed from errors.
+func sendHTTP(c *FlowContext, req *http.Request, secrets *flowSecrets, maxBody int) (thing.HTTPResponseValue, error) {
+	if c.Test != nil {
+		return thing.HTTPResponseValue{}, errors.New("test runs don't send requests outside of Discord")
+	}
+	resp, err := c.HTTP.HTTPRequest(c, req)
 	if err != nil {
-		return thing.HTTPResponseValue{}, c.secrets.Redact(err)
+		return thing.HTTPResponseValue{}, secrets.Redact(err)
 	}
-	// Closed here rather than deferred: the body is fully read, and a defer
-	// would hold the connection for longer. NewHTTPResponseValue also returns
-	// early without reading when Content-Length is over its cap, so this has
-	// to run on the error path too.
-	res, err := thing.NewHTTPResponseValue(resp)
-	resp.Body.Close()
-	return res, err
+	defer resp.Body.Close()
+	return thing.NewHTTPResponseValue(resp, maxBody)
 }
 
 // httpRequestOperation is http.request for code, which gets the response
@@ -97,12 +79,8 @@ func httpRequestOperation(call operationCall) (any, error) {
 		return nil, errors.New("missing parameter url")
 	}
 
-	c := call.ctx
-	if c.Test != nil {
-		return nil, errors.New("test runs don't send requests outside of Discord")
-	}
-
 	// Code has no placeholders, only secrets are filled in.
+	c := call.ctx
 	templates := []string{arg.URL}
 	for _, v := range arg.Headers {
 		templates = append(templates, v)
@@ -114,35 +92,33 @@ func httpRequestOperation(call operationCall) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	header := http.Header{}
-	for name, v := range arg.Headers {
-		header.Set(name, secrets.Fill(v))
-	}
-	var body *string
+	var body io.Reader
 	if arg.Body != nil {
-		b := secrets.Fill(*arg.Body)
-		body = &b
-		// Like fetch, which sends text unless the code says otherwise.
-		if header.Get("Content-Type") == "" {
-			header.Set("Content-Type", "text/plain;charset=UTF-8")
-		}
+		body = strings.NewReader(secrets.Fill(*arg.Body))
+	}
+	req, err := newHTTPRequest(c, arg.Method, secrets.Fill(arg.URL), nil, body)
+	if err != nil {
+		return nil, secrets.Redact(err)
+	}
+	for name, v := range arg.Headers {
+		req.Header.Set(name, secrets.Fill(v))
+	}
+	// Like fetch, which sends text unless the code says otherwise.
+	if arg.Body != nil && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "text/plain;charset=UTF-8")
 	}
 
-	res, err := sendHTTP(httpCall{
-		ctx:     c,
-		method:  arg.Method,
-		url:     secrets.Fill(arg.URL),
-		header:  header,
-		body:    body,
-		secrets: secrets,
-		charge:  call.charge,
-	})
-	if err != nil {
+	// Like sendHTTP, before the call is charged.
+	if c.Test != nil {
+		return nil, errors.New("test runs don't send requests outside of Discord")
+	}
+	if err := call.charge(); err != nil {
 		return nil, err
 	}
 	// The code parses it in its 8 MB of memory.
-	if len(res.Body) > js.MaxInputLength {
-		return nil, fmt.Errorf("the response is larger than %d MB", js.MaxInputLength>>20)
+	res, err := sendHTTP(c, req, secrets, js.MaxInputLength)
+	if err != nil {
+		return nil, err
 	}
 
 	headers := make(map[string]string, len(res.Headers))
