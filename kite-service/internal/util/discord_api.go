@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -50,7 +51,11 @@ func DiscordAPIRequest(ctx context.Context, client *api.Client, req provider.Dis
 
 // EditServerProfile changes the bot's profile in a server.
 func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.GuildID, data provider.ServerProfileData) error {
-	err := client.WithContext(ctx).FastRequest(
+	var member struct {
+		NameStyle *provider.NameStyle `json:"display_name_styles"`
+	}
+	err := client.WithContext(ctx).RequestJSON(
+		&member,
 		"PATCH",
 		api.EndpointGuilds+guildID.String()+"/members/@me",
 		httputil.WithJSONBody(data),
@@ -58,7 +63,22 @@ func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.
 	if err != nil {
 		return fmt.Errorf("failed to edit server profile: %w", err)
 	}
+
+	// Discord ignores name styles it doesn't take without an error.
+	if data.NameFontID != nil && !nameStyleApplied(data, member.NameStyle) {
+		return fmt.Errorf("Discord didn't change the name style, check the font, effect, and colors and try again")
+	}
 	return nil
+}
+
+func nameStyleApplied(data provider.ServerProfileData, style *provider.NameStyle) bool {
+	if !data.NameFontID.Init {
+		return style == nil
+	}
+	return style != nil &&
+		style.FontID == data.NameFontID.Val &&
+		style.EffectID == data.NameEffectID.Val &&
+		slices.Equal(style.Colors, *data.NameColors)
 }
 
 // BotProfileData changes the bot's own avatar and banner, which show

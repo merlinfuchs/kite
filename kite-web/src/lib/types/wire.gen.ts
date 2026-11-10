@@ -239,6 +239,16 @@ export interface StateGuildProfile {
   nick: string;
   avatar_url: string;
   banner_url: string;
+  name_style?: NameStyle;
+}
+/**
+ * NameStyle is the font, effect and colors of the bot's name in a server, by
+ * the names of provider.NameStyleFonts and provider.NameStyleEffects.
+ */
+export interface NameStyle {
+  font: string;
+  effect: string;
+  colors: number /* int */[];
 }
 export type StateGuildProfileGetResponse = StateGuildProfile;
 /**
@@ -299,6 +309,12 @@ export interface StateGuildProfileUpdateRequest {
    */
   avatar?: string;
   banner?: string;
+  /**
+   * NameStyle changes the style of the bot's name, and ResetNameStyle
+   * removes it.
+   */
+  name_style?: NameStyle;
+  reset_name_style?: boolean;
 }
 export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {

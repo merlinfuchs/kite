@@ -10,6 +10,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
@@ -200,12 +201,14 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 
 	if profile.Reset {
-		err = ctx.Discord.EditServerProfile(ctx, guildID, provider.ServerProfileData{
+		data := provider.ServerProfileData{
 			Nick:   option.NullString,
 			Avatar: option.NullString,
 			Banner: option.NullString,
 			Bio:    option.NullString,
-		})
+		}
+		data.SetNameStyle(nil)
+		err = ctx.Discord.EditServerProfile(ctx, guildID, data)
 		if err != nil {
 			return err
 		}
@@ -224,6 +227,13 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 	if data.Banner, err = evalProfileImage(ctx, profile.BannerURL); err != nil {
 		return err
+	}
+	if profile.NameStyle != nil {
+		style, err := evalNameStyle(ctx, profile.NameStyle)
+		if err != nil {
+			return err
+		}
+		data.SetNameStyle(style)
 	}
 
 	err = ctx.Discord.EditServerProfile(ctx, guildID, data)
@@ -248,6 +258,35 @@ func evalProfileText(ctx *FlowContext, tmpl *string) (option.NullableString, err
 		return option.NullString, nil
 	}
 	return option.NewNullableString(value.String()), nil
+}
+
+func evalNameStyle(ctx *FlowContext, data *NameStyleData) (*provider.NameStyle, error) {
+	fontID, ok := provider.NameStyleFonts[data.Font]
+	if !ok {
+		return nil, fmt.Errorf("unknown name font %q", data.Font)
+	}
+	effectID, ok := provider.NameStyleEffects[data.Effect]
+	if !ok {
+		return nil, fmt.Errorf("unknown name effect %q", data.Effect)
+	}
+	if len(data.Colors) == 0 || len(data.Colors) > provider.MaxNameStyleColors {
+		return nil, fmt.Errorf("a name style needs 1 to %d colors", provider.MaxNameStyleColors)
+	}
+
+	colors := make([]int, len(data.Colors))
+	for i, tmpl := range data.Colors {
+		value, err := ctx.EvalTemplate(tmpl)
+		if err != nil {
+			return nil, err
+		}
+		color, err := message.ParseColor(strings.TrimSpace(value.String()))
+		if err != nil {
+			return nil, err
+		}
+		colors[i] = int(color)
+	}
+
+	return &provider.NameStyle{FontID: fontID, EffectID: effectID, Colors: colors}, nil
 }
 
 // Discord's limit for avatars and banners.

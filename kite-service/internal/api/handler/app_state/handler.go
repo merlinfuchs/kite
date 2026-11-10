@@ -87,6 +87,7 @@ func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.
 		Nick:      member.Nick,
 		AvatarURL: member.AvatarURL(discord.GuildID(guildID)),
 		BannerURL: member.BannerURL(discord.GuildID(guildID)),
+		NameStyle: wire.NameStyleToWire(member.NameStyle),
 	}, nil
 }
 
@@ -309,12 +310,19 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
-	err = util.EditServerProfile(c.Context(), client, discord.GuildID(guildID), provider.ServerProfileData{
+	data := provider.ServerProfileData{
 		Nick:   profileValue(req.Nick),
 		Bio:    profileValue(req.Bio),
 		Avatar: profileValue(req.Avatar),
 		Banner: profileValue(req.Banner),
-	})
+	}
+	if req.NameStyle != nil {
+		data.SetNameStyle(req.NameStyle.ToProvider())
+	} else if req.ResetNameStyle {
+		data.SetNameStyle(nil)
+	}
+
+	err = util.EditServerProfile(c.Context(), client, discord.GuildID(guildID), data)
 	if err != nil {
 		return nil, err
 	}

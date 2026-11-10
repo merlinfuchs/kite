@@ -1,11 +1,14 @@
 package wire
 
 import (
+	"maps"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -39,9 +42,64 @@ type StateUserGetResponse = StateUser
 // StateGuildProfile is the bot's profile in a server. Fields are empty where
 // it uses its own profile. Discord doesn't return the About Me.
 type StateGuildProfile struct {
-	Nick      string `json:"nick"`
-	AvatarURL string `json:"avatar_url"`
-	BannerURL string `json:"banner_url"`
+	Nick      string     `json:"nick"`
+	AvatarURL string     `json:"avatar_url"`
+	BannerURL string     `json:"banner_url"`
+	NameStyle *NameStyle `json:"name_style"`
+}
+
+// NameStyle is the font, effect and colors of the bot's name in a server, by
+// the names of provider.NameStyleFonts and provider.NameStyleEffects.
+type NameStyle struct {
+	Font   string `json:"font"`
+	Effect string `json:"effect"`
+	Colors []int  `json:"colors"`
+}
+
+func (s NameStyle) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Font, validation.Required, validation.In(stringsToAny(slices.Collect(maps.Keys(provider.NameStyleFonts)))...)),
+		validation.Field(&s.Effect, validation.Required, validation.In(stringsToAny(slices.Collect(maps.Keys(provider.NameStyleEffects)))...)),
+		validation.Field(&s.Colors,
+			validation.Required,
+			validation.Length(1, provider.MaxNameStyleColors),
+			validation.Each(validation.Min(0), validation.Max(0xFFFFFF)),
+		),
+	)
+}
+
+func (s NameStyle) ToProvider() *provider.NameStyle {
+	return &provider.NameStyle{
+		FontID:   provider.NameStyleFonts[s.Font],
+		EffectID: provider.NameStyleEffects[s.Effect],
+		Colors:   s.Colors,
+	}
+}
+
+// NameStyleToWire returns nil for styles without one of Kite's fonts or
+// effects, like the ones Discord no longer offers.
+func NameStyleToWire(style *provider.NameStyle) *NameStyle {
+	if style == nil {
+		return nil
+	}
+	font, ok := mapKeyOf(provider.NameStyleFonts, style.FontID)
+	if !ok {
+		return nil
+	}
+	effect, ok := mapKeyOf(provider.NameStyleEffects, style.EffectID)
+	if !ok {
+		return nil
+	}
+	return &NameStyle{Font: font, Effect: effect, Colors: style.Colors}
+}
+
+func mapKeyOf(m map[string]int, value int) (string, bool) {
+	for k, v := range m {
+		if v == value {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 type StateGuildProfileGetResponse = StateGuildProfile
@@ -121,6 +179,10 @@ type StateGuildProfileUpdateRequest struct {
 	// Avatar and Banner are data URIs of the image.
 	Avatar *string `json:"avatar,omitempty"`
 	Banner *string `json:"banner,omitempty"`
+	// NameStyle changes the style of the bot's name, and ResetNameStyle
+	// removes it.
+	NameStyle      *NameStyle `json:"name_style,omitempty"`
+	ResetNameStyle bool       `json:"reset_name_style,omitempty"`
 }
 
 var profileImageRegex = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,`)
@@ -131,6 +193,8 @@ func (req StateGuildProfileUpdateRequest) Validate() error {
 		validation.Field(&req.Bio, validation.RuneLength(0, 190)),
 		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
 		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
+		validation.Field(&req.NameStyle),
+		validation.Field(&req.ResetNameStyle, validation.When(req.NameStyle != nil, validation.Empty.Error("can't be combined with a name style"))),
 	)
 }
 

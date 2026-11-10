@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
 	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
@@ -129,7 +130,7 @@ func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (d
 
 // AppGuildBotMember fetches the member from Discord instead of the state
 // cache, so a profile change shows right after it's saved.
-func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*discord.Member, error) {
+func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*store.BotMember, error) {
 	gid, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
@@ -140,7 +141,16 @@ func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*disco
 		return nil, err
 	}
 
-	return g.Session().Client.WithContext(ctx).Member(discord.GuildID(gid), me.ID)
+	var member store.BotMember
+	err = g.Session().Client.WithContext(ctx).RequestJSON(
+		&member,
+		"GET",
+		api.EndpointGuilds+gid.String()+"/members/"+me.ID.String(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &member, nil
 }
 
 const (

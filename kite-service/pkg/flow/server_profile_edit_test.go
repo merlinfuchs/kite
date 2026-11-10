@@ -90,7 +90,36 @@ func TestServerProfileEditReset(t *testing.T) {
 		ServerProfileData: &ServerProfileData{Reset: true, Nick: ptr("Ignored")},
 	}, &provider.MockHTTPprovider{})
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"nick":null,"avatar":null,"banner":null,"bio":null}`, profileJSON(t, p.data))
+	assert.JSONEq(t, `{"nick":null,"avatar":null,"banner":null,"bio":null,"display_name_font_id":null,"display_name_effect_id":null,"display_name_colors":null}`, profileJSON(t, p.data))
+}
+
+// Discord only applies a name style with all three fields.
+func TestServerProfileEditNameStyle(t *testing.T) {
+	p, err := runServerProfileEdit(t, &blockTestContextData{}, FlowNodeData{
+		ServerProfileData: &ServerProfileData{
+			NameStyle: &NameStyleData{Font: "8bit", Effect: "gradient", Colors: []string{"#ff0000", "{{'255'}}"}},
+		},
+	}, &provider.MockHTTPprovider{})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"display_name_font_id":8,"display_name_effect_id":2,"display_name_colors":[16711680,255]}`, profileJSON(t, p.data))
+}
+
+func TestServerProfileEditNameStyleRejectsInvalid(t *testing.T) {
+	for name, style := range map[string]NameStyleData{
+		"font":        {Font: "comic_sans", Effect: "solid", Colors: []string{"#fff"}},
+		"effect":      {Font: "8bit", Effect: "glow", Colors: []string{"#fff"}},
+		"no colors":   {Font: "8bit", Effect: "solid"},
+		"many colors": {Font: "8bit", Effect: "prism", Colors: []string{"1", "2", "3", "4", "5", "6"}},
+		"empty color": {Font: "8bit", Effect: "solid", Colors: []string{"{{''}}"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p, err := runServerProfileEdit(t, &blockTestContextData{}, FlowNodeData{
+				ServerProfileData: &ServerProfileData{NameStyle: &style},
+			}, &provider.MockHTTPprovider{})
+			require.Error(t, err)
+			assert.Nil(t, p.data)
+		})
+	}
 }
 
 func TestServerProfileEditDownloadsImage(t *testing.T) {
@@ -126,4 +155,21 @@ func TestServerProfileEditFailsOutsideServer(t *testing.T) {
 	}, &provider.MockHTTPprovider{})
 	require.Error(t, err)
 	assert.Nil(t, p.data)
+}
+
+// The editor offers the fonts and effects the service knows.
+func TestServerProfileEditNameStyleMatchesCatalog(t *testing.T) {
+	style := loadCatalog(t)["action_server_profile_edit"].Properties["server_profile_data"].Properties["name_style"]
+	require.NotNil(t, style)
+
+	for property, values := range map[string]map[string]int{
+		"font":   provider.NameStyleFonts,
+		"effect": provider.NameStyleEffects,
+	} {
+		var keys []any
+		for k := range values {
+			keys = append(keys, k)
+		}
+		assert.ElementsMatch(t, keys, style.Properties[property].Enum, property)
+	}
 }

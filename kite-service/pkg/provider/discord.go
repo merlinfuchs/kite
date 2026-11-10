@@ -91,6 +91,66 @@ type ServerProfileData struct {
 	Avatar option.NullableString `json:"avatar,omitempty"`
 	Banner option.NullableString `json:"banner,omitempty"`
 	Bio    option.NullableString `json:"bio,omitempty"`
+	// The style of the bot's name, set with SetNameStyle. Discord ignores
+	// them unless all three are sent.
+	NameFontID   option.NullableInt `json:"display_name_font_id,omitempty"`
+	NameEffectID option.NullableInt `json:"display_name_effect_id,omitempty"`
+	NameColors   *[]int             `json:"display_name_colors,omitempty"`
+}
+
+// SetNameStyle changes the style of the bot's name, nil removes it.
+func (d *ServerProfileData) SetNameStyle(style *NameStyle) {
+	if style == nil {
+		d.NameFontID = option.NullInt
+		d.NameEffectID = option.NullInt
+		d.NameColors = new([]int)
+		return
+	}
+	d.NameFontID = option.NewNullableInt(style.FontID)
+	d.NameEffectID = option.NewNullableInt(style.EffectID)
+	d.NameColors = &style.Colors
+}
+
+// NameStyle is the font, effect and colors of a name, which Discord shows in
+// the profile. Servers only show the font, and the role color instead of the
+// colors.
+type NameStyle struct {
+	FontID   int   `json:"font_id"`
+	EffectID int   `json:"effect_id"`
+	Colors   []int `json:"colors"`
+}
+
+// MaxNameStyleColors is how many colors Discord takes for a name style.
+const MaxNameStyleColors = 5
+
+// NameStyleFonts are the fonts of name styles by the name Kite uses for them,
+// which is the one Discord shows. Discord still takes some it no longer
+// offers, which Kite leaves out.
+var NameStyleFonts = map[string]int{
+	"default":     11,
+	"sakura":      3,
+	"jellybean":   4,
+	"modern":      6,
+	"medieval":    7,
+	"8bit":        8,
+	"vampyre":     10,
+	"tempo":       12,
+	"monkey_bars": 13,
+	"mainframe":   14,
+	"headbang":    15,
+	"journal":     16,
+}
+
+// NameStyleEffects are the effects of name styles by the name Kite uses for
+// them.
+var NameStyleEffects = map[string]int{
+	"solid":    1,
+	"gradient": 2,
+	"neon":     3,
+	"toon":     4,
+	"pop":      5,
+	"prism":    7,
+	"gummy":    8,
 }
 
 // CreatePollData is the poll object of a create message request. arikawa

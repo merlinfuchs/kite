@@ -34,6 +34,12 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import {
+  colorsForEffect,
+  defaultNameStyleColors,
+  nameStyleEffects,
+  nameStyleFonts,
+} from "@/lib/nameStyle";
+import {
   javascriptMaxInputs,
   javascriptMaxVariables,
 } from "@/lib/blocks/javascriptRun";
@@ -4712,13 +4718,14 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
     });
 
   const reset = !!data.server_profile_data?.reset;
+  const nameStyle = data.server_profile_data?.name_style;
 
   return (
     <>
       <BaseCheckbox
         field="server_profile_data.reset"
         title="Reset profile"
-        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        description="Reset the nickname, avatar, banner, about me and name style to the bot's own."
         value={reset}
         updateValue={(v) =>
           updateData({ server_profile_data: v ? { reset: true } : {} })
@@ -4766,6 +4773,80 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          <BaseInput
+            type="select"
+            field="server_profile_data.name_style.font"
+            title="Name font"
+            description="Shows in servers and in the bot's profile."
+            options={[
+              { value: "keep", label: "Keep current" },
+              ...nameStyleFonts,
+            ]}
+            value={nameStyle?.font || "keep"}
+            updateValue={(font) =>
+              updateField({
+                name_style:
+                  font === "keep"
+                    ? undefined
+                    : {
+                        effect: "solid",
+                        colors: [defaultNameStyleColors[0].toString()],
+                        ...nameStyle,
+                        font,
+                      },
+              })
+            }
+            errors={errors}
+          />
+          {nameStyle && (
+            <>
+              <BaseInput
+                type="select"
+                field="server_profile_data.name_style.effect"
+                title="Name effect"
+                description="Shows in the bot's profile with the colors below. Servers show the role color instead."
+                options={[...nameStyleEffects]}
+                value={nameStyle.effect || ""}
+                updateValue={(effect) =>
+                  updateField({
+                    name_style: {
+                      ...nameStyle,
+                      effect,
+                      colors: colorsForEffect(
+                        effect,
+                        nameStyle.colors || [],
+                        (i) => defaultNameStyleColors[i].toString()
+                      ),
+                    },
+                  })
+                }
+                errors={errors}
+              />
+              {nameStyle.colors?.map((color, i) => (
+                <BaseColorInput
+                  key={i}
+                  field={`server_profile_data.name_style.colors.${i}`}
+                  title={
+                    nameStyle.colors!.length > 1
+                      ? `Name color ${i + 1}`
+                      : "Name color"
+                  }
+                  value={color}
+                  updateValue={(v) =>
+                    updateField({
+                      name_style: {
+                        ...nameStyle,
+                        colors: nameStyle.colors!.map((c, j) =>
+                          j === i ? v : c
+                        ),
+                      },
+                    })
+                  }
+                  errors={errors}
+                />
+              ))}
+            </>
+          )}
         </>
       )}
     </>
