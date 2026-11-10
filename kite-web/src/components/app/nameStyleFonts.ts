@@ -79,11 +79,15 @@ const fontFamilies: Record<NameStyleFont, string | undefined> = {
   journal: journal.style.fontFamily,
 };
 
+export function nameStyleFontFamily(font: NameStyleFont) {
+  return fontFamilies[font];
+}
+
 // How the name looks with the style in previews. Only pages with a name
 // style import this, as it adds the CSS of every font.
 export function nameStyleCss(style: NameStyle): CSSProperties {
   return {
-    fontFamily: fontFamilies[style.font as NameStyleFont],
+    fontFamily: nameStyleFontFamily(style.font as NameStyleFont),
     ...nameStyleEffectCss(style.effect, style.colors),
   };
 }

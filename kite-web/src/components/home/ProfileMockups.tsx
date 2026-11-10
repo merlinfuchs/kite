@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ReactNode, useEffect, useState } from "react";
+import { nameStyleFontFamily } from "@/components/app/nameStyleFonts";
 
 // Simplified Discord UI for the status and profile features, drawn with the
 // site's colors like the Ask AI panel on the homepage.
@@ -158,10 +159,12 @@ export function ProfileMockup({ statuses }: { statuses?: string[] }) {
 
 function ChatMessage({
   name,
+  nameFont,
   emoji,
   children,
 }: {
   name: string;
+  nameFont?: string;
   emoji?: string;
   children: ReactNode;
 }) {
@@ -170,7 +173,9 @@ function ChatMessage({
       <Avatar emoji={emoji} className="h-9 w-9 text-base" />
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-1.5">
-          <span className="font-medium">{name}</span>
+          <span className="font-medium" style={{ fontFamily: nameFont }}>
+            {name}
+          </span>
           <AppTag />
           <span className="text-xs text-muted-foreground">Today at 20:02</span>
         </div>
@@ -184,6 +189,8 @@ const serverProfiles = [
   {
     server: "🎮 Gaming Hub",
     nick: "Quest Master",
+    // Servers show the font of the name style, not its colors.
+    nameFont: nameStyleFontFamily("8bit"),
     emoji: "🐉",
     message: "Your daily quest is ready!",
   },
@@ -195,8 +202,8 @@ const serverProfiles = [
   },
 ];
 
-// ServerProfileMockup is the same bot with another nickname and avatar in two
-// servers.
+// ServerProfileMockup is the same bot with another nickname, avatar and name
+// style in two servers.
 export function ServerProfileMockup() {
   return (
     <div className="space-y-3">
@@ -205,7 +212,7 @@ export function ServerProfileMockup() {
           <div className="mb-2 text-xs font-semibold text-muted-foreground">
             {p.server}
           </div>
-          <ChatMessage name={p.nick} emoji={p.emoji}>
+          <ChatMessage name={p.nick} nameFont={p.nameFont} emoji={p.emoji}>
             {p.message}
           </ChatMessage>
         </div>

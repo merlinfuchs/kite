@@ -54,7 +54,7 @@ export const planLimits: {
     value: (p) => p.feature_animated_profile,
   },
   {
-    label: "Bot avatar, banner & bio per server",
+    label: "Bot profile & name style per server",
     value: (p) => p.feature_server_profiles,
   },
   {
@@ -86,7 +86,7 @@ const highlights: {
   },
   {
     shown: more((p) => Number(p.feature_server_profiles)),
-    text: () => "Bot avatar, banner & bio per server",
+    text: () => "Bot profile & name style per server",
   },
   {
     shown: more((p) => Number(p.feature_personas)),
