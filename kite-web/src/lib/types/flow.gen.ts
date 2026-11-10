@@ -515,10 +515,26 @@ export interface ServerProfileData {
   banner_url?: string;
   bio?: string;
   /**
+   * NameStyle changes the style of the bot's name, the bot's own has none.
+   */
+  name_style?: NameStyleData;
+  /**
    * Reset resets the whole profile to the bot's own, the other fields are
    * ignored then.
    */
   reset?: boolean;
+}
+export interface NameStyleData {
+  /**
+   * Font and Effect are keys of provider.NameStyleFonts and
+   * provider.NameStyleEffects.
+   */
+  font: string;
+  effect: string;
+  /**
+   * Colors are hex colors like #5865F2 or numbers, with placeholders.
+   */
+  colors: string[];
 }
 export interface ChannelData {
   name?: string;

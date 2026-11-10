@@ -239,6 +239,16 @@ export interface StateGuildProfile {
   nick: string;
   avatar_url: string;
   banner_url: string;
+  name_style?: NameStyle;
+}
+/**
+ * NameStyle is the font, effect and colors of the bot's name in a server, by
+ * the names of provider.NameStyleFonts and provider.NameStyleEffects.
+ */
+export interface NameStyle {
+  font: string;
+  effect: string;
+  colors: number /* int */[];
 }
 export type StateGuildProfileGetResponse = StateGuildProfile;
 /**
@@ -289,7 +299,7 @@ export type StateGuildLeaveResponse = Empty;
 /**
  * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
  * field that isn't set stays as it is, and an empty one resets to the bot's
- * own profile.
+ * own profile. Reset resets all of them, the other fields are ignored then.
  */
 export interface StateGuildProfileUpdateRequest {
   nick?: string;
@@ -299,6 +309,8 @@ export interface StateGuildProfileUpdateRequest {
    */
   avatar?: string;
   banner?: string;
+  name_style?: NameStyle;
+  reset?: boolean;
 }
 export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {

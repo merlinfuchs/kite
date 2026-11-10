@@ -4865,7 +4865,7 @@
     },
     "action_server_profile_edit": {
       "title": "Edit server profile",
-      "description": "Change the bot's nickname, avatar, banner or bio in a server",
+      "description": "Change the bot's nickname, avatar, banner, bio, or name style in a server",
       "contexts": [
         "command",
         "component_button",
@@ -4925,8 +4925,62 @@
                 "description": "About me of the bot in the server. Empty resets it to the bot's own.",
                 "x-templated": true
               },
+              "name_style": {
+                "description": "Font, effect and colors of the bot's name. Reset profile removes it.",
+                "type": "object",
+                "properties": {
+                  "font": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "sakura",
+                      "jellybean",
+                      "modern",
+                      "medieval",
+                      "8bit",
+                      "vampyre",
+                      "tempo",
+                      "monkey_bars",
+                      "mainframe",
+                      "headbang",
+                      "journal"
+                    ],
+                    "description": "Font of the name, shown in servers and in the bot's profile."
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": [
+                      "solid",
+                      "gradient",
+                      "neon",
+                      "toon",
+                      "pop",
+                      "prism",
+                      "gummy"
+                    ],
+                    "description": "Effect of the name in the bot's profile. Solid, neon, toon and pop use one color, gradient two, gummy four and prism five."
+                  },
+                  "colors": {
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Hex color like #5865F2, or a number like 5793266.",
+                      "x-templated": true
+                    },
+                    "description": "Colors of the name in the bot's profile. Servers show the role color instead."
+                  }
+                },
+                "required": [
+                  "font",
+                  "effect",
+                  "colors"
+                ],
+                "additionalProperties": false
+              },
               "reset": {
-                "description": "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields.",
+                "description": "Reset the nickname, avatar, banner, about me and name style to the bot's own. Can't be combined with the other fields.",
                 "type": "boolean"
               }
             },
