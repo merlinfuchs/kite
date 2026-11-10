@@ -13,6 +13,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/responses"
@@ -39,6 +40,9 @@ type Config struct {
 	// FormatEdits, the default, or FormatCode, which writes the whole flow as
 	// code for the editor's applyFlowCode.
 	Format string
+	// Decisions checks prompts before the model sees them, see Refuses. If
+	// nil, prompts aren't checked.
+	Decisions provider.DecisionProvider
 }
 
 const (

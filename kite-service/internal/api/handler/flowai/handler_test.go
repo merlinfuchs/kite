@@ -123,11 +123,20 @@ type fakeAssistant struct {
 	// noEdits makes the answer a question without edits.
 	noEdits bool
 	calls   int
+	// refuse makes the prompt check refuse, and refuseErr makes it fail.
+	refuse    bool
+	refuseErr error
+	refuseReq *flowai.Request
 }
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
 func (a *fakeAssistant) Format() string { return flowai.FormatEdits }
+
+func (a *fakeAssistant) Refuses(ctx context.Context, req flowai.Request) (bool, error) {
+	a.refuseReq = &req
+	return a.refuse, a.refuseErr
+}
 
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
@@ -375,4 +384,38 @@ func TestUnansweredRepairsDontUseARound(t *testing.T) {
 	code, _ := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusServiceUnavailable, code)
 	assert.Equal(t, 1, s.store.prompts[promptID].Rounds)
+}
+
+func TestRefusedPromptsAreKeptAsAnswers(t *testing.T) {
+	s := setup(&fakeAssistant{refuse: true})
+
+	code, res := s.chat(t, 1, prompt)
+	assert.Equal(t, http.StatusForbidden, code)
+	assert.Equal(t, "flow_ai_refused", errCode(res))
+	assert.Equal(t, 0, s.assistant.calls)
+	require.Len(t, s.store.prompts, 1)
+	for _, p := range s.store.prompts {
+		assert.False(t, p.Edited)
+		assert.Equal(t, "Remove a", p.Prompt)
+	}
+}
+
+func TestPromptsAreAnsweredIfTheCheckFails(t *testing.T) {
+	s := setup(&fakeAssistant{refuseErr: errors.New("connection refused")})
+
+	code, res := s.chat(t, 1, prompt)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, 1, s.assistant.calls)
+}
+
+func TestRepairsArentChecked(t *testing.T) {
+	s := setup(&fakeAssistant{})
+
+	_, res := s.chat(t, 1, prompt)
+	promptID := res["data"].(map[string]any)["prompt_id"].(string)
+	s.assistant.refuseReq = nil
+
+	code, res := s.chat(t, 1, repair(promptID))
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Nil(t, s.assistant.refuseReq)
 }
