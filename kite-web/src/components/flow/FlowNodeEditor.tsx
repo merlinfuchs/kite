@@ -3908,6 +3908,11 @@ function permissionCount(bitset?: string) {
   return decodePermissionsBitset(bitset || "0").length;
 }
 
+// The @everyone role has the ID of the server. Saving "Everyone" as the
+// placeholder for it keeps the data as it was (a role with an ID), so older
+// flows that use the placeholder show up as Everyone too.
+const EVERYONE_OVERWRITE_ID = "{{guild.id}}";
+
 // One permission overwrite. Closed it shows who it is for and how many
 // permissions it changes, like the cards of the modal editor.
 function OverwriteCard({
@@ -3931,6 +3936,8 @@ function OverwriteCard({
 }) {
   const field = `channel_data.permission_overwrites.${index}`;
   const isUser = overwrite.type === 1;
+  const isEveryone = !isUser && overwrite.id === EVERYONE_OVERWRITE_ID;
+  const kind = isEveryone ? "everyone" : isUser ? "user" : "role";
 
   return (
     <Card className="px-4 py-3">
@@ -3947,9 +3954,11 @@ function OverwriteCard({
               open && "rotate-90"
             )}
           />
-          <div className="flex-none">{isUser ? "User" : "Role"}</div>
+          <div className="flex-none">
+            {isEveryone ? "Everyone" : isUser ? "User" : "Role"}
+          </div>
           <div className="pl-1 text-sm italic font-light text-muted-foreground truncate">
-            {overwrite.id || "No ID yet"}
+            {isEveryone ? "@everyone" : overwrite.id || "No ID yet"}
           </div>
           {!open && (
             <div className="pl-2 flex-none text-sm space-x-2">
@@ -3989,25 +3998,47 @@ function OverwriteCard({
                 type="select"
                 field={`${field}.type`}
                 title="Type"
-                value={overwrite.type?.toString() || "0"}
+                description="Who it is for."
+                value={kind}
                 options={[
-                  { label: "Role", value: "0" },
-                  { label: "User", value: "1" },
+                  { label: "Role", value: "role" },
+                  { label: "User", value: "user" },
+                  { label: "Everyone", value: "everyone" },
                 ]}
-                updateValue={(v) => onChange({ type: parseInt(v) || 0 })}
+                updateValue={(v) => {
+                  // Leaving Everyone clears the server ID, it isn't a role or user.
+                  const id = isEveryone ? undefined : overwrite.id;
+                  if (v === "everyone") {
+                    onChange({ type: 0, id: EVERYONE_OVERWRITE_ID });
+                  } else {
+                    onChange({ type: v === "user" ? 1 : 0, id });
+                  }
+                }}
                 errors={errors}
               />
             </div>
-            <BaseInput
-              type="text"
-              field={`${field}.id`}
-              title={isUser ? "User" : "Role"}
-              description={`The ID of the ${isUser ? "user" : "role"}.`}
-              value={overwrite.id || ""}
-              updateValue={(v) => onChange({ id: v || undefined })}
-              errors={errors}
-              placeholders
-            />
+            {isEveryone ? (
+              <div className="flex-auto min-w-0">
+                <div className="font-medium text-foreground">Applies to</div>
+                <div className="text-muted-foreground text-sm mt-1">
+                  Every member of the server.
+                </div>
+                <div className="mt-2 h-10 flex items-center text-sm text-muted-foreground">
+                  The @everyone role, which has the ID of the server.
+                </div>
+              </div>
+            ) : (
+              <BaseInput
+                type="text"
+                field={`${field}.id`}
+                title={isUser ? "User" : "Role"}
+                description={`The ID of the ${isUser ? "user" : "role"}.`}
+                value={overwrite.id || ""}
+                updateValue={(v) => onChange({ id: v || undefined })}
+                errors={errors}
+                placeholders
+              />
+            )}
           </div>
           <BasePermissionInput
             field={`${field}.allow`}
