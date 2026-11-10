@@ -62,7 +62,8 @@ func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.
 		return fmt.Errorf("failed to edit server profile: %w", err)
 	}
 
-	// Discord ignores name styles it doesn't take without an error.
+	// Discord ignores name styles it doesn't take without an error, and still
+	// saves the rest of the profile.
 	if data.NameStyle != nil && !nameStyleApplied(*data.NameStyle, member.NameStyle) {
 		return fmt.Errorf("Discord didn't change the name style, check the font, effect, and colors and try again")
 	}

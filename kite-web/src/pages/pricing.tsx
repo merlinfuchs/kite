@@ -123,7 +123,7 @@ const profileFeatures = [
     plan: "Premium and up",
     title: "Profile per server",
     description:
-      "Your bot can have another nickname, avatar, banner, About Me, and name font in each server. Set them on the Servers page or from a flow with the Edit server profile block.",
+      "Your bot can have another nickname, avatar, banner, About Me, and name style in each server. Set them on the Servers page or from a flow with the Edit server profile block.",
     mockup: <ServerProfileMockup />,
   },
   {

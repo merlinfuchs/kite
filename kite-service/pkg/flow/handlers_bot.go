@@ -221,16 +221,17 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 	if data.Bio, err = evalProfileText(ctx, profile.Bio); err != nil {
 		return err
 	}
+	// Before the images, so a wrong color fails without downloading them.
+	if profile.NameStyle != nil {
+		if data.NameStyle, err = evalNameStyle(ctx, profile.NameStyle); err != nil {
+			return err
+		}
+	}
 	if data.Avatar, err = evalProfileImage(ctx, profile.AvatarURL); err != nil {
 		return err
 	}
 	if data.Banner, err = evalProfileImage(ctx, profile.BannerURL); err != nil {
 		return err
-	}
-	if profile.NameStyle != nil {
-		if data.NameStyle, err = evalNameStyle(ctx, profile.NameStyle); err != nil {
-			return err
-		}
 	}
 
 	err = ctx.Discord.EditServerProfile(ctx, guildID, data)

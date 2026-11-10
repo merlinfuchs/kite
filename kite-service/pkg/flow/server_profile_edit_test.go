@@ -172,4 +172,5 @@ func TestServerProfileEditNameStyleMatchesCatalog(t *testing.T) {
 		}
 		assert.ElementsMatch(t, keys, style.Properties[property].Enum, property)
 	}
+	assert.Equal(t, provider.MaxNameStyleColors, style.Properties["colors"].MaxItems)
 }
