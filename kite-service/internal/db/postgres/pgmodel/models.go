@@ -94,6 +94,7 @@ type AssistantPrompt struct {
 	OutputTokens      int32
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
+	RefusalChance     pgtype.Float4
 }
 
 type Bundle struct {
