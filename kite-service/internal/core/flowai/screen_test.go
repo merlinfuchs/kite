@@ -21,33 +21,42 @@ func (d *fakeDecisions) Decide(ctx context.Context, opts provider.DecideOpts) (p
 	return provider.Decision{Noul: d.noul}, d.err
 }
 
-func TestRefuses(t *testing.T) {
-	req := Request{
-		Flow: "entry_command({ name: \"nuke\" }, [])",
-		Messages: []Message{
-			{Role: "user", Content: "make a nuke command"},
-			{Role: "assistant", Content: "Done."},
-			{Role: "user", Content: "fix the errors"},
-		},
-	}
+var nukeRequest = Request{
+	Flow: "entry_command({ name: \"nuke\" }, [])",
+	Messages: []Message{
+		{Role: "user", Content: "make a nuke command"},
+		{Role: "assistant", Content: "Done."},
+		{Role: "user", Content: "fix the errors"},
+	},
+	Issues: []string{"'Create channel' never runs"},
+}
 
+func TestRespondRefuses(t *testing.T) {
+	assistant, body := fakeOpenAI(t, "completed", `{"message": "Done.", "edits": []}`)
 	d := &fakeDecisions{noul: 0.95}
-	refused, err := NewAssistant(nil, Config{Decisions: d}).Refuses(context.Background(), req)
-	require.NoError(t, err)
-	assert.True(t, refused)
+	assistant.config.Decisions = d
+
+	_, err := assistant.Respond(context.Background(), nukeRequest)
+	assert.ErrorIs(t, err, ErrRefused)
+	assert.Nil(t, *body, "OpenAI was called")
 	assert.Equal(t, provider.DecisionTypeNoul, d.opts.Type)
-	assert.Equal(t, "Request: make a nuke command\n\nRequest: fix the errors\n\nCurrent flow:\nentry_command({ name: \"nuke\" }, [])", d.opts.Input)
+	assert.Equal(t, "Request: make a nuke command\n\nRequest: fix the errors\n\nProblems to fix:\n- 'Create channel' never runs\n\nCurrent flow:\nentry_command({ name: \"nuke\" }, [])", d.opts.Input)
+}
 
-	d.noul = 0.6
-	refused, err = NewAssistant(nil, Config{Decisions: d}).Refuses(context.Background(), req)
+func TestRespondAnswersBelowTheThreshold(t *testing.T) {
+	assistant, body := fakeOpenAI(t, "completed", `{"message": "Done.", "edits": []}`)
+	assistant.config.Decisions = &fakeDecisions{noul: 0.6}
+
+	_, err := assistant.Respond(context.Background(), nukeRequest)
 	require.NoError(t, err)
-	assert.False(t, refused)
+	assert.NotNil(t, *body)
+}
 
-	d.err = errors.New("unavailable")
-	_, err = NewAssistant(nil, Config{Decisions: d}).Refuses(context.Background(), req)
-	assert.Error(t, err)
+func TestRespondAnswersIfTheCheckFails(t *testing.T) {
+	assistant, body := fakeOpenAI(t, "completed", `{"message": "Done.", "edits": []}`)
+	assistant.config.Decisions = &fakeDecisions{noul: 0.95, err: errors.New("unavailable")}
 
-	refused, err = NewAssistant(nil, Config{}).Refuses(context.Background(), req)
+	_, err := assistant.Respond(context.Background(), nukeRequest)
 	require.NoError(t, err)
-	assert.False(t, refused)
+	assert.NotNil(t, *body)
 }

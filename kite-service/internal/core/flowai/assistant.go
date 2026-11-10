@@ -40,8 +40,8 @@ type Config struct {
 	// FormatEdits, the default, or FormatCode, which writes the whole flow as
 	// code for the editor's applyFlowCode.
 	Format string
-	// Decisions checks prompts before the model sees them, see Refuses. If
-	// nil, prompts aren't checked.
+	// Decisions checks chats before the model sees them, see ErrRefused. If
+	// nil, chats aren't checked.
 	Decisions provider.DecisionProvider
 }
 
@@ -150,6 +150,10 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
+	if a.refuses(ctx, req) {
+		return nil, ErrRefused
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 

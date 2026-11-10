@@ -21,7 +21,6 @@ type Assistant interface {
 	Model() string
 	Format() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
-	Refuses(ctx context.Context, req flowai.Request) (bool, error)
 }
 
 // repairWindow is how long after a prompt its edits can be repaired.
@@ -196,7 +195,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		}
 	}
 
-	aiReq := flowai.Request{
+	res, err := h.assistant.Respond(c.Context(), flowai.Request{
 		Flow:         req.Flow,
 		Format:       req.Format,
 		Messages:     req.AssistantMessages(),
@@ -207,26 +206,17 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		AppID:        c.App.ID,
 		UserID:       c.Session.UserID,
 		PromptID:     prompt.ID,
-	}
-
-	// Repairs only follow prompts that were checked.
-	if !isRepair {
-		refused, err := h.assistant.Refuses(c.Context(), aiReq)
-		if err != nil {
-			// Without the check, the AI still works.
-			slog.Error("Failed to screen flow AI prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
-		}
-		if refused {
-			// Kept as an answer without edits, so it can be looked at and
-			// asking again uses up the answers.
+	})
+	if errors.Is(err, flowai.ErrRefused) {
+		// Kept as an answer without edits, so it can be looked at and asking
+		// again uses up the answers. A refused repair uses up its round.
+		if !isRepair {
 			if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, model.AssistantUsage{}, false, time.Now().UTC()); err != nil {
 				slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
 			}
-			return nil, handler.ErrForbidden("flow_ai_refused", "Flow AI can't help with this. Kite doesn't allow bots that nuke or raid servers, spam members, or steal accounts or data.")
 		}
+		return nil, handler.ErrForbidden("flow_ai_refused", "Flow AI can't help with this. Kite doesn't allow bots that nuke or raid servers, spam members, or steal accounts or data.")
 	}
-
-	res, err := h.assistant.Respond(c.Context(), aiReq)
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
 	edited := isRepair || err != nil || len(res.Edits) > 0 || res.Code != ""

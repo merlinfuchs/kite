@@ -123,24 +123,20 @@ type fakeAssistant struct {
 	// noEdits makes the answer a question without edits.
 	noEdits bool
 	calls   int
-	// refuse makes the prompt check refuse, and refuseErr makes it fail.
-	refuse    bool
-	refuseErr error
-	refuseReq *flowai.Request
+	// refuse makes it refuse the chat.
+	refuse bool
 }
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
 func (a *fakeAssistant) Format() string { return flowai.FormatEdits }
 
-func (a *fakeAssistant) Refuses(ctx context.Context, req flowai.Request) (bool, error) {
-	a.refuseReq = &req
-	return a.refuse, a.refuseErr
-}
-
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
 	a.req = req
+	if a.refuse {
+		return nil, flowai.ErrRefused
+	}
 	if a.err != nil {
 		if a.answered {
 			return &flowai.Response{Usage: model.AssistantUsage{InputTokens: 100}}, a.err
@@ -392,7 +388,6 @@ func TestRefusedPromptsAreKeptAsAnswers(t *testing.T) {
 	code, res := s.chat(t, 1, prompt)
 	assert.Equal(t, http.StatusForbidden, code)
 	assert.Equal(t, "flow_ai_refused", errCode(res))
-	assert.Equal(t, 0, s.assistant.calls)
 	require.Len(t, s.store.prompts, 1)
 	for _, p := range s.store.prompts {
 		assert.False(t, p.Edited)
@@ -400,22 +395,16 @@ func TestRefusedPromptsAreKeptAsAnswers(t *testing.T) {
 	}
 }
 
-func TestPromptsAreAnsweredIfTheCheckFails(t *testing.T) {
-	s := setup(&fakeAssistant{refuseErr: errors.New("connection refused")})
-
-	code, res := s.chat(t, 1, prompt)
-	require.Equal(t, http.StatusOK, code, res)
-	assert.Equal(t, 1, s.assistant.calls)
-}
-
-func TestRepairsArentChecked(t *testing.T) {
+func TestRefusedRepairsUseUpTheirRound(t *testing.T) {
 	s := setup(&fakeAssistant{})
 
 	_, res := s.chat(t, 1, prompt)
 	promptID := res["data"].(map[string]any)["prompt_id"].(string)
-	s.assistant.refuseReq = nil
 
+	s.assistant.refuse = true
 	code, res := s.chat(t, 1, repair(promptID))
-	require.Equal(t, http.StatusOK, code, res)
-	assert.Nil(t, s.assistant.refuseReq)
+	assert.Equal(t, http.StatusForbidden, code)
+	assert.Equal(t, "flow_ai_refused", errCode(res))
+	assert.Equal(t, 2, s.store.prompts[promptID].Rounds)
+	assert.True(t, s.store.prompts[promptID].Edited)
 }
