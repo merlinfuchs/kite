@@ -130,7 +130,7 @@ func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (d
 
 // AppGuildBotMember fetches the member from Discord instead of the state
 // cache, so a profile change shows right after it's saved.
-func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*store.BotMember, error) {
+func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*provider.StyledMember, error) {
 	gid, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
@@ -141,7 +141,7 @@ func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*store
 		return nil, err
 	}
 
-	var member store.BotMember
+	var member provider.StyledMember
 	err = g.Session().Client.WithContext(ctx).RequestJSON(
 		&member,
 		"GET",

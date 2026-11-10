@@ -201,14 +201,13 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 
 	if profile.Reset {
-		data := provider.ServerProfileData{
-			Nick:   option.NullString,
-			Avatar: option.NullString,
-			Banner: option.NullString,
-			Bio:    option.NullString,
-		}
-		data.SetNameStyle(nil)
-		err = ctx.Discord.EditServerProfile(ctx, guildID, data)
+		err = ctx.Discord.EditServerProfile(ctx, guildID, provider.ServerProfileData{
+			Nick:      option.NullString,
+			Avatar:    option.NullString,
+			Banner:    option.NullString,
+			Bio:       option.NullString,
+			NameStyle: &provider.NameStyle{},
+		})
 		if err != nil {
 			return err
 		}
@@ -229,11 +228,9 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 		return err
 	}
 	if profile.NameStyle != nil {
-		style, err := evalNameStyle(ctx, profile.NameStyle)
-		if err != nil {
+		if data.NameStyle, err = evalNameStyle(ctx, profile.NameStyle); err != nil {
 			return err
 		}
-		data.SetNameStyle(style)
 	}
 
 	err = ctx.Discord.EditServerProfile(ctx, guildID, data)
@@ -261,15 +258,7 @@ func evalProfileText(ctx *FlowContext, tmpl *string) (option.NullableString, err
 }
 
 func evalNameStyle(ctx *FlowContext, data *NameStyleData) (*provider.NameStyle, error) {
-	fontID, ok := provider.NameStyleFonts[data.Font]
-	if !ok {
-		return nil, fmt.Errorf("unknown name font %q", data.Font)
-	}
-	effectID, ok := provider.NameStyleEffects[data.Effect]
-	if !ok {
-		return nil, fmt.Errorf("unknown name effect %q", data.Effect)
-	}
-	if len(data.Colors) == 0 || len(data.Colors) > provider.MaxNameStyleColors {
+	if len(data.Colors) > provider.MaxNameStyleColors {
 		return nil, fmt.Errorf("a name style needs 1 to %d colors", provider.MaxNameStyleColors)
 	}
 
@@ -286,7 +275,7 @@ func evalNameStyle(ctx *FlowContext, data *NameStyleData) (*provider.NameStyle, 
 		colors[i] = int(color)
 	}
 
-	return &provider.NameStyle{FontID: fontID, EffectID: effectID, Colors: colors}, nil
+	return provider.NewNameStyle(data.Font, data.Effect, colors)
 }
 
 // Discord's limit for avatars and banners.

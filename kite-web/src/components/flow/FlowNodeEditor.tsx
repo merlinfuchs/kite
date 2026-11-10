@@ -4812,22 +4812,20 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
                     name_style: {
                       ...nameStyle,
                       effect,
-                      colors: colorsForEffect(
-                        effect,
-                        nameStyle.colors || [],
-                        (i) => defaultNameStyleColors[i].toString()
+                      colors: colorsForEffect(effect, nameStyle.colors, (i) =>
+                        defaultNameStyleColors[i].toString()
                       ),
                     },
                   })
                 }
                 errors={errors}
               />
-              {nameStyle.colors?.map((color, i) => (
+              {nameStyle.colors.map((color, i) => (
                 <BaseColorInput
                   key={i}
                   field={`server_profile_data.name_style.colors.${i}`}
                   title={
-                    nameStyle.colors!.length > 1
+                    nameStyle.colors.length > 1
                       ? `Name color ${i + 1}`
                       : "Name color"
                   }
@@ -4836,7 +4834,7 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
                     updateField({
                       name_style: {
                         ...nameStyle,
-                        colors: nameStyle.colors!.map((c, j) =>
+                        colors: nameStyle.colors.map((c, j) =>
                           j === i ? v : c
                         ),
                       },

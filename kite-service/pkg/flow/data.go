@@ -979,10 +979,10 @@ type ServerProfileData struct {
 type NameStyleData struct {
 	// Font and Effect are keys of provider.NameStyleFonts and
 	// provider.NameStyleEffects.
-	Font   string `json:"font,omitempty"`
-	Effect string `json:"effect,omitempty"`
+	Font   string `json:"font"`
+	Effect string `json:"effect"`
 	// Colors are hex colors like #5865F2 or numbers, with placeholders.
-	Colors []string `json:"colors,omitempty"`
+	Colors []string `json:"colors"`
 }
 
 type ChannelData struct {

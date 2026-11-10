@@ -299,7 +299,7 @@ export type StateGuildLeaveResponse = Empty;
 /**
  * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
  * field that isn't set stays as it is, and an empty one resets to the bot's
- * own profile.
+ * own profile. Reset resets all of them, the other fields are ignored then.
  */
 export interface StateGuildProfileUpdateRequest {
   nick?: string;
@@ -309,12 +309,8 @@ export interface StateGuildProfileUpdateRequest {
    */
   avatar?: string;
   banner?: string;
-  /**
-   * NameStyle changes the style of the bot's name, and ResetNameStyle
-   * removes it.
-   */
   name_style?: NameStyle;
-  reset_name_style?: boolean;
+  reset?: boolean;
 }
 export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {

@@ -529,12 +529,12 @@ export interface NameStyleData {
    * Font and Effect are keys of provider.NameStyleFonts and
    * provider.NameStyleEffects.
    */
-  font?: string;
-  effect?: string;
+  font: string;
+  effect: string;
   /**
    * Colors are hex colors like #5865F2 or numbers, with placeholders.
    */
-  colors?: string[];
+  colors: string[];
 }
 export interface ChannelData {
   name?: string;

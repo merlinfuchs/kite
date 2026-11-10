@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ColorPicker from "@/tools/common/components/ColorPicker";
 import LoadingButton from "../common/LoadingButton";
 import BotProfilePreview from "./BotProfilePreview";
+import { nameStyleCss } from "./nameStyleFonts";
 import { useAppStateGuildProfileUpdateMutation } from "@/lib/api/mutations";
 import {
   useAppStateGuildProfileQuery,
@@ -136,12 +137,11 @@ export default function GuildProfileDialog({
 
   function onReset() {
     if (!confirm("Reset the bot's profile in this server to its own?")) return;
-    save([
-      { nick: "", bio: "", avatar: "", banner: "", reset_name_style: true },
-    ]);
+    save([{ reset: true }]);
   }
 
   const changed = !!(nick || bio || avatar || banner || nameStyle);
+  const shownNameStyle = newNameStyle || current?.name_style;
 
   return (
     <Dialog open={open} onOpenChange={onDialogOpenChange}>
@@ -161,7 +161,7 @@ export default function GuildProfileDialog({
           avatarUrl={avatar || current?.avatar_url || user?.avatar_url}
           bannerUrl={banner || current?.banner_url || user?.banner_url}
           about={bio || app?.description || undefined}
-          nameStyle={newNameStyle || current?.name_style}
+          nameStyle={shownNameStyle && nameStyleCss(shownNameStyle)}
         />
 
         {available ? (
@@ -265,13 +265,12 @@ function NameStyleFields({
       onChange(undefined);
       return;
     }
-    const style = value ||
-      current || {
-        font,
-        effect: "solid",
-        colors: [defaultNameStyleColors[0]],
-      };
-    onChange({ ...style, font });
+    onChange({
+      effect: "solid",
+      colors: [defaultNameStyleColors[0]],
+      ...(value || current),
+      font,
+    });
   }
 
   function setEffect(effect: string) {

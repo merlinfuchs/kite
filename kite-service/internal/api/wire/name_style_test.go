@@ -16,14 +16,6 @@ func TestNameStyleValidate(t *testing.T) {
 	assert.Error(t, NameStyle{Font: "8bit", Effect: "solid", Colors: []int{0x1000000}}.Validate())
 }
 
-func TestStateGuildProfileUpdateRequestRejectsStyleWithReset(t *testing.T) {
-	req := StateGuildProfileUpdateRequest{
-		NameStyle:      &NameStyle{Font: "8bit", Effect: "solid", Colors: []int{1}},
-		ResetNameStyle: true,
-	}
-	assert.Error(t, req.Validate())
-}
-
 // Styles with fonts Discord no longer offers have no name in Kite.
 func TestNameStyleToWire(t *testing.T) {
 	assert.Equal(t,

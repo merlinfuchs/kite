@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { colorIntToHex } from "@/tools/common/utils/color";
 
 // The fonts and effects of the style of the bot's name in a server, the same
 // as NameStyleFonts and NameStyleEffects in kite-service/pkg/provider. The
@@ -33,16 +34,11 @@ export const nameStyleEffects = [
 export const maxNameStyleColors = 5;
 
 export type NameStyleFont = (typeof nameStyleFonts)[number]["value"];
-export type NameStyleEffect = (typeof nameStyleEffects)[number]["value"];
 
 // Colors for new name styles and for colors added when the effect changes.
 export const defaultNameStyleColors = [
   0x5865f2, 0xeb459e, 0xfee75c, 0x57f287, 0xed4245,
 ];
-
-export function nameStyleEffectColors(effect: string) {
-  return nameStyleEffects.find((e) => e.value === effect)?.colors ?? 1;
-}
 
 // Resizes colors to what the effect uses, keeping the ones set.
 export function colorsForEffect<T>(
@@ -51,13 +47,9 @@ export function colorsForEffect<T>(
   fill: (i: number) => T
 ) {
   return Array.from(
-    { length: nameStyleEffectColors(effect) },
+    { length: nameStyleEffects.find((e) => e.value === effect)?.colors ?? 1 },
     (_, i) => colors[i] ?? fill(i)
   );
-}
-
-function hex(color: number) {
-  return "#" + color.toString(16).padStart(6, "0");
 }
 
 // An approximation of how Discord draws the effect, for previews.
@@ -70,10 +62,10 @@ export function nameStyleEffectCss(
     case "gradient":
     case "prism":
     case "gummy":
-      if (colors.length < 2) return { color: hex(first) };
+      if (colors.length < 2) return { color: colorIntToHex(first) };
       return {
         backgroundImage: `linear-gradient(90deg, ${colors
-          .map(hex)
+          .map(colorIntToHex)
           .join(", ")})`,
         backgroundClip: "text",
         WebkitBackgroundClip: "text",
@@ -82,21 +74,23 @@ export function nameStyleEffectCss(
     case "neon":
       return {
         color: "#fff",
-        textShadow: `0 0 4px ${hex(first)}, 0 0 8px ${hex(first)}`,
+        textShadow: `0 0 4px ${colorIntToHex(first)}, 0 0 8px ${colorIntToHex(
+          first
+        )}`,
       };
     case "toon":
       return {
-        color: hex(first),
+        color: colorIntToHex(first),
         WebkitTextStroke: "1px rgba(0, 0, 0, 0.6)",
       };
     case "pop":
       return {
-        color: hex(first),
+        color: colorIntToHex(first),
         textShadow: `2px 2px 0 ${
-          second !== undefined ? hex(second) : "rgba(0, 0, 0, 0.6)"
+          second !== undefined ? colorIntToHex(second) : "rgba(0, 0, 0, 0.6)"
         }`,
       };
     default:
-      return { color: hex(first) };
+      return { color: colorIntToHex(first) };
   }
 }

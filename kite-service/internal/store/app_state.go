@@ -30,12 +30,5 @@ type AppStateStore interface {
 	AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error)
 	// AppGuildBotMember returns the bot's own member in the guild, with its
 	// server profile.
-	AppGuildBotMember(ctx context.Context, guildID string) (*BotMember, error)
-}
-
-// BotMember is the bot's member in a guild, with the style of its name,
-// which arikawa doesn't know.
-type BotMember struct {
-	discord.Member
-	NameStyle *provider.NameStyle `json:"display_name_styles"`
+	AppGuildBotMember(ctx context.Context, guildID string) (*provider.StyledMember, error)
 }

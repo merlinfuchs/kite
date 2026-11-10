@@ -51,9 +51,7 @@ func DiscordAPIRequest(ctx context.Context, client *api.Client, req provider.Dis
 
 // EditServerProfile changes the bot's profile in a server.
 func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.GuildID, data provider.ServerProfileData) error {
-	var member struct {
-		NameStyle *provider.NameStyle `json:"display_name_styles"`
-	}
+	var member provider.StyledMember
 	err := client.WithContext(ctx).RequestJSON(
 		&member,
 		"PATCH",
@@ -65,20 +63,20 @@ func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.
 	}
 
 	// Discord ignores name styles it doesn't take without an error.
-	if data.NameFontID != nil && !nameStyleApplied(data, member.NameStyle) {
+	if data.NameStyle != nil && !nameStyleApplied(*data.NameStyle, member.NameStyle) {
 		return fmt.Errorf("Discord didn't change the name style, check the font, effect, and colors and try again")
 	}
 	return nil
 }
 
-func nameStyleApplied(data provider.ServerProfileData, style *provider.NameStyle) bool {
-	if !data.NameFontID.Init {
-		return style == nil
+func nameStyleApplied(sent provider.NameStyle, got *provider.NameStyle) bool {
+	if sent.FontID == 0 {
+		return got == nil
 	}
-	return style != nil &&
-		style.FontID == data.NameFontID.Val &&
-		style.EffectID == data.NameEffectID.Val &&
-		slices.Equal(style.Colors, *data.NameColors)
+	return got != nil &&
+		got.FontID == sent.FontID &&
+		got.EffectID == sent.EffectID &&
+		slices.Equal(got.Colors, sent.Colors)
 }
 
 // BotProfileData changes the bot's own avatar and banner, which show

@@ -1,7 +1,5 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import { nameStyleEffectCss, NameStyleFont } from "@/lib/nameStyle";
-import { NameStyle } from "@/lib/types/wire.gen";
-import { nameStyleFontFamilies } from "./nameStyleFonts";
 
 // A preview of the bot's profile the way Discord shows it when someone clicks
 // on the bot.
@@ -19,7 +17,8 @@ export default function BotProfilePreview({
   avatarUrl?: string;
   bannerUrl?: string;
   about?: string;
-  nameStyle?: NameStyle;
+  // The style of the name, see nameStyleCss.
+  nameStyle?: CSSProperties;
   className?: string;
 }) {
   return (
@@ -45,16 +44,7 @@ export default function BotProfilePreview({
           aria-label="Avatar"
         />
         <div className="mt-2 flex items-center gap-1.5">
-          <div
-            className="truncate text-lg font-semibold"
-            style={
-              nameStyle && {
-                fontFamily:
-                  nameStyleFontFamilies[nameStyle.font as NameStyleFont],
-                ...nameStyleEffectCss(nameStyle.effect, nameStyle.colors),
-              }
-            }
-          >
+          <div className="truncate text-lg font-semibold" style={nameStyle}>
             {name}
           </div>
           <span className="shrink-0 rounded bg-indigo-500 px-1 text-[10px] font-semibold text-white">

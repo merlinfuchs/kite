@@ -317,9 +317,17 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 		Banner: profileValue(req.Banner),
 	}
 	if req.NameStyle != nil {
-		data.SetNameStyle(req.NameStyle.ToProvider())
-	} else if req.ResetNameStyle {
-		data.SetNameStyle(nil)
+		// Validate already checked the style.
+		data.NameStyle, _ = req.NameStyle.ToProvider()
+	}
+	if req.Reset {
+		data = provider.ServerProfileData{
+			Nick:      option.NullString,
+			Bio:       option.NullString,
+			Avatar:    option.NullString,
+			Banner:    option.NullString,
+			NameStyle: &provider.NameStyle{},
+		}
 	}
 
 	err = util.EditServerProfile(c.Context(), client, discord.GuildID(guildID), data)

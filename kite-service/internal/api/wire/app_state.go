@@ -1,9 +1,7 @@
 package wire
 
 import (
-	"maps"
 	"regexp"
-	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -57,49 +55,25 @@ type NameStyle struct {
 }
 
 func (s NameStyle) Validate() error {
-	return validation.ValidateStruct(&s,
-		validation.Field(&s.Font, validation.Required, validation.In(stringsToAny(slices.Collect(maps.Keys(provider.NameStyleFonts)))...)),
-		validation.Field(&s.Effect, validation.Required, validation.In(stringsToAny(slices.Collect(maps.Keys(provider.NameStyleEffects)))...)),
-		validation.Field(&s.Colors,
-			validation.Required,
-			validation.Length(1, provider.MaxNameStyleColors),
-			validation.Each(validation.Min(0), validation.Max(0xFFFFFF)),
-		),
-	)
+	_, err := s.ToProvider()
+	return err
 }
 
-func (s NameStyle) ToProvider() *provider.NameStyle {
-	return &provider.NameStyle{
-		FontID:   provider.NameStyleFonts[s.Font],
-		EffectID: provider.NameStyleEffects[s.Effect],
-		Colors:   s.Colors,
-	}
+func (s NameStyle) ToProvider() (*provider.NameStyle, error) {
+	return provider.NewNameStyle(s.Font, s.Effect, s.Colors)
 }
 
-// NameStyleToWire returns nil for styles without one of Kite's fonts or
-// effects, like the ones Discord no longer offers.
+// NameStyleToWire returns nil for styles with a font or effect Kite doesn't
+// offer, like the ones Discord no longer offers.
 func NameStyleToWire(style *provider.NameStyle) *NameStyle {
 	if style == nil {
 		return nil
 	}
-	font, ok := mapKeyOf(provider.NameStyleFonts, style.FontID)
-	if !ok {
-		return nil
-	}
-	effect, ok := mapKeyOf(provider.NameStyleEffects, style.EffectID)
+	font, effect, ok := style.Names()
 	if !ok {
 		return nil
 	}
 	return &NameStyle{Font: font, Effect: effect, Colors: style.Colors}
-}
-
-func mapKeyOf(m map[string]int, value int) (string, bool) {
-	for k, v := range m {
-		if v == value {
-			return k, true
-		}
-	}
-	return "", false
 }
 
 type StateGuildProfileGetResponse = StateGuildProfile
@@ -172,17 +146,15 @@ type StateGuildLeaveResponse = Empty
 
 // StateGuildProfileUpdateRequest changes the bot's profile in a server. A
 // field that isn't set stays as it is, and an empty one resets to the bot's
-// own profile.
+// own profile. Reset resets all of them, the other fields are ignored then.
 type StateGuildProfileUpdateRequest struct {
 	Nick *string `json:"nick,omitempty"`
 	Bio  *string `json:"bio,omitempty"`
 	// Avatar and Banner are data URIs of the image.
-	Avatar *string `json:"avatar,omitempty"`
-	Banner *string `json:"banner,omitempty"`
-	// NameStyle changes the style of the bot's name, and ResetNameStyle
-	// removes it.
-	NameStyle      *NameStyle `json:"name_style,omitempty"`
-	ResetNameStyle bool       `json:"reset_name_style,omitempty"`
+	Avatar    *string    `json:"avatar,omitempty"`
+	Banner    *string    `json:"banner,omitempty"`
+	NameStyle *NameStyle `json:"name_style,omitempty"`
+	Reset     bool       `json:"reset,omitempty"`
 }
 
 var profileImageRegex = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,`)
@@ -194,7 +166,6 @@ func (req StateGuildProfileUpdateRequest) Validate() error {
 		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
 		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
 		validation.Field(&req.NameStyle),
-		validation.Field(&req.ResetNameStyle, validation.When(req.NameStyle != nil, validation.Empty.Error("can't be combined with a name style"))),
 	)
 }
 
