@@ -29,7 +29,8 @@ const sections: Record<
   action: [
     {
       // Event listeners can only use them after a button or select menu, see
-      // needs_interaction.
+      // needs_interaction. Message listeners can also reply with the create
+      // block.
       title: "Responses",
       contextTypes: null,
     },

@@ -153,7 +153,8 @@ export interface BlockDefinition {
   // Flow types the block can be used in, otherwise those of its section.
   contexts?: FlowContextType[];
   // Responds to the interaction the flow runs with, which event listeners
-  // only have after a button or select menu is used.
+  // only have after a button or select menu is used. The response create block
+  // is the exception in message listeners, where it replies to the message.
   needs_interaction?: boolean;
   // Output handles, defaults to ["default"].
   outputs?: string[];

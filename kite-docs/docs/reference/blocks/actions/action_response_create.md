@@ -15,7 +15,7 @@ You can either configure the message in the block directly or use a message temp
 
 If the message contains interactive components, the flow will be suspended until the user interacts with the message. See [Sub-Flows](/reference/sub-flows) for more information on how interactive components work.
 
-Event listeners have no interaction to respond to, so there it only works in the blocks attached to a button or select menu of a message the flow sent. The same goes for the other response blocks and modals.
+In `Message create`, `Message update` and `Direct message create` event listeners there's no interaction, so the block sends a reply to the message that triggered the listener instead. The reply is a normal message in the same channel, so `Public response` has no effect there, as it can't be ephemeral. In all other event listeners it only works in the blocks attached to a button or select menu of a message the flow sent. The same goes for the other response blocks and modals, which only work with an interaction.
 
 :::tip
 In the blocks attached to a button or select menu, `user` is whoever clicked it. Use `origin.user` for the person who ran the command. See [Who is `user` in a sub-flow?](/reference/sub-flows#who-is-user-in-a-sub-flow).

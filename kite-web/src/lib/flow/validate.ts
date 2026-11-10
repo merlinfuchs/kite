@@ -26,6 +26,15 @@ import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
 import { isNoteNode } from "./notes";
 
+// Event types whose message the response message block replies to, as there's
+// no interaction to respond to. Keep in sync with IsMessageReplyEventType in
+// the service.
+const MESSAGE_REPLY_EVENT_TYPES = [
+  "message_create",
+  "message_update",
+  "direct_message_create",
+];
+
 export interface FlowIssue {
   severity: "error" | "warning";
   message: string;
@@ -155,14 +164,22 @@ export function validateFlow(
 
   // Event listeners run without an interaction, until a button or select menu
   // on a message they sent is used. Blocks that respond to one before that
-  // fail.
+  // fail. The exception is the response message block in message listeners,
+  // which replies to the message instead.
   if (context.startsWith("event_") && entries.length === 1) {
+    const repliesToMessage = MESSAGE_REPLY_EVENT_TYPES.includes(
+      entries[0].data.event_type ?? ""
+    );
     const sameExecution = edges.filter(
       (e) => !isResumeEdge(e, knownById.get(e.source)?.type)
     );
     for (const id of walkDownstream([entries[0].id], sameExecution)) {
       const node = knownById.get(id);
-      if (node && getNodeValues(node.type!).needsInteraction) {
+      if (
+        node &&
+        getNodeValues(node.type!).needsInteraction &&
+        !(repliesToMessage && node.type === "action_response_create")
+      ) {
         report(
           "error",
           `'${getNodeTitle(

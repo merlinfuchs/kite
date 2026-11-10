@@ -282,6 +282,43 @@ func TestCheckInteractionBlocksInDiscordEventListeners(t *testing.T) {
 	assert.ErrorContains(t, entry.CheckInteractionBlocks(), "action_response_create")
 }
 
+func TestCheckInteractionBlocksRepliesInMessageListeners(t *testing.T) {
+	listener := func(eventType string, action FlowNodeType) FlowData {
+		return FlowData{
+			Nodes: []FlowNode{
+				{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: eventType, Description: "On message"}},
+				{ID: "1", Type: action},
+			},
+			Edges: []FlowEdge{{Source: "0", Target: "1"}},
+		}
+	}
+
+	for _, eventType := range []string{"message_create", "message_update", "direct_message_create"} {
+		entry, err := CompileEventListener(listener(eventType, FlowNodeTypeActionResponseCreate))
+		require.NoError(t, err)
+		assert.True(t, entry.IsMessageEventEntry())
+		assert.NoError(t, entry.CheckInteractionBlocks(), "%s replies to the message", eventType)
+	}
+
+	// The other response blocks still need an interaction.
+	for _, action := range []FlowNodeType{
+		FlowNodeTypeActionResponseEdit,
+		FlowNodeTypeActionResponseDelete,
+		FlowNodeTypeActionResponseDefer,
+		FlowNodeTypeSuspendResponseModal,
+	} {
+		entry, err := CompileEventListener(listener("message_create", action))
+		require.NoError(t, err)
+		assert.ErrorContains(t, entry.CheckInteractionBlocks(), string(action))
+	}
+
+	// Other events have no message to reply to.
+	entry, err := CompileEventListener(listener("guild_member_add", FlowNodeTypeActionResponseCreate))
+	require.NoError(t, err)
+	assert.False(t, entry.IsMessageEventEntry())
+	assert.ErrorContains(t, entry.CheckInteractionBlocks(), "action_response_create")
+}
+
 func TestCommandValidationMatchesDiscordLimits(t *testing.T) {
 	entry := FlowNodeData{Name: "ping", Description: "Ping"}
 	assert.NoError(t, entry.Validate(FlowNodeTypeEntryCommand))

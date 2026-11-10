@@ -35,6 +35,12 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	interaction := ctx.Data.Interaction()
 	if interaction == nil {
+		// Message listeners have no interaction, the response is a reply to
+		// the message that triggered them.
+		if msg := eventMessage(ctx.Data.Event()); msg != nil {
+			return executeActionResponseCreateReply(n, ctx, msg)
+		}
+
 		return &FlowError{
 			Code:    FlowNodeErrorUnknown,
 			Message: "interaction is nil",
@@ -92,6 +98,45 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 			ChannelID:         msg.ChannelID,
 			GuildID:           ctx.Data.GuildID(),
 			Ephemeral:         n.Data.MessageEphemeral,
+		})
+		if err != nil {
+			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+		}
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+// executeActionResponseCreateReply replies to the message of a message create
+// or update event, as there's no interaction to respond to.
+func executeActionResponseCreateReply(n *CompiledFlowNode, ctx *FlowContext, trigger *discord.Message) error {
+	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	if err != nil {
+		return err
+	}
+	messageData := data.ToSendMessageData(opts)
+	messageData.Reference = &discord.MessageReference{MessageID: trigger.ID}
+
+	msg, err := ctx.Discord.CreateMessage(ctx, trigger.ChannelID, messageData)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+	if resumePointID != "" {
+		// We have to create the resume point after the message has been stored
+		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.Data.MessageTemplateID != "" {
+		err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
+			MessageTemplateID: n.Data.MessageTemplateID,
+			MessageID:         msg.ID,
+			ChannelID:         msg.ChannelID,
+			GuildID:           ctx.Data.GuildID(),
 		})
 		if err != nil {
 			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))

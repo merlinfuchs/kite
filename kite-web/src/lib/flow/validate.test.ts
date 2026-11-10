@@ -154,9 +154,13 @@ describe("validateFlow", () => {
         "event_discord"
       )
     ).toEqual([]);
+    const memberEvent = node("entry", "entry_event", {
+      event_type: "guild_member_add",
+      description: "Test",
+    });
     expect(
       errors(
-        [event, message, respond("reply"), respond("early")],
+        [memberEvent, message, respond("reply"), respond("early")],
         [
           edge("entry", "msg"),
           edge("msg", "reply", "component_1"),
@@ -166,6 +170,37 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Create response message' can only be used after a button or select menu in event listeners.",
+    ]);
+  });
+
+  it("replies to the message in message listeners", () => {
+    const respond = node("reply", "action_response_create", {
+      message_data: { content: "Hi" },
+    });
+    for (const eventType of [
+      "message_create",
+      "message_update",
+      "direct_message_create",
+    ]) {
+      const event = node("entry", "entry_event", {
+        event_type: eventType,
+        description: "Test",
+      });
+      expect(
+        errors([event, respond], [edge("entry", "reply")], "event_discord")
+      ).toEqual([]);
+    }
+
+    // Only the create block replies, the others need an interaction.
+    const event = node("entry", "entry_event", {
+      event_type: "message_create",
+      description: "Test",
+    });
+    const defer = node("defer", "action_response_defer", {});
+    expect(
+      errors([event, defer], [edge("entry", "defer")], "event_discord")
+    ).toEqual([
+      "'Defer response' can only be used after a button or select menu in event listeners.",
     ]);
   });
 

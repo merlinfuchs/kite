@@ -64,7 +64,17 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 // Saving checks it, not compiling, so Discord event listeners saved before
 // keep running.
 func (n *CompiledFlowNode) CheckInteractionBlocks() error {
-	if node := firstWithoutInteraction(n, isInteractionOnly); node != nil {
+	// Message listeners have a message to reply to, so the response create
+	// block works there even without an interaction.
+	repliesToMessage := n.IsMessageEventEntry()
+
+	node := firstInExecution([]*CompiledFlowNode{n}, func(c *CompiledFlowNode) bool {
+		if repliesToMessage && c.Type == FlowNodeTypeActionResponseCreate {
+			return false
+		}
+		return isInteractionOnly(c.Type)
+	})
+	if node != nil {
 		return fmt.Errorf("block %s can't be used in event listeners outside of button branches", node.Type)
 	}
 	return nil
@@ -242,6 +252,23 @@ func (n *CompiledFlowNode) IsScheduleEntry() bool {
 
 func (n *CompiledFlowNode) IsWebhookEntry() bool {
 	return n.Type == FlowNodeTypeEntryEvent && n.Data.EventType == EventTypeWebhook
+}
+
+// IsMessageEventEntry reports whether the entry is an event listener for
+// messages that are sent or edited. These have a message to reply to, which
+// the response create block does when there's no interaction.
+func (n *CompiledFlowNode) IsMessageEventEntry() bool {
+	return n.Type == FlowNodeTypeEntryEvent && IsMessageReplyEventType(n.Data.EventType)
+}
+
+// IsMessageReplyEventType reports whether events of the type carry a message
+// that can be replied to.
+func IsMessageReplyEventType(eventType string) bool {
+	switch eventType {
+	case "message_create", "message_update", "direct_message_create":
+		return true
+	}
+	return false
 }
 
 func (n *CompiledFlowNode) IsCommandEntry() bool {
