@@ -261,7 +261,7 @@ func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
 func TestCheckInteractionBlocksInDiscordEventListeners(t *testing.T) {
 	data := FlowData{
 		Nodes: []FlowNode{
-			{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: "message_create", Description: "On message"}},
+			{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: "guild_member_add", Description: "On member join"}},
 			{ID: "1", Type: FlowNodeTypeActionMessageCreate},
 			{ID: "2", Type: FlowNodeTypeActionResponseCreate},
 		},
