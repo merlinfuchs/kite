@@ -71,6 +71,16 @@ func (s *fakePromptStore) AddAssistantPromptUsage(ctx context.Context, appID str
 	return nil
 }
 
+func (s *fakePromptStore) RefuseAssistantPrompt(ctx context.Context, appID string, id string, chance float64, edited bool, updatedAt time.Time) error {
+	prompt, err := s.AssistantPrompt(ctx, appID, id)
+	if err != nil {
+		return err
+	}
+	prompt.RefusalChance = chance
+	prompt.Edited = prompt.Edited && edited
+	return nil
+}
+
 func (s *fakePromptStore) CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error) {
 	var count model.AssistantPromptCount
 	for _, prompt := range s.prompts {
@@ -135,7 +145,7 @@ func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowa
 	a.calls++
 	a.req = req
 	if a.refuse {
-		return nil, flowai.ErrRefused
+		return nil, &flowai.ErrRefused{Chance: 0.95}
 	}
 	if a.err != nil {
 		if a.answered {
@@ -392,6 +402,7 @@ func TestRefusedPromptsAreKeptAsAnswers(t *testing.T) {
 	for _, p := range s.store.prompts {
 		assert.False(t, p.Edited)
 		assert.Equal(t, "Remove a", p.Prompt)
+		assert.Equal(t, 0.95, p.RefusalChance)
 	}
 }
 
@@ -407,4 +418,5 @@ func TestRefusedRepairsUseUpTheirRound(t *testing.T) {
 	assert.Equal(t, "flow_ai_refused", errCode(res))
 	assert.Equal(t, 2, s.store.prompts[promptID].Rounds)
 	assert.True(t, s.store.prompts[promptID].Edited)
+	assert.Equal(t, 0.95, s.store.prompts[promptID].RefusalChance)
 }

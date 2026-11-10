@@ -150,8 +150,8 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
-	if a.refuses(ctx, req) {
-		return nil, ErrRefused
+	if err := a.screen(ctx, req); err != nil {
+		return nil, err
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)

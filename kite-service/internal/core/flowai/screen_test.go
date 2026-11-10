@@ -37,7 +37,9 @@ func TestRespondRefuses(t *testing.T) {
 	assistant.config.Decisions = d
 
 	_, err := assistant.Respond(context.Background(), nukeRequest)
-	assert.ErrorIs(t, err, ErrRefused)
+	var refused *ErrRefused
+	require.ErrorAs(t, err, &refused)
+	assert.Equal(t, 0.95, refused.Chance)
 	assert.Nil(t, *body, "OpenAI was called")
 	assert.Equal(t, provider.DecisionTypeNoul, d.opts.Type)
 	assert.Equal(t, "Request: make a nuke command\n\nRequest: fix the errors\n\nProblems to fix:\n- 'Create channel' never runs\n\nCurrent flow:\nentry_command({ name: \"nuke\" }, [])", d.opts.Input)

@@ -207,14 +207,12 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		UserID:       c.Session.UserID,
 		PromptID:     prompt.ID,
 	})
-	if errors.Is(err, flowai.ErrRefused) {
-		// Kept as an answer without edits, so asking again uses up the
-		// answers. The log of the refusal has its ID. A refused repair uses
-		// up its round.
-		if !isRepair {
-			if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, model.AssistantUsage{}, false, time.Now().UTC()); err != nil {
-				slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
-			}
+	var refused *flowai.ErrRefused
+	if errors.As(err, &refused) {
+		// A refused prompt is kept as an answer without edits, so asking
+		// again uses up the answers. A refused repair uses up its round.
+		if err := h.promptStore.RefuseAssistantPrompt(ctx, c.App.ID, prompt.ID, refused.Chance, isRepair, time.Now().UTC()); err != nil {
+			slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
 		}
 		return nil, handler.ErrForbidden("flow_ai_refused", "Flow AI can't help with this. Kite doesn't allow bots that nuke or raid servers, spam members, or steal accounts or data.")
 	}

@@ -3,6 +3,7 @@ package flowai
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -13,7 +14,14 @@ import (
 // ErrRefused is returned by Respond for chats that ask for a bot that attacks
 // Discord servers or their members. They are refused before they reach
 // OpenAI, which warns and restricts accounts whose users ask for that.
-var ErrRefused = errors.New("flow AI refused the prompt")
+type ErrRefused struct {
+	// Chance is the chance of harm the decision model gave the chat.
+	Chance float64
+}
+
+func (e *ErrRefused) Error() string {
+	return fmt.Sprintf("flow AI refused the prompt with a chance of harm of %.2f", e.Chance)
+}
 
 // screenModel is the decision model that checks chats. It's pinned apart from
 // the AI blocks' model, as screenThreshold is tuned for it.
@@ -33,12 +41,12 @@ const screenQuestion = "Is this person using a Discord bot builder to make a bot
 	"phishing or scams, stealing accounts, tokens or personal data, or self-bots. " +
 	"Bots that protect servers, like anti-nuke or anti-raid, and normal moderation, tickets, announcements and staff-only bulk actions are No."
 
-// refuses checks whether the chat asks for a bot that attacks Discord servers
-// or their members. If the check fails, the chat isn't refused, so the flow AI
-// works without the decision model.
-func (a *Assistant) refuses(ctx context.Context, req Request) bool {
+// screen returns an ErrRefused if the chat asks for a bot that attacks
+// Discord servers or their members. If the check fails, the chat isn't
+// refused, so the flow AI works without the decision model.
+func (a *Assistant) screen(ctx context.Context, req Request) error {
 	if a.config.Decisions == nil {
-		return false
+		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, screenTimeout)
@@ -56,10 +64,10 @@ func (a *Assistant) refuses(ctx context.Context, req Request) bool {
 		if !errors.Is(ctx.Err(), context.Canceled) {
 			slog.Error("Failed to screen flow AI prompt", slog.String("app_id", req.AppID), slog.Any("error", err))
 		}
-		return false
+		return nil
 	}
 	if decision.Noul < screenThreshold {
-		return false
+		return nil
 	}
 
 	slog.Warn(
@@ -69,7 +77,7 @@ func (a *Assistant) refuses(ctx context.Context, req Request) bool {
 		slog.String("prompt_id", req.PromptID),
 		slog.Float64("chance", decision.Noul),
 	)
-	return true
+	return &ErrRefused{Chance: decision.Noul}
 }
 
 // screenInput is everything of the chat the model would see that the user
