@@ -208,8 +208,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		PromptID:     prompt.ID,
 	})
 	if errors.Is(err, flowai.ErrRefused) {
-		// Kept as an answer without edits, so it can be looked at and asking
-		// again uses up the answers. A refused repair uses up its round.
+		// Kept as an answer without edits, so asking again uses up the
+		// answers. The log of the refusal has its ID. A refused repair uses
+		// up its round.
 		if !isRepair {
 			if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, model.AssistantUsage{}, false, time.Now().UTC()); err != nil {
 				slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))

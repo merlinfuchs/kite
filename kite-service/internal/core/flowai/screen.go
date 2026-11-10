@@ -52,7 +52,10 @@ func (a *Assistant) refuses(ctx context.Context, req Request) bool {
 		Input:    screenInput(req),
 	})
 	if err != nil {
-		slog.Error("Failed to screen flow AI prompt", slog.String("app_id", req.AppID), slog.Any("error", err))
+		// Not when the user left, as the answer won't be made either.
+		if !errors.Is(ctx.Err(), context.Canceled) {
+			slog.Error("Failed to screen flow AI prompt", slog.String("app_id", req.AppID), slog.Any("error", err))
+		}
 		return false
 	}
 	if decision.Noul < screenThreshold {
