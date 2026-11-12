@@ -12,9 +12,26 @@ import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
 import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
+import { useEditorUsage } from "@/lib/hooks/api";
+import { useCallback } from "react";
+import { toast } from "sonner";
 
 export default function CommandList() {
   const commands = useCommands();
+  const onUsageResponse = useCallback(
+    (response: {
+      success: boolean;
+      error?: { message: string; code: string };
+    }) => {
+      if (!response.success) {
+        toast.error(
+          `Failed to load editor activity: ${response.error?.message} (${response.error?.code})`
+        );
+      }
+    },
+    []
+  );
+  const editorUsage = useEditorUsage(onUsageResponse);
   const limit = usePlanLimit("max_commands", commands?.length);
 
   const commandActions = (
@@ -56,7 +73,17 @@ export default function CommandList() {
                 command.description,
               ]}
               renderItem={(command) => (
-                <CommandListEntry command={command} key={command.id} />
+                <CommandListEntry
+                  command={command}
+                  editorUsage={
+                    editorUsage?.items.find(
+                      (item) =>
+                        item.target_type === "command" &&
+                        item.target_id === command.id
+                    ) ?? (editorUsage ? null : undefined)
+                  }
+                  key={command.id}
+                />
               )}
               placeholder="Search commands"
               actions={commandActions}

@@ -38,6 +38,7 @@ import {
   useVariablesQuery,
   useAppSecretsQuery,
   useAppIntegrationsQuery,
+  useEditorUsageQuery,
   usePluginsQuery,
   usePluginInstanceQuery,
   usePluginInstancesQuery,
@@ -81,6 +82,7 @@ import {
   AppSecretListResponse,
   AppIntegrationListResponse,
 } from "../types/wire.gen";
+import type { EditorUsageGetResponse } from "../types/editorUsage";
 import { useAppId, usePluginId } from "./params";
 
 export function useResponseData<T>(
@@ -118,6 +120,14 @@ export function useApp(callback?: (res: APIResponse<AppGetResponse>) => void) {
   const router = useRouter();
 
   const query = useAppQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useEditorUsage(
+  callback?: (res: APIResponse<EditorUsageGetResponse>) => void
+) {
+  const router = useRouter();
+  const query = useEditorUsageQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

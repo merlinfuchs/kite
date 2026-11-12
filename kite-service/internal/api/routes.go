@@ -20,6 +20,7 @@ import (
 	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
+	editorusage "github.com/kitecloud/kite/kite-service/internal/api/handler/editor_usage"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
@@ -82,6 +83,7 @@ func (s *APIServer) RegisterRoutes(
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
 	notifier *notify.Notifier,
+	editorSessionStore store.EditorSessionStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -229,6 +231,15 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
+	editorUsageHandler := editorusage.NewEditorUsageHandler(
+		commandStore,
+		eventListenerStore,
+		editorSessionStore,
+	)
+	appGroup.Get("/editor-usage", handler.Typed(editorUsageHandler.HandleEditorUsageGet))
+	appGroup.Put("/editor-sessions/{sessionID}",
+		handler.TypedWithBody(editorUsageHandler.HandleEditorSessionUpsert),
+	)
 	appGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppGet))
 	appGroup.Put("/",
 		handler.TypedWithBody(appHandler.HandleAppUpdate),

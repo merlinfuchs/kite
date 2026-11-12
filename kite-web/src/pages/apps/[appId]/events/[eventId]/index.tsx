@@ -112,6 +112,7 @@ export default function AppEventListenerPage() {
       </Head>
       {listener && (
         <FlowPage
+          key={`${appId}:${eventId}`}
           flowData={listener.flow_source}
           context={
             listener.source === "schedule"

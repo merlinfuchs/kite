@@ -23,6 +23,9 @@ import {
   sourceLimitKeys,
   usePlanLimit,
 } from "./PlanLimit";
+import { useEditorUsage } from "@/lib/hooks/api";
+import { useCallback } from "react";
+import { toast } from "sonner";
 
 const emptyStates: Record<
   EventListenerSource,
@@ -50,6 +53,20 @@ export default function EventListenerList({
   source: EventListenerSource;
 }) {
   const allListeners = useEventListeners();
+  const onUsageResponse = useCallback(
+    (response: {
+      success: boolean;
+      error?: { message: string; code: string };
+    }) => {
+      if (!response.success) {
+        toast.error(
+          `Failed to load editor activity: ${response.error?.message} (${response.error?.code})`
+        );
+      }
+    },
+    []
+  );
+  const editorUsage = useEditorUsage(onUsageResponse);
   const listeners = useMemo(
     () => allListeners?.filter((l) => l?.source === source),
     [allListeners, source]
@@ -96,7 +113,17 @@ export default function EventListenerList({
             listener.source,
           ]}
           renderItem={(listener) => (
-            <EventListenerListEntry listener={listener} key={listener.id} />
+            <EventListenerListEntry
+              listener={listener}
+              editorUsage={
+                editorUsage?.items.find(
+                  (item) =>
+                    item.target_type === "event_listener" &&
+                    item.target_id === listener.id
+                ) ?? (editorUsage ? null : undefined)
+              }
+              key={listener.id}
+            />
           )}
           placeholder={`Search ${name.singular}s`}
           actions={listenerActions}

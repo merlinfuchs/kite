@@ -102,6 +102,7 @@ export default function AppCommandPage() {
       </Head>
       {cmd && (
         <FlowPage
+          key={`${appId}:${cmdId}`}
           flowData={cmd.flow_source}
           context="command"
           viewportKey={`command:${cmd.id}`}

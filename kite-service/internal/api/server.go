@@ -89,6 +89,7 @@ func NewAPIServer(
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
 	notifier *notify.Notifier,
+	editorSessionStore store.EditorSessionStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -129,6 +130,7 @@ func NewAPIServer(
 		apiTokenStore,
 		oauthCodeStore,
 		notifier,
+		editorSessionStore,
 	)
 	return s
 }

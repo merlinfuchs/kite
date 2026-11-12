@@ -59,6 +59,7 @@ import {
   StatsGetResponse,
   APITokenListResponse,
 } from "../types/wire.gen";
+import type { EditorUsageGetResponse } from "../types/editorUsage";
 
 export function useUserQuery(userId = "@me") {
   return useQuery({
@@ -96,6 +97,15 @@ export function useAppQuery(appId: string) {
       const app = query.state.data?.success ? query.state.data.data : null;
       return app?.commands_deploy_pending && app.enabled ? 3000 : false;
     },
+  });
+}
+
+export function useEditorUsageQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "editor-usage"],
+    queryFn: () =>
+      apiRequest<EditorUsageGetResponse>(`/v1/apps/${appId}/editor-usage`),
+    enabled: !!appId,
   });
 }
 

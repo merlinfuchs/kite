@@ -5,6 +5,7 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import AppSetupChecklist from "@/components/app/AppSetupChecklist";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
+import AppEditorUsageCard from "@/components/app/AppEditorUsageCard";
 import { useApp, useAppEntities, useAppFeatures } from "@/lib/hooks/api";
 import { useMemo } from "react";
 
@@ -57,6 +58,7 @@ export default function AppPage() {
               }}
             />
           </div>
+          <AppEditorUsageCard />
           <UsageCreditsByDayChart />
           <AppChartCards />
         </div>
