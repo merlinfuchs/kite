@@ -130,6 +130,12 @@ type BundleInstall struct {
 	Settings      []byte
 }
 
+type BundleInstallCount struct {
+	BundleID string
+	Total    int64
+	Active   int64
+}
+
 type BundleListing struct {
 	BundleID    string
 	Icon        string

@@ -480,9 +480,13 @@ export interface Bundle {
    */
   version_notes: BundleVersionNotes[];
   /**
-   * InstallCount is how many apps added it.
+   * InstallCount is how many apps added it, not counting its owner's.
    */
   install_count: number /* int */;
+  /**
+   * ActiveInstallCount is how many of them ran a flow in the last 30 days.
+   */
+  active_install_count: number /* int */;
   /**
    * StarCount is how many users starred it.
    */
@@ -544,10 +548,14 @@ export interface UserBundle {
    */
   item_count: number /* int */;
   /**
-   * InstallCount is how many apps added it, also ones not from the
-   * marketplace.
+   * InstallCount is how many apps of other users added it, also ones not
+   * from the marketplace.
    */
   install_count: number /* int */;
+  /**
+   * ActiveInstallCount is how many of them ran a flow in the last 30 days.
+   */
+  active_install_count: number /* int */;
   /**
    * ListedVersion is the version apps install from the marketplace, null if
    * it isn't listed.

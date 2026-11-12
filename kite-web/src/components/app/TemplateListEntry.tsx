@@ -9,6 +9,7 @@ import {
   templateCategory,
 } from "@/lib/flow/templates";
 import {
+  ActivityIcon,
   BotIcon,
   CircleCheckIcon,
   MailIcon,
@@ -270,15 +271,32 @@ export function TemplateContents({ template }: { template: Template }) {
   );
 }
 
-export function TemplateInstallCount({ installs }: { installs?: number }) {
+export function TemplateInstallCount({
+  installs,
+  activeInstalls,
+}: {
+  installs?: number;
+  activeInstalls?: number;
+}) {
   if (!installs) {
     return null;
   }
 
   return (
-    <span className="flex items-center gap-1">
-      <BotIcon className="h-3.5 w-3.5" />
-      Added to {formatNumber(installs)} {installs === 1 ? "bot" : "bots"}
-    </span>
+    <>
+      <span className="flex items-center gap-1">
+        <BotIcon className="h-3.5 w-3.5" />
+        Added to {formatNumber(installs)} {installs === 1 ? "bot" : "bots"}
+      </span>
+      {!!activeInstalls && (
+        <span className="flex items-center gap-1" title={activeInstallsTitle}>
+          <ActivityIcon className="h-3.5 w-3.5" />
+          {formatNumber(activeInstalls)} active
+        </span>
+      )}
+    </>
   );
 }
+
+export const activeInstallsTitle =
+  "Bots that ran a command or event in the last 30 days";
