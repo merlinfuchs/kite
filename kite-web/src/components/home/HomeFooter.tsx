@@ -170,10 +170,20 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
+            rel="noreferrer noopener"
             href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             Merlin Fuchs
+          </a>{" "}
+          and{" "}
+          <a
+            target="_blank"
+            rel="noreferrer noopener"
+            href="https://github.com/merlinfuchs/kite/graphs/contributors?all=1"
+            className="text-primary transition-all border-primary hover:border-b-2"
+          >
+            Contributors
           </a>
         </h3>
       </section>
