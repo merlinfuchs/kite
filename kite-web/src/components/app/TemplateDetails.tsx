@@ -168,7 +168,10 @@ export function TemplateDetails({
             )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
-            <TemplateInstallCount installs={template.installs} />
+            <TemplateInstallCount
+              installs={template.installs}
+              activeInstalls={template.activeInstalls}
+            />
             {template.author.kind === "user" && (
               <BundleReportDialog bundleId={template.id} name={template.name}>
                 <button className="flex items-center gap-1 hover:text-foreground">

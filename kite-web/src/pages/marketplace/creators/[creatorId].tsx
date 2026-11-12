@@ -1,6 +1,7 @@
 import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import {
+  activeInstallsTitle,
   FeaturedTemplateEntry,
   TemplateListEntry,
 } from "@/components/app/TemplateListEntry";
@@ -71,6 +72,10 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   const owner = listed[0].owner!;
   const avatar = userAvatar({ id: creatorId, avatar: owner.discord_avatar });
   const installs = templates.reduce((sum, t) => sum + (t.installs ?? 0), 0);
+  const activeInstalls = templates.reduce(
+    (sum, t) => sum + (t.activeInstalls ?? 0),
+    0
+  );
   const stars = templates.reduce((sum, t) => sum + (t.stars ?? 0), 0);
   const byInstalls = [...templates].sort(
     (a, b) => (b.installs ?? 0) - (a.installs ?? 0)
@@ -130,8 +135,15 @@ export default function CreatorPage({ creatorId, listed }: Props) {
             />
             <Stat
               value={installs}
-              label={installs === 1 ? "bot uses them" : "bots use them"}
+              label={installs === 1 ? "bot added them" : "bots added them"}
             />
+            {activeInstalls > 0 && (
+              <Stat
+                value={activeInstalls}
+                label={activeInstalls === 1 ? "active bot" : "active bots"}
+                title={activeInstallsTitle}
+              />
+            )}
             {stars >= minShownStars && <Stat value={stars} label="stars" />}
             <div className="flex flex-wrap gap-2">
               {categories.map((c) => (
@@ -193,9 +205,17 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({
+  value,
+  label,
+  title,
+}: {
+  value: number;
+  label: string;
+  title?: string;
+}) {
   return (
-    <div>
+    <div title={title}>
       <div className="text-2xl font-bold">{formatNumber(value)}</div>
       <div className="text-sm text-muted-foreground">{label}</div>
     </div>

@@ -45,8 +45,11 @@ type Bundle struct {
 	// ItemCount is how many items the version has, set when the bundle is
 	// loaded without its content.
 	ItemCount int
-	// InstallCount is how many apps added the bundle.
+	// InstallCount is how many apps of others than its owner added the
+	// bundle.
 	InstallCount int
+	// ActiveInstallCount is how many of them ran a flow in the last 30 days.
+	ActiveInstallCount int
 	// StarCount is how many users starred the bundle.
 	StarCount int
 	// Notes are what changed in the version, set when it's published.
