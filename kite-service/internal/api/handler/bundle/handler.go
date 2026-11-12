@@ -44,6 +44,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		res[i] = wire.BundleToWire(b)
 		if b.Owner != nil {
 			res[i].Owner = wire.BundleOwnerToWire(b.Owner)
+			res[i].Owner.InstallerCount = &b.OwnerInstallerCount
 			res[i].Yours = b.OwnedBy(userID)
 		}
 	}

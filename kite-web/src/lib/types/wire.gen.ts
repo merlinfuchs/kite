@@ -492,6 +492,10 @@ export interface Bundle {
    */
   star_count: number /* int */;
   /**
+   * StaffPick is whether Kite picked it.
+   */
+  staff_pick: boolean;
+  /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
    */
@@ -510,6 +514,11 @@ export interface BundleOwner {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  /**
+   * InstallerCount is how many other users added any of their templates in
+   * the marketplace, only set in the list of all templates.
+   */
+  installer_count?: number /* int */;
 }
 /**
  * BundleListing is how a bundle is shown on its page and in the marketplace.
@@ -826,6 +835,10 @@ export interface BundleRemoveRequest {
   reason: string;
 }
 export interface BundleRemoveResponse {
+}
+export interface BundleStaffPickResponse {
+}
+export interface BundleStaffPickDeleteResponse {
 }
 
 //////////

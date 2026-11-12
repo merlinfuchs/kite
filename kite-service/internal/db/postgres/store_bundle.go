@@ -151,9 +151,24 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 		b.InstallCount = int(row.InstallCount)
 		b.ActiveInstallCount = int(row.ActiveInstallCount)
 		b.StarCount = int(row.StarCount)
+		b.OwnerInstallerCount = int(row.OwnerInstallerCount)
 		bundles[i] = b
 	}
 	return bundles, nil
+}
+
+func (c *Client) SetBundleStaffPick(ctx context.Context, id string, at null.Time) error {
+	rows, err := c.Q.SetBundleStaffPickedAt(ctx, pgmodel.SetBundleStaffPickedAtParams{
+		ID:            id,
+		StaffPickedAt: pgtype.Timestamp{Time: at.Time.UTC(), Valid: at.Valid},
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return store.ErrNotFound
+	}
+	return nil
 }
 
 func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
@@ -559,6 +574,7 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 		RemovedAt:     null.NewTime(row.RemovedAt.Time, row.RemovedAt.Valid),
 		RemovedReason: row.RemovedReason,
+		StaffPickedAt: null.NewTime(row.StaffPickedAt.Time, row.StaffPickedAt.Valid),
 		Version:       int(row.Version),
 		LatestVersion: int(row.Version),
 		// Official bundles are never reviewed.

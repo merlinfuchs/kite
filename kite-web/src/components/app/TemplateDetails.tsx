@@ -1,4 +1,5 @@
 import TemplateIcon from "./TemplateIcon";
+import { StaffPickBadge } from "./TemplateBadges";
 import {
   creatorPath,
   Template,
@@ -138,6 +139,7 @@ export function TemplateDetails({
             {template.description}
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-muted-foreground">
+            {template.staffPick && <StaffPickBadge />}
             {template.author.kind === "kite" ? (
               <span className="flex items-center gap-1">
                 <BadgeCheckIcon className="h-4 w-4 text-primary" />

@@ -524,6 +524,8 @@ func (s *APIServer) RegisterRoutes(
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
+	adminGroup.Post("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPick))
+	adminGroup.Delete("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPickDelete))
 
 	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
 	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))

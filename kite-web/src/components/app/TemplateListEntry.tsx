@@ -10,6 +10,7 @@ import {
 } from "@/lib/flow/templates";
 import {
   ActivityIcon,
+  AwardIcon,
   BotIcon,
   CircleCheckIcon,
   MailIcon,
@@ -115,7 +116,14 @@ function TemplateEntryHead({
         />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-semibold truncate">{template.name}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold truncate">{template.name}</span>
+          {template.staffPick && (
+            <span title="Staff pick, picked by the Kite team">
+              <AwardIcon className="h-4 w-4 flex-none text-primary" />
+            </span>
+          )}
+        </div>
         <TemplateAuthor template={template} />
       </div>
       {added ? (

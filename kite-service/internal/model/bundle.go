@@ -22,6 +22,9 @@ type Bundle struct {
 	// rules, with the reason its owner sees. It's final.
 	RemovedAt     null.Time
 	RemovedReason string
+	// StaffPickedAt is when Kite picked a user's bundle, which the
+	// marketplace shows with a badge. It's null if it isn't picked.
+	StaffPickedAt null.Time
 	// Version is the version of Content. Loaders with
 	// the content load InstallVersion, the others the newest. Use
 	// InstallVersion and LatestVersion to know which version is which.
@@ -52,6 +55,9 @@ type Bundle struct {
 	ActiveInstallCount int
 	// StarCount is how many users starred the bundle.
 	StarCount int
+	// OwnerInstallerCount is how many other users added any listed bundle of
+	// its owner, set when the listed bundles are loaded.
+	OwnerInstallerCount int
 	// Notes are what changed in the version, set when it's published.
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.

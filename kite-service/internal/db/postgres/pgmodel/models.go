@@ -113,6 +113,7 @@ type Bundle struct {
 	Category        string
 	About           []byte
 	Setup           []byte
+	StaffPickedAt   pgtype.Timestamp
 }
 
 type BundleInstall struct {

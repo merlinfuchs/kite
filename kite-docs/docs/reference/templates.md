@@ -100,7 +100,7 @@ Once it's listed, its link leads to its page in the Marketplace. New versions an
 
 If it wasn't approved, publishing an update submits it again with its page. You can also change the page and submit it again.
 
-Your name on the page of a listed template leads to your creator page. It shows your Discord name and avatar and all your listed templates.
+Your name on the page of a listed template leads to your creator page. It shows your Discord name and avatar, all your listed templates and your badges, which [Publishing a template](../guides/publishing-templates.md#after-its-listed) explains.
 
 `Remove from Marketplace` takes it out again. Apps that added it stay on the last approved version, and listing it again needs a new review.
 

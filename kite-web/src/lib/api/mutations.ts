@@ -108,6 +108,8 @@ import {
   BundleListingSubmitResponse,
   BundleRemoveRequest,
   BundleRemoveResponse,
+  BundleStaffPickDeleteResponse,
+  BundleStaffPickResponse,
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
@@ -794,6 +796,17 @@ export function useBundleRemoveMutation() {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["admin"] });
     },
+  });
+}
+
+// useBundleStaffPickMutation picks a template of a user, or unpicks it.
+export function useBundleStaffPickMutation() {
+  return useMutation({
+    mutationFn: ({ bundleId, picked }: { bundleId: string; picked: boolean }) =>
+      apiRequest<BundleStaffPickResponse | BundleStaffPickDeleteResponse>(
+        `/v1/admin/bundles/${bundleId}/staff-pick`,
+        { method: picked ? "POST" : "DELETE" }
+      ),
   });
 }
 

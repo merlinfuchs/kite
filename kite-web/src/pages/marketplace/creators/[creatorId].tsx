@@ -5,12 +5,14 @@ import {
   FeaturedTemplateEntry,
   TemplateListEntry,
 } from "@/components/app/TemplateListEntry";
+import { CreatorBadges } from "@/components/app/TemplateBadges";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { fetchBundles } from "@/lib/apiData";
+import { creatorBadges } from "@/lib/flow/creatorBadges";
 import { isExport } from "@/lib/env/client";
 import {
   categoryPath,
@@ -85,7 +87,12 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   const categories = templateCategories.filter((c) =>
     templates.some((t) => t.category === c.value)
   );
-  const since = creatorSince(templates);
+  const firstListedAt = firstCreatedAt(templates);
+  const since = firstListedAt && creatorSince(firstListedAt);
+  const badges = creatorBadges({
+    installerCount: owner.installer_count ?? 0,
+    firstListedAt,
+  });
 
   return (
     <HomeLayout
@@ -124,6 +131,11 @@ export default function CreatorPage({ creatorId, listed }: Props) {
                 @{owner.discord_username}
                 {since && ` · Creator since ${since}`}
               </div>
+              {badges.length > 0 && (
+                <div className="mt-3">
+                  <CreatorBadges badges={badges} />
+                </div>
+              )}
             </div>
             <CopyLinkButton />
           </div>
@@ -222,13 +234,16 @@ function Stat({
   );
 }
 
-// creatorSince is the month of their first listed template.
-function creatorSince(templates: Template[]) {
-  const first = templates
+// firstCreatedAt is when their oldest listed template was made.
+function firstCreatedAt(templates: Template[]) {
+  return templates
     .flatMap((t) => t.createdAt ?? [])
     .sort()
     .at(0);
-  if (!first) return undefined;
+}
+
+// creatorSince is the month of their first listed template.
+function creatorSince(first: string) {
   return new Date(first).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",

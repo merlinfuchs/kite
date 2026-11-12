@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type BundleStore interface {
@@ -116,4 +117,7 @@ type BundleStore interface {
 	// hides it from others, takes it out of the marketplace and resolves its
 	// open reports. It returns ErrNotFound if it's official or taken down already.
 	RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error
+	// SetBundleStaffPick picks a user's bundle at the time, or unpicks it if
+	// it's null. It returns ErrNotFound if it's official or taken down.
+	SetBundleStaffPick(ctx context.Context, id string, at null.Time) error
 }

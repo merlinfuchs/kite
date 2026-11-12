@@ -61,3 +61,5 @@ An automatic check looks at every submission first. It rejects what's clearly no
 New versions and changes to the page are reviewed too. Until they're approved, apps keep the last approved version and the Marketplace shows the last approved page. Say what changed when you publish an update, apps that added your template see it.
 
 Your listed templates are on your creator page, which your name on their pages links to.
+
+Your creator page shows badges as people use your templates. Added by 10+ users, 100+ users and 1,000+ users count the different people who added any of your listed templates, not counting your own apps. Early creator is for everyone who had a template in the Marketplace before November 13, 2026. The Kite team also picks templates it likes, which then show Staff pick in the Marketplace.
