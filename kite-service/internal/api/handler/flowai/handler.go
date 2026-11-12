@@ -19,6 +19,7 @@ import (
 // Assistant is what the handler needs of flowai.Assistant.
 type Assistant interface {
 	Model() string
+	Format() string
 	Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error)
 }
 
@@ -35,23 +36,41 @@ type VariableStore interface {
 	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
 }
 
+// BundleStore is what the handler needs of store.BundleStore.
+type BundleStore interface {
+	MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error)
+}
+
+// BundleInstallStore is what the handler needs of store.BundleInstallStore.
+type BundleInstallStore interface {
+	BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error)
+}
+
+// maxTemplates is how many templates of the marketplace the AI is told about,
+// so the instructions don't grow with it.
+const maxTemplates = 100
+
 type FlowAIHandler struct {
-	promptStore      store.AssistantPromptStore
-	variableStore    VariableStore
-	integrationStore appintegration.CredentialStore
-	choiceStore      appintegration.ChoiceStore
+	promptStore        store.AssistantPromptStore
+	variableStore      VariableStore
+	integrationStore   appintegration.CredentialStore
+	choiceStore        appintegration.ChoiceStore
+	bundleStore        BundleStore
+	bundleInstallStore BundleInstallStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, bundleStore BundleStore, bundleInstallStore BundleInstallStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
-		promptStore:      promptStore,
-		variableStore:    variableStore,
-		integrationStore: integrationStore,
-		choiceStore:      choiceStore,
-		maxRepairs:       maxRepairs,
+		promptStore:        promptStore,
+		variableStore:      variableStore,
+		integrationStore:   integrationStore,
+		choiceStore:        choiceStore,
+		bundleStore:        bundleStore,
+		bundleInstallStore: bundleInstallStore,
+		maxRepairs:         maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
 	if assistant != nil {
@@ -66,7 +85,7 @@ func (h *FlowAIHandler) HandleFlowAIUsageGet(c *handler.Context) (*wire.FlowAIUs
 		return nil, err
 	}
 
-	res := usage(count, c.Features.MaxAIPromptsPerMonth)
+	res := h.usage(count, c.Features.MaxAIPromptsPerMonth)
 	return &res, nil
 }
 
@@ -111,6 +130,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	integrations, err := h.enabledIntegrations(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, err
+	}
+	// Templates are only suggested, so the AI works without them.
+	templates, err := h.templates(c.Context(), c.App.ID)
+	if err != nil {
+		slog.Error("Failed to get templates for the flow AI", slog.String("app_id", c.App.ID), slog.Any("error", err))
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -173,16 +197,28 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 
 	res, err := h.assistant.Respond(c.Context(), flowai.Request{
 		Flow:         req.Flow,
+		Format:       req.Format,
 		Messages:     req.AssistantMessages(),
 		Issues:       req.Issues,
 		Variables:    variables,
 		Integrations: integrations,
+		Templates:    templates,
 		AppID:        c.App.ID,
 		UserID:       c.Session.UserID,
+		PromptID:     prompt.ID,
 	})
+	var refused *flowai.ErrRefused
+	if errors.As(err, &refused) {
+		// A refused prompt is kept as an answer without edits, so asking
+		// again uses up the answers. A refused repair uses up its round.
+		if err := h.promptStore.RefuseAssistantPrompt(ctx, c.App.ID, prompt.ID, refused.Chance, isRepair, time.Now().UTC()); err != nil {
+			slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
+		}
+		return nil, handler.ErrForbidden("flow_ai_refused", "Flow AI can't help with this. Kite doesn't allow bots that nuke or raid servers, spam members, or steal accounts or data.")
+	}
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
-	edited := isRepair || err != nil || len(res.Edits) > 0
+	edited := isRepair || err != nil || len(res.Edits) > 0 || res.Code != ""
 	if res != nil {
 		// Failing to record the usage shouldn't lose the answer.
 		if err := h.promptStore.AddAssistantPromptUsage(ctx, c.App.ID, prompt.ID, res.Usage, edited, time.Now().UTC()); err != nil {
@@ -210,9 +246,11 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		PromptID:    prompt.ID,
 		Message:     res.Message,
 		BuildPrompt: res.BuildPrompt,
+		TemplateID:  res.TemplateID,
 		Fields:      wire.FlowAIFieldsToWire(res.Fields),
 		Edits:       res.Edits,
-		Usage:       usage(count, limit),
+		Code:        res.Code,
+		Usage:       h.usage(count, limit),
 	}, nil
 }
 
@@ -237,13 +275,49 @@ func (h *FlowAIHandler) promptCount(c *handler.Context) (model.AssistantPromptCo
 	return count, nil
 }
 
-func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
+func (h *FlowAIHandler) usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
+	format := flowai.FormatEdits
+	if h.assistant != nil {
+		format = h.assistant.Format()
+	}
 	return wire.FlowAIUsage{
 		PromptsUsed:  count.Edited,
 		PromptsLimit: limit,
 		AnswersUsed:  count.Total,
 		AnswersLimit: answerLimitFactor * limit,
+		Format:       format,
 	}
+}
+
+// templates returns the templates of the marketplace for the AI to suggest,
+// Kite's first.
+func (h *FlowAIHandler) templates(ctx context.Context, appID string) ([]flowai.Template, error) {
+	bundles, err := h.bundleStore.MarketplaceTemplates(ctx, maxTemplates)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get marketplace templates: %w", err)
+	}
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bundle installs: %w", err)
+	}
+
+	added := make(map[string]bool, len(installs))
+	for _, i := range installs {
+		added[i.BundleID] = true
+	}
+	res := make([]flowai.Template, len(bundles))
+	for i, b := range bundles {
+		res[i] = flowai.Template{
+			ID:          b.ID,
+			Name:        b.Listing.Name,
+			Description: b.Listing.Description,
+			Category:    b.Listing.Category,
+			Official:    !b.OwnerUserID.Valid,
+			// The app a user's template is made from can't add it.
+			Added: added[b.ID] || (b.SourceAppID.Valid && b.SourceAppID.String == appID),
+		}
+	}
+	return res, nil
 }
 
 func (h *FlowAIHandler) enabledIntegrations(ctx context.Context, appID string) ([]string, error) {

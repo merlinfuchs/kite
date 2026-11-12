@@ -15,10 +15,13 @@ type AssistantPrompt struct {
 	Rounds int
 	// Edited is whether the AI made changes. Only prompts that did count
 	// towards the plan's limit.
-	Edited    bool
-	Usage     AssistantUsage
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Edited bool
+	// RefusalChance is the chance of harm the flow AI refused the prompt or a
+	// repair of it with, or 0 if it didn't.
+	RefusalChance float64
+	Usage         AssistantUsage
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // AssistantPromptCount is how many prompts an app sent in some time.

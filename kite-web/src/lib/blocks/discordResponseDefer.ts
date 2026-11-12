@@ -3,11 +3,13 @@ import { BlockDefinition } from "./types";
 
 export const discordResponseDefer: BlockDefinition = {
   type: "action_response_defer",
+  id_prefix: "response",
   title: "Defer response",
   description:
     "Bot defers the response to the interaction to give time for further processing",
   icon: "message-circle-question",
   category: "Responses",
+  needs_interaction: true,
   requires: ["discord"],
   credits: 1,
   fields: [

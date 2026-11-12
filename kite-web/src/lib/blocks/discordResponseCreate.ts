@@ -4,15 +4,16 @@ import {
   messageTemplateField,
   requireMessage,
 } from "./fields";
-import { nodeActionResponseCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordResponseCreate: BlockDefinition = {
   type: "action_response_create",
+  id_prefix: "response",
   title: "Create response message",
   description: "Bot replies to the interaction with a message",
   icon: "message-circle-reply",
   category: "Responses",
+  needs_interaction: true,
   component: "action_message",
   requires: ["discord"],
   credits: 1,
@@ -30,6 +31,6 @@ export const discordResponseCreate: BlockDefinition = {
     },
   ],
   refine: requireMessage,
-  result: { schema: nodeActionResponseCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

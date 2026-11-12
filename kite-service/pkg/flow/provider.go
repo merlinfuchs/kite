@@ -12,6 +12,7 @@ type FlowProviders struct {
 	Roblox          provider.RobloxProvider
 	HTTP            provider.HTTPProvider
 	AI              provider.AIProvider
+	Decision        provider.DecisionProvider
 	Log             provider.LogProvider
 	Variable        provider.VariableProvider
 	MessageTemplate provider.MessageTemplateProvider

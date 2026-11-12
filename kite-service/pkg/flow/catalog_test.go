@@ -18,6 +18,8 @@ type catalogSchema struct {
 	Properties map[string]*catalogSchema `json:"properties"`
 	Items      *catalogSchema            `json:"items"`
 	Enum       []any                     `json:"enum"`
+	MaxItems   int                       `json:"maxItems"`
+	AnyOf      []*catalogSchema          `json:"anyOf"`
 	UserPicked bool                      `json:"x-user-picked"`
 }
 
@@ -119,7 +121,10 @@ func flowNodeTypeConstants(t *testing.T) []string {
 			for _, v := range value.Values {
 				s, err := strconv.Unquote(v.(*ast.BasicLit).Value)
 				require.NoError(t, err)
-				res = append(res, s)
+				// Notes aren't blocks.
+				if FlowNodeType(s) != FlowNodeTypeNote {
+					res = append(res, s)
+				}
 			}
 		}
 	}

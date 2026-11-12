@@ -4,17 +4,18 @@ import {
   numericOrPlaceholder,
   templated,
 } from "../flow/dataSchema";
-import { nodeActionPollCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordPollCreate: BlockDefinition = {
   type: "action_poll_create",
+  id_prefix: "poll",
   title: "Create poll",
   description: "Bot sends a poll to a channel",
   icon: "vote",
   category: "Messages",
   requires: ["discord"],
   credits: 1,
+  permissions: ["SEND_POLLS"],
   fields: [
     {
       name: "channel_target",
@@ -54,6 +55,6 @@ export const discordPollCreate: BlockDefinition = {
         .describe("The poll to send."),
     },
   ],
-  result: { schema: nodeActionPollCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

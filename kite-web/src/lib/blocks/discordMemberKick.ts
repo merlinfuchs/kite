@@ -3,18 +3,17 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberKick: BlockDefinition = {
   type: "action_member_kick",
+  id_prefix: "member",
   title: "Kick member",
   description: "Kick a member from the server",
   icon: "user-round-minus",
   category: "Members",
-  credits: 1,
+  permissions: ["KICK_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "delete_guild_member",
-    method: "DELETE",
-    path: "/guilds/{guild_id}/members/{user_id}",
   },
   fields: [guildTargetField, userTargetField],
 };

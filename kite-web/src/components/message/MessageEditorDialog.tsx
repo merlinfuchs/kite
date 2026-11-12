@@ -37,7 +37,8 @@ function MessageEditorDialogInner({
 }: {
   children: ReactNode;
   message: MessageData;
-  onClose: (message: MessageData) => void;
+  // changed is whether the user changed the message since it was opened.
+  onClose: (message: MessageData, changed: boolean) => void;
 }) {
   const ignoreChange = useRef(false);
 
@@ -61,7 +62,8 @@ function MessageEditorDialogInner({
     (open: boolean) => {
       if (open || !message) return;
 
-      onClose(getMessage(messageStore));
+      const changed = messageStore.temporal.getState().pastStates.length > 0;
+      onClose(getMessage(messageStore), changed);
     },
     [message, onClose, messageStore]
   );
@@ -70,7 +72,7 @@ function MessageEditorDialogInner({
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
-        <DialogTitle className="hidden">Message Editor</DialogTitle>
+        <DialogTitle className="hidden">Message editor</DialogTitle>
         <DialogDescription className="hidden">
           Edit your message.
         </DialogDescription>

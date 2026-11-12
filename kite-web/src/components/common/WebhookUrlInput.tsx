@@ -25,7 +25,7 @@ export default function WebhookUrlInput() {
 
     navigator.clipboard
       .writeText(url)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy to clipboard"));
   }, [url]);
 
@@ -34,7 +34,7 @@ export default function WebhookUrlInput() {
       onSuccess(res) {
         if (res.success) {
           toast.success(
-            "Webhook URL regenerated! It may take a few seconds until the new URL works."
+            "Webhook URL regenerated. It may take a few seconds until the new URL works."
           );
         } else {
           toast.error(

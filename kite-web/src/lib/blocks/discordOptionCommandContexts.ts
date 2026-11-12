@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordOptionCommandContexts: BlockDefinition = {
   type: "option_command_contexts",
+  id_prefix: "contexts",
   title: "Command Contexts",
   description:
     "Define where your command should be available. By default, it will be available everywhere.",

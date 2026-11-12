@@ -6,16 +6,16 @@ import env from "@/lib/env/client";
 
 const breadcrumbs = [
   {
-    label: "Stored Variables",
+    label: "Stored variables",
   },
 ];
 
 export default function AppVariablesPage() {
   return (
-    <AppLayout title="Stored Variables" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Stored variables" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
-          Stored Variables
+          Stored variables
         </h1>
         <p className="text-muted-foreground text-sm">
           Manage stored variables in your app. Stored variables are key-value
@@ -26,7 +26,7 @@ export default function AppVariablesPage() {
             target="_blank"
             className="text-primary hover:underline"
           >
-            Learn More
+            Learn more
           </a>
         </p>
       </div>

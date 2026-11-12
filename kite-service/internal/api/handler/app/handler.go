@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -42,9 +43,12 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 		return nil, fmt.Errorf("failed to get apps: %w", err)
 	}
 
-	res := make([]*wire.App, len(apps))
-	for i, app := range apps {
-		res[i] = wire.AppToWire(app)
+	res := make([]*wire.App, 0, len(apps))
+	for _, app := range apps {
+		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+			continue
+		}
+		res = append(res, wire.AppToWire(app))
 	}
 
 	return &res, nil
@@ -69,12 +73,10 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
-	// TODO: existingApp, err := h.appStore.AppByDiscordID()
-
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -90,18 +92,22 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	}
 
 	app, err := h.appStore.CreateApp(c.Context(), &model.App{
-		ID:            util.UniqueID(),
-		Name:          appInfo.Name,
-		Description:   appInfo.Description,
-		Enabled:       true,
-		OwnerUserID:   c.Session.UserID,
-		CreatorUserID: c.Session.UserID,
-		DiscordToken:  encryptedToken,
-		DiscordID:     appInfo.ID,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:               util.UniqueID(),
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		Enabled:          true,
+		OwnerUserID:      c.Session.UserID,
+		CreatorUserID:    c.Session.UserID,
+		DiscordToken:     encryptedToken,
+		DiscordID:        appInfo.ID,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. If it's yours, open it from your apps and update its token in the settings. Otherwise ask the person who added it to invite you.")
+		}
 		slog.Error(
 			"Failed to create app",
 			slog.String("discord_id", appInfo.ID),
@@ -114,6 +120,12 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	if req.Enabled && !c.App.Enabled {
+		if err := h.checkOwnerNotBanned(c); err != nil {
+			return nil, err
+		}
+	}
+
 	disabledReason := c.App.DisabledReason
 	if req.Enabled {
 		disabledReason = null.String{}
@@ -131,6 +143,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
+	if req.Enabled && !c.App.Enabled {
+		h.retryFailedCommandsDeploy(c)
 	}
 
 	if req.Name != c.App.Name || req.Description != c.App.Description {
@@ -201,7 +217,21 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 	return wire.AppToWire(app), nil
 }
 
+func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.AppCreditNoticesUpdateRequest) (*wire.AppCreditNoticesUpdateResponse, error) {
+	app, err := h.appStore.UpdateAppCreditNotices(c.Context(), c.App.ID, req.Enabled, time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app credit notices: %w", err)
+	}
+
+	return wire.AppToWire(app), nil
+}
+
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
+	// A new token starts the app.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
@@ -217,7 +247,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return nil, fmt.Errorf("discord token belongs to a different app")
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
@@ -226,13 +256,14 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:             c.App.ID,
-		Name:           c.App.Name,
-		Description:    c.App.Description,
-		DiscordToken:   encryptedToken,
-		DiscordStatus:  c.App.DiscordStatus,
+		ID:            c.App.ID,
+		Name:          c.App.Name,
+		Description:   c.App.Description,
+		DiscordToken:  encryptedToken,
+		DiscordStatus: c.App.DiscordStatus,
+		// A new token starts the app and resets why it was stopped.
 		Enabled:        true,
-		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated
+		DisabledReason: null.String{},
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
@@ -244,7 +275,22 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
+	h.retryFailedCommandsDeploy(c)
+
 	return wire.AppToWire(app), nil
+}
+
+// checkOwnerNotBanned refuses to start an app whose owner Kite banned, which
+// its collaborators could otherwise do.
+func (h *AppHandler) checkOwnerNotBanned(c *handler.Context) error {
+	_, err := h.userStore.UserBan(c.Context(), c.App.OwnerUserID, model.UserBanFeatureKite)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get user ban: %w", err)
+	}
+	return handler.ErrForbidden("app_owner_banned", "Kite banned the owner of this app, so it can't be started")
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {

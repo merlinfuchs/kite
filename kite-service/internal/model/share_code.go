@@ -24,4 +24,8 @@ const (
 	ShareCodeTypeCommand       ShareCodeType = "command"
 	ShareCodeTypeEventListener ShareCodeType = "event_listener"
 	ShareCodeTypeMessage       ShareCodeType = "message"
+	// ShareCodeTypeBundle holds several items in the format of a bundle. Like
+	// the others it's a copy, importing it doesn't link to the app it came
+	// from.
+	ShareCodeTypeBundle ShareCodeType = "bundle"
 )

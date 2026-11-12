@@ -1,0 +1,7946 @@
+{
+  "operations": [
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "action_guild_join_request",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/requests/{request_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "request_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "action",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "rejection_reason",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_group_dm_user",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/recipients/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "access_token",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "nick",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_guild_member",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "nick",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mute",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "deaf",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "access_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_guild_member_role",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "role_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_invite_target_user",
+      "method": "PUT",
+      "path": "/invites/{code}/target-users/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_lobby_member",
+      "method": "PUT",
+      "path": "/lobbies/{lobby_id}/members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "metadata",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "additional_name",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_my_message_reaction",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "add_thread_member",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/thread-members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "applications_get_activity_instance",
+      "method": "GET",
+      "path": "/applications/{application_id}/activity-instances/{instance_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "instance_id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "ban_user_from_guild",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/bans/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "delete_message_seconds",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "delete_message_days",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bot_partner_sdk_token",
+      "method": "POST",
+      "path": "/partner-sdk/token/bot",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "provisional_user_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "external_user_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "preferred_global_name",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bot_partner_sdk_unmerge_provisional_account",
+      "method": "POST",
+      "path": "/partner-sdk/provisional-accounts/unmerge/bot",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "external_user_id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_add_invite_target_users",
+      "method": "POST",
+      "path": "/invites/{code}/target-users/bulk-add",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "user_ids",
+          "type": "array",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_ban_users_from_guild",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/bulk-ban",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "user_ids",
+          "type": "array",
+          "required": true
+        },
+        {
+          "name": "delete_message_seconds",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "flow_only": true,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_delete_messages",
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/bulk-delete",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "messages",
+          "type": "array",
+          "required": true
+        }
+      ],
+      "flow_only": true,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_remove_invite_target_users",
+      "method": "POST",
+      "path": "/invites/{code}/target-users/bulk-delete",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "user_ids",
+          "type": "array",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_update_guild_channels",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/channels",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_update_guild_roles",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/roles",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "bulk_update_lobby_members",
+      "method": "POST",
+      "path": "/lobbies/{lobby_id}/members/bulk",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "count_guild_scheduled_event_users",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users/counts",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "guild_scheduled_event_exception_ids",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_auto_moderation_rule",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/auto-moderation/rules",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "event_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "exempt_roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "exempt_channels",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "trigger_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "trigger_metadata",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_channel_invite",
+      "method": "POST",
+      "path": "/channels/{channel_id}/invites",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "max_age",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "temporary",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "max_uses",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "unique",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "target_user_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_application_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "role_ids",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "target_user_ids",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_dm",
+      "method": "POST",
+      "path": "/users/@me/channels",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "recipient_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "access_tokens",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "nicks",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "user",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_followup_message",
+      "method": "POST",
+      "path": "/webhooks/{application_id}/{interaction_token}",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "tts",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "avatar_url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "thread_name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "interaction": true,
+      "policy": {
+        "code": false,
+        "target": "interaction",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_channel",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/channels",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "bitrate",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "user_limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "nsfw",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "parent_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "permission_overwrites",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "rtc_region",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "video_quality_mode",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_reaction_emoji",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "default_thread_rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_sort_order",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_forum_layout",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_tag_setting",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "available_tags",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_emoji",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/emojis",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "roles",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_role",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/roles",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "color",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "colors",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "hoist",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "mentionable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "unicode_emoji",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_scheduled_event",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/scheduled-events",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "entity_type",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_metadata",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_scheduled_event_exception",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "original_scheduled_start_time",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "is_canceled",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_soundboard_sound",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/soundboard-sounds",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "volume",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sound",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_guild_template",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/templates",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_linked_lobby_guild_invite_for_self",
+      "method": "POST",
+      "path": "/lobbies/{lobby_id}/members/@me/invites",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_linked_lobby_guild_invite_for_user",
+      "method": "POST",
+      "path": "/lobbies/{lobby_id}/members/{user_id}/invites",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_lobby",
+      "method": "POST",
+      "path": "/lobbies",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "idle_timeout_seconds",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "members",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "metadata",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "override_event_webhooks_url",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_lobby_message",
+      "method": "POST",
+      "path": "/lobbies/{lobby_id}/messages",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sticker_ids",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "shared_client_theme",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "message_reference",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "nonce",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "enforce_nonce",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "tts",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_message",
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sticker_ids",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "shared_client_theme",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "message_reference",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "nonce",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "enforce_nonce",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "tts",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_or_join_lobby",
+      "method": "PUT",
+      "path": "/lobbies",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "idle_timeout_seconds",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "lobby_metadata",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "member_metadata",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "secret",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_pin",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/messages/pins/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_stage_instance",
+      "method": "POST",
+      "path": "/stage-instances",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "topic",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "send_start_notification",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_thread",
+      "method": "POST",
+      "path": "/channels/{channel_id}/threads",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "invitable",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_thread_from_message",
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/{message_id}/threads",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "create_webhook",
+      "method": "POST",
+      "path": "/channels/{channel_id}/webhooks",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "avatar",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "crosspost_message",
+      "method": "POST",
+      "path": "/channels/{channel_id}/messages/{message_id}/crosspost",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_all_message_reactions",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_all_message_reactions_by_emoji",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_auto_moderation_rule",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "rule_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_channel",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_channel_permission_overwrite",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/permissions/{overwrite_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "overwrite_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_group_dm_user",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/recipients/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_emoji",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_integration",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/integrations/{integration_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "integration_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_member",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_member_role",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "role_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_role",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/roles/{role_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "role_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_scheduled_event",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_scheduled_event_exception",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "exception_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_soundboard_sound",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sound_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_sticker",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sticker_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_guild_template",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/templates/{code}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_lobby",
+      "method": "DELETE",
+      "path": "/lobbies/{lobby_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_lobby_member",
+      "method": "DELETE",
+      "path": "/lobbies/{lobby_id}/members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_message",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_my_message_reaction",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_pin",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/pins/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_stage_instance",
+      "method": "DELETE",
+      "path": "/stage-instances/{channel_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_thread_member",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/thread-members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_user_message_reaction",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "delete_webhook",
+      "method": "DELETE",
+      "path": "/webhooks/{webhook_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "webhook_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "webhook",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "deprecated_create_pin",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/pins/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "deprecated_delete_pin",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/pins/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "deprecated_list_pins",
+      "method": "GET",
+      "path": "/channels/{channel_id}/pins",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "edit_lobby",
+      "method": "PATCH",
+      "path": "/lobbies/{lobby_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "idle_timeout_seconds",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "metadata",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "members",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "override_event_webhooks_url",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "edit_lobby_channel_link",
+      "method": "PATCH",
+      "path": "/lobbies/{lobby_id}/channel-linking",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "follow_channel",
+      "method": "POST",
+      "path": "/channels/{channel_id}/followers",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "webhook_channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_active_guild_threads",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/threads/active",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_answer_voters",
+      "method": "GET",
+      "path": "/channels/{channel_id}/polls/{message_id}/answers/{answer_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "answer_id",
+          "type": "integer",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_application",
+      "method": "GET",
+      "path": "/applications/{application_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_application_command",
+      "method": "GET",
+      "path": "/applications/{application_id}/commands/{command_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "command_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_application_emoji",
+      "method": "GET",
+      "path": "/applications/{application_id}/emojis/{emoji_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_application_role_connections_metadata",
+      "method": "GET",
+      "path": "/applications/{application_id}/role-connections/metadata",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_auto_moderation_rule",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "rule_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_bot_gateway",
+      "method": "GET",
+      "path": "/gateway/bot",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_channel",
+      "method": "GET",
+      "path": "/channels/{channel_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_entitlement",
+      "method": "GET",
+      "path": "/applications/{application_id}/entitlements/{entitlement_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "entitlement_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_entitlements",
+      "method": "GET",
+      "path": "/applications/{application_id}/entitlements",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "sku_ids",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "exclude_ended",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "exclude_deleted",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "only_active",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_gateway",
+      "method": "GET",
+      "path": "/gateway",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild",
+      "method": "GET",
+      "path": "/guilds/{guild_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_application_command",
+      "method": "GET",
+      "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "command_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_application_command_permissions",
+      "method": "GET",
+      "path": "/applications/{application_id}/guilds/{guild_id}/commands/{command_id}/permissions",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "command_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_ban",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/bans/{user_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_emoji",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_join_requests",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/requests",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "status",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_member",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_new_member_welcome",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/new-member-welcome",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_preview",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/preview",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_role",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/roles/{role_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "role_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_scheduled_event",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_user_count",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_soundboard_sound",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sound_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_sticker",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sticker_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_template",
+      "method": "GET",
+      "path": "/guilds/templates/{code}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_vanity_url",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/vanity-url",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_webhooks",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/webhooks",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "flow_only": true,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_welcome_screen",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/welcome-screen",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_widget",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/widget.json",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_widget_png",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/widget.png",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "style",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guild_widget_settings",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/widget",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_guilds_onboarding",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/onboarding",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_invite_target_users",
+      "method": "GET",
+      "path": "/invites/{code}/target-users",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_invite_target_users_job_status",
+      "method": "GET",
+      "path": "/invites/{code}/target-users/job-status",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_lobby",
+      "method": "GET",
+      "path": "/lobbies/{lobby_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_lobby_messages",
+      "method": "GET",
+      "path": "/lobbies/{lobby_id}/messages",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_message",
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_my_application",
+      "method": "GET",
+      "path": "/applications/@me",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_my_oauth2_application",
+      "method": "GET",
+      "path": "/oauth2/applications/@me",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_my_oauth2_authorization",
+      "method": "GET",
+      "path": "/oauth2/@me",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_my_user",
+      "method": "GET",
+      "path": "/users/@me",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "user",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_openid_connect_userinfo",
+      "method": "GET",
+      "path": "/oauth2/userinfo",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_public_keys",
+      "method": "GET",
+      "path": "/oauth2/keys",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_self_voice_state",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/voice-states/@me",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_sku_subscription",
+      "method": "GET",
+      "path": "/skus/{sku_id}/subscriptions/{subscription_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "sku_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "subscription_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_sku_subscriptions",
+      "method": "GET",
+      "path": "/skus/{sku_id}/subscriptions",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "sku_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_soundboard_default_sounds",
+      "method": "GET",
+      "path": "/soundboard-default-sounds",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_stage_instance",
+      "method": "GET",
+      "path": "/stage-instances/{channel_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_sticker",
+      "method": "GET",
+      "path": "/stickers/{sticker_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "sticker_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_sticker_pack",
+      "method": "GET",
+      "path": "/sticker-packs/{pack_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "pack_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_thread_member",
+      "method": "GET",
+      "path": "/channels/{channel_id}/thread-members/{user_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_member",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_user",
+      "method": "GET",
+      "path": "/users/{user_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "user",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_voice_state",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/voice-states/{user_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "get_webhook",
+      "method": "GET",
+      "path": "/webhooks/{webhook_id}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "webhook_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "flow_only": true,
+      "policy": {
+        "code": true,
+        "target": "webhook",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "guild_role_member_counts",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/roles/member-counts",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "guild_search",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/messages/search",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sort_order",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "slop",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "author_id",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "author_type",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mentions",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mentions_role_id",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "replied_to_user_id",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "replied_to_message_id",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mention_everyone",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "min_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "max_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "has",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "link_hostname",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "embed_provider",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "embed_type",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachment_extension",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachment_filename",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "pinned",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "include_nsfw",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "invite_resolve",
+      "method": "GET",
+      "path": "/invites/{code}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_message_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "invite_revoke",
+      "method": "DELETE",
+      "path": "/invites/{code}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "join_thread",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/thread-members/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "leave_guild",
+      "method": "DELETE",
+      "path": "/users/@me/guilds/{guild_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "flow_only": true,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "leave_lobby",
+      "method": "DELETE",
+      "path": "/lobbies/{lobby_id}/members/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "leave_thread",
+      "method": "DELETE",
+      "path": "/channels/{channel_id}/thread-members/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_application_commands",
+      "method": "GET",
+      "path": "/applications/{application_id}/commands",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_localizations",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_application_emojis",
+      "method": "GET",
+      "path": "/applications/{application_id}/emojis",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_auto_moderation_rules",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/auto-moderation/rules",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_channel_invites",
+      "method": "GET",
+      "path": "/channels/{channel_id}/invites",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_channel_webhooks",
+      "method": "GET",
+      "path": "/channels/{channel_id}/webhooks",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "flow_only": true,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_application_command_permissions",
+      "method": "GET",
+      "path": "/applications/{application_id}/guilds/{guild_id}/commands/permissions",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_application_commands",
+      "method": "GET",
+      "path": "/applications/{application_id}/guilds/{guild_id}/commands",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "application_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_localizations",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_audit_log_entries",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/audit-logs",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "target_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "action_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_bans",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/bans",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_channels",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/channels",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_emojis",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/emojis",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_integrations",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/integrations",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_invites",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/invites",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_members",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_roles",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/roles",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_scheduled_event_exception_users",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/{guild_scheduled_event_exception_id}/users",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_exception_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_member",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_scheduled_event_users",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_member",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_scheduled_events",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/scheduled-events",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_user_count",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_soundboard_sounds",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/soundboard-sounds",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_stickers",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/stickers",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_templates",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/templates",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_guild_voice_regions",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/regions",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_message_reactions_by_emoji",
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_messages",
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "around",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_my_connections",
+      "method": "GET",
+      "path": "/users/@me/connections",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "user",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_my_guilds",
+      "method": "GET",
+      "path": "/users/@me/guilds",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "shard",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "with_counts",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "user",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_my_private_archived_threads",
+      "method": "GET",
+      "path": "/channels/{channel_id}/users/@me/threads/archived/private",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_pins",
+      "method": "GET",
+      "path": "/channels/{channel_id}/messages/pins",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_private_archived_threads",
+      "method": "GET",
+      "path": "/channels/{channel_id}/threads/archived/private",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_public_archived_threads",
+      "method": "GET",
+      "path": "/channels/{channel_id}/threads/archived/public",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "before",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_sticker_packs",
+      "method": "GET",
+      "path": "/sticker-packs",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_thread_members",
+      "method": "GET",
+      "path": "/channels/{channel_id}/thread-members",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "with_member",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "after",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "list_voice_regions",
+      "method": "GET",
+      "path": "/voice/regions",
+      "credits": 0,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "partner_sdk_token",
+      "method": "POST",
+      "path": "/partner-sdk/token",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "client_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "client_secret",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "external_auth_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "external_auth_type",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "partner_sdk_unmerge_provisional_account",
+      "method": "POST",
+      "path": "/partner-sdk/provisional-accounts/unmerge",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "client_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "client_secret",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "external_auth_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "external_auth_type",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "poll_expire",
+      "method": "POST",
+      "path": "/channels/{channel_id}/polls/{message_id}/expire",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "preview_prune_guild",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/prune",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "include_roles",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "prune_guild",
+      "method": "POST",
+      "path": "/guilds/{guild_id}/prune",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "compute_prune_count",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "include_roles",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "flow_only": true,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "put_guilds_onboarding",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/onboarding",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "prompts",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "default_channel_ids",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mode",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "remove_invite_target_user",
+      "method": "DELETE",
+      "path": "/invites/{code}/target-users/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "search_guild_members",
+      "method": "GET",
+      "path": "/guilds/{guild_id}/members/search",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "send_soundboard_sound",
+      "method": "POST",
+      "path": "/channels/{channel_id}/send-soundboard-sound",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "sound_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "source_guild_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "set_channel_permission_overwrite",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/permissions/{overwrite_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "overwrite_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "allow",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "deny",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "sync_guild_template",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/templates/{code}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "thread_search",
+      "method": "GET",
+      "path": "/channels/{channel_id}/threads/search",
+      "credits": 0,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "slop",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "min_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "max_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "tag_setting",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "archived",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "sort_by",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sort_order",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "offset",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "trigger_typing_indicator",
+      "method": "POST",
+      "path": "/channels/{channel_id}/typing",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "unban_user_from_guild",
+      "method": "DELETE",
+      "path": "/guilds/{guild_id}/bans/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_auto_moderation_rule",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/auto-moderation/rules/{rule_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "rule_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "event_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "actions",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "exempt_roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "exempt_channels",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "trigger_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "trigger_metadata",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_channel",
+      "method": "PATCH",
+      "path": "/channels/{channel_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "topic",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "bitrate",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "user_limit",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "nsfw",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "parent_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "permission_overwrites",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "rtc_region",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "video_quality_mode",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_reaction_emoji",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "default_thread_rate_limit_per_user",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_sort_order",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_forum_layout",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_tag_setting",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "available_tags",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "archived",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "locked",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "invitable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "auto_archive_duration",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_followup_message",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true,
+      "policy": {
+        "code": false,
+        "target": "interaction",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "verification_level",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "default_message_notifications",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "explicit_content_filter",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "preferred_locale",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "afk_timeout",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "afk_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "system_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "splash",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "banner",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "system_channel_flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "features",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "discovery_splash",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "home_header",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "rules_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "safety_alerts_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "public_updates_channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "premium_progress_bar_enabled",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_emoji",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/emojis/{emoji_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_incident_actions",
+      "method": "PUT",
+      "path": "/guilds/{guild_id}/incident-actions",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "invites_disabled_until",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "dms_disabled_until",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_member",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/members/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "nick",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "roles",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "mute",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "deaf",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "communication_disabled_until",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_role",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/roles/{role_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "role_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "permissions",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "color",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "colors",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "hoist",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "mentionable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "icon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "unicode_emoji",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_scheduled_event",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "status",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_type",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "recurrence_rule",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "entity_metadata",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_scheduled_event_exception",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "guild_scheduled_event_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "exception_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "scheduled_start_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "scheduled_end_time",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "is_canceled",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_soundboard_sound",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/soundboard-sounds/{sound_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sound_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "volume",
+          "type": "number",
+          "required": false
+        },
+        {
+          "name": "emoji_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "emoji_name",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_sticker",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/stickers/{sticker_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "sticker_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_template",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/templates/{code}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_welcome_screen",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/welcome-screen",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "welcome_channels",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_guild_widget_settings",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/widget",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_lobby_message_external_moderation_metadata",
+      "method": "PUT",
+      "path": "/lobbies/{lobby_id}/messages/{message_id}/moderation-metadata",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "lobby_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_message",
+      "method": "PATCH",
+      "path": "/channels/{channel_id}/messages/{message_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "sticker_ids",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_original_interaction_response",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/@original",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true,
+      "policy": {
+        "code": false,
+        "target": "interaction",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_self_voice_state",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/voice-states/@me",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "request_to_speak_timestamp",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "suppress",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_stage_instance",
+      "method": "PATCH",
+      "path": "/stage-instances/{channel_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "topic",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "privacy_level",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_user_message_external_moderation_metadata",
+      "method": "PUT",
+      "path": "/partner-sdk/dms/{user_id_1}/{user_id_2}/messages/{message_id}/moderation-metadata",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "user_id_1",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id_2",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "unknown",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_voice_channel_status",
+      "method": "PUT",
+      "path": "/channels/{channel_id}/voice-status",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "status",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "channel",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_voice_state",
+      "method": "PATCH",
+      "path": "/guilds/{guild_id}/voice-states/{user_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "guild_id",
+          "type": "snowflake",
+          "required": true
+        },
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "suppress",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "guild",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "discord",
+      "id": "update_webhook",
+      "method": "PATCH",
+      "path": "/webhooks/{webhook_id}",
+      "credits": 1,
+      "path_params": [
+        {
+          "name": "webhook_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "avatar",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "webhook",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "create_transcript",
+      "method": "POST",
+      "path": "/api/transcript",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "channel_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "bot_token",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "gtag",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "favicon",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "image_restore",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "create_card",
+      "method": "POST",
+      "path": "/api/cards/card-builder/build",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "dev",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "base64",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": true,
+      "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "create_qr_code",
+      "method": "POST",
+      "path": "/api/images/qr-code",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "data",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "style",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "standart",
+            "dots"
+          ]
+        },
+        {
+          "name": "border",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "center_image_url",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "create_captcha",
+      "method": "POST",
+      "path": "/api/security/captcha/create",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_provider",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "Cloudflare",
+            "Google"
+          ]
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "font",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "expires",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "get_captcha",
+      "method": "GET",
+      "path": "/api/security/captcha/get-captcha",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "captcha_id",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "get_minecraft_user",
+      "method": "GET",
+      "path": "/api/minecraft/get-user",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "cookie_api",
+      "id": "get_current_time",
+      "method": "GET",
+      "path": "/api/time/current-time",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "erlc",
+      "id": "get_server",
+      "method": "GET",
+      "path": "/v2/server",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "Players",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Staff",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "JoinLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Queue",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "KillLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "CommandLogs",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "ModCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "EmergencyCalls",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "Vehicles",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "has_body": false,
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "request",
+      "integration": "erlc",
+      "id": "run_command",
+      "method": "POST",
+      "path": "/v2/server/command",
+      "credits": 1,
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "command",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "policy": {
+        "code": false,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "http",
+      "id": "request",
+      "description": "Send an HTTP request to a URL, like the Send API Request block. {{secrets.NAME}} in the URL, the headers and the body is replaced with the app's secret, which the code never sees. Responses that aren't 2xx resolve too, only failing to get a response rejects. fetch(url, init) calls it.",
+      "credits": 3,
+      "params": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The URL, starting with http:// or https://."
+          },
+          "method": {
+            "description": "Defaults to GET.",
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "headers": {
+            "description": "Headers by name.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "body": {
+            "description": "The body as text, like JSON.stringify(data).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number",
+            "description": "The HTTP status, like 200."
+          },
+          "status_text": {
+            "type": "string",
+            "description": "Like OK."
+          },
+          "headers": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Headers by name in lower case, several values joined by commas."
+          },
+          "body": {
+            "type": "string",
+            "description": "The body as text, up to 1 MB."
+          }
+        },
+        "required": [
+          "status",
+          "status_text",
+          "headers",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "get",
+      "description": "Get the value of a stored variable, or null if it has none.",
+      "credits": 0,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "set",
+      "description": "Set the value of a stored variable, and get it back.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value: text, a number, a list, an object, or null."
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "append",
+      "description": "Add an item to the end of the list in a stored variable, or text to the end of other values, and get the new value. An object or a list starts a list. For a list of text or numbers, set the variable to an empty list first. An empty value adds nothing. Calls at the same time don't overwrite each other.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value: text, a number, a list, an object, or null."
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "prepend",
+      "description": "Like append, at the start of the list or the text.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value: text, a number, a list, an object, or null."
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "description": "The value: text, a number, a list, an object, or null."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "increment",
+      "description": "Add to the number in a stored variable, which starts at 0, and get the new value. Calls at the same time don't overwrite each other, unlike get and set.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          },
+          "by": {
+            "description": "How much to add, negative to subtract. Defaults to 1.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "number"
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "delete",
+      "description": "Delete the value of a stored variable.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope": {
+            "description": "Scope of the value, like a user ID for one value per user. Required for scoped variables, ignored for others.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "null"
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": true
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "variables",
+      "id": "list",
+      "description": "List the values of a stored variable, like a leaderboard of the highest ones.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the variable under Stored variables of the block."
+          },
+          "scope_prefix": {
+            "description": "Only values whose scope starts with it, like the server ID for scopes like <server ID>:<user ID>.",
+            "type": "string"
+          },
+          "sort": {
+            "description": "Defaults to value_desc, the highest values first.",
+            "type": "string",
+            "enum": [
+              "value_desc",
+              "value_asc",
+              "updated_desc",
+              "updated_asc"
+            ]
+          },
+          "limit": {
+            "description": "How many values, from 1 to 100. Defaults to 10.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "skip": {
+            "description": "How many values to skip first, for the next page.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "value": {
+              "description": "The value: text, a number, a list, an object, or null."
+            },
+            "updated_at": {
+              "type": "number",
+              "description": "Unix timestamp in seconds."
+            }
+          },
+          "required": [
+            "scope",
+            "value",
+            "updated_at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    }
+  ]
+}

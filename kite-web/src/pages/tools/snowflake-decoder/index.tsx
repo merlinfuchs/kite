@@ -25,19 +25,19 @@ export default function SnowflakeDecoderPage() {
   return (
     <ToolLayout
       toolId="snowflake-decoder"
-      title="Discord Snowflake Decoder"
-      description="Paste the ID of a Discord user, server, channel or message to find out when it was created."
+      title="Discord snowflake decoder"
+      description="Paste the ID of a Discord user, server, channel, or message to find out when it was created."
       jsonLd={[faqJsonLd(faqs)]}
       article={
         <ToolArticle faqs={faqs}>
-          <h2>What Is a Discord Snowflake?</h2>
+          <h2>What is a Discord snowflake?</h2>
           <p>
             Every ID on Discord is a snowflake: a number that contains the
             moment it was created. Users, servers, channels, messages and roles
             all have one. That&apos;s why you can tell how old an account or a
             server is from its ID alone.
           </p>
-          <h2>How Is the Date Calculated?</h2>
+          <h2>How is the date calculated?</h2>
           <p>
             The first 42 bits of the ID count the milliseconds since the start
             of 2015, when Discord started using snowflakes. The decoder adds

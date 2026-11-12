@@ -15,6 +15,30 @@ export interface Integration {
   // A cheap GET endpoint, relative to base_url, that checks the credential
   // when the app enters it.
   test_path?: string;
+  // What the integration's blocks send to the service, shown before the app
+  // enables it, with the service's policies.
+  data_shared?: string;
+  privacy_url?: string;
+  terms_url?: string;
+  // Endpoints HTTP blocks are pointed to the integration's blocks for, like
+  // those under base_url: a host, like an old domain of the service, or a
+  // host and path prefix of another service the blocks replace, like
+  // "api.example.com/roblox/". The longest match wins.
+  other_urls?: string[];
+  // The paths under base_url HTTP blocks are pointed to the blocks for, when
+  // the blocks only cover part of the API, like "/groups/". All of base_url
+  // if unset.
+  hint_paths?: string[];
+  // Where the owner of the credential authorizes Kite for what the
+  // credential alone can't do, like running ER:LC commands. {credential_id}
+  // is the public part of the credential, for ER:LC's server keys the part
+  // after the last "-", and {app_id} Kite's ID at the service, from the
+  // service's config.
+  authorize_url?: string;
+  // The service reports its rate limits in X-RateLimit headers and
+  // Retry-After the way ER:LC does, which the service follows, see
+  // design/integrations.md.
+  rate_limit_headers?: boolean;
 }
 
 // How requests prove who they are. Integrations with the "header" or "query"
@@ -33,6 +57,9 @@ export interface CredentialAuth {
   // What the credential is called, like "API key", and where to get it.
   label: string;
   help_url?: string;
+  // Header for Kite's own key for the service, from the service's config,
+  // sent next to the app's credential.
+  kite_key_header?: string;
 }
 
 export type CredentialIntegration = Integration & { auth: CredentialAuth };

@@ -28,6 +28,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { AppSecret } from "@/lib/types/wire.gen";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -60,7 +61,8 @@ export default function AppSecretDialog({
     const handlers = {
       onSuccess(res: Awaited<ReturnType<typeof createMutation.mutateAsync>>) {
         if (res.success) {
-          toast.success(secret ? "Secret updated!" : "Secret created!");
+          if (!secret) track("secret_created");
+          toast.success(secret ? "Secret updated." : "Secret created.");
           setOpen(false);
           form.reset({ name: secret ? res.data.name : "", value: "" });
         } else if (res.error.code === "validation_failed") {
@@ -95,7 +97,7 @@ export default function AppSecretDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{secret ? "Edit Secret" : "Create Secret"}</DialogTitle>
+          <DialogTitle>{secret ? "Edit secret" : "Create secret"}</DialogTitle>
           <DialogDescription>
             Use it in API request blocks as{" "}
             <code>{`{{secrets.${form.watch("name") || "NAME"}}}`}</code>. The

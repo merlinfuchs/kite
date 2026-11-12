@@ -23,28 +23,10 @@ type MockValueProvider struct {
 
 func (p *MockValueProvider) UpdateValue(ctx context.Context, key string, op VariableOperation, value thing.Thing) (thing.Thing, error) {
 	currentValue, err := p.GetValue(ctx, key)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			p.Values[key] = value
-			return value, nil
-		}
+	if err != nil && !errors.Is(err, ErrNotFound) {
 		return thing.Null, err
 	}
-
-	newValue := currentValue
-
-	switch op {
-	case VariableOperationOverwrite:
-		newValue = value
-	case VariableOperationAppend:
-		newValue = currentValue.Append(value)
-	case VariableOperationPrepend:
-		newValue = value.Append(currentValue)
-	case VariableOperationIncrement:
-		newValue = currentValue.Add(value)
-	case VariableOperationDecrement:
-		newValue = currentValue.Sub(value)
-	}
+	newValue := op.Apply(currentValue, err == nil, value)
 
 	p.Values[key] = newValue
 	return newValue, nil

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionItemElse: BlockDefinition = {
   type: "control_condition_item_else",
+  id_prefix: "condition",
   title: "Else",
   description: "Run actions if no other conditions are met.",
   icon: "circle-x",

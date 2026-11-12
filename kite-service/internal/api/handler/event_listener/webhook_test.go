@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
@@ -32,11 +33,14 @@ func (s *fakeListenerStore) EventListener(ctx context.Context, id string) (*mode
 }
 
 // fakeRunner is the engine, which has the listeners of app "app" loaded with
-// loadedSecret.
+// loadedSecret. Its flows respond with response if canRespond, or end without
+// responding.
 type fakeRunner struct {
 	loadedSecret string
 	err          error
 	events       []*webhook.Event
+	canRespond   bool
+	response     *webhook.Response
 }
 
 func (r *fakeRunner) WebhookSecret(appID string, listenerID string) (string, bool) {
@@ -46,12 +50,22 @@ func (r *fakeRunner) WebhookSecret(appID string, listenerID string) (string, boo
 	return r.loadedSecret, true
 }
 
-func (r *fakeRunner) RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) error {
+func (r *fakeRunner) RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) (*webhook.Responder, error) {
 	if r.err != nil {
-		return r.err
+		return nil, r.err
 	}
 	r.events = append(r.events, event)
-	return nil
+	if !r.canRespond {
+		return nil, nil
+	}
+
+	event.Responder = webhook.NewResponder()
+	if r.response != nil {
+		if err := event.Responder.Respond(r.response); err != nil {
+			return nil, err
+		}
+	}
+	return event.Responder, nil
 }
 
 func webhookTestListener() *model.EventListener {
@@ -197,6 +211,36 @@ func TestWebhookAppOffline(t *testing.T) {
 
 	rec := postWebhook(server, "/v1/webhooks/app/listener/secret", "", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
+}
+
+func TestWebhookFlowResponse(t *testing.T) {
+	runner := &fakeRunner{loadedSecret: "secret", canRespond: true, response: &webhook.Response{
+		Status:      http.StatusUnauthorized,
+		ContentType: "application/json",
+		Body:        `{"error":"invalid signature"}`,
+	}}
+	server := webhookTestServer(webhookTestListener(), runner)
+
+	rec := postWebhook(server, "/v1/webhooks/app/listener/secret", "", nil)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, `{"error":"invalid signature"}`, rec.Body.String())
+	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
+	assert.Equal(t, "default-src 'none'", rec.Header().Get("Content-Security-Policy"))
+}
+
+func TestWebhookFlowResponseTimeout(t *testing.T) {
+	runner := &fakeRunner{loadedSecret: "secret", canRespond: true}
+	h := NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{webhookTestListener()}}, runner)
+	h.webhookResponseTimeout = 10 * time.Millisecond
+
+	rec := postWebhook(webhookTestMux(h), "/v1/webhooks/app/listener/secret", "", nil)
+	assert.Equal(t, http.StatusAccepted, rec.Code)
+
+	// The flow can't respond anymore once the request was answered.
+	require.Len(t, runner.events, 1)
+	err := runner.events[0].Responder.Respond(&webhook.Response{Status: 200, ContentType: "text/plain"})
+	assert.ErrorIs(t, err, webhook.ErrNotWaiting)
 }
 
 func TestNewWebhookSecret(t *testing.T) {

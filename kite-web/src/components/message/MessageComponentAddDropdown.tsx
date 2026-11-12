@@ -18,7 +18,7 @@ const componentTypes: {
   /** A component to put inside the new one, like the select menu of its row. */
   child?: NewNode;
 }[] = [
-  { label: "Button Row", node: { type: "actionRow" } },
+  { label: "Button row", node: { type: "actionRow" } },
   ...selectMenuTypes.map((t) => ({
     label: t.label,
     node: { type: "actionRow" } as NewNode,
@@ -28,8 +28,8 @@ const componentTypes: {
     } as NewNode,
   })),
   { label: "Section", node: { type: "section" } },
-  { label: "Text Display", node: { type: "textDisplay", content: "" } },
-  { label: "Media Gallery", node: { type: "mediaGallery" } },
+  { label: "Text display", node: { type: "textDisplay", content: "" } },
+  { label: "Media gallery", node: { type: "mediaGallery" } },
   {
     label: "File",
     node: { type: "file", file: { url: "" } },
@@ -68,7 +68,7 @@ export default function MessageComponentAddDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild disabled={disabled}>
         <Button size={size} className="space-x-2">
-          <div>Add Component</div>
+          <div>Add component</div>
           <ChevronDownIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

@@ -19,5 +19,10 @@ type AssistantPromptStore interface {
 	// AddAssistantPromptUsage records the usage of a model call for the prompt,
 	// and marks it as unedited if edited is false.
 	AddAssistantPromptUsage(ctx context.Context, appID string, id string, usage model.AssistantUsage, edited bool, updatedAt time.Time) error
+	// RefuseAssistantPrompt records that the flow AI refused the prompt or a
+	// repair of it, with the chance of harm the check gave. Like in
+	// AddAssistantPromptUsage, edited false makes the prompt an answer without
+	// edits.
+	RefuseAssistantPrompt(ctx context.Context, appID string, id string, chance float64, edited bool, updatedAt time.Time) error
 	CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error)
 }

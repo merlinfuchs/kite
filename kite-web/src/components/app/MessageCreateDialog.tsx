@@ -23,6 +23,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessageCreateMutation } from "@/lib/api/mutations";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -39,7 +40,7 @@ const createDefaultMessage = (name: string) => ({
         "You can use message templates to create Discord messages that contain embeds and interactive components. They can be used to create standalone messages or as a response to commands or other events.",
       color: 16735232,
       author: {
-        name: "About Message Templates",
+        name: "About message templates",
       },
       thumbnail: {
         url: "https://kite.onl/logo.png",
@@ -83,7 +84,8 @@ export default function MessageCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Message created!");
+            track("message_created", { source: "blank" });
+            toast.success("Message created.");
             setOpen(false);
 
             if (onMessageCreated) {

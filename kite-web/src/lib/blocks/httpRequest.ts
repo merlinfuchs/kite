@@ -1,18 +1,19 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
-import { httpResponseResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const httpRequest: BlockDefinition = {
   type: "action_http_request",
+  id_prefix: "http",
   title: "Send API Request",
   description: "Send an API request to an external server",
   icon: "webhook",
-  category: "API Requests",
+  category: "API requests",
   credits: 3,
   fields: [
     {
       name: "http_request_data",
+      secrets: true,
       schema: z
         .object({
           url: templated(z.string().url(), "URL to send the request to."),
@@ -29,7 +30,7 @@ export const httpRequest: BlockDefinition = {
             .optional()
             .describe("Headers to send with the request."),
           body_json: z
-            .record(z.unknown())
+            .record(z.string(), z.unknown())
             .optional()
             .describe(
               "JSON body of the request. Placeholders in its string values are evaluated."
@@ -38,6 +39,6 @@ export const httpRequest: BlockDefinition = {
         .describe("The request to send."),
     },
   ],
-  result: { schema: httpResponseResultSchema },
+  result: { thing: "http_response" },
   run: { kind: "custom" },
 };

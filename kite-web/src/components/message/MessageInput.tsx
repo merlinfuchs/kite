@@ -17,8 +17,8 @@ export default function MessageInput(props: Props) {
   );
 
   const onPlaceholderSelect = useCallback(
-    (placeholder: string) => {
-      const value = `{{${placeholder}}}`;
+    (placeholder: string, raw?: boolean) => {
+      const value = raw ? placeholder : `{{${placeholder}}}`;
 
       // TODO?: This is pretty hacky, we should think about baking placeholder support into the BaseInput component
       props.onChange((props.value + value) as never);

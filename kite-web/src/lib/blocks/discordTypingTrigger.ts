@@ -1,0 +1,27 @@
+import { BlockDefinition } from "./types";
+
+export const discordTypingTrigger: BlockDefinition = {
+  type: "action_typing_trigger",
+  id_prefix: "typing",
+  title: "Show typing",
+  description: "Bot shows as typing in a channel",
+  icon: "message-circle-more",
+  category: "Messages",
+  permissions: ["SEND_MESSAGES"],
+  strict_settings: true,
+  run: {
+    kind: "request",
+    integration: "discord",
+    operation: "trigger_typing_indicator",
+  },
+  fields: [
+    {
+      name: "channel_target",
+      target: "channel_id",
+      label: "Channel",
+      description:
+        "ID of the channel the bot shows as typing in. Leave empty to use the channel the flow runs in.",
+      fallback: "channel",
+    },
+  ],
+};

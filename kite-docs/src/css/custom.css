@@ -77,3 +77,14 @@ ul {
 .json-schema-explorer .sl-font-mono {
   overflow-wrap: anywhere;
 }
+
+/* Tabs with many items, like the MCP clients, scroll instead of wrapping
+   their labels. */
+.tabs {
+  overflow-x: auto;
+}
+
+.tabs__item {
+  padding-inline: 0.75rem;
+  white-space: nowrap;
+}

@@ -10,7 +10,16 @@ export const clientEnvSchema = z.object({
     .default("https://github.com/merlinfuchs/kite"),
   NEXT_PUBLIC_DISCORD_LINK: z.string().default("https://discord.gg"),
   NEXT_PUBLIC_CONTACT_EMAIL: z.string().default("contact@kite.onl"),
+  // Analytics are only sent when set, since they need the /ops proxy in nginx.
+  NEXT_PUBLIC_OPENPANEL_CLIENT_ID: z.string().optional(),
+  // Lemon Squeezy variant of a pay what you want product. The plans page only
+  // asks for donations when set.
+  NEXT_PUBLIC_DONATION_VARIANT_ID: z.string().optional(),
 });
+
+// The export for self-hosting, which has no server for ISR or API routes.
+// next.config.mjs passes OUTPUT to the pages.
+export const isExport = process.env.OUTPUT === "export";
 
 export default clientEnvSchema.parse({
   NEXT_PUBLIC_API_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_API_PUBLIC_BASE_URL,
@@ -19,4 +28,6 @@ export default clientEnvSchema.parse({
   NEXT_PUBLIC_GITHUB_LINK: process.env.NEXT_PUBLIC_GITHUB_LINK,
   NEXT_PUBLIC_DISCORD_LINK: process.env.NEXT_PUBLIC_DISCORD_LINK,
   NEXT_PUBLIC_CONTACT_EMAIL: process.env.NEXT_PUBLIC_CONTACT_EMAIL,
+  NEXT_PUBLIC_OPENPANEL_CLIENT_ID: process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID,
+  NEXT_PUBLIC_DONATION_VARIANT_ID: process.env.NEXT_PUBLIC_DONATION_VARIANT_ID,
 });

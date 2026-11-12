@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"gopkg.in/guregu/null.v4"
 )
@@ -105,6 +106,15 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	)
 }
 
+// ShouldHandleEvent reports whether an event listener runs for an event, for
+// test runs. botID is the app's own user.
+func ShouldHandleEvent(listener *model.EventListener, e ws.Event, botID discord.UserID) bool {
+	if listener.Source != model.EventSourceDiscord {
+		return true
+	}
+	return (&EventListener{listener: listener}).shouldHandleEvent(e, botID)
+}
+
 // shouldHandleEvent reports whether the listener runs for an event. botID is
 // the app's own user, zero if unknown.
 func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool {
@@ -117,8 +127,6 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return !d.Author.Bot
 	case *gateway.MessageUpdateEvent:
 		return !d.Author.Bot
-	case *gateway.MessageDeleteEvent:
-		return true
 	case *gateway.GuildMemberAddEvent:
 		return true
 	case *gateway.GuildMemberRemoveEvent:
@@ -136,6 +144,18 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 	case *state.GuildJoinEvent:
 		return true
 	case *state.GuildLeaveEvent:
+		return true
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		// Ignore the app's own actions, or a flow that logs channel updates
+		// by editing a channel would trigger itself.
+		return d.UserID != botID
+	case *gateway.VoiceStateUpdateEvent:
+		return d.UserID != botID
+	case *guildevent.VoiceStateUpdate:
+		return d.UserID != botID
+	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
+	// never gets here, see listenersForEvent.
+	case guildevent.Event:
 		return true
 	}
 

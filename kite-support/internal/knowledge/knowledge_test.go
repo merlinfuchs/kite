@@ -38,6 +38,13 @@ func TestBuild(t *testing.T) {
 		}
 	}
 
+	message, _ := catalog.Describe("action_message_get")
+	for _, field := range []string{"- content", "- author.username"} {
+		if !strings.Contains(message, field) {
+			t.Errorf("result of Get Message is missing %q:\n%s", field, message)
+		}
+	}
+
 	urls := PageURLs(k)
 	for _, url := range []string{"https://docs.kite.onl", "https://docs.kite.onl/reference/blocks", "https://docs.kite.onl/reference/blocks/actions/action_message_pin"} {
 		if !slices.Contains(urls, url) {

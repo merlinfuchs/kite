@@ -1,24 +1,18 @@
 import SimpleMarkdown from "simple-markdown";
 import { memo, useMemo } from "react";
+import { addListBreaks, renderMarkdown } from "@/lib/markdown/render";
 
 // The AI's answers only use paragraphs, lists, bold and inline code.
 const { newline, paragraph, list, strong, inlineCode, escape, text } =
   SimpleMarkdown.defaultRules;
 const rules = { newline, paragraph, list, strong, inlineCode, escape, text };
 const parse = SimpleMarkdown.parserFor(rules);
-const output = SimpleMarkdown.outputFor(rules, "react");
 
 export default memo(function FlowAIMarkdown({ text }: { text: string }) {
   const content = useMemo(() => {
-    // Lists only start after a blank line, which models often leave out, and
-    // blocks only end with one.
-    const blocks = text
-      .trim()
-      .replace(
-        /^(?!\s*(?:[-*]|\d+\.)\s)(.+)\n(?=\s*(?:[-*]|\d+\.)\s)/gm,
-        "$1\n\n"
-      );
-    return output(parse(blocks + "\n\n", { inline: false }));
+    // Blocks only end with a blank line.
+    const blocks = addListBreaks(text.trim());
+    return renderMarkdown(parse(blocks + "\n\n", { inline: false }));
   }, [text]);
 
   return (

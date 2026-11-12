@@ -9,22 +9,26 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free BotGhost Alternative",
+  title: "Free BotGhost alternative",
   description:
-    "Looking for a BotGhost alternative? Kite is a free, open source Discord bot maker with custom status, up to 100 servers and no branding on the free plan.",
+    "Looking for a BotGhost alternative? Kite is a free, open source Discord bot maker with up to 100 servers, 15 commands, and up to 10 bots online on the free plan, and no inactivity rule.",
   competitor: "BotGhost",
-  heading: "A Free BotGhost Alternative",
+  lastChecked: "November 2026",
+  heading: "A free BotGhost alternative",
   intro:
-    "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you set your own status and doesn't add any branding to your bot. Kite is also open source.",
+    "Kite and BotGhost both let you make a Discord bot by connecting blocks. Kite's free plan has higher limits, keeps several bots online, and lets you replace Kite's status with your own. Kite is also open source.",
   chooseKite: [
-    "You need more than 5 servers or 8 commands without paying",
-    "You want your own status and no branding on your bot",
-    "Your bot should stay online even when nobody uses it for a week",
+    "You need more than 5 servers or 3 commands without paying",
+    "You want more than one bot online on the free plan",
+    "You want your own status without paying to remove branding",
+    "Your bot should stay online even when nobody uses it for a few days",
+    "You want a cheaper paid plan",
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
-    "You want economy, giveaways or YouTube and Twitch notifications ready to use",
+    "You want music, reaction roles, or other modules ready to switch on",
     "You'd rather turn on modules than build commands",
+    "You want YouTube, Twitch, or Reddit notifications and are fine paying for them",
   ],
   rows: [
     {
@@ -34,13 +38,18 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Custom commands (free)",
-      kite: "25",
-      competitor: "8",
+      kite: "15",
+      competitor: "3",
     },
     {
       feature: "Event listeners (free)",
-      kite: "5",
+      kite: "10",
       competitor: "3",
+    },
+    {
+      feature: "Bots online at once (free)",
+      kite: "Up to 10",
+      competitor: "1",
     },
     {
       feature: "Custom status (free)",
@@ -49,18 +58,23 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Branding on your bot (free)",
-      kite: "None",
-      competitor: '"Made with BotGhost" status',
+      kite: 'Default "Powered by Kite.onl" status, free to change',
+      competitor: '"Made with BotGhost" status, removing it needs Premium',
     },
     {
       feature: "Stays online when unused (free)",
       kite: "Yes",
-      competitor: "Needs an interaction every 7 days",
+      competitor: "Switched off after 2 days without activity",
     },
     {
-      feature: "Ready-made modules",
-      kite: "A few templates and plugins",
-      competitor: "Many",
+      feature: "Paid plan for one bot",
+      kite: "From $2.99 a month",
+      competitor: "$12.50 a month, or $75 a year",
+    },
+    {
+      feature: "Ready-made features",
+      kite: "100+ templates, including leveling and economy",
+      competitor: "35+ modules and a marketplace",
     },
     {
       feature: "Open source",
@@ -70,19 +84,24 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "Your Own Status for Free",
+      title: "Your own status for free",
       description:
-        "On BotGhost's free plan, your bot's status says \"Made with BotGhost\" and changing it needs Premium. With Kite you set your own status for free and there is no branding.",
+        'On BotGhost\'s free plan, your bot\'s status says "Made with BotGhost" and changing it needs Premium. Kite shows "Powered by Kite.onl" until you set your own status, and that\'s free.',
     },
     {
-      title: "Higher Free Limits",
+      title: "Higher free limits",
       description:
-        "BotGhost's free plan allows 5 servers, 8 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 25 commands and 5 event listeners.",
+        "BotGhost's free plan allows 5 servers, 3 custom commands, and 3 custom events per bot, with one bot online at a time. Kite's free plan allows 100 servers, 15 commands, and 10 event listeners per bot, and up to 10 bots online.",
     },
     {
-      title: "No Inactivity Rule",
+      title: "No inactivity rule",
       description:
-        "Free BotGhost bots only stay online if they get an interaction at least every 7 days. Kite keeps your bot online whether it's used or not.",
+        "BotGhost switches a free bot off after 2 days without activity, until you start it again. Kite keeps your bot online whether it's used or not.",
+    },
+    {
+      title: "Cheaper when you need more",
+      description:
+        "BotGhost Premium costs $12.50 a month for one bot, or $75 a year. Kite Plus costs $2.99 a month and Kite Premium $5.99 a month, each for one bot.",
     },
     aiBuilderPoint,
     openSourcePoint,

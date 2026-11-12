@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
 )
@@ -33,6 +35,7 @@ func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*Disc
 		ID:          app.ID.String(),
 		Name:        app.Name,
 		Description: null.NewString(app.Description, app.Description != ""),
+		VerifyKey:   app.VerifyKey,
 	}, nil
 }
 
@@ -96,4 +99,21 @@ type DiscordAppInfo struct {
 	ID          string
 	Name        string
 	Description null.String
+	VerifyKey   string
+}
+
+// retryFailedCommandsDeploy deploys the commands again if the last deploy
+// failed, since a new token or restarting the app may have fixed it.
+func (h *AppHandler) retryFailedCommandsDeploy(c *handler.Context) {
+	if c.App.CommandsDeployError == nil {
+		return
+	}
+
+	if err := h.appStore.QueueAppCommandsDeploy(c.Context(), c.App.ID, false); err != nil {
+		slog.Error(
+			"Failed to queue commands deploy",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }

@@ -13,6 +13,7 @@ type ObjectStore interface {
 	UploadObjectIfNotExists(ctx context.Context, bucket string, object *model.Object) error
 	DownloadObject(ctx context.Context, bucket string, name string) (*model.Object, error)
 	DeleteObject(ctx context.Context, bucket string, name string) error
+	ListObjects(ctx context.Context, bucket string) ([]model.ObjectInfo, error)
 }
 
 var ErrObjectStoreDisabled = errors.New("object store is not configured")
@@ -42,4 +43,8 @@ func (DisabledObjectStore) DownloadObject(ctx context.Context, bucket string, na
 
 func (DisabledObjectStore) DeleteObject(ctx context.Context, bucket string, name string) error {
 	return ErrObjectStoreDisabled
+}
+
+func (DisabledObjectStore) ListObjects(ctx context.Context, bucket string) ([]model.ObjectInfo, error) {
+	return nil, ErrObjectStoreDisabled
 }

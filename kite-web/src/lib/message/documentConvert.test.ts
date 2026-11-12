@@ -35,6 +35,7 @@ const embedMessage = parse({
     },
     {
       description: "Second",
+      timestamp_now: true,
       fields: [{ name: "C", value: "3" }],
     },
   ],
@@ -436,4 +437,51 @@ describe("parseMessageData", () => {
   test("leaves classic messages without the flag", () => {
     expect(actionRowMessage.flags).toBeUndefined();
   });
+});
+
+describe("embed text limit", () => {
+  const withEmbeds = (embeds: unknown[]) =>
+    messageSchema.safeParse({ content: "", embeds });
+
+  test("counts the text of all embeds together", () => {
+    const res = withEmbeds([
+      { description: "a".repeat(3500) },
+      { description: "b".repeat(2000), fields: [{ name: "n", value: "v" }] },
+      { title: "t".repeat(500) },
+    ]);
+    expect(res.success).toBe(false);
+    expect(res.error?.issues.some((i) => i.path.join(".") === "embeds")).toBe(
+      true
+    );
+  });
+
+  test("allows exactly the limit", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: "b".repeat(2000) },
+      ]).success
+    ).toBe(true);
+  });
+
+  test("doesn't count placeholders", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: `${"b".repeat(2000)}{{user.name}}` },
+      ]).success
+    ).toBe(true);
+  });
+});
+
+test("hex colors load as numbers and placeholders as text", () => {
+  const restored = parse({
+    embeds: [
+      { description: "a", color: "#ff0000" },
+      { description: "b", color: "{{arg('color')}}" },
+    ],
+  });
+  expect(restored.embeds[0].color).toBe(0xff0000);
+  expect(restored.embeds[1].color).toBe("{{arg('color')}}");
+  expect(messageSchema.safeParse(restored).success).toBe(true);
 });

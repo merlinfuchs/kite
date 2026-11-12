@@ -26,7 +26,7 @@ The Discord API Request block (#469) already has most of the machinery: endpoint
 
 **Block definition.** One file per block, and self-contained: the fields the user fills in with their types, how the block runs, e.g. a request to an integration and how the fields map onto it, and what the block returns. Both the service and the editor read the same file, and nothing at runtime reads a spec. A block needs the integrations its requests go to, plus any it lists in `requires`, and only works when the app has them enabled.
 
-**Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. Nothing at runtime reads it: it's the input for generating block definitions, for the raw request block's operation list, and for checking definitions when the service changes its API.
+**Spec.** Every integration with request blocks has an `api.json` in its folder: the operations Kite knows about, in one trimmed format (method, path, and path, query and body parameters). For a service with an official OpenAPI spec it's generated from it at a pinned commit by a script. For one without, like cookie-api, it's written by hand from their docs. The service embeds all of them as `kite-service/pkg/flow/operations.json`, and request blocks and the raw request block send the method and path from there. So a change to an `api.json` changes what running blocks send, not just the editor. It's also the input for generating block definitions and for checking them when the service changes its API, see Operations for code.
 
 **Raw request block.** An integration can turn on a raw block like Discord API Request, where any operation of its spec can be picked, as the escape hatch for endpoints nobody has curated yet. The block is generated for the integration, and its operation list is the integration's `api.json`, like Discord's today.
 
@@ -46,7 +46,7 @@ kite-web/src/lib/
     discord/
       index.ts
       api.json           generated from Discord's OpenAPI spec
-    cookie_api/          later
+    cookie_api/
       index.ts
       api.json           hand-written from their docs, they publish none
   blocks/
@@ -92,31 +92,26 @@ export const discordRoleCreate: BlockDefinition = {
   description: "Create a new role in the server",
   icon: "shield-plus",
   category: "Roles",
-  credits: 1,
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "create_guild_role",
-    method: "POST",
-    path: "/guilds/{guild_id}/roles",
   },
   fields: [
     {
       name: "guild_target",
-      in: "path",
       target: "guild_id",
-      type: "snowflake",
       label: "Server",
       description: "ID of the server. Leave empty to use the server the flow runs in.",
       fallback: "guild",
     },
-    { name: "name", in: "body", type: "string", max_length: 100, label: "Name", description: "..." },
-    { name: "permissions", in: "body", type: "string", widget: "permissions", label: "Permissions", description: "..." },
-    { name: "color", in: "body", type: "integer", min: 0, max: 16777215, label: "Color", description: "..." },
-    { name: "hoist", in: "body", type: "boolean", label: "Show Separately", description: "..." },
+    { name: "name", max_length: 100, label: "Name", description: "..." },
+    { name: "permissions", type: "string", widget: "permissions", label: "Permissions", description: "..." },
+    { name: "color", type: "color", min: 0, max: 16777215, label: "Color", description: "..." },
+    { name: "hoist", label: "Show Separately", description: "..." },
   ],
-  result: { thing: "discord_role", schema: roleResultSchema },
+  result: { thing: "discord_role" },
 };
 ```
 
@@ -133,9 +128,9 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
 
 A block's integrations are those of its requests and its `requires` together. Discord blocks name Discord too, although it's always enabled, so they keep working if Discord ever becomes one platform among several.
 
-A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Field types are `snowflake`, `snowflake_list`, `integer`, `boolean` and `string`, checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
+A field's `name` is the setting in the node's data, and `target` its name in the request if it differs. Where the field goes, in the path, the query or the body, comes from the operation's parameter of that name, and so do its type and whether it's required. A field only sets `type` for what Kite converts, like `seconds`, `color` or a list of IDs, and `required` to require more than the spec. Types are checked in the editor and again when the flow runs. `fallback` fills an empty field with the server or channel the flow runs in, like `guild_target` of other blocks.
 
-The generator copies what the spec knows into the definition: method, path, types, required fields, allowed values, limits and the response schema. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
+The generator copies what the spec doesn't already give the block into the definition: allowed values, limits and the response schema. The method, path, credits, and each field's location, type and whether it's required stay in the spec, which definitions read when they load. People then add what the spec lacks: which fields to show and in what order, labels and descriptions (Discord's spec describes about 10% of its properties), input widgets, fixed or hidden values, and how the result is exposed. `run.operation` stays as a reference back to the spec, for the drift check below.
 
 `result.thing` wraps the response as an existing thing type, so a migrated block keeps `{{result('x').mention}}` working, and `result.list` a list of them. Without it the result is the plain JSON, like Discord API Request.
 
@@ -181,7 +176,7 @@ The service embeds all definitions and builds a table of node type to block defi
 
 The credential is only ever added to requests to the integration's own base URL, which comes from the repo, never from a flow. It never appears in templates, results, errors or logs. This is the same property Discord API Request has for the bot token, extended to every integration.
 
-Credits come from the definition. Partner APIs that charge Kite can cost more.
+Credits come from the operation in the `api.json`, the same as for calls from code. Partner APIs that charge Kite can cost more.
 
 ## Editor
 
@@ -250,7 +245,7 @@ export const discordChannelGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [channelTargetSetting],
-  result: { schema: nodeActionChannelGetResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };
 ```
@@ -277,7 +272,7 @@ export const controlConditionCompare: BlockDefinition = {
   // ...
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
-  component: "condition_compare",
+  component: "condition",
   run: { kind: "custom" },
 };
 
@@ -302,6 +297,22 @@ The get blocks (`action_message_get`, `action_channel_get` and the others) read 
 
 Each converted block has a test for the exact request it sends, matching the arikawa call it replaced. Then the Go handler and the provider method are deleted.
 
+## Operations for code
+
+Status: proposal, for step 2 of `design/javascript.md`.
+
+Scripts call operations, not blocks. Blocks are presets of operations for the editor, with a curated subset of the options, and code should get all of them. So an integration's operations become the layer that blocks, the JavaScript SDK and the MCP server all use, and `integrations/` is the one place every operation is defined.
+
+**Operation kinds.** Most operations are requests: a method, a path and parameters, sent to the integration's base URL with its auth. The second kind, `handler`, names Go code instead, with a JSON Schema for its parameters and its result. They're defined with zod in `kite-web/src/lib/integrations/handlerOperations.ts`, generated into `operations.json` with the requests, and run by the function registered under their name in `operationHandlers`. A handler decodes the argument into a struct that rejects unknown fields, so a wrong argument fails before anything is charged. `http.request` is the first one. The stored variable blocks run the `variables.*` operations with their settings evaluated, and the Send API Request block runs `http.request` the same way. Blocks and code share how a value is changed and listed. They differ in how they name the variable. Blocks are charged when they start, and code per call. Reading a member from the gateway cache, stored variables, AI and voice are that kind. The executor runs both kinds, and credits, logs, limits and the generated SDK work the same for them. Some costs depend on the input, like AI by its tokens, so a handler can compute its cost, like `CreditsCost` does for blocks.
+
+**Built-in integrations.** Kite's own features are integrations too, one per feature group, like `variables`, `ai`, `voice` and `http`, whose one operation sends a request to any URL like the HTTP Request block. A group is what an SDK namespace, a docs page, a plan limit and a section of the flow AI's catalog follow, which one `kite` integration would mix together. They have the availability `always` and aren't on the Integrations page, as there's nothing to enable or enter. A group a plan doesn't include, like voice without Kite Plus, says so where it's used, like the Paid badge in the block explorer.
+
+Discord's operations without a request stay in the Discord integration. Reading a member from the cache sits next to `GET /guilds/{guild.id}/members/{user.id}`, not in a Kite group.
+
+**Read at runtime.** Calls from scripts name an operation, so the service needs a table of operations, generated like `block_definitions.json`. That's `kite-service/pkg/flow/operations.json`, generated from the `api.json` files with each operation's policy by `operations.ts`. Request blocks and the Discord API Request block look up their operation in it and send it through `sendOperation`. Each entry has the operation's credits, how its target is proven to be in the app's server, and limits for destructive operations. Blocks keep running from their definitions, and both go through the same executor.
+
+Once scripts call them, an `api.json` is the list of what code may do, and changes to it are changes to what apps can do. It leaves out operations that would break how Kite manages an app, like registering Discord application commands or editing the application. Names of operations are fixed once scripts can call them, and a renamed operation keeps its old name as an alias. Each operation's credits are in its `api.json`. Discord's generator makes reads free and other calls cost 1. Targets are derived from the path where they can be, with a short list written by hand for fields in bodies, like a forwarded message reference.
+
 ## Future: platform integrations
 
 Integrations as described here only add actions. What makes Discord the primary platform isn't its API calls but everything flows are built around: triggers (gateway events, commands, buttons, select menus, modals), the message builder, the placeholder environment (`user`, `member`, `channel`, `guild`) and the app model of one bot account per app with a gateway connection.
@@ -312,7 +323,7 @@ That's far off. The two rules above keep it open without extra work now: block t
 
 ## Next integrations
 
-Probably the next two to build, checked against the live APIs on 2026-09-30.
+Checked against the live APIs on 2026-09-30. ER:LC is being built.
 
 ### Popcat
 
@@ -325,31 +336,39 @@ It's `opt_in`: an unaffiliated hobby project with no stated uptime or rate limit
 
 ### ER:LC
 
-[ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`, so `api.json` is generated like Discord's. They have no `operationId`s, so the script derives them from the method and path. The old domain `api.policeroleplay.community` now only returns 403.
+[ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`. The old domain `api.policeroleplay.community` now only returns 403.
 
-- Reads: server status, players, staff, queue, join, kill and command logs, moderator calls, bans and vehicles. v2 has them in one `GET /v2/server`, with query parameters choosing which parts to include.
-- `POST /v2/server/command` runs in-game commands, limited to one per 5 seconds per server. Their rules forbid spamming and using `:pm` as a chat replacement, and commands like `:kick` and `:ban` are destructive, so the block needs limits.
-- Event webhooks for `;` chat commands and emergency calls, signed with Ed25519, fit triggers (#181).
+On 2026-10-01, 56 apps called ER:LC from HTTP blocks, in 159 blocks, most on the old domain. 46 of them pasted the server key into a header. What they call:
+
+- Commands: 27 apps on `POST /v1/server/command` and 6 on v2. In 28 apps the whole command comes from a placeholder, usually `{{arg('command')}}`, so the bot is a remote console. Fixed commands are mostly `:kick`, staff roles (`:mod`, `:admin`, `:helper`) and `:h` announcements. One runs `:kick all`.
+- `GET /v2/server`: 27 apps, all 16 that pass query parameters turn on all eight parts. 11 apps on `GET /v1/server`, the separate v1 endpoints only by one or two apps each, and bans by none.
+- The fields flows read are mostly `CurrentPlayers` (19 apps), `Queue` (15), `Players` (12), `MaxPlayers` (9), `Name` (8), `Vehicles` and `JoinKey` (7 each).
+
+So the integration has two blocks, both on v2: Get server (`GET /v2/server`), with a yes/no field for each part to include, and Run command (`POST /v2/server/command`), with the command as one field. One block with toggles makes one request where blocks per part would make several against the same rate limit. v1 only adds bans, which nobody uses, and ER:LC's large-application status requires v2. With two operations, `api.json` is written by hand from the v2 spec.
 
 Every request needs the server's key in the `server-key` header, which the server owner gets in game after buying the paid ERLC API server pack. That's the app's credential, entered when enabling the integration. One credential per app means one ER:LC server per app.
 
-ER:LC rate limits per IP and doesn't support shared-IP services, which Kite is, and repeated requests with a regenerated server key get the IP banned. So before building it:
+ER:LC rate limits per IP and doesn't support shared-IP services, which Kite is, so Kite is registered as a public application on their [API dashboard](https://api.erlc.gg/developers):
 
-1. Register Kite as a public application on their [API dashboard](https://api.erlc.gg/developers), which needs a description, feature list, privacy policy and terms of service. Kite then sends its global key in `Authorization` on every request, next to the app's `server-key`, for higher limits. That's a platform credential from the service config, a small addition to `auth`.
-2. Protect the shared IP: disable the integration for an app after repeated 403s for its key until the owner enters a new one, never retry a 429, and show `Retry-After` in the error.
-3. Running commands needs the server owner to authorize Kite once through an authorization link, `https://api.erlc.gg/server-owners/server/[INTERNAL_SERVER_ID]/authorize/[KITE_APP_ID]`, which the Enable dialog can show after the key is entered. The internal server ID is part of the server key. Read blocks work without it.
+1. Kite sends its global key in `Authorization` on every request, next to the app's `server-key`. The integration's `auth.kite_key_header` names the header, and the key is `api_key` under `[integrations.erlc]` in `kite.toml`. Without it, as on self-hosted instances, the header is left out and requests fall under the per-IP limits.
+2. Running commands needs the server owner to authorize Kite once, through `https://api.erlc.gg/server-owners/server/{server_id}/authorize/{app_id}`. The server ID is the part of the server key after its `-`, which ER:LC says can be shared, and the app ID is `app_id` in the same config. The integration's `authorize_url` holds the link, and the Integrations page shows it once the key is entered. Read blocks work without it.
+3. Integrations with `rate_limit_headers` follow ER:LC's rate limit headers. Requests of an app to the same endpoint run one at a time, and wait until the `X-RateLimit-Reset` of a bucket with no requests left, or the `Retry-After` of a 429, for at most 10 seconds. Otherwise the block fails without sending the request. `global` and `invalid-requests` buckets are shared by all apps, as are 429s that don't name their bucket, buckets ending in `-server` by all requests with the server key, and others like `command` by the requests with the server key to that endpoint. Limits are waited out for at most a day. Connecting an integration is limited to 5 times a minute per user, as each attempt checks the key with ER:LC, which blocks apps that keep sending invalid keys. Commands are limited to one per 5 seconds per server, so two commands in a row wait instead of getting a 429, which ER:LC punishes with blocks that last hours if requests continue. The state is in memory, which works as apps are pinned to one cluster, but each of the 4 clusters learns about a global 429 on its own.
+
+ER:LC also bans IPs that keep sending regenerated server keys. Kite doesn't track invalid keys: a 403 fails the block, the key is checked when it's entered, and the HTTP blocks that call ER:LC today have the same risk. HTTP blocks to ER:LC keep working, with a note in the editor to use the ER:LC blocks, like the one for Discord's API. They may be blocked later.
+
+Event webhooks for `;` chat commands and emergency calls fit triggers (#181). ER:LC signs them all with one key, so the signature doesn't say which server sent them, and each app would need its own secret URL.
 
 ## Phases
 
 1. Done: definition format, executor and editor rendering, with create invite (#212), bulk delete (#210), role create (#208) and the message list from #468.
 2. Done: one format for all blocks. Every block has a definition with a custom or request `run`, custom blocks name their widgets, conditions and loops their structure, and Go runs custom blocks from a handler map instead of the switch in `Execute`.
 3. Done: 14 blocks that are a single request run as requests: message delete, reactions, pin and unpin, ban, unban, kick, timeout, member roles, channel delete and thread members. They keep their schema and editor inputs, and their fields only describe the request, with the field types `emoji` and `seconds_until` for the two conversions they need. Still custom: member edit (nested settings), channel and thread create and edit and forum posts (settings that are whole objects), and the get blocks, which read Kite's cache.
-4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, enable badges in the block explorer, blocks marked red when their integration isn't enabled, and the flow AI's catalog limited to enabled integrations. An integration's `availability` says whether apps can use it without doing anything: `always` (Discord), `default`, on until the app turns it off (Roblox), or `opt_in`, off until the app turns it on. Integrations that need a credential are `opt_in` and enabled by entering it. `app_integrations` records the integrations an app set up, a missing row means the default, and credentials in `app_secrets` reference their row, so removing an integration removes its credential while disabling keeps it. Cookie API was built as the first integration with a key, with a hand-written `api.json` and a Generate QR code block, but held back to ship on its own later; it's on the branch `merlin/cookie-api-parked`. For transcripts, ask cookie-api for a mode where Kite sends the messages instead of a bot token.
+4. Done: app secrets (#419) in an `app_secrets` table that also holds integration credentials, the Integrations page, enable badges in the block explorer, blocks marked red when their integration isn't enabled, and the flow AI's catalog limited to enabled integrations. An integration's `availability` says whether apps can use it without doing anything: `always` (Discord), `default`, on until the app turns it off (Roblox), or `opt_in`, off until the app turns it on. Integrations that need a credential are `opt_in` and enabled by entering it. `app_integrations` records the integrations an app set up, a missing row means the default, and credentials in `app_secrets` reference their row, so removing an integration removes its credential while disabling keeps it. Cookie API has a hand-written `api.json` and blocks for transcripts, cards, QR codes, captchas and Minecraft verification. Transcripts send the app's bot token, which `run.inject` adds to the body, as cookie-api reads the channel itself. That's safer than the pasted tokens it replaces, and the Enable dialog says so, with cookie-api's privacy policy and terms. Cards take the JSON of cookie-api's card builder in a `json_object` field, which is sent as the body. Apps pay cookie-api with their own key, so its blocks cost 1 credit like those of other integrations. Charts return the image and fit the URL-only run kind proposed for Popcat.
 5. The LLM draft script and contributor docs.
 6. Triggers from other services (the webhook listener, #181), if Kite goes beyond Discord. Integrations only add actions.
+7. Proposed: operations for code, with operation kinds, built-in integrations and the table of operations the service reads at runtime.
 
 ## Open questions
 
 1. Should the flow AI's catalog include blocks of disconnected integrations, so it can suggest connecting them?
 2. Test the credential when connecting, which needs a test operation per integration?
-3. Partner pricing: do cookie-api calls cost more credits, and who pays cookie-api?

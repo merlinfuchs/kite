@@ -18,17 +18,17 @@ func init() {
 func executeActionRoleGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	guildID, err := n.targetGuildID(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	roleID, err := ctx.EvalTemplate(n.Data.RoleTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	role, err := ctx.Discord.Role(ctx, guildID, discord.RoleID(roleID.Snowflake()))
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if role != nil {
@@ -43,12 +43,12 @@ func executeActionRoleGet(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionGuildGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	guildID, err := ctx.EvalTemplate(n.Data.GuildTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	guild, err := ctx.Discord.Guild(ctx, discord.GuildID(guildID.Snowflake()))
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	if guild != nil {
