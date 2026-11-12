@@ -133,6 +133,9 @@ import {
   OAuthAuthorizeResponse,
   APITokenCreateResponse,
   APITokenDeleteResponse,
+  UserBadgeGrantCreateRequest,
+  UserBadgeGrantCreateResponse,
+  UserBadgeGrantDeleteResponse,
   UserBanCreateRequest,
   UserBanCreateResponse,
   UserBanDeleteResponse,
@@ -807,6 +810,40 @@ export function useBundleStaffPickMutation() {
         `/v1/admin/bundles/${bundleId}/staff-pick`,
         { method: picked ? "POST" : "DELETE" }
       ),
+  });
+}
+
+// useUserBadgeGrantCreateMutation gives a user a badge by hand.
+export function useUserBadgeGrantCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserBadgeGrantCreateRequest) =>
+      apiRequest<UserBadgeGrantCreateResponse>(`/v1/admin/user-badges`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-badges"] });
+    },
+  });
+}
+
+export function useUserBadgeGrantDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, kind }: { userId: string; kind: string }) =>
+      apiRequest<UserBadgeGrantDeleteResponse>(
+        `/v1/admin/user-badges/${userId}/${kind}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-badges"] });
+    },
   });
 }
 

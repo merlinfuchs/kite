@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -18,10 +19,16 @@ import (
 type BundleHandler struct {
 	bundleStore store.BundleStore
 	userStore   store.UserStore
+	badges      BadgeSource
 }
 
-func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) *BundleHandler {
-	return &BundleHandler{bundleStore: bundleStore, userStore: userStore}
+// BadgeSource works out the badges of users, see plan.PlanManager.
+type BadgeSource interface {
+	UserBadges(ctx context.Context, userIDs []string) (map[string][]model.UserBadge, error)
+}
+
+func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore, badges BadgeSource) *BundleHandler {
+	return &BundleHandler{bundleStore: bundleStore, userStore: userStore, badges: badges}
 }
 
 // HandleBundleList lists the bundles of the marketplace, the official ones
@@ -39,12 +46,23 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		return nil, err
 	}
 
+	var ownerIDs []string
+	for _, b := range list {
+		if b.Owner != nil && !slices.Contains(ownerIDs, b.Owner.ID) {
+			ownerIDs = append(ownerIDs, b.Owner.ID)
+		}
+	}
+	badges, err := h.badges.UserBadges(c.Context(), ownerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badges: %w", err)
+	}
+
 	res := make([]*wire.Bundle, len(list))
 	for i, b := range list {
 		res[i] = wire.BundleToWire(b)
 		if b.Owner != nil {
 			res[i].Owner = wire.BundleOwnerToWire(b.Owner)
-			res[i].Owner.InstallerCount = &b.OwnerInstallerCount
+			res[i].Owner.Badges = wire.UserBadgesToWire(badges[b.Owner.ID])
 			res[i].Yours = b.OwnedBy(userID)
 		}
 	}

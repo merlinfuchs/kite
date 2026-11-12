@@ -62,4 +62,12 @@ New versions and changes to the page are reviewed too. Until they're approved, a
 
 Your listed templates are on your creator page, which your name on their pages links to.
 
-Your creator page shows badges as people use your templates. Added by 10+ users, 100+ users and 1,000+ users count the different people who added any of your listed templates, not counting your own apps. Early creator is for everyone who had a template in the Marketplace before November 13, 2026. The Kite team also picks templates it likes, which then show Staff pick in the Marketplace.
+Your creator page shows your badges, which you also see in the menu of your account in the dashboard. Hover over a badge to see what it's for.
+
+- Template creator, in bronze, blue or gold, once 10, 100 or 1,000 different people added any of your listed templates. Your own apps don't count.
+- Early creator, for everyone who had a template in the Marketplace before November 13, 2026.
+- Early supporter, for everyone who paid for a plan before Kite Plus launched on October 30, 2026.
+- Subscriber, while you pay for a plan.
+- Contributor, for people who helped build Kite.
+
+The Kite team also picks templates it likes, which then show a Staff pick seal in the Marketplace.

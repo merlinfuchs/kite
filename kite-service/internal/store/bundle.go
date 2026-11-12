@@ -120,4 +120,7 @@ type BundleStore interface {
 	// SetBundleStaffPick picks a user's bundle at the time, or unpicks it if
 	// it's null. It returns ErrNotFound if it's official or taken down.
 	SetBundleStaffPick(ctx context.Context, id string, at null.Time) error
+	// CreatorStats returns the stats of the users who have a template in the
+	// marketplace, and nothing for the others.
+	CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error)
 }

@@ -1,6 +1,7 @@
 import logo from "@/assets/logo/orange@1024.png";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
+import { StaffPickIcon } from "../badges/Badges";
 import { Card } from "@/components/ui/card";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -10,7 +11,6 @@ import {
 } from "@/lib/flow/templates";
 import {
   ActivityIcon,
-  AwardIcon,
   BotIcon,
   CircleCheckIcon,
   MailIcon,
@@ -106,7 +106,7 @@ function TemplateEntryHead({
     <div className="flex items-center gap-3 min-w-0">
       <div
         className={cn(
-          "h-10 w-10 flex-none rounded-lg flex items-center justify-center",
+          "relative h-10 w-10 flex-none rounded-lg flex items-center justify-center",
           category.tile
         )}
       >
@@ -114,16 +114,15 @@ function TemplateEntryHead({
           name={template.icon}
           className={cn("h-5 w-5", category.icon)}
         />
+        {/* On the corner of the icon, so it doesn't take room from the name. */}
+        {template.staffPick && (
+          <div className="absolute -right-1.5 -bottom-1.5">
+            <StaffPickIcon className="h-5 w-5" />
+          </div>
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="font-semibold truncate">{template.name}</span>
-          {template.staffPick && (
-            <span title="Staff pick, picked by the Kite team">
-              <AwardIcon className="h-4 w-4 flex-none text-primary" />
-            </span>
-          )}
-        </div>
+        <div className="font-semibold truncate">{template.name}</div>
         <TemplateAuthor template={template} />
       </div>
       {added ? (

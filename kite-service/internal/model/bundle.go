@@ -55,9 +55,6 @@ type Bundle struct {
 	ActiveInstallCount int
 	// StarCount is how many users starred the bundle.
 	StarCount int
-	// OwnerInstallerCount is how many other users added any listed bundle of
-	// its owner, set when the listed bundles are loaded.
-	OwnerInstallerCount int
 	// Notes are what changed in the version, set when it's published.
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.

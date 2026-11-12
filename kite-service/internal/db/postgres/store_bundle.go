@@ -151,7 +151,6 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 		b.InstallCount = int(row.InstallCount)
 		b.ActiveInstallCount = int(row.ActiveInstallCount)
 		b.StarCount = int(row.StarCount)
-		b.OwnerInstallerCount = int(row.OwnerInstallerCount)
 		bundles[i] = b
 	}
 	return bundles, nil
@@ -169,6 +168,23 @@ func (c *Client) SetBundleStaffPick(ctx context.Context, id string, at null.Time
 		return store.ErrNotFound
 	}
 	return nil
+}
+
+func (c *Client) CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error) {
+	rows, err := c.Q.GetCreatorStats(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]*model.CreatorStats, len(rows))
+	for i, row := range rows {
+		stats[i] = &model.CreatorStats{
+			UserID:         row.UserID,
+			FirstListedAt:  row.FirstListedAt.Time,
+			InstallerCount: int(row.InstallerCount),
+		}
+	}
+	return stats, nil
 }
 
 func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {

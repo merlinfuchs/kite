@@ -423,6 +423,55 @@ func (q *Queries) GetCreatorDiscordIDs(ctx context.Context, minInstallers int32)
 	return items, nil
 }
 
+const getCreatorStats = `-- name: GetCreatorStats :many
+SELECT
+    bundles.owner_user_id::text AS user_id,
+    min(bundles.created_at)::timestamp AS first_listed_at,
+    (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND apps.owner_user_id != owned.owner_user_id
+    )::int AS installer_count
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id = ANY($1::text[]) AND bundles.removed_at IS NULL
+GROUP BY bundles.owner_user_id
+`
+
+type GetCreatorStatsRow struct {
+	UserID         string
+	FirstListedAt  pgtype.Timestamp
+	InstallerCount int32
+}
+
+// How long the users have had a bundle listed in the marketplace, by when the
+// oldest of their listed bundles was made, and how many other users added any
+// of them. Users without a listed bundle aren't in it.
+func (q *Queries) GetCreatorStats(ctx context.Context, userIds []string) ([]GetCreatorStatsRow, error) {
+	rows, err := q.db.Query(ctx, getCreatorStats, userIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCreatorStatsRow
+	for rows.Next() {
+		var i GetCreatorStatsRow
+		if err := rows.Scan(&i.UserID, &i.FirstListedAt, &i.InstallerCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
@@ -431,41 +480,29 @@ SELECT
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at,
     COALESCE(bundle_install_counts.total, 0)::int AS install_count,
     COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
-    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
-    COALESCE(owner_installers.count, 0)::int AS owner_installer_count
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
 JOIN users ON users.id = bundles.owner_user_id
 LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
-LEFT JOIN (
-    SELECT owned.owner_user_id, count(DISTINCT apps.owner_user_id) AS count
-    FROM bundles AS owned
-    JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
-    JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
-    JOIN apps ON apps.id = bundle_installs.app_id
-    WHERE owned.removed_at IS NULL AND apps.owner_user_id != owned.owner_user_id
-    GROUP BY owned.owner_user_id
-) AS owner_installers ON owner_installers.owner_user_id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id
 `
 
 type GetListedUserBundlesRow struct {
-	Bundle              Bundle
-	BundleListing       BundleListing
-	Content             []byte
-	User                User
-	InstallCount        int32
-	ActiveInstallCount  int32
-	StarCount           int32
-	OwnerInstallerCount int32
+	Bundle             Bundle
+	BundleListing      BundleListing
+	Content            []byte
+	User               User
+	InstallCount       int32
+	ActiveInstallCount int32
+	StarCount          int32
 }
 
 // Users' bundles listed in the marketplace, with their approved version and
 // who made them, newest first. A bundle that was taken down has no listing, but
-// the filter makes sure. owner_installer_count is how many other users added
-// any of the listed bundles of the same owner.
+// the filter makes sure.
 func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBundlesRow, error) {
 	rows, err := q.db.Query(ctx, getListedUserBundles)
 	if err != nil {
@@ -514,7 +551,6 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 			&i.InstallCount,
 			&i.ActiveInstallCount,
 			&i.StarCount,
-			&i.OwnerInstallerCount,
 		); err != nil {
 			return nil, err
 		}

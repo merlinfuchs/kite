@@ -199,8 +199,7 @@ ORDER BY version DESC;
 
 -- Users' bundles listed in the marketplace, with their approved version and
 -- who made them, newest first. A bundle that was taken down has no listing, but
--- the filter makes sure. owner_installer_count is how many other users added
--- any of the listed bundles of the same owner.
+-- the filter makes sure.
 -- name: GetListedUserBundles :many
 SELECT
     sqlc.embed(bundles),
@@ -209,22 +208,12 @@ SELECT
     sqlc.embed(users),
     COALESCE(bundle_install_counts.total, 0)::int AS install_count,
     COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
-    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
-    COALESCE(owner_installers.count, 0)::int AS owner_installer_count
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
 JOIN users ON users.id = bundles.owner_user_id
 LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
-LEFT JOIN (
-    SELECT owned.owner_user_id, count(DISTINCT apps.owner_user_id) AS count
-    FROM bundles AS owned
-    JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
-    JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
-    JOIN apps ON apps.id = bundle_installs.app_id
-    WHERE owned.removed_at IS NULL AND apps.owner_user_id != owned.owner_user_id
-    GROUP BY owned.owner_user_id
-) AS owner_installers ON owner_installers.owner_user_id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
 
@@ -294,3 +283,25 @@ UPDATE bundles SET approved_version = @approved_version WHERE id = @id;
 -- name: SetBundleStaffPickedAt :execrows
 UPDATE bundles SET staff_picked_at = @staff_picked_at
 WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;
+
+-- How long the users have had a bundle listed in the marketplace, by when the
+-- oldest of their listed bundles was made, and how many other users added any
+-- of them. Users without a listed bundle aren't in it.
+-- name: GetCreatorStats :many
+SELECT
+    bundles.owner_user_id::text AS user_id,
+    min(bundles.created_at)::timestamp AS first_listed_at,
+    (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND apps.owner_user_id != owned.owner_user_id
+    )::int AS installer_count
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id = ANY(@user_ids::text[]) AND bundles.removed_at IS NULL
+GROUP BY bundles.owner_user_id;

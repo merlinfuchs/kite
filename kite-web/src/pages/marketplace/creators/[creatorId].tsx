@@ -5,14 +5,13 @@ import {
   FeaturedTemplateEntry,
   TemplateListEntry,
 } from "@/components/app/TemplateListEntry";
-import { CreatorBadges } from "@/components/app/TemplateBadges";
+import { UserBadges } from "@/components/badges/Badges";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { fetchBundles } from "@/lib/apiData";
-import { creatorBadges } from "@/lib/flow/creatorBadges";
 import { isExport } from "@/lib/env/client";
 import {
   categoryPath,
@@ -89,10 +88,6 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   );
   const firstListedAt = firstCreatedAt(templates);
   const since = firstListedAt && creatorSince(firstListedAt);
-  const badges = creatorBadges({
-    installerCount: owner.installer_count ?? 0,
-    firstListedAt,
-  });
 
   return (
     <HomeLayout
@@ -131,11 +126,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
                 @{owner.discord_username}
                 {since && ` · Creator since ${since}`}
               </div>
-              {badges.length > 0 && (
-                <div className="mt-3">
-                  <CreatorBadges badges={badges} />
-                </div>
-              )}
+              <UserBadges badges={owner.badges ?? []} className="mt-3" />
             </div>
             <CopyLinkButton />
           </div>

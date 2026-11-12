@@ -429,6 +429,13 @@ type User struct {
 	UpdatedAt       pgtype.Timestamp
 }
 
+type UserBadgeGrant struct {
+	UserID          string
+	Badge           string
+	GrantedByUserID pgtype.Text
+	CreatedAt       pgtype.Timestamp
+}
+
 type UserBan struct {
 	UserID         string
 	Feature        string

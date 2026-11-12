@@ -58,9 +58,9 @@ type BundleOwner struct {
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
 	DiscordAvatar   null.String `json:"discord_avatar"`
-	// InstallerCount is how many other users added any of their templates in
-	// the marketplace, only set in the list of all templates.
-	InstallerCount *int `json:"installer_count,omitempty"`
+	// Badges are the badges of the user, only set in the list of all
+	// templates.
+	Badges []UserBadge `json:"badges,omitempty"`
 }
 
 func BundleOwnerToWire(user *model.User) *BundleOwner {
