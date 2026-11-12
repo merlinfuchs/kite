@@ -41,19 +41,19 @@ type AccessResponse struct {
 }
 
 type EventListener struct {
-	ID            string                    `json:"id"`
-	Source        string                    `json:"source"`
-	Type          string                    `json:"type"`
-	Description   string                    `json:"description"`
-	Enabled       bool                      `json:"enabled"`
-	AppID         string                    `json:"app_id"`
-	ModuleID      null.String               `json:"module_id"`
-	CreatorUserID string                    `json:"creator_user_id"`
-	Filter        *wire.EventListenerFilter `json:"filter"`
-	FlowSource    flow.FlowData             `json:"flow_source"`
-	CreatedAt     time.Time                 `json:"created_at"`
-	UpdatedAt     time.Time                 `json:"updated_at"`
-	LastRunAt     null.Time                 `json:"last_run_at"`
+	ID              string                    `json:"id"`
+	Source          string                    `json:"source"`
+	Type            string                    `json:"type"`
+	Description     string                    `json:"description"`
+	Enabled         bool                      `json:"enabled"`
+	AppID           string                    `json:"app_id"`
+	BundleInstallID null.String               `json:"bundle_install_id"`
+	CreatorUserID   string                    `json:"creator_user_id"`
+	Filter          *wire.EventListenerFilter `json:"filter"`
+	FlowSource      flow.FlowData             `json:"flow_source"`
+	CreatedAt       time.Time                 `json:"created_at"`
+	UpdatedAt       time.Time                 `json:"updated_at"`
+	LastRunAt       null.Time                 `json:"last_run_at"`
 }
 
 type EventListenerListResponse []*EventListener
@@ -150,19 +150,19 @@ func (h *SupportHandler) HandleEventListenerList(c *handler.Context) (*EventList
 	res := make(EventListenerListResponse, len(listeners))
 	for i, listener := range listeners {
 		res[i] = &EventListener{
-			ID:            listener.ID,
-			Source:        string(listener.Source),
-			Type:          string(listener.Type),
-			Description:   listener.Description,
-			Enabled:       listener.Enabled,
-			AppID:         listener.AppID,
-			ModuleID:      listener.ModuleID,
-			CreatorUserID: listener.CreatorUserID,
-			Filter:        (*wire.EventListenerFilter)(listener.Filter),
-			FlowSource:    listener.FlowSource,
-			CreatedAt:     listener.CreatedAt,
-			UpdatedAt:     listener.UpdatedAt,
-			LastRunAt:     listener.LastRunAt,
+			ID:              listener.ID,
+			Source:          string(listener.Source),
+			Type:            string(listener.Type),
+			Description:     listener.Description,
+			Enabled:         listener.Enabled,
+			AppID:           listener.AppID,
+			BundleInstallID: listener.BundleInstallID,
+			CreatorUserID:   listener.CreatorUserID,
+			Filter:          (*wire.EventListenerFilter)(listener.Filter),
+			FlowSource:      listener.FlowSource,
+			CreatedAt:       listener.CreatedAt,
+			UpdatedAt:       listener.UpdatedAt,
+			LastRunAt:       listener.LastRunAt,
 		}
 	}
 	return &res, nil

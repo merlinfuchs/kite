@@ -28,7 +28,7 @@ type EventListener = {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: string | null;
+  bundle_install_id: string | null;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string;
