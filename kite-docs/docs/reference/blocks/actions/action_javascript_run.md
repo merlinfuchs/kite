@@ -122,7 +122,7 @@ return msg.id;
 
 The code can't reply to the command or button the flow runs with. Return what to say, and reply with a [Create response message](./action_response_create.md) block after this one.
 
-Reading from Discord is free. Each change in Discord and each call of another integration costs [1 credit](../../credit-system.md#cost-breakdown). The integration has to be enabled in the app. Test runs show the changes instead of making them.
+Reading from Discord is free. Members, roles and channels come from what Kite already knows about the server when it can, so reading them is fast. Each change in Discord and each call of another integration costs [1 credit](../../credit-system.md#cost-breakdown). The integration has to be enabled in the app. Test runs show the changes instead of making them.
 
 ## Stored variables
 
