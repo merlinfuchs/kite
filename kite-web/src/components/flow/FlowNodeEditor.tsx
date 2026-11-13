@@ -3868,8 +3868,11 @@ function ChannelDialog({
   );
 }
 
+// Placeholders aren't counted, they're only known when the block runs.
 function permissionCount(bitset?: string) {
-  return decodePermissionsBitset(bitset || "0").length;
+  const value = bitset || "0";
+  if (!/^[0-9]+$/.test(value)) return "?";
+  return decodePermissionsBitset(value).length;
 }
 
 // The @everyone role has the ID of the server. Saving "Everyone" as a role
@@ -4091,12 +4094,16 @@ function ChannelDataInput({
       channelData.bitrate = undefined;
       channelData.user_limit = undefined;
     }
+    // Categories can't be in a category.
+    if (newType === 4) channelData.parent = undefined;
 
     updateData({ channel_data: channelData });
   };
 
   const summary = [
-    channelTypeLabel(type) ?? "Channel",
+    // Edits don't change the type, it only picks the settings to show.
+    (!edit || channel?.type !== undefined) &&
+      (channelTypeLabel(type) ?? "Channel"),
     channel?.name,
     overwrites.length > 0 && plural(overwrites.length, "overwrite"),
   ];
@@ -4106,7 +4113,7 @@ function ChannelDataInput({
       title="Configure channel"
       description={
         edit
-          ? "Settings you leave empty keep their current value."
+          ? "All settings are optional."
           : "A channel needs a type and a name. Everything else is optional."
       }
       summary={summary}
@@ -4359,6 +4366,16 @@ function ChannelEditDataInput(props: InputProps) {
         defaultOpen={false}
         className="space-y-4"
         animate={false}
+        count={
+          countErrors(
+            errors,
+            "channel_data.archived",
+            "channel_data.locked",
+            "channel_data.applied_tags"
+          ) > 0 ? (
+            <CircleAlertIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
+          ) : undefined
+        }
       >
         <div className="flex flex-col gap-3 sm:flex-row">
           {threadEditSettings.map(({ field, title, description }) => (
@@ -4404,7 +4421,8 @@ function ChannelEditDataInput(props: InputProps) {
 
 function ThreadDataInput({ data, updateData, errors }: InputProps) {
   const channel = data.channel_data;
-  const type = channel?.type ?? 11;
+  // The service creates a public thread without a type.
+  const type = channel?.type || 11;
   const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
     updateData({ channel_data: { ...channel, ...newData } });
 
@@ -4437,9 +4455,14 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
                 title="Type"
                 value={type.toString()}
                 options={threadTypeOptions}
-                updateValue={(v) =>
-                  updateChannel({ type: parseInt(v) || undefined })
-                }
+                updateValue={(v) => {
+                  const newType = parseInt(v) || undefined;
+                  updateChannel({
+                    type: newType,
+                    // Only private threads can be invitable.
+                    invitable: newType === 12 ? channel?.invitable : undefined,
+                  });
+                }}
                 errors={errors}
               />
             </div>
