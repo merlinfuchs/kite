@@ -15,6 +15,26 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-13",
+    title: "User and Message commands",
+    description:
+      "Create commands that show in the Apps menu when someone right-clicks a user or a message, like Report message or User info. Pick the type when you create a command. The flow can read the user or message it was used on.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/command#user-and-message-commands`,
+  },
+  {
+    date: "2026-11-13",
+    title: "Test requests in Send API Request",
+    description:
+      "Click Send test request in the block's settings to see what the API answers before you save the flow. Test requests don't cost credits.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_http_request`,
+  },
+  {
+    date: "2026-11-13",
+    title: "Emoji picker in text fields",
+    description:
+      "Message text, embeds, and other text that shows in Discord have an emoji button next to the placeholder button, in the flow editor and the message editor. Both insert where your cursor is.",
+  },
+  {
+    date: "2026-11-13",
     title: "Roblox Ranking template",
     description:
       "Staff with Manage Roles rank members of your Roblox group with /setrank, and /getrank shows anyone's rank. Members verified with Bloxlink use /joingroup to get their join request accepted. It uses an Open Cloud API key, not your cookie.",
