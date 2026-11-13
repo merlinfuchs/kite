@@ -23,6 +23,18 @@ describe("operations", () => {
     expect(writes.map((op) => op.id)).toEqual([]);
   });
 
+  it("lets code call writes, except the interaction and whole servers", () => {
+    const code = (id: string) =>
+      operations.find((op) => op.integration === "discord" && op.id === id)
+        ?.policy.code;
+    expect(code("create_message")).toBe(true);
+    expect(code("ban_user_from_guild")).toBe(true);
+    expect(code("create_followup_message")).toBe(false);
+    expect(code("bulk_ban_users_from_guild")).toBe(false);
+    expect(code("prune_guild")).toBe(false);
+    expect(code("leave_guild")).toBe(false);
+  });
+
   it("makes Discord reads free", () => {
     for (const op of operations) {
       if (

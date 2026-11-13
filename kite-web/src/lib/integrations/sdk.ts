@@ -65,11 +65,34 @@ function codeOperation(op: Operation): CodeOperation {
   return {
     ...base,
     description: `${operationLabel(op.id)}, ${op.method} ${op.path}.`,
-    params: [...op.path_params, ...op.query_params].map((p) => ({
-      name: p.name,
-      type: paramType(p),
-      required: p.required || op.path_params.includes(p),
-    })),
+    params: [
+      ...[...op.path_params, ...op.query_params].map((p) => ({
+        name: p.name,
+        type: paramType(p),
+        required: p.required || op.path_params.includes(p),
+      })),
+      ...(op.has_body
+        ? [
+            {
+              name: "body",
+              type: bodyType(op.body_params),
+              required: !!op.body_params?.some((p) => p.required),
+              description: "The JSON body of the request.",
+            },
+          ]
+        : []),
+      // operationRequest in kite-service/pkg/flow/operations.go.
+      ...(op.integration === "discord" && op.method !== "GET"
+        ? [
+            {
+              name: "reason",
+              type: "string",
+              required: false,
+              description: "The reason in the server's audit log.",
+            },
+          ]
+        : []),
+    ],
     // Its JSON, which api.json doesn't describe.
     result: "any",
   };
@@ -90,6 +113,22 @@ function paramType(p: ApiParam) {
       return "(string | number)[]";
   }
   return "any";
+}
+
+// The top-level fields of a body, when api.json lists them. Only the types of
+// scalars are reliable there, objects and lists of objects are any.
+function bodyType(params: ApiParam[] | undefined) {
+  if (!params?.length) return "any";
+  const fields = params.map((p) => {
+    const type =
+      p.type === "snowflake" || p.type === "boolean" || p.enum
+        ? paramType(p)
+        : p.type === "integer" || p.type === "number"
+        ? "number"
+        : "any";
+    return `${p.name}${p.required ? "" : "?"}: ${type}`;
+  });
+  return `{ ${fields.join("; ")} }`;
 }
 
 // The part of JSON Schema z.toJSONSchema gives for the operations.

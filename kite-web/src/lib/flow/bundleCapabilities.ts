@@ -77,6 +77,11 @@ export const capabilityGroups = [
     types: ["action_discord_api_request"],
   },
   {
+    label:
+      "Runs code that can change things in Discord and send requests to other websites",
+    types: ["action_javascript_run"],
+  },
+  {
     label: "Uses AI, which costs more credits",
     types: [
       "action_ai_chat_completion",
@@ -105,7 +110,6 @@ export const harmlessTypes = [
   "action_expression_evaluate",
   "action_forum_post_create",
   "action_guild_get",
-  "action_javascript_run",
   "action_log",
   "action_member_get",
   "action_message_create",

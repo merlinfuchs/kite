@@ -49,7 +49,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can read from Discord and the app's integrations, use stored variables and send requests to other websites, see below. Changes in Discord, like sending a message, still need the other blocks, before or after this one. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can read from and change things in Discord and the app's integrations, use stored variables and send requests to other websites, see below. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
 `await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
@@ -73,9 +73,9 @@ return formatDate(Date.now(), "dddd [at] HH:mm", "Europe/Berlin");
 
 Text in `[brackets]` stays as it is. The time zone is a name like `America/New_York`, and defaults to `UTC`. To show a time to each member in their own time zone, use Discord's timestamps instead, like `<t:{{user.created_at}}:F>`.
 
-## Reading from Discord and integrations
+## Discord and integrations
 
-The code can read from Discord, ER:LC and Cookie API with the endpoints of their APIs. Each one is a function that returns a promise, so use `await`:
+The code can call Discord, ER:LC and Cookie API with the endpoints of their APIs. Each one is a function that returns a promise, so use `await`:
 
 ```js
 const [channel, messages] = await Promise.all([
@@ -85,9 +85,9 @@ const [channel, messages] = await Promise.all([
 return `${channel.name} has ${messages.length} recent messages`;
 ```
 
-For Discord, the names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. ER:LC has `erlc.getServer`, with the parameters `Players`, `Staff`, `JoinLogs`, `Queue`, `KillLogs`, `CommandLogs`, `ModCalls`, `EmergencyCalls` and `Vehicles` written like that. Cookie API has `cookieApi.getCaptcha` with `captcha_id`, `cookieApi.getMinecraftUser` with `code`, and `cookieApi.getCurrentTime`.
+For Discord, the names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. ER:LC has `erlc.getServer`, with the parameters `Players`, `Staff`, `JoinLogs`, `Queue`, `KillLogs`, `CommandLogs`, `ModCalls`, `EmergencyCalls` and `Vehicles` written like that, and `erlc.runCommand`. Cookie API has `cookieApi.getCaptcha` with `captcha_id`, `cookieApi.getMinecraftUser` with `code`, `cookieApi.getCurrentTime`, and the endpoints that create transcripts, cards, QR codes and captchas. The editor completes all of them.
 
-The argument is an object with the endpoint's parameters by name, like `{ channel_id: "123", limit: 50 }` or `{ Players: true }`. A call with a wrong parameter fails without being sent or billed.
+The argument is an object with the endpoint's parameters by name, like `{ channel_id: "123", limit: 50 }` or `{ Players: true }`. The body of a request that sends one goes under `body`. A call with a wrong parameter fails without being sent or billed.
 
 The result is the JSON the API returns, with its own field names. A member has `nick` and `user.global_name`, not the `display_name` of placeholders.
 
@@ -102,7 +102,29 @@ try {
 }
 ```
 
-Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
+## Changing things in Discord
+
+The code can send messages, give roles, create channels, ban members and make the other changes the Discord API Request block can. Put what the endpoint takes under `body`, and the reason that shows in the server's audit log under `reason`:
+
+```js
+const msg = await discord.createMessage({
+  channel_id: input.channel,
+  body: { content: `Welcome, ${input.user.mention}!` },
+});
+await discord.addGuildMemberRole({
+  guild_id: input.guild,
+  user_id: input.user.id,
+  role_id: input.role,
+  reason: "Finished onboarding",
+});
+return msg.id;
+```
+
+A run can delete, remove or ban something up to 5 times, like deleting messages, removing roles or kicking members. Calls past that fail, so a mistake in a loop can't empty a server. To delete many messages at once, use `discord.bulkDeleteMessages` with up to 100 IDs. Banning many members at once, pruning members and leaving a server aren't available in code. Use the [Ban member](./action_member_ban.md) and [Leave server](./action_server_leave.md) blocks instead.
+
+The code can't reply to the command or button the flow runs with. Return what to say, and reply with a [Create response message](./action_response_create.md) block after this one.
+
+Reading from Discord is free. Each change in Discord and each call of another integration costs [1 credit](../../credit-system.md#cost-breakdown). The integration has to be enabled in the app. Test runs show the changes instead of making them.
 
 ## Stored variables
 
@@ -154,7 +176,7 @@ The editor completes the calls, their parameters, the inputs and the stored vari
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like calls of Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 

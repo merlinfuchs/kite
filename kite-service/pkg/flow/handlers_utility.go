@@ -171,15 +171,23 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// maxJavaScriptDestructiveCalls caps the calls of a run that delete, remove
+// or ban something in Discord, like kicking members or deleting channels, so
+// a mistake in a loop can't empty a server.
+const maxJavaScriptDestructiveCalls = 5
+
 // javaScriptHost has the operations the code of a Run JavaScript block can
-// call: the reads, GET operations, of the integrations the app can use, and
-// the handler operations of Kite's own features. Each costs the credits of
-// its operation. The calls run at the same time, so they take turns with ctx.
+// call: those of the integrations the app can use whose policy allows code,
+// and the handler operations of Kite's own features. Each costs the credits
+// of its operation. The calls run at the same time, so they take turns with
+// ctx.
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
 	// The block's stored variables, see operationCall.
 	variables map[string]string
+	// Calls of destructive Discord operations so far.
+	destructive int
 }
 
 // callContext is a copy of the flow's context that's canceled with the call.
@@ -198,13 +206,23 @@ func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
 func (h *javaScriptHost) charge(op operation) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	destructive := op.Policy.Destructive && op.Integration == "discord"
+	if destructive && h.destructive >= maxJavaScriptDestructiveCalls {
+		return fmt.Errorf("the code can delete, remove or ban in Discord only %d times per run", maxJavaScriptDestructiveCalls)
+	}
 	if err := h.ctx.increaseOperations(); err != nil {
 		return err
 	}
 	if err := h.ctx.ensureCredits(op.Credits); err != nil {
 		return err
 	}
-	return h.ctx.increaseCredits(op.Credits)
+	if err := h.ctx.increaseCredits(op.Credits); err != nil {
+		return err
+	}
+	if destructive {
+		h.destructive++
+	}
+	return nil
 }
 
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
@@ -238,7 +256,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 	}
 
 	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
-		path, body, err := operationRequest(op, arg)
+		path, body, reason, err := operationRequest(op, arg)
 		if err != nil {
 			return nil, err
 		}
@@ -254,7 +272,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			return nil, err
 		}
 
-		res, err := c.sendOperation(op, path, body, "")
+		res, err := c.sendOperation(op, path, body, reason)
 		if err != nil {
 			return nil, callError(err)
 		}

@@ -299,7 +299,7 @@ Each converted block has a test for the exact request it sends, matching the ari
 
 ## Operations for code
 
-Status: proposal, for step 2 of `design/javascript.md`.
+Status: implemented for requests, stored variables and `http.request`, step 2 of `design/javascript.md`.
 
 Scripts call operations, not blocks. Blocks are presets of operations for the editor, with a curated subset of the options, and code should get all of them. So an integration's operations become the layer that blocks, the JavaScript SDK and the MCP server all use, and `integrations/` is the one place every operation is defined.
 

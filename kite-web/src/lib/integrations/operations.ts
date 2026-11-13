@@ -10,9 +10,9 @@ import {
 // What the service checks when code calls an operation, besides its
 // credits. See "Operations for code" in design/integrations.md.
 export interface OperationPolicy {
-  // Code can call it: Kite's own operations and the reads of integrations,
-  // GET requests outside the interaction, for now. The service only lets
-  // code call these.
+  // Code can call it: Kite's own operations and the requests of
+  // integrations, except those of the interaction, which needs its token,
+  // and those in notForCode. The service only lets code call these.
   code: boolean;
   // What the call acts on, so the service can check it's in the app's server
   // once apps can share a bot: guild, channel, webhook, interaction or user
@@ -49,13 +49,24 @@ export interface HandlerOperation
 
 export type Operation = RequestOperation | HandlerOperation;
 
+// Discord operations that act on a whole server at once, which only blocks
+// with their own limits can do.
+const notForCode = new Set([
+  // Up to 200 members per call.
+  "bulk_ban_users_from_guild",
+  // Every member inactive for some days.
+  "prune_guild",
+  // See the Leave server block.
+  "leave_guild",
+]);
+
 export function operationPolicy(
   integration: string,
   op: ApiOperation
 ): OperationPolicy {
   const discord = integration === "discord";
   return {
-    code: op.method === "GET" && !op.interaction,
+    code: !op.interaction && !(discord && notForCode.has(op.id)),
     target: discord ? discordTarget(op) : "none",
     destructive:
       op.method === "DELETE" ||

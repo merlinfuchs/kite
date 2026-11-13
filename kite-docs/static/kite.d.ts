@@ -23,10 +23,117 @@ declare function fetch(url: string, init?: {
 declare function formatDate(date?: Date | number | string, format?: string, timeZone?: string): string;
 
 declare const discord: {
+  /** Action guild join request, PATCH /guilds/{guild_id}/requests/{request_id}. Costs 1 credit. */
+  actionGuildJoinRequest(arg: {
+    guild_id: string;
+    request_id: string;
+    /** The JSON body of the request. */ body?: { action?: any; rejection_reason?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add group dm user, PUT /channels/{channel_id}/recipients/{user_id}. Costs 1 credit. */
+  addGroupDmUser(arg: {
+    channel_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: { access_token?: any; nick?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add guild member, PUT /guilds/{guild_id}/members/{user_id}. Costs 1 credit. */
+  addGuildMember(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body: { nick?: any; roles?: any; mute?: boolean; deaf?: boolean; access_token: any; flags?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add guild member role, PUT /guilds/{guild_id}/members/{user_id}/roles/{role_id}. Costs 1 credit. */
+  addGuildMemberRole(arg: {
+    guild_id: string;
+    user_id: string;
+    role_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add invite target user, PUT /invites/{code}/target-users/{user_id}. Costs 1 credit. */
+  addInviteTargetUser(arg: {
+    code: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add lobby member, PUT /lobbies/{lobby_id}/members/{user_id}. Costs 1 credit. */
+  addLobbyMember(arg: {
+    lobby_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: { metadata?: any; flags?: number; additional_name?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add my message reaction, PUT /channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me. Costs 1 credit. */
+  addMyMessageReaction(arg: {
+    channel_id: string;
+    message_id: string;
+    emoji_name: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Add thread member, PUT /channels/{channel_id}/thread-members/{user_id}. Costs 1 credit. */
+  addThreadMember(arg: {
+    channel_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
   /** Applications get activity instance, GET /applications/{application_id}/activity-instances/{instance_id}. Costs nothing. */
   applicationsGetActivityInstance(arg: {
     application_id: string;
     instance_id: string;
+  }): Promise<any>;
+  /** Ban user from guild, PUT /guilds/{guild_id}/bans/{user_id}. Costs 1 credit. */
+  banUserFromGuild(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: { delete_message_seconds?: number; delete_message_days?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bot partner sdk token, POST /partner-sdk/token/bot. Costs 1 credit. */
+  botPartnerSdkToken(arg: {
+    /** The JSON body of the request. */ body: { provisional_user_id?: string; external_user_id: any; preferred_global_name?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bot partner sdk unmerge provisional account, POST /partner-sdk/provisional-accounts/unmerge/bot. Costs 1 credit. */
+  botPartnerSdkUnmergeProvisionalAccount(arg: {
+    /** The JSON body of the request. */ body: { external_user_id: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk add invite target users, POST /invites/{code}/target-users/bulk-add. Costs 1 credit. */
+  bulkAddInviteTargetUsers(arg: {
+    code: string;
+    /** The JSON body of the request. */ body: { user_ids: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk delete messages, POST /channels/{channel_id}/messages/bulk-delete. Costs 1 credit. */
+  bulkDeleteMessages(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { messages: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk remove invite target users, POST /invites/{code}/target-users/bulk-delete. Costs 1 credit. */
+  bulkRemoveInviteTargetUsers(arg: {
+    code: string;
+    /** The JSON body of the request. */ body: { user_ids: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk update guild channels, PATCH /guilds/{guild_id}/channels. Costs 1 credit. */
+  bulkUpdateGuildChannels(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk update guild roles, PATCH /guilds/{guild_id}/roles. Costs 1 credit. */
+  bulkUpdateGuildRoles(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Bulk update lobby members, POST /lobbies/{lobby_id}/members/bulk. Costs 1 credit. */
+  bulkUpdateLobbyMembers(arg: {
+    lobby_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
   }): Promise<any>;
   /** Count guild scheduled event users, GET /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/users/counts. Costs nothing. */
   countGuildScheduledEventUsers(arg: {
@@ -34,9 +141,320 @@ declare const discord: {
     guild_scheduled_event_id: string;
     guild_scheduled_event_exception_ids?: (string | number)[];
   }): Promise<any>;
+  /** Create auto moderation rule, POST /guilds/{guild_id}/auto-moderation/rules. Costs 1 credit. */
+  createAutoModerationRule(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { name: any; event_type: number; actions?: any; enabled?: boolean; exempt_roles?: any; exempt_channels?: any; trigger_type: number; trigger_metadata?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create channel invite, POST /channels/{channel_id}/invites. Costs 1 credit. */
+  createChannelInvite(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body?: { max_age?: number; temporary?: boolean; max_uses?: number; unique?: boolean; target_user_id?: string; target_application_id?: string; target_type?: number; role_ids?: any; target_user_ids?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create dm, POST /users/@me/channels. Costs 1 credit. */
+  createDm(arg?: {
+    /** The JSON body of the request. */ body?: { recipient_id?: string; access_tokens?: any; nicks?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild channel, POST /guilds/{guild_id}/channels. Costs 1 credit. */
+  createGuildChannel(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { type?: number; name: any; position?: number; topic?: any; bitrate?: number; user_limit?: number; nsfw?: boolean; rate_limit_per_user?: number; parent_id?: string; permission_overwrites?: any; rtc_region?: any; video_quality_mode?: number; default_auto_archive_duration?: number; default_reaction_emoji?: any; default_thread_rate_limit_per_user?: number; default_sort_order?: number; default_forum_layout?: number; default_tag_setting?: any; available_tags?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild emoji, POST /guilds/{guild_id}/emojis. Costs 1 credit. */
+  createGuildEmoji(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { name: any; image: any; roles?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild role, POST /guilds/{guild_id}/roles. Costs 1 credit. */
+  createGuildRole(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; permissions?: number; color?: number; colors?: any; hoist?: boolean; mentionable?: boolean; icon?: any; unicode_emoji?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild scheduled event, POST /guilds/{guild_id}/scheduled-events. Costs 1 credit. */
+  createGuildScheduledEvent(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { name: any; description?: any; image?: any; scheduled_start_time: any; scheduled_end_time?: any; privacy_level: number; entity_type: number; channel_id?: string; recurrence_rule?: any; entity_metadata?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild scheduled event exception, POST /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions. Costs 1 credit. */
+  createGuildScheduledEventException(arg: {
+    guild_id: string;
+    guild_scheduled_event_id: string;
+    /** The JSON body of the request. */ body: { scheduled_start_time?: any; scheduled_end_time?: any; original_scheduled_start_time: any; is_canceled?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild soundboard sound, POST /guilds/{guild_id}/soundboard-sounds. Costs 1 credit. */
+  createGuildSoundboardSound(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { name: any; volume?: number; emoji_id?: string; emoji_name?: any; sound: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create guild template, POST /guilds/{guild_id}/templates. Costs 1 credit. */
+  createGuildTemplate(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: { name: any; description?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create linked lobby guild invite for self, POST /lobbies/{lobby_id}/members/@me/invites. Costs 1 credit. */
+  createLinkedLobbyGuildInviteForSelf(arg: {
+    lobby_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create linked lobby guild invite for user, POST /lobbies/{lobby_id}/members/{user_id}/invites. Costs 1 credit. */
+  createLinkedLobbyGuildInviteForUser(arg: {
+    lobby_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create lobby, POST /lobbies. Costs 1 credit. */
+  createLobby(arg?: {
+    /** The JSON body of the request. */ body?: { idle_timeout_seconds?: number; members?: any; metadata?: any; flags?: number; override_event_webhooks_url?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create lobby message, POST /lobbies/{lobby_id}/messages. Costs 1 credit. */
+  createLobbyMessage(arg: {
+    lobby_id: string;
+    /** The JSON body of the request. */ body?: { content?: any; embeds?: any; allowed_mentions?: any; sticker_ids?: any; components?: any; flags?: number; attachments?: any; poll?: any; shared_client_theme?: any; message_reference?: any; nonce?: number; enforce_nonce?: boolean; tts?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create message, POST /channels/{channel_id}/messages. Costs 1 credit. */
+  createMessage(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body?: { content?: any; embeds?: any; allowed_mentions?: any; sticker_ids?: any; components?: any; flags?: number; attachments?: any; poll?: any; shared_client_theme?: any; message_reference?: any; nonce?: number; enforce_nonce?: boolean; tts?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create or join lobby, PUT /lobbies. Costs 1 credit. */
+  createOrJoinLobby(arg: {
+    /** The JSON body of the request. */ body: { idle_timeout_seconds?: number; lobby_metadata?: any; member_metadata?: any; secret: any; flags?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create pin, PUT /channels/{channel_id}/messages/pins/{message_id}. Costs 1 credit. */
+  createPin(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create stage instance, POST /stage-instances. Costs 1 credit. */
+  createStageInstance(arg: {
+    /** The JSON body of the request. */ body: { topic: any; channel_id: string; privacy_level?: number; guild_scheduled_event_id?: string; send_start_notification?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create thread, POST /channels/{channel_id}/threads. Costs 1 credit. */
+  createThread(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { name: any; auto_archive_duration?: number; rate_limit_per_user?: number; applied_tags?: any; message?: any; type?: number; invitable?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create thread from message, POST /channels/{channel_id}/messages/{message_id}/threads. Costs 1 credit. */
+  createThreadFromMessage(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The JSON body of the request. */ body: { name: any; auto_archive_duration?: number; rate_limit_per_user?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Create webhook, POST /channels/{channel_id}/webhooks. Costs 1 credit. */
+  createWebhook(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { name: any; avatar?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Crosspost message, POST /channels/{channel_id}/messages/{message_id}/crosspost. Costs 1 credit. */
+  crosspostMessage(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete all message reactions, DELETE /channels/{channel_id}/messages/{message_id}/reactions. Costs 1 credit. */
+  deleteAllMessageReactions(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete all message reactions by emoji, DELETE /channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}. Costs 1 credit. */
+  deleteAllMessageReactionsByEmoji(arg: {
+    channel_id: string;
+    message_id: string;
+    emoji_name: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete auto moderation rule, DELETE /guilds/{guild_id}/auto-moderation/rules/{rule_id}. Costs 1 credit. */
+  deleteAutoModerationRule(arg: {
+    guild_id: string;
+    rule_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete channel, DELETE /channels/{channel_id}. Costs 1 credit. */
+  deleteChannel(arg: {
+    channel_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete channel permission overwrite, DELETE /channels/{channel_id}/permissions/{overwrite_id}. Costs 1 credit. */
+  deleteChannelPermissionOverwrite(arg: {
+    channel_id: string;
+    overwrite_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete group dm user, DELETE /channels/{channel_id}/recipients/{user_id}. Costs 1 credit. */
+  deleteGroupDmUser(arg: {
+    channel_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild emoji, DELETE /guilds/{guild_id}/emojis/{emoji_id}. Costs 1 credit. */
+  deleteGuildEmoji(arg: {
+    guild_id: string;
+    emoji_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild integration, DELETE /guilds/{guild_id}/integrations/{integration_id}. Costs 1 credit. */
+  deleteGuildIntegration(arg: {
+    guild_id: string;
+    integration_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild member, DELETE /guilds/{guild_id}/members/{user_id}. Costs 1 credit. */
+  deleteGuildMember(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild member role, DELETE /guilds/{guild_id}/members/{user_id}/roles/{role_id}. Costs 1 credit. */
+  deleteGuildMemberRole(arg: {
+    guild_id: string;
+    user_id: string;
+    role_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild role, DELETE /guilds/{guild_id}/roles/{role_id}. Costs 1 credit. */
+  deleteGuildRole(arg: {
+    guild_id: string;
+    role_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild scheduled event, DELETE /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}. Costs 1 credit. */
+  deleteGuildScheduledEvent(arg: {
+    guild_id: string;
+    guild_scheduled_event_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild scheduled event exception, DELETE /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}. Costs 1 credit. */
+  deleteGuildScheduledEventException(arg: {
+    guild_id: string;
+    guild_scheduled_event_id: string;
+    exception_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild soundboard sound, DELETE /guilds/{guild_id}/soundboard-sounds/{sound_id}. Costs 1 credit. */
+  deleteGuildSoundboardSound(arg: {
+    guild_id: string;
+    sound_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild sticker, DELETE /guilds/{guild_id}/stickers/{sticker_id}. Costs 1 credit. */
+  deleteGuildSticker(arg: {
+    guild_id: string;
+    sticker_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete guild template, DELETE /guilds/{guild_id}/templates/{code}. Costs 1 credit. */
+  deleteGuildTemplate(arg: {
+    guild_id: string;
+    code: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete lobby, DELETE /lobbies/{lobby_id}. Costs 1 credit. */
+  deleteLobby(arg: {
+    lobby_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete lobby member, DELETE /lobbies/{lobby_id}/members/{user_id}. Costs 1 credit. */
+  deleteLobbyMember(arg: {
+    lobby_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete message, DELETE /channels/{channel_id}/messages/{message_id}. Costs 1 credit. */
+  deleteMessage(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete my message reaction, DELETE /channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me. Costs 1 credit. */
+  deleteMyMessageReaction(arg: {
+    channel_id: string;
+    message_id: string;
+    emoji_name: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete pin, DELETE /channels/{channel_id}/messages/pins/{message_id}. Costs 1 credit. */
+  deletePin(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete stage instance, DELETE /stage-instances/{channel_id}. Costs 1 credit. */
+  deleteStageInstance(arg: {
+    channel_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete thread member, DELETE /channels/{channel_id}/thread-members/{user_id}. Costs 1 credit. */
+  deleteThreadMember(arg: {
+    channel_id: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete user message reaction, DELETE /channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/{user_id}. Costs 1 credit. */
+  deleteUserMessageReaction(arg: {
+    channel_id: string;
+    message_id: string;
+    emoji_name: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Delete webhook, DELETE /webhooks/{webhook_id}. Costs 1 credit. */
+  deleteWebhook(arg: {
+    webhook_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Deprecated create pin, PUT /channels/{channel_id}/pins/{message_id}. Costs 1 credit. */
+  deprecatedCreatePin(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Deprecated delete pin, DELETE /channels/{channel_id}/pins/{message_id}. Costs 1 credit. */
+  deprecatedDeletePin(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
   /** Deprecated list pins, GET /channels/{channel_id}/pins. Costs nothing. */
   deprecatedListPins(arg: {
     channel_id: string;
+  }): Promise<any>;
+  /** Edit lobby, PATCH /lobbies/{lobby_id}. Costs 1 credit. */
+  editLobby(arg: {
+    lobby_id: string;
+    /** The JSON body of the request. */ body?: { idle_timeout_seconds?: number; metadata?: any; members?: any; flags?: number; override_event_webhooks_url?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Edit lobby channel link, PATCH /lobbies/{lobby_id}/channel-linking. Costs 1 credit. */
+  editLobbyChannelLink(arg: {
+    lobby_id: string;
+    /** The JSON body of the request. */ body?: { channel_id?: string };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Follow channel, POST /channels/{channel_id}/followers. Costs 1 credit. */
+  followChannel(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { webhook_channel_id: string };
+    /** The reason in the server's audit log. */ reason?: string;
   }): Promise<any>;
   /** Get active guild threads, GET /guilds/{guild_id}/threads/active. Costs nothing. */
   getActiveGuildThreads(arg: {
@@ -326,6 +744,26 @@ declare const discord: {
     target_channel_id?: string;
     target_message_id?: string;
   }): Promise<any>;
+  /** Invite revoke, DELETE /invites/{code}. Costs 1 credit. */
+  inviteRevoke(arg: {
+    code: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Join thread, PUT /channels/{channel_id}/thread-members/@me. Costs 1 credit. */
+  joinThread(arg: {
+    channel_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Leave lobby, DELETE /lobbies/{lobby_id}/members/@me. Costs 1 credit. */
+  leaveLobby(arg: {
+    lobby_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Leave thread, DELETE /channels/{channel_id}/thread-members/@me. Costs 1 credit. */
+  leaveThread(arg: {
+    channel_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
   /** List application commands, GET /applications/{application_id}/commands. Costs nothing. */
   listApplicationCommands(arg: {
     application_id: string;
@@ -503,17 +941,64 @@ declare const discord: {
   }): Promise<any>;
   /** List voice regions, GET /voice/regions. Costs nothing. */
   listVoiceRegions(): Promise<any>;
+  /** Partner sdk token, POST /partner-sdk/token. Costs 1 credit. */
+  partnerSdkToken(arg: {
+    /** The JSON body of the request. */ body: { client_id: string; client_secret?: any; external_auth_token: any; external_auth_type: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Partner sdk unmerge provisional account, POST /partner-sdk/provisional-accounts/unmerge. Costs 1 credit. */
+  partnerSdkUnmergeProvisionalAccount(arg: {
+    /** The JSON body of the request. */ body: { client_id: string; client_secret?: any; external_auth_token: any; external_auth_type: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Poll expire, POST /channels/{channel_id}/polls/{message_id}/expire. Costs 1 credit. */
+  pollExpire(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
   /** Preview prune guild, GET /guilds/{guild_id}/prune. Costs nothing. */
   previewPruneGuild(arg: {
     guild_id: string;
     days?: number;
     include_roles?: string;
   }): Promise<any>;
+  /** Put guilds onboarding, PUT /guilds/{guild_id}/onboarding. Costs 1 credit. */
+  putGuildsOnboarding(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { prompts?: any; enabled?: boolean; default_channel_ids?: any; mode?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Remove invite target user, DELETE /invites/{code}/target-users/{user_id}. Costs 1 credit. */
+  removeInviteTargetUser(arg: {
+    code: string;
+    user_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
   /** Search guild members, GET /guilds/{guild_id}/members/search. Costs nothing. */
   searchGuildMembers(arg: {
     guild_id: string;
     limit?: number;
     query: string;
+  }): Promise<any>;
+  /** Send soundboard sound, POST /channels/{channel_id}/send-soundboard-sound. Costs 1 credit. */
+  sendSoundboardSound(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { sound_id: string; source_guild_id?: string };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Set channel permission overwrite, PUT /channels/{channel_id}/permissions/{overwrite_id}. Costs 1 credit. */
+  setChannelPermissionOverwrite(arg: {
+    channel_id: string;
+    overwrite_id: string;
+    /** The JSON body of the request. */ body?: { type?: number; allow?: number; deny?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Sync guild template, PUT /guilds/{guild_id}/templates/{code}. Costs 1 credit. */
+  syncGuildTemplate(arg: {
+    guild_id: string;
+    code: string;
+    /** The reason in the server's audit log. */ reason?: string;
   }): Promise<any>;
   /** Thread search, GET /channels/{channel_id}/threads/search. Costs nothing. */
   threadSearch(arg: {
@@ -530,9 +1015,190 @@ declare const discord: {
     limit?: number;
     offset?: number;
   }): Promise<any>;
+  /** Trigger typing indicator, POST /channels/{channel_id}/typing. Costs 1 credit. */
+  triggerTypingIndicator(arg: {
+    channel_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Unban user from guild, DELETE /guilds/{guild_id}/bans/{user_id}. Costs 1 credit. */
+  unbanUserFromGuild(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update auto moderation rule, PATCH /guilds/{guild_id}/auto-moderation/rules/{rule_id}. Costs 1 credit. */
+  updateAutoModerationRule(arg: {
+    guild_id: string;
+    rule_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; event_type?: number; actions?: any; enabled?: boolean; exempt_roles?: any; exempt_channels?: any; trigger_type?: number; trigger_metadata?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update channel, PATCH /channels/{channel_id}. Costs 1 credit. */
+  updateChannel(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; icon?: any; type?: number; position?: number; topic?: any; bitrate?: number; user_limit?: number; nsfw?: boolean; rate_limit_per_user?: number; parent_id?: string; permission_overwrites?: any; rtc_region?: any; video_quality_mode?: number; default_auto_archive_duration?: number; default_reaction_emoji?: any; default_thread_rate_limit_per_user?: number; default_sort_order?: number; default_forum_layout?: number; default_tag_setting?: any; flags?: number; available_tags?: any; archived?: boolean; locked?: boolean; invitable?: boolean; auto_archive_duration?: number; applied_tags?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild, PATCH /guilds/{guild_id}. Costs 1 credit. */
+  updateGuild(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; description?: any; region?: any; icon?: any; verification_level?: number; default_message_notifications?: number; explicit_content_filter?: number; preferred_locale?: any; afk_timeout?: number; afk_channel_id?: string; system_channel_id?: string; splash?: any; banner?: any; system_channel_flags?: number; features?: any; discovery_splash?: any; home_header?: any; rules_channel_id?: string; safety_alerts_channel_id?: string; public_updates_channel_id?: string; premium_progress_bar_enabled?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild emoji, PATCH /guilds/{guild_id}/emojis/{emoji_id}. Costs 1 credit. */
+  updateGuildEmoji(arg: {
+    guild_id: string;
+    emoji_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; roles?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild incident actions, PUT /guilds/{guild_id}/incident-actions. Costs 1 credit. */
+  updateGuildIncidentActions(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { invites_disabled_until?: any; dms_disabled_until?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild member, PATCH /guilds/{guild_id}/members/{user_id}. Costs 1 credit. */
+  updateGuildMember(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: { nick?: any; roles?: any; mute?: boolean; deaf?: boolean; channel_id?: string; communication_disabled_until?: any; flags?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild role, PATCH /guilds/{guild_id}/roles/{role_id}. Costs 1 credit. */
+  updateGuildRole(arg: {
+    guild_id: string;
+    role_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; permissions?: number; color?: number; colors?: any; hoist?: boolean; mentionable?: boolean; icon?: any; unicode_emoji?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild scheduled event, PATCH /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}. Costs 1 credit. */
+  updateGuildScheduledEvent(arg: {
+    guild_id: string;
+    guild_scheduled_event_id: string;
+    /** The JSON body of the request. */ body?: { status?: number; name?: any; description?: any; image?: any; scheduled_start_time?: any; scheduled_end_time?: any; entity_type?: number; privacy_level?: number; channel_id?: string; recurrence_rule?: any; entity_metadata?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild scheduled event exception, PATCH /guilds/{guild_id}/scheduled-events/{guild_scheduled_event_id}/exceptions/{exception_id}. Costs 1 credit. */
+  updateGuildScheduledEventException(arg: {
+    guild_id: string;
+    guild_scheduled_event_id: string;
+    exception_id: string;
+    /** The JSON body of the request. */ body?: { scheduled_start_time?: any; scheduled_end_time?: any; is_canceled?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild soundboard sound, PATCH /guilds/{guild_id}/soundboard-sounds/{sound_id}. Costs 1 credit. */
+  updateGuildSoundboardSound(arg: {
+    guild_id: string;
+    sound_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; volume?: number; emoji_id?: string; emoji_name?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild sticker, PATCH /guilds/{guild_id}/stickers/{sticker_id}. Costs 1 credit. */
+  updateGuildSticker(arg: {
+    guild_id: string;
+    sticker_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; tags?: any; description?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild template, PATCH /guilds/{guild_id}/templates/{code}. Costs 1 credit. */
+  updateGuildTemplate(arg: {
+    guild_id: string;
+    code: string;
+    /** The JSON body of the request. */ body?: { name?: any; description?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild welcome screen, PATCH /guilds/{guild_id}/welcome-screen. Costs 1 credit. */
+  updateGuildWelcomeScreen(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { description?: any; welcome_channels?: any; enabled?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update guild widget settings, PATCH /guilds/{guild_id}/widget. Costs 1 credit. */
+  updateGuildWidgetSettings(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { channel_id?: string; enabled?: boolean };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update lobby message external moderation metadata, PUT /lobbies/{lobby_id}/messages/{message_id}/moderation-metadata. Costs 1 credit. */
+  updateLobbyMessageExternalModerationMetadata(arg: {
+    lobby_id: string;
+    message_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update message, PATCH /channels/{channel_id}/messages/{message_id}. Costs 1 credit. */
+  updateMessage(arg: {
+    channel_id: string;
+    message_id: string;
+    /** The JSON body of the request. */ body?: { content?: any; embeds?: any; flags?: number; allowed_mentions?: any; sticker_ids?: any; components?: any; attachments?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update self voice state, PATCH /guilds/{guild_id}/voice-states/@me. Costs 1 credit. */
+  updateSelfVoiceState(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: { request_to_speak_timestamp?: any; suppress?: boolean; channel_id?: string };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update stage instance, PATCH /stage-instances/{channel_id}. Costs 1 credit. */
+  updateStageInstance(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body?: { topic?: any; privacy_level?: number };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update user message external moderation metadata, PUT /partner-sdk/dms/{user_id_1}/{user_id_2}/messages/{message_id}/moderation-metadata. Costs 1 credit. */
+  updateUserMessageExternalModerationMetadata(arg: {
+    user_id_1: string;
+    user_id_2: string;
+    message_id: string;
+    /** The JSON body of the request. */ body?: any;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update voice channel status, PUT /channels/{channel_id}/voice-status. Costs 1 credit. */
+  updateVoiceChannelStatus(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body?: { status?: any };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update voice state, PATCH /guilds/{guild_id}/voice-states/{user_id}. Costs 1 credit. */
+  updateVoiceState(arg: {
+    guild_id: string;
+    user_id: string;
+    /** The JSON body of the request. */ body?: { suppress?: boolean; channel_id?: string };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
+  /** Update webhook, PATCH /webhooks/{webhook_id}. Costs 1 credit. */
+  updateWebhook(arg: {
+    webhook_id: string;
+    /** The JSON body of the request. */ body?: { name?: any; avatar?: any; channel_id?: string };
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<any>;
 };
 
 declare const cookieApi: {
+  /** Create transcript, POST /api/transcript. Costs 1 credit. */
+  createTranscript(arg: {
+    channel_id: string;
+    /** The JSON body of the request. */ body: { bot_token: any; title?: any; description?: any; password?: any; gtag?: any; favicon?: any; image_restore?: any; domain?: any };
+  }): Promise<any>;
+  /** Create card, POST /api/cards/card-builder/build. Costs 1 credit. */
+  createCard(arg?: {
+    dev?: boolean;
+    base64?: boolean;
+    /** The JSON body of the request. */ body?: any;
+  }): Promise<any>;
+  /** Create qr code, POST /api/images/qr-code. Costs 1 credit. */
+  createQrCode(arg: {
+    /** The JSON body of the request. */ body: { data: any; style?: "standart" | "dots"; border?: number; center_image_url?: any };
+  }): Promise<any>;
+  /** Create captcha, POST /api/security/captcha/create. Costs 1 credit. */
+  createCaptcha(arg: {
+    captcha_provider: "Cloudflare" | "Google";
+    color?: string;
+    font?: string;
+    expires?: number;
+  }): Promise<any>;
   /** Get captcha, GET /api/security/captcha/get-captcha. Costs 1 credit. */
   getCaptcha(arg: {
     captcha_id: string;
@@ -557,6 +1223,10 @@ declare const erlc: {
     ModCalls?: boolean;
     EmergencyCalls?: boolean;
     Vehicles?: boolean;
+  }): Promise<any>;
+  /** Run command, POST /v2/server/command. Costs 1 credit. */
+  runCommand(arg: {
+    /** The JSON body of the request. */ body: { command: any };
   }): Promise<any>;
 };
 
