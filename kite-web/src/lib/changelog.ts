@@ -6,7 +6,9 @@ export interface ChangelogEntry {
   // YYYY-MM-DD, the day the change went live.
   date: string;
   title: string;
-  description: string;
+  // Left out for small changes, which the page lists in one line each, so
+  // their title has to say what changed.
+  description?: string;
   // A page with more about the change, like a landing page, a template, or
   // the docs.
   href?: string;
@@ -30,8 +32,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-13",
     title: "Emoji picker in text fields",
-    description:
-      "Message text, embeds, and other text that shows in Discord have an emoji button next to the placeholder button, in the flow editor and the message editor. Both insert where your cursor is.",
   },
   {
     date: "2026-11-13",
@@ -57,9 +57,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-09",
-    title: "Append and Prepend add to lists",
-    description:
-      "Set stored variable in Append or Prepend mode adds the value as one item when the variable holds a list, instead of turning the list into text. Changes from runs at the same time no longer overwrite each other, also for the first value of a variable.",
+    title: "Append and Prepend add items to lists in stored variables",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_variable_set`,
   },
   {
@@ -86,29 +84,21 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-08",
     title: "Server boost remove event",
-    description:
-      "Run a flow when a member stops boosting your server, like to take back a booster reward role.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/event`,
   },
   {
     date: "2026-11-08",
-    title: "Tags in Edit channel",
-    description:
-      "The Edit channel block changes the tags of a forum post, like marking a ticket as Resolved.",
+    title: "Edit channel changes the tags of forum posts",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_channel_edit`,
   },
   {
     date: "2026-11-08",
-    title: "Install Kite as an app",
-    description:
-      "Install the dashboard on your computer or phone from Chrome, Edge, or Safari on iPhone, so it opens in its own window.",
+    title: "Install the dashboard as an app",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#installing-kite`,
   },
   {
     date: "2026-11-08",
     title: "Duplicate blocks with Ctrl+D",
-    description:
-      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't enabled, you can enable it from the block.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-editor#keyboard-shortcuts`,
   },
   {
@@ -135,14 +125,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-05",
     title: "List stored variable values block",
-    description:
-      "Read many values of a stored variable at once, sorted by value or by when they changed. Leaderboards use it.",
   },
   {
     date: "2026-11-05",
     title: "Flow AI fixes more of its own mistakes",
-    description:
-      "Flow AI repairs common mistakes in the block settings it writes, so fewer prompts end in an error.",
     href: "/ai-discord-bot-maker",
   },
   {
@@ -167,9 +153,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-30",
-    title: "Animated avatar and banner",
-    description:
-      "Set your bot's avatar and banner in its settings, and use GIFs or animated WebPs on Kite Plus and up.",
+    title: "Animated avatar and banner on Kite Plus and up",
   },
   {
     date: "2026-10-30",
@@ -180,8 +164,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-30",
     title: "Integration blocks get their own tab",
-    description:
-      "ER:LC, Roblox, and Cookie API blocks have their own tab in the block list, and search finds blocks in every tab.",
   },
   {
     date: "2026-10-29",
@@ -199,8 +181,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-29",
     title: "Templates show the permissions they need",
-    description:
-      "Before you add a template, it lists the Discord permissions your bot needs for it and warns about the ones it doesn't have.",
     href: "/marketplace",
   },
   {
@@ -212,9 +192,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-28",
-    title: "Guides for Claude and ChatGPT",
-    description:
-      "Step by step guides to make a Discord bot from Claude or ChatGPT with Kite's MCP server.",
+    title: "Guides to make a bot from Claude or ChatGPT",
     href: "/guides",
   },
   {
@@ -246,9 +224,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-26",
-    title: "Notes and faster editing in the flow editor",
-    description:
-      "Add notes to a flow, insert a block into a connection, and open a menu with a right click or a long press.",
+    title: "Notes and right-click menus in the flow editor",
   },
   {
     date: "2026-10-26",
@@ -260,7 +236,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-26",
     title: "10 event listeners on the free plan",
-    description: "The free plan has 10 event listeners instead of 5.",
     href: "/pricing",
   },
   {
@@ -301,8 +276,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-24",
     title: "Keep or undo Flow AI changes",
-    description:
-      "Review what Flow AI changed in your flow, then keep it or undo it.",
   },
   {
     date: "2026-10-23",
@@ -320,14 +293,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-22",
     title: "Leave server and Publish message blocks",
-    description:
-      "Your bot can leave a server and publish messages in announcement channels.",
   },
   {
     date: "2026-10-21",
-    title: "Reply to a message",
-    description:
-      "Create channel message can reply to another message, and you choose who gets pinged.",
+    title: "Create channel message can reply to a message",
   },
   {
     date: "2026-10-20",
@@ -338,15 +307,11 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-20",
-    title: "Respond to webhooks",
-    description:
-      "Answer the website that called your webhook, and check that a request really comes from it.",
+    title: "Answer and verify webhook requests",
   },
   {
     date: "2026-10-18",
     title: "File uploads in modals",
-    description:
-      "Modals can ask members for a file, and the flow gets it with their other answers.",
   },
   {
     date: "2026-10-16",
@@ -388,7 +353,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-28",
     title: "Events for joining and leaving servers",
-    description: "Run a flow when your bot joins or leaves a server.",
   },
   {
     date: "2026-09-25",
@@ -411,13 +375,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-25",
     title: "Undo, redo, and copy and paste in the flow editor",
-    description:
-      "Undo and redo your changes, and copy and paste blocks within a flow or into another one.",
   },
   {
     date: "2026-09-24",
     title: "Join and leave voice channels",
-    description: "Your bot can join a voice channel and leave it again.",
   },
   {
     date: "2026-09-23",
@@ -427,9 +388,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-09-23",
-    title: "Share commands and event listeners",
-    description:
-      "Export a command or event listener and import it into another bot.",
+    title: "Export and import commands and event listeners",
   },
   {
     date: "2026-01-08",
