@@ -23,20 +23,26 @@ export default function HttpRequestTestPanel({
 
   const placeholders = httpRequestPlaceholders(data);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<HTTPRequestTestResponse | null>(null);
+  // The result is only shown while the request is the one that was sent.
+  const [result, setResult] = useState<{
+    request: string;
+    res: HTTPRequestTestResponse;
+  } | null>(null);
+  const request = JSON.stringify(data);
 
   function send() {
     mutation.mutate(
       {
         data,
+        // Empty ones are evaluated like in a run, which works for {{now()}}.
         values: Object.fromEntries(
-          placeholders.map((p) => [p, values[p] || ""])
+          placeholders.filter((p) => values[p]).map((p) => [p, values[p]])
         ),
       },
       {
         onSuccess: (res) => {
           if (res.success) {
-            setResult(res.data);
+            setResult({ request, res: res.data });
           } else {
             toast.error(`Failed to send test request: ${res.error.message}`);
           }
@@ -91,7 +97,9 @@ export default function HttpRequestTestPanel({
         Send test request
       </Button>
 
-      {result && <HttpRequestTestResult result={result} />}
+      {result?.request === request && (
+        <HttpRequestTestResult result={result.res} />
+      )}
     </div>
   );
 }

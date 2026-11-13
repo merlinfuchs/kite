@@ -59,3 +59,37 @@ func TestSendTestHTTPRequestError(t *testing.T) {
 	assert.Nil(t, res.Response)
 	assert.Empty(t, p.reqs)
 }
+
+func TestSendTestHTTPRequestHidesSecretInPath(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com/{{secrets.TOKEN}}",
+		Method: "GET",
+	}, nil, FlowProviders{
+		HTTP:   p,
+		Secret: &secretTestProvider{values: map[string]string{"TOKEN": "ab/cd ef"}},
+	})
+	require.Empty(t, res.Error)
+	assert.Equal(t, "https://api.example.com/[secret]", res.URL)
+}
+
+func TestSendTestHTTPRequestMethod(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "TRACE",
+	}, nil, FlowProviders{HTTP: p})
+	assert.Equal(t, "the method must be one of GET, POST, PUT, PATCH, DELETE", res.Error)
+	assert.Empty(t, p.reqs)
+}
+
+func TestSendTestHTTPRequestTruncatesAtCharacter(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", maxTestHTTPResponseBody-1) + "é"}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "GET",
+	}, nil, FlowProviders{HTTP: p})
+	require.NotNil(t, res.Response)
+	assert.Equal(t, strings.Repeat("a", maxTestHTTPResponseBody-1), res.Response.Body)
+	assert.True(t, res.Response.BodyTruncated)
+}

@@ -1,9 +1,9 @@
 import { HTTPRequestData } from "../types/flow.gen";
-import { placeholderRe, plainSecretRe } from "./templateSecrets";
+import { placeholderRe, secretMentionRe } from "./templateSecrets";
 
 // The expressions of the placeholders a request uses, which need a value when
-// it's sent from the editor, as there's no event to fill them in. Kite fills in
-// the ones that are just a secret.
+// it's sent from the editor, as there's no event to fill them in. The ones
+// that use a secret are evaluated by Kite, a value would replace the secret.
 export function httpRequestPlaceholders(data: HTTPRequestData): string[] {
   const templates = [
     data.url || "",
@@ -18,7 +18,7 @@ export function httpRequestPlaceholders(data: HTTPRequestData): string[] {
       const expression = placeholder.trim();
       if (
         expression &&
-        !plainSecretRe.test(expression) &&
+        !secretMentionRe.test(expression) &&
         !res.includes(expression)
       ) {
         res.push(expression);

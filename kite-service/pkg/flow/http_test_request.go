@@ -2,7 +2,11 @@ package flow
 
 import (
 	"context"
+	"fmt"
+	"slices"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -44,6 +48,11 @@ func SendTestHTTPRequest(ctx context.Context, data HTTPRequestData, values map[s
 	defer c.Cancel()
 
 	var res TestHTTPRequestResult
+	// Like the editor and code, unlike blocks saved through the API.
+	if data.Method != "" && !slices.Contains(httpRequestMethods, strings.ToUpper(data.Method)) {
+		res.Error = fmt.Sprintf("the method must be one of %s", strings.Join(httpRequestMethods, ", "))
+		return res
+	}
 	secrets, err := newFlowSecrets(c, data.templates()...)
 	if err != nil {
 		res.Error = err.Error()
@@ -70,7 +79,12 @@ func SendTestHTTPRequest(ctx context.Context, data HTTPRequestData, values map[s
 	body := secrets.redactString(string(resp.Body))
 	truncated := len(body) > maxTestHTTPResponseBody
 	if truncated {
-		body = body[:maxTestHTTPResponseBody]
+		// Not in the middle of a character.
+		end := maxTestHTTPResponseBody
+		for end > 0 && !utf8.RuneStart(body[end]) {
+			end--
+		}
+		body = body[:end]
 	}
 	for name, value := range resp.Headers {
 		resp.Headers[name] = secrets.redactString(value)

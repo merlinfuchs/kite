@@ -205,7 +205,9 @@ func (s *flowSecrets) redactString(msg string) string {
 		if len(value) < 4 {
 			continue
 		}
-		for _, form := range []string{value, url.QueryEscape(value), url.PathEscape(value)} {
+		// A URL's path is escaped like EscapedPath does, which keeps slashes.
+		forms := []string{value, url.QueryEscape(value), url.PathEscape(value), (&url.URL{Path: value}).EscapedPath()}
+		for _, form := range forms {
 			msg = strings.ReplaceAll(msg, form, "[secret]")
 		}
 	}
