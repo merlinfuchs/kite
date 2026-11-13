@@ -36,7 +36,7 @@ Features (feature | what it means for the user | free or paid):
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free
 - Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from Discord, ER:LC, and Cookie API, use stored variables, and send requests to other websites | free, 10 credits a run, plus 1 for each read from ER:LC or Cookie API, 1 for each change or list of a stored variable, and 3 for each request to another website
-- Integrations: ER:LC, Roblox, and Cookie API | ready blocks for ER:LC private servers, Roblox users and groups, and Cookie API | free, ER:LC needs your server key
+- Integrations: ER:LC, Roblox, Roblox Open Cloud, Bloxlink, and Cookie API | ready blocks for ER:LC private servers, Roblox users, ranking in Roblox groups, Bloxlink verification, and Cookie API | free, ER:LC needs your server key, Roblox Open Cloud and Bloxlink need your API key
 - Collaborators | others edit the same bot with you | free, 3 including you, more on paid plans
 - MCP server at https://kite.onl/api/mcp | build and change the bot from Claude, ChatGPT, Codex, Cursor, or VS Code | free
 - Custom status | your own status instead of "Powered by Kite.onl" | free
@@ -96,7 +96,7 @@ Exact names of things users see:
 - Command types: Slash command, User command, and Message command. User and Message commands show in the Apps menu when someone right-clicks a user or message. Discord calls them context menu commands.
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
-- Integrations: Discord, ER:LC, Roblox, Cookie API.
+- Integrations: Discord, ER:LC, Roblox, Roblox Open Cloud, Bloxlink, Cookie API.
 - Badges: Template creator (listed, then 10, 100 or 1,000 users), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
 - Plans: Basic, Plus, Premium, and Ultimate. Basic is the free plan.
 - The plan page in the dashboard is titled Plans, and its sidebar link says Upgrade, or Plan on a paid plan. There's no Premium page.

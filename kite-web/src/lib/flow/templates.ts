@@ -3,6 +3,7 @@ import {
   ArrowUp10Icon,
   BotOffIcon,
   BrainCircuitIcon,
+  ChevronsUpIcon,
   CoinsIcon,
   GavelIcon,
   GiftIcon,
@@ -49,6 +50,7 @@ export const templateIcons: Record<string, LucideIcon> = {
   languages: LanguagesIcon,
   trophy: TrophyIcon,
   coins: CoinsIcon,
+  "chevrons-up": ChevronsUpIcon,
 };
 
 // lucideName is the name of the Lucide component of the icon, like
