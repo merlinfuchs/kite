@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	// EditorUsagePeriod is how far back the editor usage of an app goes.
+	EditorUsagePeriod = 30 * 24 * time.Hour
 	// EditorSessionTimeSlack is how much more active time than the age of a
 	// session the editor can report, for the delay of its requests.
 	EditorSessionTimeSlack = 30 * time.Second

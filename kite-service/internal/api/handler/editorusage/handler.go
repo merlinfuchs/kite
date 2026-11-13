@@ -12,9 +12,6 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// usagePeriod is how far back the editor usage of an app goes.
-const usagePeriod = 30 * 24 * time.Hour
-
 type EditorUsageHandler struct {
 	editorSessionStore store.EditorSessionStore
 }
@@ -41,7 +38,7 @@ func (h *EditorUsageHandler) HandleEditorSessionUpdate(c *handler.Context, req w
 }
 
 func (h *EditorUsageHandler) HandleEditorUsageGet(c *handler.Context) (*wire.EditorUsageGetResponse, error) {
-	usage, err := h.editorSessionStore.EditorUsageByApp(c.Context(), c.App.ID, time.Now().UTC().Add(-usagePeriod))
+	usage, err := h.editorSessionStore.EditorUsageByApp(c.Context(), c.App.ID, time.Now().UTC().Add(-store.EditorUsagePeriod))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get editor usage: %w", err)
 	}

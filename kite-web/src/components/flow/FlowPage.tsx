@@ -58,7 +58,7 @@ function InnerFlowPage({
   const [saveCount, setSaveCount] = useState(0);
 
   const editorSession = useEditorSession();
-  useEditorTimeReport(versionTarget, editorSession);
+  useEditorTimeReport(versionTarget, editorSession, hasUnsavedChanges);
   // Set by a restore until it's saved, so it's saved without the session even
   // if the first try fails.
   const restorePending = useRef(false);

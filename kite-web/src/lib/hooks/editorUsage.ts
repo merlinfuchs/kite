@@ -1,7 +1,7 @@
 import queryClient, { apiRequest } from "@/lib/api/client";
 import { itemPath, type ItemVersionTarget } from "@/lib/api/queries";
 import type { EditorSessionUpdateResponse } from "@/lib/types/wire.gen";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // How long after an input the editor still counts as in use.
 const idleAfterMs = 2 * 60_000;
@@ -9,13 +9,15 @@ const reportIntervalMs = 60_000;
 
 // useEditorTimeReport reports how long the flow editor is in use. Time counts
 // while the tab is visible and up to two minutes after each input. Nothing is
-// reported until the first input, so opening a flow to look at it isn't a
-// session. Saves are counted by the server.
+// reported until the flow is first changed, so opening a flow to look at it
+// isn't a session. Saves are counted by the server.
 export function useEditorTimeReport(
   target: ItemVersionTarget,
-  sessionId: string
+  sessionId: string,
+  changed: boolean
 ) {
   const { appId, type, id } = target;
+  const start = useRef(() => {});
 
   useEffect(() => {
     if (type === "message") return;
@@ -70,11 +72,13 @@ export function useEditorTimeReport(
       if (now >= activeUntil) endStretch(now);
       activeSince ??= now;
       activeUntil = now + idleAfterMs;
-      if (!started) {
-        started = true;
-        void report();
-      }
     }
+
+    start.current = () => {
+      if (started) return;
+      started = true;
+      void report();
+    };
 
     function onVisibilityChange() {
       if (document.visibilityState === "hidden") {
@@ -110,4 +114,8 @@ export function useEditorTimeReport(
       );
     };
   }, [appId, type, id, sessionId]);
+
+  useEffect(() => {
+    if (changed) start.current();
+  }, [changed]);
 }
