@@ -33,7 +33,7 @@ function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
     case "subscriber":
       return {
         svg: badgeIcons.subscriber,
-        title: badge.plan ? `Kite ${badge.plan} subscriber` : "Subscriber",
+        title: badge.plan ? `${badge.plan} subscriber` : "Subscriber",
         description: "Supports Kite with a paid plan",
       };
     case "early_creator":
@@ -56,15 +56,18 @@ function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
 }
 
 // UserBadges shows the badges of a user in a row, like on a Discord profile,
-// with what each one means on hover.
+// with what each one means on hover. The labeled version names each badge,
+// for profile pages where they're the point.
 export function UserBadges({
   badges,
   className,
   size = "md",
+  labeled,
 }: {
   badges: UserBadge[];
   className?: string;
   size?: "sm" | "md";
+  labeled?: boolean;
 }) {
   const known = badges.flatMap((b) => {
     const info = badgeInfo(b);
@@ -72,6 +75,27 @@ export function UserBadges({
   });
   if (!known.length) {
     return null;
+  }
+
+  if (labeled) {
+    return (
+      <div className={cn("flex flex-wrap gap-2", className)}>
+        {known.map(({ badge, info }) => (
+          <Tooltip key={badge.kind}>
+            <TooltipTrigger asChild>
+              <span
+                tabIndex={0}
+                className="flex items-center gap-2 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
+              >
+                <BadgeIcon svg={info.svg} className="h-6 w-6" />
+                {info.title}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{info.description}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    );
   }
 
   return (

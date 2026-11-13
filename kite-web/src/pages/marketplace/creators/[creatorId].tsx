@@ -126,7 +126,11 @@ export default function CreatorPage({ creatorId, listed }: Props) {
                 @{owner.discord_username}
                 {since && ` · Creator since ${since}`}
               </div>
-              <UserBadges badges={owner.badges ?? []} className="mt-3" />
+              <UserBadges
+                badges={owner.badges ?? []}
+                className="mt-4"
+                labeled
+              />
             </div>
             <CopyLinkButton />
           </div>

@@ -106,7 +106,7 @@ function TemplateEntryHead({
     <div className="flex items-center gap-3 min-w-0">
       <div
         className={cn(
-          "relative h-10 w-10 flex-none rounded-lg flex items-center justify-center",
+          "h-10 w-10 flex-none rounded-lg flex items-center justify-center",
           category.tile
         )}
       >
@@ -114,15 +114,12 @@ function TemplateEntryHead({
           name={template.icon}
           className={cn("h-5 w-5", category.icon)}
         />
-        {/* On the corner of the icon, so it doesn't take room from the name. */}
-        {template.staffPick && (
-          <div className="absolute -right-1.5 -bottom-1.5">
-            <StaffPickIcon className="h-5 w-5" />
-          </div>
-        )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="font-semibold truncate">{template.name}</div>
+        <div className="flex items-center gap-1.5">
+          <div className="font-semibold truncate">{template.name}</div>
+          {template.staffPick && <StaffPickIcon className="h-4 w-4" />}
+        </div>
         <TemplateAuthor template={template} />
       </div>
       {added ? (
