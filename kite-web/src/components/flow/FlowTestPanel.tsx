@@ -10,9 +10,11 @@ import {
   FlowTestState,
   FlowTestTarget,
   flowTestPath,
+  newFlowTestSeed,
+  withFlowTestAction,
 } from "@/lib/flow/flowTest";
 import { useGetFlowData } from "@/lib/flow/parametersStore";
-import { FlowTestRequest } from "@/lib/types/wire.gen";
+import { FlowTestAction, FlowTestRequest } from "@/lib/types/wire.gen";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -154,16 +156,27 @@ export default function FlowTestPanel({
       req.webhook = { body: webhookBody };
     }
 
+    req.seed = newFlowTestSeed();
+    send(req, true);
+  }
+
+  // Clicks, picks and submits run the test again with them. When that fails,
+  // the result before them stays.
+  function act(action: FlowTestAction) {
+    if (state.request) send(withFlowTestAction(state.request, action), false);
+  }
+
+  function send(req: FlowTestRequest, isNew: boolean) {
     set({ error: null });
     mutation.mutate(
       { path: flowTestPath(target), req },
       {
         onSuccess(res) {
           if (res.success) {
-            set({ result: res.data });
+            set({ request: req, result: res.data });
           } else {
             set({
-              result: null,
+              ...(isNew && { request: null, result: null }),
               error:
                 res.error.code === "app_not_running"
                   ? "Your app is offline. Start it to run a test."
@@ -172,14 +185,18 @@ export default function FlowTestPanel({
           }
         },
         onError(err) {
-          set({ result: null, error: `The test couldn't run: ${err.message}` });
+          set({
+            ...(isNew && { request: null, result: null }),
+            error: `The test couldn't run: ${err.message}`,
+          });
         },
       }
     );
   }
 
+  // Isolated, as message previews stack above the block settings otherwise.
   return (
-    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden isolate">
       <ScrollArea className="flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
         {!hideHeader && (
           <div className="p-5 pb-3">
@@ -339,7 +356,26 @@ export default function FlowTestPanel({
 
           {error && <div className="text-sm text-destructive">{error}</div>}
 
-          {result && <FlowTestResult result={result} onShowNode={onShowNode} />}
+          {result && (
+            <>
+              <FlowTestResult
+                result={result}
+                pending={mutation.isPending}
+                onAction={act}
+                onShowNode={onShowNode}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start -ml-3 text-muted-foreground"
+                onClick={() =>
+                  set({ request: null, result: null, error: null })
+                }
+              >
+                Clear result
+              </Button>
+            </>
+          )}
         </div>
       </ScrollArea>
     </div>

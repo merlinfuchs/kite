@@ -1,3 +1,4 @@
+import { createContext, useContext, useMemo, useState } from "react";
 import { useStore } from "@xyflow/react";
 import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
 import { getNodeTitle, getNodeValues } from "@/lib/flow/nodes";
@@ -7,6 +8,7 @@ import {
   flowTestEffectTitle,
 } from "@/lib/flow/flowTest";
 import {
+  FlowTestAction,
   FlowTestEffect,
   FlowTestExecution,
   FlowTestResponse,
@@ -15,26 +17,74 @@ import {
 import { useTheme } from "next-themes";
 import DynamicIcon from "../icons/DynamicIcon";
 import MessagePreview from "../message/MessagePreview";
+import { PreviewComponentActionsContext } from "../message/MessagePreviewComponents";
+import { MessageComponentSelectMenu } from "@/lib/message/schema";
 import { ShowBlockButton } from "./FlowLogList";
+import FlowTestModalForm from "./FlowTestModalForm";
+import FlowTestSelectDialog from "./FlowTestSelectDialog";
+
+// What the user does in the result, like clicking a button the flow sent,
+// runs the test again with it. isLast is set within the last run, the only
+// one whose modal can still be submitted.
+const TestActionContext = createContext<{
+  onAction(action: FlowTestAction): void;
+  pending: boolean;
+  isLast: boolean;
+}>({ onAction: () => {}, pending: false, isLast: false });
 
 export default function FlowTestResult({
   result,
+  pending,
+  onAction,
   onShowNode,
 }: {
   result: FlowTestResponse;
+  pending: boolean;
+  onAction: (action: FlowTestAction) => void;
   onShowNode: (id: string) => void;
 }) {
+  const [selectMenu, setSelectMenu] =
+    useState<MessageComponentSelectMenu | null>(null);
+
+  const componentActions = useMemo(
+    () => ({
+      onClick: (button: { flow_source_id: string }) =>
+        onAction({ click: button.flow_source_id }),
+      onSelect: setSelectMenu,
+      disabled: pending,
+    }),
+    [onAction, pending]
+  );
+
+  const last = result.executions.length - 1;
+
   return (
-    <div className="flex flex-col gap-4">
-      {result.executions.map((execution, i) => (
-        <Execution key={i} execution={execution} onShowNode={onShowNode} />
-      ))}
-      <div className="text-sm text-muted-foreground">
-        {result.credits === 1
-          ? "A real run would cost 1 credit."
-          : `A real run would cost ${result.credits} credits.`}
+    <PreviewComponentActionsContext.Provider value={componentActions}>
+      <div className="flex flex-col gap-4">
+        {result.executions.map((execution, i) => (
+          <TestActionContext.Provider
+            key={i}
+            value={{ onAction, pending, isLast: i === last }}
+          >
+            <Execution execution={execution} onShowNode={onShowNode} />
+          </TestActionContext.Provider>
+        ))}
+        <div className="text-sm text-muted-foreground">
+          {result.credits === 1
+            ? "A real run would cost 1 credit."
+            : `A real run would cost ${result.credits} credits.`}
+        </div>
       </div>
-    </div>
+      <FlowTestSelectDialog
+        selectMenu={selectMenu}
+        onClose={() => setSelectMenu(null)}
+        onSelect={(values) => {
+          if (!selectMenu) return;
+          onAction({ select: selectMenu.flow_source_id, values });
+          setSelectMenu(null);
+        }}
+      />
+    </PreviewComponentActionsContext.Provider>
   );
 }
 
@@ -128,7 +178,12 @@ function Step({
 
 function Effect({ effect }: { effect: FlowTestEffect }) {
   const { resolvedTheme } = useTheme();
+  const { onAction, pending, isLast } = useContext(TestActionContext);
   const message = flowTestEffectMessage(effect);
+  const modal =
+    effect.action === "respond" && effect.data?.type === "modal"
+      ? effect.data.modal
+      : null;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -142,7 +197,13 @@ function Effect({ effect }: { effect: FlowTestEffect }) {
           {warning}
         </div>
       ))}
-      {message ? (
+      {modal && isLast ? (
+        <FlowTestModalForm
+          modal={modal}
+          pending={pending}
+          onSubmit={(values) => onAction({ submit: values })}
+        />
+      ) : message ? (
         <div className="rounded-md overflow-hidden">
           <MessagePreview
             msg={message}

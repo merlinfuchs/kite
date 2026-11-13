@@ -9,7 +9,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
-	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -295,7 +294,7 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	// Suspend only once the modal is ready, so a failed template doesn't
 	// leave a resume point behind.
-	resumePoint, err := ctx.suspend(ResumePointTypeModal, util.UniqueID(), n.ID)
+	resumePoint, err := ctx.suspend(ResumePointTypeModal, ctx.uniqueID(), n.ID)
 	if err != nil {
 		return fmt.Errorf("failed to suspend: %w", err)
 	}

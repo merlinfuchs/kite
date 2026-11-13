@@ -94,7 +94,14 @@ export interface FlowContextStore {
   // the user keeps or undoes the changes.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
+  // How the blocks ran in the last test, shown on them until it's cleared.
+  testNodeStatus: Record<string, TestNodeStatus>;
+  setTestNodeStatus(status: Record<string, TestNodeStatus>): void;
 }
+
+// A block that ran in a test failed, would likely be rejected by Discord, or
+// ran without either.
+export type TestNodeStatus = "ok" | "warning" | "error";
 
 export const createFlowContextStore = () => {
   return create<FlowContextStore>()(
@@ -104,6 +111,8 @@ export const createFlowContextStore = () => {
       setType: (type) => set({ type }),
       aiChangedNodeIds: [],
       setAIChangedNodeIds: (ids) => set({ aiChangedNodeIds: ids }),
+      testNodeStatus: {},
+      setTestNodeStatus: (status) => set({ testNodeStatus: status }),
     }))
   );
 };
@@ -155,5 +164,13 @@ export function useChangedByAI(nodeId: string) {
   const store = useContext(FlowContextStoreContext);
   return useStore(store ?? emptyContextStore, (s) =>
     s.aiChangedNodeIds.includes(nodeId)
+  );
+}
+
+export function useTestNodeStatus(nodeId: string) {
+  const store = useContext(FlowContextStoreContext);
+  return useStore(
+    store ?? emptyContextStore,
+    (s) => s.testNodeStatus[nodeId] as TestNodeStatus | undefined
   );
 }

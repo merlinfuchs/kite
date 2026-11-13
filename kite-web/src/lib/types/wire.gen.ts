@@ -1292,6 +1292,12 @@ export interface FlowTestRequest {
    */
   mocks?: { [key: string]: FlowTestMock};
   /**
+   * Makes blocks like Random pick the same each time a test with the same
+   * seed runs, so it can run again with a click on a button the flow sent.
+   * 0 picks a seed.
+   */
+  seed?: number /* uint64 */;
+  /**
    * Values of stored variables when the test starts, in place of the stored
    * ones.
    */

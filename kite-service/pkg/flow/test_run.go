@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,6 +31,9 @@ type TestRun struct {
 
 	mocks     map[string]TestMock
 	usedMocks map[string]bool
+	// Random is shared by the runs of a test, so running it again with the
+	// same seed picks the same.
+	Random    *TestRandom
 	steps     []TestStep
 	truncated bool
 	// The steps of the blocks that are running, innermost last. -1 for blocks
@@ -346,6 +351,40 @@ func decodeMockHTTPResponse(raw json.RawMessage) (thing.Thing, error) {
 		Body:       bytes.TrimSpace(body),
 		Headers:    v.Headers,
 	}), nil
+}
+
+// TestRandom makes the random picks of a test and the IDs of its resume
+// points the same each time the test runs with the same seed. A test that's
+// run again with a click on a button the flow sent then sends that button
+// again, with the same custom ID.
+type TestRandom struct {
+	mu  sync.Mutex
+	r   *rand.Rand
+	ids int
+}
+
+func NewTestRandom(seed uint64) *TestRandom {
+	return &TestRandom{r: rand.New(rand.NewPCG(seed, seed))}
+}
+
+func (t *TestRandom) IntN(n int) int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.r.IntN(n)
+}
+
+func (t *TestRandom) Shuffle(n int, swap func(i, j int)) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.r.Shuffle(n, swap)
+}
+
+// ID returns a new ID, counting up from 1.
+func (t *TestRandom) ID() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.ids++
+	return "test" + strconv.Itoa(t.ids)
 }
 
 // TestSnowflake returns a new ID for things test runs pretend to create, like

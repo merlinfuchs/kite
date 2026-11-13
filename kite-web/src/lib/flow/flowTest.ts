@@ -1,9 +1,12 @@
 import { Message, messageSchema } from "../message/schema";
 import {
+  FlowTestAction,
   FlowTestEffect,
   FlowTestMessage,
+  FlowTestRequest,
   FlowTestResponse,
 } from "../types/wire.gen";
+import type { TestNodeStatus } from "./context";
 
 // What a test of the flow in the editor runs. Drafts are tested as they are
 // in the editor, without saving them.
@@ -36,6 +39,9 @@ export type FlowTestState = {
   // channels.
   values: string[];
   valueIds: string;
+  // The test the result is of. Clicks and submits run it again with the same
+  // seed and one more action, see TestRandom in the service.
+  request: FlowTestRequest | null;
   result: FlowTestResponse | null;
   error: string | null;
 };
@@ -51,6 +57,7 @@ export const initialFlowTestState: FlowTestState = {
   webhookBody: "",
   values: [],
   valueIds: "",
+  request: null,
   result: null,
   error: null,
 };
@@ -64,6 +71,42 @@ export function flowTestPath(target: FlowTestTarget) {
     case "message":
       return `messages/${target.id}`;
   }
+}
+
+// A seed for a new test, which JSON keeps exactly.
+export function newFlowTestSeed() {
+  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + 1;
+}
+
+// The request that runs the test again with one more action.
+export function withFlowTestAction(
+  req: FlowTestRequest,
+  action: FlowTestAction
+): FlowTestRequest {
+  return { ...req, then: [...(req.then ?? []), action] };
+}
+
+// How each block ran in a test. A block that ran more than once, like in a
+// loop, shows the worst.
+export function flowTestNodeStatus(
+  result: FlowTestResponse | null
+): Record<string, TestNodeStatus> {
+  const rank = { ok: 0, warning: 1, error: 2 };
+  const res: Record<string, TestNodeStatus> = {};
+  for (const execution of result?.executions ?? []) {
+    for (const step of execution.steps) {
+      const status: TestNodeStatus = step.error
+        ? "error"
+        : step.effects?.some((e) => e.warnings?.length)
+        ? "warning"
+        : "ok";
+      const current = res[step.node_id];
+      if (!current || rank[status] > rank[current]) {
+        res[step.node_id] = status;
+      }
+    }
+  }
+  return res;
 }
 
 const effectTitles: Record<string, string> = {
@@ -140,6 +183,8 @@ function toEditorFormat(value: unknown): unknown {
   for (const [key, v] of Object.entries(value)) {
     if (key === "custom_id") {
       res.flow_source_id = v;
+    } else if ((key === "min_values" || key === "max_values") && v === 0) {
+      // Unset, which the editor leaves out instead.
     } else if (v !== null) {
       res[key] = toEditorFormat(v);
     }

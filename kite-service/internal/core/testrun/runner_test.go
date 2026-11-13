@@ -776,3 +776,43 @@ type fakeVariableStore struct {
 func (f *fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
 	return f.variables, nil
 }
+
+// A test run again with the same seed picks the same and sends the same
+// custom IDs, so the editor can run it again with a click.
+func TestFlowTestSeed(t *testing.T) {
+	test := Test{
+		Kind: KindCommand,
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "roll", "description": "Roll"}},
+				{"id": "roll", "type": "action_random_generate", "data": {"random_min": "0", "random_max": "1000000"}},
+				{"id": "ask", "type": "action_response_create", "data": {"message_data": {"content": "{{result('roll')}}", "components": [
+					{"type": 1, "components": [{"id": 1, "type": 2, "style": 1, "label": "Again"}]}
+				]}}}
+			],
+			"edges": [
+				{"id": "1", "source": "entry", "target": "roll"},
+				{"id": "2", "source": "roll", "target": "ask"}
+			]
+		}`),
+		Seed: 42,
+	}
+
+	sent := func(res *Result) (string, string) {
+		data := findEffect(t, res.Executions[0], "respond").Data.(map[string]any)
+		msg := data["message"].(*api.InteractionResponseData)
+		b, _ := json.Marshal(msg.Components)
+		return msg.Content.Val, string(b)
+	}
+
+	content1, components1 := sent(runTest(t, test))
+	content2, components2 := sent(runTest(t, test))
+	if content1 != content2 || components1 != components2 {
+		t.Errorf("runs differ with the same seed: %q %s, %q %s", content1, components1, content2, components2)
+	}
+
+	test.Seed = 43
+	if content3, _ := sent(runTest(t, test)); content3 == content1 {
+		t.Errorf("another seed picked the same: %q", content3)
+	}
+}

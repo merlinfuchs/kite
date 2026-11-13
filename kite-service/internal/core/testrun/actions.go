@@ -57,9 +57,16 @@ func (s *testSession) useComponent(ctx context.Context, userID discord.UserID, t
 		"custom_id":      component.CustomID,
 		"component_type": component.Type,
 	}
-	label := fmt.Sprintf("Click %q", target)
+	// Named like users see it, the target can be a custom ID.
+	name := target
+	if component.Label != "" {
+		name = component.Label
+	} else if component.Placeholder != "" {
+		name = component.Placeholder
+	}
+	label := fmt.Sprintf("Click %q", name)
 	if isSelect {
-		label = fmt.Sprintf("Select %s in %q", strings.Join(values, ", "), target)
+		label = fmt.Sprintf("Select %s in %q", strings.Join(values, ", "), name)
 		data["values"] = values
 		if component.Type != int(discord.StringSelectComponentType) {
 			resolved := map[string]any{}

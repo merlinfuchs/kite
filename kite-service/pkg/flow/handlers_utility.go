@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -71,7 +72,32 @@ func randomNumber(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 		}
 	}
 
-	return thing.NewInt(rand.IntN(maxInt-minInt) + minInt), nil
+	return thing.NewInt(ctx.randIntN(maxInt-minInt) + minInt), nil
+}
+
+// randIntN and randShuffle use the random of the test in test runs, see
+// TestRandom.
+func (ctx *FlowContext) randIntN(n int) int {
+	if ctx.Test != nil && ctx.Test.Random != nil {
+		return ctx.Test.Random.IntN(n)
+	}
+	return rand.IntN(n)
+}
+
+func (ctx *FlowContext) randShuffle(n int, swap func(i, j int)) {
+	if ctx.Test != nil && ctx.Test.Random != nil {
+		ctx.Test.Random.Shuffle(n, swap)
+		return
+	}
+	rand.Shuffle(n, swap)
+}
+
+// uniqueID returns the ID of a new resume point, see TestRandom.
+func (ctx *FlowContext) uniqueID() string {
+	if ctx.Test != nil && ctx.Test.Random != nil {
+		return ctx.Test.Random.ID()
+	}
+	return util.UniqueID()
 }
 
 // randomItem picks one of the items, which are the lines of the text, or
@@ -87,7 +113,7 @@ func randomItem(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 		return thing.Null, errors.New("no items to pick from")
 	}
 
-	return items[rand.IntN(len(items))], nil
+	return items[ctx.randIntN(len(items))], nil
 }
 
 // randomItems picks up to random_count items in random order, never the same
@@ -111,7 +137,7 @@ func randomItems(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 
 	// A copy, as the items can be the stored result of another block.
 	items := slices.Clone(listOrLines(value))
-	rand.Shuffle(len(items), func(i, j int) {
+	ctx.randShuffle(len(items), func(i, j int) {
 		items[i], items[j] = items[j], items[i]
 	})
 	return thing.NewArray(items[:min(count, len(items))]), nil

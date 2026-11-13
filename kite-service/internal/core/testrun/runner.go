@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"runtime/debug"
 	"slices"
 	"sync"
@@ -87,6 +88,9 @@ type Test struct {
 	Webhook *Webhook
 
 	Mocks map[string]flow.TestMock
+	// Seed makes the test pick the same at random each time it runs, see
+	// flow.TestRandom. 0 picks a seed.
+	Seed uint64
 	// Values of stored variables before the test, in place of the stored
 	// ones.
 	Variables []Variable
@@ -187,7 +191,11 @@ func (r *Runner) Run(ctx context.Context, appID string, test Test) (*Result, err
 		return nil, testErrorf("the flow is invalid: %v", err)
 	}
 
-	s := newTestSession(r.env, appID, session, test.Mocks)
+	seed := test.Seed
+	if seed == 0 {
+		seed = rand.Uint64()
+	}
+	s := newTestSession(r.env, appID, session, test.Mocks, flow.NewTestRandom(seed))
 	if err := s.setVariables(ctx, test.Variables); err != nil {
 		return nil, err
 	}
@@ -236,6 +244,7 @@ func (r *Runner) Run(ctx context.Context, appID string, test Test) (*Result, err
 // testSession is the state of a test, shared by its executions: what the
 // flows sent and changed, so later steps see it.
 type testSession struct {
+	random  *flow.TestRandom
 	env     engine.Env
 	appID   string
 	session *state.State
@@ -295,8 +304,9 @@ type testVariableValue struct {
 	updatedAt time.Time
 }
 
-func newTestSession(env engine.Env, appID string, session *state.State, mocks map[string]flow.TestMock) *testSession {
+func newTestSession(env engine.Env, appID string, session *state.State, mocks map[string]flow.TestMock, random *flow.TestRandom) *testSession {
 	return &testSession{
+		random:    random,
 		env:       env,
 		appID:     appID,
 		session:   session,
@@ -573,6 +583,7 @@ func (s *testSession) runOnce(
 	s.mu.Unlock()
 
 	run := flow.NewTestRun(s.mocks)
+	run.Random = s.random
 	fCtx := s.env.FlowContextWithProviders(ctx, s.appID, s.session, data, s.testProviders(run), state, node)
 	defer fCtx.Cancel()
 	fCtx.Test = run

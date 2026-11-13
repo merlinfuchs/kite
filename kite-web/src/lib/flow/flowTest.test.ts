@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { flowTestEffectMessage, flowTestEffectTitle } from "./flowTest";
+import {
+  flowTestEffectMessage,
+  flowTestEffectTitle,
+  flowTestNodeStatus,
+  withFlowTestAction,
+} from "./flowTest";
 
 describe("flowTestEffectMessage", () => {
   it("shows a message in Discord's format", () => {
@@ -46,5 +51,42 @@ describe("flowTestEffectTitle", () => {
     expect(flowTestEffectTitle({ action: "something_new" })).toBe(
       "Would something new"
     );
+  });
+});
+
+describe("flowTestNodeStatus", () => {
+  it("shows the worst of a block that ran more than once", () => {
+    const status = flowTestNodeStatus({
+      credits: 0,
+      executions: [
+        {
+          trigger: "Command /loop",
+          steps: [
+            { node_id: "a", node_type: "action_message_create" },
+            {
+              node_id: "a",
+              node_type: "action_message_create",
+              effects: [{ action: "create_message", warnings: ["No access"] }],
+            },
+            { node_id: "b", node_type: "action_message_create", error: "x" },
+            { node_id: "b", node_type: "action_message_create" },
+          ],
+        },
+      ],
+    });
+    expect(status).toEqual({ a: "warning", b: "error" });
+  });
+});
+
+describe("withFlowTestAction", () => {
+  it("adds the action after the earlier ones", () => {
+    const req = withFlowTestAction(
+      { seed: 5, then: [{ click: "a" }] },
+      { submit: { name: "x" } }
+    );
+    expect(req).toEqual({
+      seed: 5,
+      then: [{ click: "a" }, { submit: { name: "x" } }],
+    });
   });
 });

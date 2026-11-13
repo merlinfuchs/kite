@@ -37,6 +37,10 @@ type FlowTestRequest struct {
 
 	// What blocks do instead of running, by block ID.
 	Mocks map[string]FlowTestMock `json:"mocks,omitempty"`
+	// Makes blocks like Random pick the same each time a test with the same
+	// seed runs, so it can run again with a click on a button the flow sent.
+	// 0 picks a seed.
+	Seed uint64 `json:"seed,omitempty"`
 	// Values of stored variables when the test starts, in place of the stored
 	// ones.
 	Variables []FlowTestVariable `json:"variables,omitempty"`

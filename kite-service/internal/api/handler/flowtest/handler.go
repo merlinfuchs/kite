@@ -119,6 +119,7 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 	test.Options = req.Options
 	test.Values = req.Values
 	test.Event = req.Event
+	test.Seed = req.Seed
 	if req.Webhook != nil {
 		test.Webhook = &testrun.Webhook{
 			Body:    req.Webhook.Body,
