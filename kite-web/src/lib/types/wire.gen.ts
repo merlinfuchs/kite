@@ -176,6 +176,10 @@ export interface AppEntity {
   id: string;
   type: string;
   name: string;
+  /**
+   * Enabled is always true for messages and variables.
+   */
+  enabled: boolean;
 }
 
 //////////

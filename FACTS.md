@@ -49,6 +49,7 @@ Features (feature | what it means for the user | free or paid):
 
 Free plan (called Basic in the API and on the plan cards):
 - 15 commands, 10 event listeners, 25 stored variables, and 25 message templates.
+- Only enabled commands and event listeners count toward their limits, on every plan. An app can have 3 times each limit including disabled ones (`TotalLimitFactor` in kite-service). Scheduled tasks and webhooks work the same.
 - 10,000 credits per month.
 - Up to 100 servers per bot.
 - 3 collaborators including you, 10 secrets, 5 scheduled tasks every 5 minutes at most, and 5 webhooks.

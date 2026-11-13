@@ -15,7 +15,9 @@ export default function AppPage() {
   const features = useAppFeatures();
 
   const entityCounts = useMemo(() => {
+    // Disabled commands and event listeners don't count against the limit.
     return entities?.reduce((acc, entity) => {
+      if (!entity!.enabled) return acc;
       acc[entity!.type] = (acc[entity!.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -28,7 +30,7 @@ export default function AppPage() {
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2 order-2 lg:order-1">
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <AppResourceCard
-              title="Commands"
+              title="Enabled commands"
               count={entityCounts?.command || 0}
               limit={features?.max_commands}
               actionTitle="Manage commands"
@@ -38,7 +40,7 @@ export default function AppPage() {
               }}
             />
             <AppResourceCard
-              title="Event listeners"
+              title="Enabled event listeners"
               count={entityCounts?.event_listener || 0}
               actionTitle="Manage events"
               actionHref={{

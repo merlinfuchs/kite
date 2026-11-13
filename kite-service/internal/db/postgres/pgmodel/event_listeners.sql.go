@@ -12,7 +12,10 @@ import (
 )
 
 const countEventListenersByAppAndSource = `-- name: CountEventListenersByAppAndSource :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM event_listeners WHERE app_id = $1 AND source = $2
 `
 
 type CountEventListenersByAppAndSourceParams struct {
@@ -20,11 +23,16 @@ type CountEventListenersByAppAndSourceParams struct {
 	Source string
 }
 
-func (q *Queries) CountEventListenersByAppAndSource(ctx context.Context, arg CountEventListenersByAppAndSourceParams) (int64, error) {
+type CountEventListenersByAppAndSourceRow struct {
+	Total   int64
+	Enabled int64
+}
+
+func (q *Queries) CountEventListenersByAppAndSource(ctx context.Context, arg CountEventListenersByAppAndSourceParams) (CountEventListenersByAppAndSourceRow, error) {
 	row := q.db.QueryRow(ctx, countEventListenersByAppAndSource, arg.AppID, arg.Source)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+	var i CountEventListenersByAppAndSourceRow
+	err := row.Scan(&i.Total, &i.Enabled)
+	return i, err
 }
 
 const createEventListener = `-- name: CreateEventListener :one

@@ -49,6 +49,7 @@ import {
   isCommandDeployErrorCause,
 } from "./CommandDeployStatus";
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
+import { PlanLimit, PlanLimitGate } from "./PlanLimit";
 import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
 
@@ -58,7 +59,13 @@ const commandTypeIcons = {
   message: MessageSquareIcon,
 };
 
-export default function CommandListEntry({ command }: { command: Command }) {
+export default function CommandListEntry({
+  command,
+  limit,
+}: {
+  command: Command;
+  limit?: PlanLimit;
+}) {
   const router = useRouter();
 
   const appId = useAppId();
@@ -88,9 +95,18 @@ export default function CommandListEntry({ command }: { command: Command }) {
   }, [deleteMutation]);
 
   const toggleEnabled = useCallback(() => {
-    updateEnabledMutation.mutate({
-      enabled: !command.enabled,
-    });
+    updateEnabledMutation.mutate(
+      { enabled: !command.enabled },
+      {
+        onSuccess(res) {
+          if (!res.success) {
+            toast.error(
+              `Failed to update command: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
   }, [updateEnabledMutation, command.enabled]);
 
   return (
@@ -103,7 +119,15 @@ export default function CommandListEntry({ command }: { command: Command }) {
           </div>
         </div>
         <div className="flex justify-end">
-          <Switch checked={command.enabled} onCheckedChange={toggleEnabled} />
+          {/* Enabling one more would go over the limit. */}
+          <PlanLimitGate
+            limit={command.enabled ? undefined : limit}
+            noun="commands"
+            from="commands"
+            countsEnabled
+          >
+            <Switch checked={command.enabled} onCheckedChange={toggleEnabled} />
+          </PlanLimitGate>
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">

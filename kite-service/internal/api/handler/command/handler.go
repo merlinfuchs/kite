@@ -48,15 +48,8 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		if commandCount >= c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	if err := h.checkCommandLimit(c, 1, enabledCount(req.Enabled)); err != nil {
+		return nil, err
 	}
 
 	cmdFlow, err := compileCommand(req.FlowSource)
@@ -112,17 +105,12 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		return nil, nil
 	}
 
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		newCommandCount := commandCount + len(reqs)
-
-		if newCommandCount > c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	addedEnabled := 0
+	for _, cmd := range reqs {
+		addedEnabled += enabledCount(cmd.Enabled)
+	}
+	if err := h.checkCommandLimit(c, len(reqs), addedEnabled); err != nil {
+		return nil, err
 	}
 
 	commands := make([]*model.Command, len(reqs))
@@ -220,6 +208,12 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, cmd *model.Command, f
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
+	if req.Enabled && !c.Command.Enabled {
+		if err := h.checkCommandLimit(c, 0, 1); err != nil {
+			return nil, err
+		}
+	}
+
 	command, err := h.commandStore.UpdateCommandEnabled(c.Context(), c.Command.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -283,4 +277,26 @@ func commandNamesError(err error) error {
 		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
 	}
 	return fmt.Errorf("failed to check command names: %w", err)
+}
+
+// checkCommandLimit checks that the app can have added more commands,
+// addedEnabled of them enabled.
+func (h *CommandHandler) checkCommandLimit(c *handler.Context, added, addedEnabled int) error {
+	if c.Features.MaxCommands == 0 {
+		return nil
+	}
+
+	counts, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return fmt.Errorf("failed to count commands: %w", err)
+	}
+
+	return handler.CheckEnabledLimit("commands", c.Features.MaxCommands, counts, added, addedEnabled)
+}
+
+func enabledCount(enabled bool) int {
+	if enabled {
+		return 1
+	}
+	return 0
 }

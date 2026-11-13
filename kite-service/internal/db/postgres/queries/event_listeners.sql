@@ -59,7 +59,10 @@ SELECT id FROM event_listeners WHERE enabled = TRUE;
 DELETE FROM event_listeners WHERE id = $1 RETURNING *;
 
 -- name: CountEventListenersByAppAndSource :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM event_listeners WHERE app_id = $1 AND source = $2;
 
 -- name: UpdateEventListenersLastRunAt :exec
 -- Doesn't touch updated_at, otherwise every run would make the engine reload the listener.

@@ -16,10 +16,13 @@ import { commandTypeOf } from "@/lib/flow/commandTypes";
 
 export default function CommandList() {
   const commands = useCommands();
-  const limit = usePlanLimit("max_commands", commands?.length);
+  const limit = usePlanLimit(
+    "max_commands",
+    commands?.filter((c) => c?.enabled).length
+  );
 
   const commandActions = (
-    <PlanLimitGate limit={limit} noun="commands" from="commands">
+    <PlanLimitGate limit={limit} noun="commands" from="commands" countsEnabled>
       <CommandCreateDialog>
         <Button>Create command</Button>
       </CommandCreateDialog>
@@ -60,7 +63,11 @@ export default function CommandList() {
                 command.description,
               ]}
               renderItem={(command) => (
-                <CommandListEntry command={command} key={command.id} />
+                <CommandListEntry
+                  command={command}
+                  limit={limit}
+                  key={command.id}
+                />
               )}
               placeholder="Search commands"
               actions={commandActions}
@@ -72,6 +79,7 @@ export default function CommandList() {
                     limit={limit}
                     noun="commands"
                     from="commands"
+                    countsEnabled
                   />
                 </div>
               }

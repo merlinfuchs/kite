@@ -332,36 +332,41 @@ const getAppEntities = `-- name: GetAppEntities :many
 SELECT 
     id,
     'command' AS type,
-    name
+    name,
+    enabled
 FROM commands
 WHERE commands.app_id = $1
 UNION ALL
 SELECT 
     id,
     'event_listener' AS type,
-    type as name
+    type as name,
+    enabled
 FROM event_listeners
 WHERE event_listeners.app_id = $1
 UNION ALL
 SELECT 
     id,
     'message' AS type,
-    name
+    name,
+    TRUE AS enabled
 FROM messages
 WHERE messages.app_id = $1
 UNION ALL
 SELECT 
     id,
     'variable' AS type,
-    name
+    name,
+    TRUE AS enabled
 FROM variables
 WHERE variables.app_id = $1
 `
 
 type GetAppEntitiesRow struct {
-	ID   string
-	Type string
-	Name string
+	ID      string
+	Type    string
+	Name    string
+	Enabled bool
 }
 
 func (q *Queries) GetAppEntities(ctx context.Context, appID string) ([]GetAppEntitiesRow, error) {
@@ -373,7 +378,12 @@ func (q *Queries) GetAppEntities(ctx context.Context, appID string) ([]GetAppEnt
 	var items []GetAppEntitiesRow
 	for rows.Next() {
 		var i GetAppEntitiesRow
-		if err := rows.Scan(&i.ID, &i.Type, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Type,
+			&i.Name,
+			&i.Enabled,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

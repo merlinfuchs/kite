@@ -9,7 +9,7 @@ import (
 
 type EventListenerStore interface {
 	EventListenersByApp(ctx context.Context, appID string) ([]*model.EventListener, error)
-	CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (int, error)
+	CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (ItemCounts, error)
 	UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error
 	EventListener(ctx context.Context, id string) (*model.EventListener, error)
 	CreateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)

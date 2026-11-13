@@ -220,4 +220,6 @@ type AppEntity struct {
 	ID   string `json:"id"`
 	Type string `json:"type"`
 	Name string `json:"name"`
+	// Enabled is always true for messages and variables.
+	Enabled bool `json:"enabled"`
 }
