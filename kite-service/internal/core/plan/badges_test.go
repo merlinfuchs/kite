@@ -49,6 +49,7 @@ func TestUserBadges(t *testing.T) {
 		"gone": {{Kind: model.UserBadgeEarlySupporter}},
 		"new":  {{Kind: model.UserBadgeSubscriber, Plan: "Premium"}},
 		"big":  {{Kind: model.UserBadgeCreator, Milestone: 1000}},
+		"late": {{Kind: model.UserBadgeCreator}},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got badges for %d users, want %d: %v", len(got), len(want), got)

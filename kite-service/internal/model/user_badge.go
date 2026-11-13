@@ -24,8 +24,8 @@ const (
 	// UserBadgeEarlyCreator is for users who listed a template in the
 	// marketplace before the badges launched.
 	UserBadgeEarlyCreator UserBadgeKind = "early_creator"
-	// UserBadgeCreator is for users whose templates in the marketplace enough
-	// other users added, see Milestone.
+	// UserBadgeCreator is for users with a template in the marketplace, with
+	// a Milestone once enough other users added them.
 	UserBadgeCreator UserBadgeKind = "creator"
 )
 
@@ -37,7 +37,7 @@ type UserBadge struct {
 	// Plan is the title of the plan of a subscriber.
 	Plan string
 	// Milestone is how many other users at least added the templates of a
-	// creator.
+	// creator, or 0 if fewer than the lowest milestone.
 	Milestone int
 }
 

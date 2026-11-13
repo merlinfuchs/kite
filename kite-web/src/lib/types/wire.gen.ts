@@ -1746,7 +1746,7 @@ export interface UserBadge {
   plan?: string;
   /**
    * Milestone is how many other users at least added the templates of a
-   * creator.
+   * creator, missing if fewer than the lowest milestone.
    */
   milestone?: number /* int */;
 }

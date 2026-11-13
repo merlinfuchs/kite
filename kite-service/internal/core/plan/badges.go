@@ -121,12 +121,15 @@ func userBadges(
 		if s.FirstListedAt.Before(earlyCreatorCutoff) {
 			add(s.UserID, model.UserBadge{Kind: model.UserBadgeEarlyCreator})
 		}
+		// Listing a template is the first level, without a milestone.
+		badge := model.UserBadge{Kind: model.UserBadgeCreator}
 		for _, milestone := range creatorMilestones {
 			if s.InstallerCount >= milestone {
-				add(s.UserID, model.UserBadge{Kind: model.UserBadgeCreator, Milestone: milestone})
+				badge.Milestone = milestone
 				break
 			}
 		}
+		add(s.UserID, badge)
 	}
 	return res
 }

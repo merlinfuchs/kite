@@ -19,7 +19,7 @@ const lg = (
     .map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`)
     .join("")}</linearGradient>`;
 
-export type CreatorTier = 10 | 100 | 1000;
+export type CreatorTier = 0 | 10 | 100 | 1000;
 
 // The SVGs of the badges, each the inside of a 24x24 viewBox. g is a prefix
 // that keeps the IDs of their gradients apart when several are on a page.
@@ -92,6 +92,7 @@ export const badgeIcons = {
   // A kite with a tail, its color by milestone.
   creator: (g: string, tier: CreatorTier) => {
     const c = {
+      0: ["#A7F3D0", "#34D399", "#047857"],
       10: ["#A5F3FC", "#22D3EE", "#0E7490"],
       100: ["#DDD6FE", "#8B5CF6", "#5B21B6"],
       1000: ["#FEF08A", "#FACC15", "#B45309"],

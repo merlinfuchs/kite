@@ -50,12 +50,16 @@ function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
           "Shared a template in the Marketplace before November 13, 2026",
       };
     case "creator": {
-      const tier = badge.milestone as CreatorTier;
-      if (![10, 100, 1000].includes(tier)) return undefined;
+      const tier = (badge.milestone ?? 0) as CreatorTier;
+      if (![0, 10, 100, 1000].includes(tier)) return undefined;
       return {
         svg: (prefix) => badgeIcons.creator(prefix, tier),
-        title: "Template creator",
-        description: `${formatNumber(tier)}+ other users added their templates`,
+        title: tier
+          ? `Template creator · ${formatNumber(tier)}+`
+          : "Template creator",
+        description: tier
+          ? `${formatNumber(tier)}+ other users added their templates`
+          : "Shared a template in the Marketplace",
       };
     }
   }

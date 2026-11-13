@@ -15,7 +15,7 @@ type UserBadge struct {
 	// Plan is the title of the plan of a subscriber.
 	Plan string `json:"plan,omitempty"`
 	// Milestone is how many other users at least added the templates of a
-	// creator.
+	// creator, missing if fewer than the lowest milestone.
 	Milestone int `json:"milestone,omitempty"`
 }
 
