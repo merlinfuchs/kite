@@ -26,6 +26,7 @@ const content: LandingPageContent = {
     {
       heading: "Start with the Ask AI template",
       body: "The template adds a command and an event listener to your bot. You give the AI a personality when you add it.",
+      link: { label: "View the template", href: "/marketplace/ask-ai" },
       points: [
         {
           title: "/ask",
