@@ -146,6 +146,7 @@ import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { channelTypeOptions } from "@/lib/message/selectMenu";
+import { z } from "zod";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
@@ -325,6 +326,17 @@ export const settingInputs: Record<string, any> = {
   sleep_duration_seconds: ControlSleepDurationInput,
 };
 
+// A setting that fails every option of a union, like an ID or a placeholder,
+// only says "Invalid input". Its options usually share one message that says
+// what's allowed, so that is shown instead.
+function issueMessage(issue: z.core.$ZodIssue) {
+  if (issue.code === "invalid_union") {
+    const messages = new Set(issue.errors.flat().map((i) => i.message));
+    if (messages.size === 1) return [...messages][0];
+  }
+  return issue.message;
+}
+
 function nodeTypeDocsPage(nodeType: string) {
   let group: string | null = null;
   if (nodeType.startsWith("action_")) {
@@ -428,7 +440,10 @@ export default function FlowNodeEditor({
     }
 
     return Object.fromEntries(
-      res.error.issues.map((issue) => [issue.path.join("."), issue.message])
+      res.error.issues.map((issue) => [
+        issue.path.join("."),
+        issueMessage(issue),
+      ])
     );
   }, [values.dataSchema, data]);
 
@@ -3862,7 +3877,8 @@ function ChannelDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-6">{children}</div>
+        {/* min-w-0 lets long IDs truncate instead of widening the dialog. */}
+        <div className="space-y-6 min-w-0">{children}</div>
       </DialogContent>
     </Dialog>
   );
