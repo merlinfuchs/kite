@@ -12,8 +12,18 @@ import { HTTPRequestTestResponse } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 
-export default function HttpRequestTestPanel({
+// Opened from the dialog of the request, where it stays mounted, so the values
+// and the result are kept while the request is being changed.
+export default function HttpRequestTestDialog({
   data,
 }: {
   data: HTTPRequestData;
@@ -52,55 +62,63 @@ export default function HttpRequestTestPanel({
   }
 
   return (
-    <div className="border-t pt-4 space-y-3 min-w-0">
-      <div>
-        <div className="font-medium text-foreground">Try it out</div>
-        <div className="text-muted-foreground text-sm">
-          Send the request now to see what comes back. It doesn&apos;t run the
-          rest of the flow and doesn&apos;t cost credits.
-        </div>
-      </div>
-
-      {placeholders.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            Nothing triggered the flow, so enter a value for each placeholder.
-            Secrets are filled in for you.
-          </div>
-          {placeholders.map((p) => (
-            <div key={p} className="grid grid-cols-2 gap-2 items-center">
-              <code className="text-sm truncate" title={p}>
-                {`{{${p}}}`}
-              </code>
-              <Input
-                type="text"
-                value={values[p] || ""}
-                onChange={(e) =>
-                  setValues((v) => ({ ...v, [p]: e.target.value }))
-                }
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Button
-        variant="secondary"
-        onClick={send}
-        disabled={mutation.isPending || !data.url}
-      >
-        {mutation.isPending ? (
-          <LoaderCircleIcon className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary" disabled={!data.url}>
           <SendIcon className="h-4 w-4 mr-2" />
-        )}
-        Send test request
-      </Button>
+          Send test request
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Send test request</DialogTitle>
+          <DialogDescription>
+            See what comes back before you save the flow. It doesn&apos;t run
+            the rest of the flow and doesn&apos;t cost credits.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 min-w-0">
+          {placeholders.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                Nothing triggered the flow, so enter a value for each
+                placeholder. Secrets are filled in for you.
+              </div>
+              {placeholders.map((p) => (
+                <div
+                  key={p}
+                  className="grid sm:grid-cols-2 gap-1 sm:gap-2 items-center"
+                >
+                  <code className="text-sm break-all sm:truncate" title={p}>
+                    {`{{${p}}}`}
+                  </code>
+                  <Input
+                    type="text"
+                    value={values[p] || ""}
+                    onChange={(e) =>
+                      setValues((v) => ({ ...v, [p]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
-      {result?.request === request && (
-        <HttpRequestTestResult result={result.res} />
-      )}
-    </div>
+          <Button onClick={send} disabled={mutation.isPending}>
+            {mutation.isPending ? (
+              <LoaderCircleIcon className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <SendIcon className="h-4 w-4 mr-2" />
+            )}
+            Send
+          </Button>
+
+          {result?.request === request && (
+            <HttpRequestTestResult result={result.res} />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -154,7 +172,7 @@ function HttpRequestTestResult({
 
       {response.body ? (
         <>
-          <pre className="bg-muted rounded p-3 text-xs overflow-auto max-h-96 whitespace-pre-wrap break-all">
+          <pre className="bg-muted rounded p-3 text-xs overflow-auto max-h-[50dvh] whitespace-pre-wrap break-all">
             {formatResponseBody(response.body)}
           </pre>
           {response.body_truncated && (

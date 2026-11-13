@@ -136,7 +136,7 @@ import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
-import HttpRequestTestPanel from "./HttpRequestTestPanel";
+import HttpRequestTestDialog from "./HttpRequestTestDialog";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
 import {
@@ -160,6 +160,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -1766,10 +1767,12 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
-          <EditOnly>
-            <HttpRequestTestPanel data={data.http_request_data || {}} />
-          </EditOnly>
         </div>
+        <EditOnly>
+          <DialogFooter>
+            <HttpRequestTestDialog data={data.http_request_data || {}} />
+          </DialogFooter>
+        </EditOnly>
       </DialogContent>
     </Dialog>
   );
