@@ -91,7 +91,7 @@ export function UserBadges({
             <TooltipTrigger asChild>
               <span
                 tabIndex={0}
-                className="flex items-center gap-1.5 rounded-full border bg-background py-0.5 pl-1 pr-2.5 text-xs font-medium"
+                className="flex items-center gap-1.5 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
               >
                 <BadgeIcon svg={info.svg} className="h-5 w-5" />
                 {info.title}
