@@ -12,7 +12,7 @@ import (
 func (n *AppOwnerNotifier) OverLimit(app *model.App, details string) {
 	n.dm(app, fmt.Sprintf(
 		"Your bot **%s** %s See its plan: %s/apps/%s/premium%s",
-		escape(app.Name), details, n.appBaseURL, app.ID, n.ownerFooter(),
+		escape(app.Name), details, n.appBaseURL, app.ID, ownerFooter,
 	))
 }
 
@@ -21,10 +21,6 @@ func (n *AppOwnerNotifier) OverLimit(app *model.App, details string) {
 func (n *AppOwnerNotifier) LimitEnforced(app *model.App, details string) {
 	n.dm(app, fmt.Sprintf(
 		"Your bot **%s** %s See it: %s/apps/%s%s",
-		escape(app.Name), details, n.appBaseURL, app.ID, n.ownerFooter(),
+		escape(app.Name), details, n.appBaseURL, app.ID, ownerFooter,
 	))
-}
-
-func (n *AppOwnerNotifier) ownerFooter() string {
-	return "\n-# You get this because you own this app on Kite."
 }

@@ -80,98 +80,53 @@ func (e *Enforcer) Run(ctx context.Context) {
 	}()
 }
 
-// kind is something with its own limit: commands, or the event listeners of
-// one source.
-type kind struct {
+// limitOf returns the limit of the commands, or of the event listeners of
+// source, 0 when there is none, and their name in the dashboard.
+func limitOf(f model.Features, source model.EventSource) (int, string) {
+	if source == "" {
+		return f.MaxCommands, "commands"
+	}
+	return EventListenerLimit(f, source)
+}
+
+// exceeded is a limit of an app. count is how many enabled items it has, or
+// how many were disabled.
+type exceeded struct {
 	// source is empty for commands.
 	source model.EventSource
+	count  int
+	limit  int
 }
 
-var kinds = []kind{
-	{},
-	{source: model.EventSourceDiscord},
-	{source: model.EventSourceSchedule},
-	{source: model.EventSourceWebhook},
+func (x exceeded) noun() string {
+	_, noun := limitOf(model.Features{}, x.source)
+	return noun
 }
 
-// noun is the name of the kind's page in the dashboard.
-func (k kind) noun() string {
-	switch k.source {
-	case "":
-		return "commands"
-	case model.EventSourceSchedule:
-		return "scheduled tasks"
-	case model.EventSourceWebhook:
-		return "webhooks"
-	default:
-		return "event listeners"
-	}
-}
+// sources are the kinds of items with their own limit, commands first.
+var sources = []model.EventSource{"", model.EventSourceDiscord, model.EventSourceSchedule, model.EventSourceWebhook}
 
-// limit is 0 when there is none.
-func (k kind) limit(f model.Features) int {
-	switch k.source {
-	case "":
-		return f.MaxCommands
-	case model.EventSourceSchedule:
-		return f.MaxScheduledEventListeners
-	case model.EventSourceWebhook:
-		return f.MaxWebhookEventListeners
-	default:
-		return f.MaxEventListeners
-	}
-}
-
-type exceeded struct {
-	kind    kind
-	enabled int
-	limit   int
+type appSource struct {
+	appID  string
+	source model.EventSource
 }
 
 // Enforce warns the owners of apps that went over their limits, and disables
 // the newest commands and event listeners of apps that have been over them
 // for the GracePeriod.
 func (e *Enforcer) Enforce(ctx context.Context, now time.Time) error {
-	// No plan allows less than the default one, so apps under its limits
-	// can't be over theirs.
-	defaults := e.features.DefaultFeatures()
-	minLimit := 0
-	for _, k := range kinds {
-		if l := k.limit(defaults); l > 0 && (minLimit == 0 || l < minLimit) {
-			minLimit = l
-		}
-	}
-	if minLimit == 0 {
-		return nil
-	}
-
-	counts := map[string]map[kind]int{}
-	add := func(appID string, k kind, count int) {
-		if counts[appID] == nil {
-			counts[appID] = map[kind]int{}
-		}
-		counts[appID][k] = count
-	}
-
-	commandCounts, err := e.commandStore.AppsWithEnabledCommandsOver(ctx, minLimit)
+	counts, err := e.countsOverDefaults(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to count enabled commands: %w", err)
-	}
-	for appID, count := range commandCounts {
-		add(appID, kind{}, count)
-	}
-
-	listenerCounts, err := e.eventListenerStore.AppsWithEnabledEventListenersOver(ctx, minLimit)
-	if err != nil {
-		return fmt.Errorf("failed to count enabled event listeners: %w", err)
-	}
-	for _, c := range listenerCounts {
-		add(c.AppID, kind{source: c.Source}, c.Count)
+		return err
 	}
 
 	appIDs := make([]string, 0, len(counts))
-	for appID := range counts {
-		appIDs = append(appIDs, appID)
+	seen := map[string]bool{}
+	for k := range counts {
+		if !seen[k.appID] {
+			seen[k.appID] = true
+			appIDs = append(appIDs, k.appID)
+		}
 	}
 
 	features := map[string]model.Features{}
@@ -183,20 +138,20 @@ func (e *Enforcer) Enforce(ctx context.Context, now time.Time) error {
 	}
 
 	over := map[string][]exceeded{}
-	var overIDs []string
-	for appID, byKind := range counts {
-		for _, k := range kinds {
-			count, ok := byKind[k]
+	for _, appID := range appIDs {
+		for _, source := range sources {
+			count, ok := counts[appSource{appID, source}]
 			if !ok {
 				continue
 			}
-			if limit := k.limit(features[appID]); limit > 0 && count > limit {
-				over[appID] = append(over[appID], exceeded{kind: k, enabled: count, limit: limit})
+			if limit, _ := limitOf(features[appID], source); limit > 0 && count > limit {
+				over[appID] = append(over[appID], exceeded{source: source, count: count, limit: limit})
 			}
 		}
-		if len(over[appID]) > 0 {
-			overIDs = append(overIDs, appID)
-		}
+	}
+	overIDs := make([]string, 0, len(over))
+	for appID := range over {
+		overIDs = append(overIDs, appID)
 	}
 
 	// Apps that are under their limits again, by an upgrade or by disabling
@@ -225,6 +180,46 @@ func (e *Enforcer) Enforce(ctx context.Context, now time.Time) error {
 	return nil
 }
 
+// countsOverDefaults returns the enabled counts that are over the limits of
+// the default plan. No plan allows less, so apps under them can't be over
+// theirs.
+func (e *Enforcer) countsOverDefaults(ctx context.Context) (map[appSource]int, error) {
+	defaults := e.features.DefaultFeatures()
+	counts := map[appSource]int{}
+
+	if limit := defaults.MaxCommands; limit > 0 {
+		commandCounts, err := e.commandStore.AppsWithEnabledCommandsOver(ctx, limit)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count enabled commands: %w", err)
+		}
+		for appID, count := range commandCounts {
+			counts[appSource{appID, ""}] = count
+		}
+	}
+
+	minLimit := 0
+	for _, source := range sources[1:] {
+		if l, _ := limitOf(defaults, source); l > 0 && (minLimit == 0 || l < minLimit) {
+			minLimit = l
+		}
+	}
+	if minLimit == 0 {
+		return counts, nil
+	}
+
+	listenerCounts, err := e.eventListenerStore.AppsWithEnabledEventListenersOver(ctx, minLimit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to count enabled event listeners: %w", err)
+	}
+	for _, c := range listenerCounts {
+		if limit, _ := limitOf(defaults, c.Source); limit > 0 && c.Count > limit {
+			counts[appSource{c.AppID, c.Source}] = c.Count
+		}
+	}
+
+	return counts, nil
+}
+
 func (e *Enforcer) warn(ctx context.Context, appID string, over []exceeded, now time.Time) {
 	marked, err := e.appStore.MarkAppOverLimit(ctx, appID, now)
 	if err != nil {
@@ -251,22 +246,22 @@ func (e *Enforcer) disable(ctx context.Context, appID string, over []exceeded, n
 	for _, o := range over {
 		var n int
 		var err error
-		if o.kind.source == "" {
-			n, err = e.commandStore.DisableNewestCommands(ctx, appID, o.enabled-o.limit, now)
+		if o.source == "" {
+			n, err = e.commandStore.DisableNewestCommands(ctx, appID, o.count-o.limit, now)
 		} else {
-			n, err = e.eventListenerStore.DisableNewestEventListeners(ctx, appID, o.kind.source, o.enabled-o.limit, now)
+			n, err = e.eventListenerStore.DisableNewestEventListeners(ctx, appID, o.source, o.count-o.limit, now)
 		}
 		if err != nil {
 			slog.Error(
 				"Failed to disable items over limit",
 				slog.String("app_id", appID),
-				slog.String("kind", o.kind.noun()),
+				slog.String("kind", o.noun()),
 				slog.String("error", err.Error()),
 			)
 			continue
 		}
 		if n > 0 {
-			disabled = append(disabled, exceeded{kind: o.kind, enabled: n, limit: o.limit})
+			disabled = append(disabled, exceeded{source: o.source, count: n, limit: o.limit})
 		}
 	}
 	if len(disabled) == 0 {
@@ -286,8 +281,8 @@ func overLimitDetails(over []exceeded, disableAt time.Time) string {
 	have := make([]string, len(over))
 	allowed := make([]string, len(over))
 	for i, o := range over {
-		have[i] = fmt.Sprintf("%d enabled %s", o.enabled, o.kind.noun())
-		allowed[i] = fmt.Sprintf("%d %s", o.limit, o.kind.noun())
+		have[i] = fmt.Sprintf("%d enabled %s", o.count, o.noun())
+		allowed[i] = fmt.Sprintf("%d %s", o.limit, o.noun())
 	}
 	if len(over) == 1 {
 		allowed[0] = fmt.Sprint(over[0].limit)
@@ -306,18 +301,18 @@ func enforcedDetails(disabled []exceeded) string {
 	nouns := make([]string, len(disabled))
 	counts := make([]string, len(disabled))
 	for i, d := range disabled {
-		nouns[i] = d.kind.noun()
-		counts[i] = fmt.Sprintf("the %d newest %s", d.enabled, d.kind.noun())
+		nouns[i] = d.noun()
+		counts[i] = fmt.Sprintf("the %d newest %s", d.count, d.noun())
 	}
 	if len(disabled) == 1 {
-		counts[0] = fmt.Sprintf("the %d newest ones", disabled[0].enabled)
-		if disabled[0].enabled == 1 {
+		counts[0] = fmt.Sprintf("the %d newest ones", disabled[0].count)
+		if disabled[0].count == 1 {
 			counts[0] = "the newest one"
 		}
 	}
 
 	them := "them"
-	if len(disabled) == 1 && disabled[0].enabled == 1 {
+	if len(disabled) == 1 && disabled[0].count == 1 {
 		them = "it"
 	}
 

@@ -249,10 +249,10 @@ func TestEnforceIgnoresAppsWithinLimits(t *testing.T) {
 func TestDetailsOfOneKind(t *testing.T) {
 	assert.Equal(t,
 		"had more enabled webhooks than its plan allows, so Kite disabled the newest one. You can enable it again after you upgrade its plan or disable others.",
-		enforcedDetails([]exceeded{{kind: kind{source: model.EventSourceWebhook}, enabled: 1, limit: 5}}),
+		enforcedDetails([]exceeded{{source: model.EventSourceWebhook, count: 1, limit: 5}}),
 	)
 	assert.Equal(t,
 		"has 18 enabled commands, but its plan allows 15. Disable or delete some, or upgrade its plan. Otherwise Kite disables the newest ones on November 16 (UTC).",
-		overLimitDetails([]exceeded{{kind: kind{}, enabled: 18, limit: 15}}, time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)),
+		overLimitDetails([]exceeded{{count: 18, limit: 15}}, time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)),
 	)
 }

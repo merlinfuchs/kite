@@ -54,8 +54,10 @@ func (n *AppOwnerNotifier) CreditsUsedUp(app *model.App, limit int, resetAt time
 	))
 }
 
+const ownerFooter = "\n-# You get this because you own this app on Kite."
+
 func (n *AppOwnerNotifier) footer(app *model.App) string {
-	return fmt.Sprintf("\n-# You get this because you own this app on Kite. Turn these messages off in its settings: <%s/apps/%s/settings>", n.appBaseURL, app.ID)
+	return fmt.Sprintf("%s Turn these messages off in its settings: <%s/apps/%s/settings>", ownerFooter, n.appBaseURL, app.ID)
 }
 
 // dm sends the content to the owner of the app in the background.
