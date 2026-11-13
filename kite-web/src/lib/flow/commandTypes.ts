@@ -15,6 +15,12 @@ export function isContextMenuCommand(data: { command_type?: string }) {
   return data.command_type === "user" || data.command_type === "message";
 }
 
+// How a command is named in lists, like /ping, or Report message for a User or
+// Message command.
+export function commandLabel(name: string, flow: FlowData) {
+  return commandTypeOf(flow) === "chat_input" ? `/${name}` : name;
+}
+
 // The type of a command, from the entry block of its flow.
 export function commandTypeOf(flow: FlowData): CommandType {
   const entry = flow.nodes?.find((n) => n.type === "entry_command");

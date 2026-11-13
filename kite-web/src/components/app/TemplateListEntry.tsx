@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // TemplateListEntry links to the page of the template, or calls onClick
 // instead, like to show it in a dialog.
@@ -173,7 +174,7 @@ function TemplateEntryLine({ template }: { template: Template }) {
     content = (
       <>
         <span className="font-mono text-foreground truncate flex-none max-w-[60%]">
-          /{command.name}
+          {commandLabel(command.name, command.flowSource)}
         </span>
         <span className="text-xs text-muted-foreground truncate">
           {command.description}

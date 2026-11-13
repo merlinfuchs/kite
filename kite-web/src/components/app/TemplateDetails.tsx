@@ -44,6 +44,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../ui/accordion";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
@@ -252,7 +253,7 @@ export function TemplateDetails({
                   <FlowItemCard
                     key={command.name}
                     icon={SlashSquareIcon}
-                    name={`/${command.name}`}
+                    name={commandLabel(command.name, command.flowSource)}
                     description={command.description}
                     context="command"
                     flow={command.flowSource}
