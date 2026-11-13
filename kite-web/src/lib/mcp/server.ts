@@ -307,7 +307,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     {
       title: "Get credit usage",
       description:
-        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners, scheduled tasks, webhooks and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
+        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners, scheduled tasks, webhooks, and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
       inputSchema: { app_id: appId },
       annotations: read,
     },

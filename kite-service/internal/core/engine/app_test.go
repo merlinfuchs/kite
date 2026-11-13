@@ -225,7 +225,7 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 // found again from the listener when a flow resumes.
 func TestEntityLinksFromResumePointKeepsEventSource(t *testing.T) {
 	app := NewApp("app-1", Env{})
-	id, listener := testListener("lst-hook", model.EventSourceWebhook, model.EventListenerType("webhook"))
+	id, listener := testListener("lst-hook", model.EventSourceWebhook, model.EventListenerTypeWebhook)
 	app.AddEventListener(id, listener)
 
 	links := app.entityLinksFromResumePoint(&model.ResumePoint{

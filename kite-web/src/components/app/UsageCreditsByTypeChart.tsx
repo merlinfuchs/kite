@@ -24,7 +24,7 @@ const chartConfig = {
     color: "hsl(var(--chart-3))",
   },
   event_listener_flow_execution: {
-    label: "Events",
+    label: "Event listeners",
     color: "hsl(var(--chart-4))",
   },
   message_flow_execution: {
