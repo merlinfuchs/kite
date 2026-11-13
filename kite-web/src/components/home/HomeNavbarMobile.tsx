@@ -1,25 +1,37 @@
 import Link from "next/link";
-import { ArrowUpRightIcon, LogInIcon, MenuIcon, TagIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import {
+  ExternalLinkIcon,
+  LogInIcon,
+  MenuIcon,
+  TagIcon,
+  WrenchIcon,
+} from "lucide-react";
 import logo from "@/assets/logo/orange@1024.png";
 import env from "@/lib/env/client";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "../ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "../ui/drawer";
+import { Separator } from "../ui/separator";
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "../ui/sidebar";
 import { User } from "@/lib/types/wire.gen";
 import { loginUrl } from "@/lib/api/client";
+import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { navTools, productLinks } from "./navLinks";
-import DiscordIcon from "../icons/DiscordIcon";
-
-const rowClass =
-  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground";
 
 export default function HomeNavbarMobile({
   user,
@@ -28,9 +40,30 @@ export default function HomeNavbarMobile({
   user?: User;
   className?: string;
 }) {
+  const router = useRouter();
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  // Close the mobile drawer after navigating or when resizing to desktop.
+  useEffect(() => {
+    setOpen(false);
+  }, [router.asPath, isMobile]);
+
+  const close = () => setOpen(false);
+
+  const externalLinks = [
+    { name: "Documentation", url: env.NEXT_PUBLIC_DOCS_LINK },
+    { name: "Discord server", url: env.NEXT_PUBLIC_DISCORD_LINK },
+    { name: "GitHub repository", url: env.NEXT_PUBLIC_GITHUB_LINK },
+  ];
+
   return (
-    <Sheet>
-      <SheetTrigger asChild>
+    <Drawer
+      open={open && isMobile}
+      onOpenChange={setOpen}
+      shouldScaleBackground={false}
+    >
+      <DrawerTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
@@ -39,128 +72,140 @@ export default function HomeNavbarMobile({
         >
           <MenuIcon className="h-5 w-5" />
         </Button>
-      </SheetTrigger>
-      <SheetContent
-        side="right"
-        className="flex w-[85vw] max-w-sm flex-col gap-0 p-0"
+      </DrawerTrigger>
+      <DrawerContent
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-[16px] border border-b-0 bg-sidebar text-sidebar-foreground shadow-2xl focus:outline-none",
+          "after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-96 after:bg-sidebar"
+        )}
       >
-        <SheetHeader className="border-b px-5 py-4 text-left">
-          <SheetTitle className="flex items-center gap-2">
-            <img src={logo.src} className="h-6 w-6" alt="" />
-            Kite
-          </SheetTitle>
-          <SheetDescription className="sr-only">
-            Site navigation
-          </SheetDescription>
-        </SheetHeader>
+        <DrawerHeader className="sr-only">
+          <DrawerTitle>Navigation menu</DrawerTitle>
+          <DrawerDescription>
+            Site navigation options for Kite
+          </DrawerDescription>
+        </DrawerHeader>
 
-        <nav className="flex-auto overflow-y-auto px-2 py-4 space-y-6">
-          <Section title="Product">
-            {productLinks.map((link) => (
-              <SheetClose asChild key={link.href}>
-                <Link href={link.href} className={rowClass}>
-                  <link.icon className="h-4 w-4 text-primary" />
-                  {link.title}
-                </Link>
-              </SheetClose>
-            ))}
-            <SheetClose asChild>
-              <Link href="/pricing" className={rowClass}>
-                <TagIcon className="h-4 w-4 text-primary" />
-                Pricing
-              </Link>
-            </SheetClose>
-          </Section>
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2 font-semibold text-base shrink-0">
+          <img src={logo.src} className="h-6 w-6" alt="" />
+          Kite
+        </div>
 
-          <Section title="Tools">
-            {navTools.map((tool) => (
-              <SheetClose asChild key={tool.id}>
-                <a
-                  href={tool.href}
-                  target={tool.external ? "_blank" : undefined}
-                  rel={tool.external ? "noopener" : undefined}
-                  className={rowClass}
-                >
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded",
-                      tool.color
-                    )}
+        <Separator className="my-1 bg-sidebar-border" />
+
+        <div className="flex-1 overflow-y-auto no-scrollbar px-2 space-y-2 pb-2 pt-1">
+          <SidebarGroup>
+            <SidebarGroupLabel>Product</SidebarGroupLabel>
+            <SidebarMenu>
+              {productLinks.map((link) => (
+                <SidebarMenuItem key={link.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={router.pathname === link.href}
                   >
-                    <tool.icon className="h-3.5 w-3.5" />
-                  </span>
-                  {tool.title}
-                  {tool.external && (
-                    <ArrowUpRightIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </a>
-              </SheetClose>
-            ))}
-            <SheetClose asChild>
-              <Link
-                href="/tools"
-                className={cn(rowClass, "text-muted-foreground")}
-              >
-                View all tools
-              </Link>
-            </SheetClose>
-          </Section>
+                    <Link href={link.href} onClick={close}>
+                      <link.icon />
+                      <span>{link.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={router.pathname === "/pricing"}
+                >
+                  <Link href="/pricing" onClick={close}>
+                    <TagIcon />
+                    <span>Pricing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-          <Section title="Resources">
-            <a
-              href={env.NEXT_PUBLIC_DOCS_LINK}
-              target="_blank"
-              rel="noopener"
-              className={rowClass}
-            >
-              Documentation
-              <ArrowUpRightIcon className="h-3.5 w-3.5 text-muted-foreground" />
-            </a>
-            <a
-              href={env.NEXT_PUBLIC_DISCORD_LINK}
-              target="_blank"
-              rel="noopener"
-              className={rowClass}
-            >
-              <DiscordIcon className="h-4 w-4" />
-              Discord server
-              <ArrowUpRightIcon className="h-3.5 w-3.5 text-muted-foreground" />
-            </a>
-          </Section>
-        </nav>
+          <SidebarGroup>
+            <SidebarGroupLabel>Tools</SidebarGroupLabel>
+            <SidebarMenu>
+              {navTools.map((tool) => (
+                <SidebarMenuItem key={tool.id}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={!tool.external && router.pathname === tool.href}
+                  >
+                    {tool.external ? (
+                      <a
+                        href={tool.href}
+                        target="_blank"
+                        rel="noopener"
+                        onClick={close}
+                      >
+                        <tool.icon />
+                        <span>{tool.title}</span>
+                        <ExternalLinkIcon className="ml-auto text-muted-foreground" />
+                      </a>
+                    ) : (
+                      <Link href={tool.href} onClick={close}>
+                        <tool.icon />
+                        <span>{tool.title}</span>
+                      </Link>
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={router.pathname === "/tools"}
+                >
+                  <Link href="/tools" onClick={close}>
+                    <WrenchIcon />
+                    <span>All tools</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
 
-        <div className="border-t p-4">
+          <SidebarGroup>
+            <SidebarGroupLabel>Links</SidebarGroupLabel>
+            <SidebarMenu>
+              {externalLinks.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton asChild>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener"
+                      onClick={close}
+                    >
+                      <span>{item.name}</span>
+                      <ExternalLinkIcon className="ml-auto text-muted-foreground" />
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </div>
+
+        <div className="border-t border-sidebar-border bg-sidebar p-3 shrink-0">
           {user ? (
-            <Button className="w-full" asChild>
-              <Link href="/apps">Open app</Link>
+            <Button className="w-full" size="sm" asChild>
+              <Link href="/apps" onClick={close}>
+                Open app
+              </Link>
             </Button>
           ) : (
-            <Button className="w-full" asChild>
-              <a href={loginUrl}>
+            <Button className="w-full" size="sm" asChild>
+              <a href={loginUrl} onClick={close}>
                 <LogInIcon className="mr-2 h-4 w-4" />
                 Log in
               </a>
             </Button>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {title}
-      </div>
-      <div className="flex flex-col">{children}</div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
