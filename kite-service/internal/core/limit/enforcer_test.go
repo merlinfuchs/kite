@@ -2,6 +2,7 @@ package limit
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -66,8 +67,8 @@ func (s *fakeCommandStore) AppsWithEnabledCommandsOver(ctx context.Context, minC
 	return res, nil
 }
 
-func (s *fakeCommandStore) DisableNewestCommands(ctx context.Context, appID string, count int, updatedAt time.Time) (int, error) {
-	n := min(count, s.enabled[appID])
+func (s *fakeCommandStore) DisableNewestCommands(ctx context.Context, appID string, keep int, updatedAt time.Time) (int, error) {
+	n := max(s.enabled[appID]-keep, 0)
 	s.enabled[appID] -= n
 	return n, nil
 }
@@ -89,8 +90,8 @@ func (s *fakeEventListenerStore) AppsWithEnabledEventListenersOver(ctx context.C
 	return res, nil
 }
 
-func (s *fakeEventListenerStore) DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, count int, updatedAt time.Time) (int, error) {
-	n := min(count, s.enabled[appID][source])
+func (s *fakeEventListenerStore) DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, keep int, updatedAt time.Time) (int, error) {
+	n := max(s.enabled[appID][source]-keep, 0)
 	s.enabled[appID][source] -= n
 	return n, nil
 }
@@ -255,4 +256,20 @@ func TestDetailsOfOneKind(t *testing.T) {
 		"has 18 enabled commands, but its plan allows 15. Disable or delete some, or upgrade its plan. Otherwise Kite disables the newest ones on November 16 (UTC).",
 		overLimitDetails([]exceeded{{count: 18, limit: 15}}, time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)),
 	)
+}
+
+func TestEnforceSpreadsWarnings(t *testing.T) {
+	e := newEnv()
+	ctx := context.Background()
+
+	for i := range maxWarningsPerRun + 10 {
+		e.commands.enabled[fmt.Sprint("app", i)] = 16
+	}
+
+	require.NoError(t, e.enforcer.Enforce(ctx, time.Now()))
+	assert.Len(t, e.notifier.notices, maxWarningsPerRun)
+	assert.Len(t, e.apps.overSince, maxWarningsPerRun)
+
+	require.NoError(t, e.enforcer.Enforce(ctx, time.Now()))
+	assert.Len(t, e.notifier.notices, maxWarningsPerRun+10)
 }

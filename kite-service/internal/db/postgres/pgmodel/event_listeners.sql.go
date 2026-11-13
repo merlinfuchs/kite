@@ -177,8 +177,8 @@ UPDATE event_listeners SET enabled = FALSE, updated_at = $1
 WHERE id IN (
     SELECT el.id FROM event_listeners el
     WHERE el.app_id = $2 AND el.source = $3 AND el.enabled
-    ORDER BY el.created_at DESC
-    LIMIT $4::INT
+    ORDER BY el.created_at, el.id
+    OFFSET $4::INT
 )
 `
 
@@ -186,15 +186,16 @@ type DisableNewestEventListenersParams struct {
 	UpdatedAt pgtype.Timestamp
 	AppID     string
 	Source    string
-	Count     int32
+	Keep      int32
 }
 
+// Keeps the oldest enabled ones, so running it again changes nothing.
 func (q *Queries) DisableNewestEventListeners(ctx context.Context, arg DisableNewestEventListenersParams) (int64, error) {
 	result, err := q.db.Exec(ctx, disableNewestEventListeners,
 		arg.UpdatedAt,
 		arg.AppID,
 		arg.Source,
-		arg.Count,
+		arg.Keep,
 	)
 	if err != nil {
 		return 0, err
@@ -203,9 +204,10 @@ func (q *Queries) DisableNewestEventListeners(ctx context.Context, arg DisableNe
 }
 
 const getAppsWithEnabledEventListenersOver = `-- name: GetAppsWithEnabledEventListenersOver :many
-SELECT app_id, source, COUNT(*) AS count FROM event_listeners
-WHERE enabled
-GROUP BY app_id, source
+SELECT el.app_id, el.source, COUNT(*) AS count FROM event_listeners el
+JOIN apps a ON a.id = el.app_id AND a.enabled
+WHERE el.enabled
+GROUP BY el.app_id, el.source
 HAVING COUNT(*) > $1::INT
 `
 
@@ -215,6 +217,7 @@ type GetAppsWithEnabledEventListenersOverRow struct {
 	Count  int64
 }
 
+// Stopped apps are left alone, their event listeners don't run anyway.
 func (q *Queries) GetAppsWithEnabledEventListenersOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledEventListenersOverRow, error) {
 	rows, err := q.db.Query(ctx, getAppsWithEnabledEventListenersOver, minCount)
 	if err != nil {

@@ -18,6 +18,11 @@ const GracePeriod = 3 * 24 * time.Hour
 
 const interval = time.Hour
 
+// maxWarningsPerRun spreads the DMs to owners over runs, like on the first
+// run when many apps are over at once. The others are warned in later runs,
+// and their grace period starts then.
+const maxWarningsPerRun = 50
+
 // Notifier tells the owner of an app about its limits. details continues a
 // sentence that starts with the app, like "Your app ".
 type Notifier interface {
@@ -59,22 +64,25 @@ func NewEnforcer(
 	}
 }
 
+// Run enforces the limits once right away, so restarts don't delay it, and
+// then every interval.
 func (e *Enforcer) Run(ctx context.Context) {
-	ticker := time.NewTicker(interval)
-
 	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
 		for {
+			if err := e.Enforce(ctx, time.Now().UTC()); err != nil {
+				slog.Error(
+					"Failed to enforce limits",
+					slog.String("error", err.Error()),
+				)
+			}
+
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := e.Enforce(ctx, time.Now().UTC()); err != nil {
-					slog.Error(
-						"Failed to enforce limits",
-						slog.String("error", err.Error()),
-					)
-				}
 			}
 		}
 	}()
@@ -99,7 +107,10 @@ type exceeded struct {
 }
 
 func (x exceeded) noun() string {
-	_, noun := limitOf(model.Features{}, x.source)
+	if x.source == "" {
+		return "commands"
+	}
+	_, noun := EventListenerLimit(model.Features{}, x.source)
 	return noun
 }
 
@@ -168,10 +179,14 @@ func (e *Enforcer) Enforce(ctx context.Context, now time.Time) error {
 		return fmt.Errorf("failed to get apps over limit: %w", err)
 	}
 
+	warnings := 0
 	for _, appID := range overIDs {
 		s, marked := since[appID]
 		if !marked {
-			e.warn(ctx, appID, over[appID], now)
+			if warnings < maxWarningsPerRun {
+				warnings++
+				e.warn(ctx, appID, over[appID], now)
+			}
 		} else if now.Sub(s) >= GracePeriod {
 			e.disable(ctx, appID, over[appID], now)
 		}
@@ -247,9 +262,9 @@ func (e *Enforcer) disable(ctx context.Context, appID string, over []exceeded, n
 		var n int
 		var err error
 		if o.source == "" {
-			n, err = e.commandStore.DisableNewestCommands(ctx, appID, o.count-o.limit, now)
+			n, err = e.commandStore.DisableNewestCommands(ctx, appID, o.limit, now)
 		} else {
-			n, err = e.eventListenerStore.DisableNewestEventListeners(ctx, appID, o.source, o.count-o.limit, now)
+			n, err = e.eventListenerStore.DisableNewestEventListeners(ctx, appID, o.source, o.limit, now)
 		}
 		if err != nil {
 			slog.Error(

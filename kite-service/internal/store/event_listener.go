@@ -28,10 +28,10 @@ type EventListenerStore interface {
 	// AppsWithEnabledEventListenersOver returns the number of enabled event
 	// listeners of each app and source that has more than minCount.
 	AppsWithEnabledEventListenersOver(ctx context.Context, minCount int) ([]EnabledEventListenerCount, error)
-	// DisableNewestEventListeners disables the count most recently created
-	// enabled event listeners of the app and source, and returns how many it
+	// DisableNewestEventListeners disables the enabled event listeners of the
+	// app and source but the keep oldest ones, and returns how many it
 	// disabled.
-	DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, count int, updatedAt time.Time) (int, error)
+	DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, keep int, updatedAt time.Time) (int, error)
 	// UpdateEventListenerWebhookSecret replaces the secret of a webhook
 	// listener, which invalidates its previous webhook URL.
 	UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error)

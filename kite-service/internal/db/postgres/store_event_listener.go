@@ -64,11 +64,11 @@ func (c *Client) AppsWithEnabledEventListenersOver(ctx context.Context, minCount
 	return res, nil
 }
 
-func (c *Client) DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, count int, updatedAt time.Time) (int, error) {
+func (c *Client) DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, keep int, updatedAt time.Time) (int, error) {
 	n, err := c.Q.DisableNewestEventListeners(ctx, pgmodel.DisableNewestEventListenersParams{
 		AppID:     appID,
 		Source:    string(source),
-		Count:     int32(count),
+		Keep:      int32(keep),
 		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
 	})
 	return int(n), err

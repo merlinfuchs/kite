@@ -151,19 +151,20 @@ UPDATE commands SET enabled = FALSE, updated_at = $1
 WHERE id IN (
     SELECT c.id FROM commands c
     WHERE c.app_id = $2 AND c.enabled
-    ORDER BY c.created_at DESC
-    LIMIT $3::INT
+    ORDER BY c.created_at, c.id
+    OFFSET $3::INT
 )
 `
 
 type DisableNewestCommandsParams struct {
 	UpdatedAt pgtype.Timestamp
 	AppID     string
-	Count     int32
+	Keep      int32
 }
 
+// Keeps the oldest enabled ones, so running it again changes nothing.
 func (q *Queries) DisableNewestCommands(ctx context.Context, arg DisableNewestCommandsParams) (int64, error) {
-	result, err := q.db.Exec(ctx, disableNewestCommands, arg.UpdatedAt, arg.AppID, arg.Count)
+	result, err := q.db.Exec(ctx, disableNewestCommands, arg.UpdatedAt, arg.AppID, arg.Keep)
 	if err != nil {
 		return 0, err
 	}
@@ -171,9 +172,10 @@ func (q *Queries) DisableNewestCommands(ctx context.Context, arg DisableNewestCo
 }
 
 const getAppsWithEnabledCommandsOver = `-- name: GetAppsWithEnabledCommandsOver :many
-SELECT app_id, COUNT(*) AS count FROM commands
-WHERE enabled
-GROUP BY app_id
+SELECT c.app_id, COUNT(*) AS count FROM commands c
+JOIN apps a ON a.id = c.app_id AND a.enabled
+WHERE c.enabled
+GROUP BY c.app_id
 HAVING COUNT(*) > $1::INT
 `
 
@@ -182,6 +184,7 @@ type GetAppsWithEnabledCommandsOverRow struct {
 	Count int64
 }
 
+// Stopped apps are left alone, their commands aren't in Discord anyway.
 func (q *Queries) GetAppsWithEnabledCommandsOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledCommandsOverRow, error) {
 	rows, err := q.db.Query(ctx, getAppsWithEnabledCommandsOver, minCount)
 	if err != nil {

@@ -28,9 +28,9 @@ type CommandStore interface {
 	// AppsWithEnabledCommandsOver returns the number of enabled commands of
 	// each app that has more than minCount.
 	AppsWithEnabledCommandsOver(ctx context.Context, minCount int) (map[string]int, error)
-	// DisableNewestCommands disables the count most recently created enabled
-	// commands of the app, and returns how many it disabled.
-	DisableNewestCommands(ctx context.Context, appID string, count int, updatedAt time.Time) (int, error)
+	// DisableNewestCommands disables the enabled commands of the app but the
+	// keep oldest ones, and returns how many it disabled.
+	DisableNewestCommands(ctx context.Context, appID string, keep int, updatedAt time.Time) (int, error)
 	// DeleteCommand keeps the command's flow in its version history.
 	DeleteCommand(ctx context.Context, id string, userID string) error
 }

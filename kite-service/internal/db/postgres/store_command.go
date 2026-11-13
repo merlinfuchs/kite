@@ -57,10 +57,10 @@ func (c *Client) AppsWithEnabledCommandsOver(ctx context.Context, minCount int) 
 	return res, nil
 }
 
-func (c *Client) DisableNewestCommands(ctx context.Context, appID string, count int, updatedAt time.Time) (int, error) {
+func (c *Client) DisableNewestCommands(ctx context.Context, appID string, keep int, updatedAt time.Time) (int, error) {
 	n, err := c.Q.DisableNewestCommands(ctx, pgmodel.DisableNewestCommandsParams{
 		AppID:     appID,
-		Count:     int32(count),
+		Keep:      int32(keep),
 		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
 	})
 	return int(n), err

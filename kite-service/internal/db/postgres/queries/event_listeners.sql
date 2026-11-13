@@ -78,17 +78,20 @@ DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING *;
 -- name: GetEventListenerForUpdate :one
 SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;
 
+-- Stopped apps are left alone, their event listeners don't run anyway.
 -- name: GetAppsWithEnabledEventListenersOver :many
-SELECT app_id, source, COUNT(*) AS count FROM event_listeners
-WHERE enabled
-GROUP BY app_id, source
+SELECT el.app_id, el.source, COUNT(*) AS count FROM event_listeners el
+JOIN apps a ON a.id = el.app_id AND a.enabled
+WHERE el.enabled
+GROUP BY el.app_id, el.source
 HAVING COUNT(*) > @min_count::INT;
 
+-- Keeps the oldest enabled ones, so running it again changes nothing.
 -- name: DisableNewestEventListeners :execrows
 UPDATE event_listeners SET enabled = FALSE, updated_at = @updated_at
 WHERE id IN (
     SELECT el.id FROM event_listeners el
     WHERE el.app_id = @app_id AND el.source = @source AND el.enabled
-    ORDER BY el.created_at DESC
-    LIMIT @count::INT
+    ORDER BY el.created_at, el.id
+    OFFSET @keep::INT
 );
