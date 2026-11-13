@@ -170,7 +170,7 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
-            rel="noreferrer noopener"
+            rel="noopener"
             href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
