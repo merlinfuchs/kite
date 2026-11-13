@@ -5755,12 +5755,21 @@ function BaseInput({
     </div>
   );
 
+  // The buttons sit next to the title, or right above the input when a
+  // description separates the two, or beside the input without either.
+  const actionsPlacement = !actions
+    ? null
+    : description
+    ? "above"
+    : title
+    ? "title"
+    : "beside";
+
   const withUpload = imageUpload && !readOnly;
   const control = (
     <div
       className={cn(
-        // Without a title the buttons sit beside the input.
-        !title && actions && "flex items-center gap-1",
+        actionsPlacement === "beside" && "flex items-center gap-1",
         withUpload ? "flex-auto" : title && "mt-2"
       )}
     >
@@ -5818,7 +5827,7 @@ function BaseInput({
           readOnly={readOnly}
         />
       )}
-      {!title && actions}
+      {actionsPlacement === "beside" && actions}
     </div>
   );
 
@@ -5827,12 +5836,15 @@ function BaseInput({
       {title && (
         <div className="flex items-center justify-between gap-2">
           <div className="font-medium text-foreground">{title}</div>
-          {actions}
+          {actionsPlacement === "title" && actions}
         </div>
       )}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
+      {actionsPlacement === "above" && (
+        <div className="flex justify-end mt-2 -mb-1">{actions}</div>
+      )}
       {withUpload ? (
         <div className={cn("flex gap-2", title && "mt-2")}>
           {control}
