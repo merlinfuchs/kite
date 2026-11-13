@@ -5736,17 +5736,34 @@ function BaseInput({
   );
 
   const showEmojis = !!emojis && type !== "select" && !readOnly;
-  // Room for the placeholder explorer and emoji picker in the corner.
-  const iconPadding =
-    showPlaceholders && showEmojis
-      ? "pr-16"
-      : showPlaceholders || showEmojis
-      ? "pr-10"
-      : undefined;
+  const actions = (showPlaceholders || showEmojis) && (
+    <div className="flex flex-none items-center gap-1">
+      {showEmojis && (
+        <EmojiInsertButton
+          onSelect={insertText}
+          nativeOnly={emojis === "native"}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
 
   const withUpload = imageUpload && !readOnly;
   const control = (
-    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+    <div
+      className={cn(
+        // Without a title the buttons sit beside the input.
+        !title && actions && "flex items-center gap-1",
+        withUpload ? "flex-auto" : title && "mt-2"
+      )}
+    >
       {type === "textarea" ? (
         <Textarea
           value={value}
@@ -5754,7 +5771,6 @@ function BaseInput({
           ref={textareaRef}
           placeholder={placeholder}
           readOnly={readOnly}
-          className={iconPadding}
         />
       ) : type === "select" ? (
         <Select value={value} onValueChange={(v) => update(v)}>
@@ -5791,7 +5807,6 @@ function BaseInput({
           ref={inputRef}
           placeholder={placeholder}
           readOnly={readOnly}
-          className={iconPadding}
         />
       ) : (
         <Input
@@ -5801,36 +5816,20 @@ function BaseInput({
           ref={inputRef}
           placeholder={placeholder}
           readOnly={readOnly}
-          className={iconPadding}
         />
       )}
-      {showPlaceholders && (
-        <FlowPlaceholderExplorer
-          onSelect={onPlaceholderSelect}
-          hideBrackets={disablePlaceholderBrackets}
-          field={field}
-          onlyParameters={placeholders === "parameters"}
-        />
-      )}
-      {showEmojis && (
-        <div
-          className={cn(
-            "absolute top-1.5 z-20",
-            showPlaceholders ? "right-9" : "right-1.5"
-          )}
-        >
-          <EmojiInsertButton
-            onSelect={insertText}
-            nativeOnly={emojis === "native"}
-          />
-        </div>
-      )}
+      {!title && actions}
     </div>
   );
 
   return (
     <div className="flex-auto">
-      {title && <div className="font-medium text-foreground">{title}</div>}
+      {title && (
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-medium text-foreground">{title}</div>
+          {actions}
+        </div>
+      )}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}

@@ -29,8 +29,7 @@ export type BaseInputProps = {
       maxLength?: number;
       placeholder?: string;
       imageUpload?: boolean;
-      // Buttons in the top right corner of the input, like the placeholder
-      // explorer. The input needs right padding to keep its text clear of them.
+      // Buttons on the right of the label, like the placeholder explorer.
       actions?: ReactNode;
     }
   | {
@@ -79,34 +78,33 @@ export default function BaseInput(props: BaseInputProps) {
             {value.length} / {props.maxLength}
           </div>
         )}
+        {isText && props.actions && (
+          <div className="flex items-center gap-1 !ml-auto">
+            {props.actions}
+          </div>
+        )}
       </div>
       <div>
         {type === "text" || type === "url" || type === "email" ? (
           <div className="flex space-x-2">
-            <div className="relative w-full">
-              <Input
-                type={type}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                maxLength={props.maxLength}
-                placeholder={props.placeholder}
-              />
-              {props.actions && <InputActions>{props.actions}</InputActions>}
-            </div>
+            <Input
+              type={type}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              maxLength={props.maxLength}
+              placeholder={props.placeholder}
+            />
             {props.imageUpload && (
               <ImageUploadButton onImageUploaded={onChange} />
             )}
           </div>
         ) : type === "textarea" ? (
-          <div className="relative">
-            <Textarea
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              minRows={3}
-              maxRows={15}
-            />
-            {props.actions && <InputActions>{props.actions}</InputActions>}
-          </div>
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            minRows={3}
+            maxRows={15}
+          />
         ) : type === "select" ? (
           <Select value={value} onValueChange={onChange}>
             <SelectTrigger>
@@ -141,14 +139,6 @@ export default function BaseInput(props: BaseInputProps) {
           <div>{error}</div>
         </div>
       )}
-    </div>
-  );
-}
-
-function InputActions({ children }: { children: ReactNode }) {
-  return (
-    <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-2">
-      {children}
     </div>
   );
 }

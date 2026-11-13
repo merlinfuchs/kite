@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import PlaceholderExplorer from "../common/PlaceholderExplorer";
 import { VariableIcon } from "lucide-react";
+import InputActionButton from "../common/InputActionButton";
 import {
   interactionPlaceholders,
   PlaceholderGroup,
@@ -177,10 +178,7 @@ export default function MessagePlaceholderExplorer({
         )
       }
     >
-      <VariableIcon
-        className="h-5.5 w-5.5 text-muted-foreground hover:text-foreground cursor-pointer"
-        role="button"
-      />
+      <InputActionButton label="Insert placeholder" icon={VariableIcon} />
     </PlaceholderExplorer>
   );
 }

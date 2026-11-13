@@ -1322,7 +1322,16 @@ function IconButton({
 }
 
 // The label of an input, styled like the inputs of the message editor.
-function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
+function FieldLabel({
+  title,
+  count,
+  actions,
+}: {
+  title: string;
+  count?: ReactNode;
+  // Buttons on the right, like the placeholder explorer.
+  actions?: ReactNode;
+}) {
   return (
     <div className="flex space-x-2 mb-2 items-center">
       <Label className="text-base text-slate-800 dark:text-slate-200">
@@ -1332,6 +1341,9 @@ function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
         <div className="text-sm italic font-light text-muted-foreground">
           {count}
         </div>
+      )}
+      {actions && (
+        <div className="flex items-center gap-1 !ml-auto">{actions}</div>
       )}
     </div>
   );
@@ -1376,31 +1388,25 @@ function TextField({
       <FieldLabel
         title={title}
         count={limit !== undefined ? `${value.length} / ${limit}` : undefined}
+        actions={
+          <>
+            <EmojiInsertButton
+              onSelect={insertText}
+              nativeOnly={emojis === "native"}
+            />
+            <FlowPlaceholderExplorer onSelect={(p) => insertText(`{{${p}}}`)} />
+          </>
+        }
       />
-      <div className="relative">
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            ref={textareaRef}
-            className="pr-16"
-          />
-        ) : (
-          <PlaceholderInput
-            value={value}
-            onChange={onChange}
-            ref={inputRef}
-            className="pr-16"
-          />
-        )}
-        <FlowPlaceholderExplorer onSelect={(p) => insertText(`{{${p}}}`)} />
-        <div className="absolute top-1.5 right-9 z-20">
-          <EmojiInsertButton
-            onSelect={insertText}
-            nativeOnly={emojis === "native"}
-          />
-        </div>
-      </div>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          ref={textareaRef}
+        />
+      ) : (
+        <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
+      )}
       <FieldError error={errors[field]} />
     </div>
   );

@@ -1,8 +1,9 @@
 import { emojiToText } from "@/lib/insertText";
 import { SmileIcon } from "lucide-react";
 import EmojiPicker from "./EmojiPicker";
+import InputActionButton from "./InputActionButton";
 
-// Emoji button of a text input, shown next to its placeholder button. Fields
+// Emoji button of a text input, next to its placeholder button. Fields
 // Discord shows as plain text can't render custom emojis, so they pass
 // nativeOnly.
 export default function EmojiInsertButton({
@@ -17,10 +18,7 @@ export default function EmojiInsertButton({
       onEmojiSelect={(emoji) => onSelect(emojiToText(emoji))}
       nativeOnly={nativeOnly}
     >
-      <SmileIcon
-        className="h-5.5 w-5.5 text-muted-foreground hover:text-foreground cursor-pointer"
-        role="button"
-      />
+      <InputActionButton label="Insert emoji" icon={SmileIcon} />
     </EmojiPicker>
   );
 }

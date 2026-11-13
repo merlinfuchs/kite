@@ -2,7 +2,6 @@ import { useValidationErrors } from "@/lib/message/state";
 import { ValidationTarget } from "@/lib/message/validationStore";
 import BaseInput, { BaseInputProps } from "@/tools/common/components/BaseInput";
 import { insertAtCursor } from "@/lib/insertText";
-import { cn } from "@/lib/utils";
 import { useCallback, useRef } from "react";
 import EmojiInsertButton from "../common/EmojiInsertButton";
 import MessagePlaceholderExplorer from "./MessagePlaceholderExplorer";
@@ -45,14 +44,6 @@ export default function MessageInput(props: Props) {
   const showEmojis =
     !!emojis && (props.type === "text" || props.type === "textarea");
 
-  // Keeps the text clear of the buttons in the corner of the input.
-  const iconPadding =
-    showPlaceholders && showEmojis
-      ? "[&_input]:pr-16 [&_textarea]:pr-16"
-      : showPlaceholders || showEmojis
-      ? "[&_input]:pr-10 [&_textarea]:pr-10"
-      : undefined;
-
   const actions = (showPlaceholders || showEmojis) && (
     <>
       {showEmojis && (
@@ -68,7 +59,7 @@ export default function MessageInput(props: Props) {
   );
 
   return (
-    <div className={cn("w-full", iconPadding)} ref={containerRef}>
+    <div className="w-full" ref={containerRef}>
       <BaseInput
         {...(inputProps as BaseInputProps)}
         {...(hasInput && { actions })}
