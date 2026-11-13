@@ -133,7 +133,7 @@ export default function AppAuditLogPage() {
             <div className="text-sm text-destructive">
               Failed to load the audit log: {error.error.message}
             </div>
-          ) : query.isLoading ? (
+          ) : query.isPending ? (
             <Card>
               <CardContent className="p-0 divide-y">
                 {Array.from({ length: 5 }).map((_, i) => (
