@@ -17,7 +17,6 @@ func TestUserBadges(t *testing.T) {
 	titles := map[string]string{"premium": "Premium", "plus": "Plus"}
 
 	got := userBadges(
-		[]string{"dev"},
 		[]*model.UserBadgeGrant{
 			{UserID: "dev", Kind: model.UserBadgeContributor},
 			{UserID: "dev", Kind: model.UserBadgeStaff},

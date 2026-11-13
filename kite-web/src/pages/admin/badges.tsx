@@ -20,13 +20,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 // AdminBadgesPage is where admins give users the staff and contributor badges.
-// Admins have the staff badge without it. The other badges follow from what
-// users did, like subscribing or listing templates.
+// The other badges follow from what users did, like subscribing or listing
+// templates.
 export default function AdminBadgesPage() {
   return (
     <AdminPage
       title="Badges"
-      description="Users given the Staff or Contributor badge, newest first. Admins have the Staff badge without being on this list. The other badges come from plans and templates on their own."
+      description="Users with the Staff or Contributor badge, newest first. The other badges come from plans and templates on their own."
       className="container max-w-3xl py-12"
     >
       <div className="space-y-8">
@@ -42,7 +42,7 @@ const grantableBadges = {
   staff: {
     title: "Staff",
     description:
-      "For the Kite team, like the staff of the Kite Discord server who aren't admins.",
+      "For the Kite team, including the staff of the Kite Discord server.",
   },
   contributor: {
     title: "Contributor",
@@ -119,7 +119,7 @@ function GrantList() {
   if (grants && !grants.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        No one was given a badge yet.
+        No one has a badge from here yet.
       </p>
     );
   }
