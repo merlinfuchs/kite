@@ -225,10 +225,7 @@ func (s *testSession) targetMessage(id string) (*discord.Message, error) {
 		if err != nil {
 			return nil, testErrorf("target must be the ID of a message")
 		}
-		if msg, ok := s.fakeMessage(discord.MessageID(messageID)); ok {
-			return &msg, nil
-		}
-		msg, err := s.session.Message(s.channelID, discord.MessageID(messageID))
+		msg, err := s.message(s.channelID, discord.MessageID(messageID))
 		if err != nil {
 			return nil, testErrorf("message %s isn't in channel %s or the bot can't see it", id, s.channelID)
 		}
@@ -239,7 +236,7 @@ func (s *testSession) targetMessage(id string) (*discord.Message, error) {
 	if err != nil {
 		return nil, testErrorf("user %s doesn't exist", s.userID)
 	}
-	return &discord.Message{
+	msg := discord.Message{
 		ID:        discord.MessageID(flow.TestSnowflake()),
 		ChannelID: s.channelID,
 		GuildID:   s.guildID,
@@ -247,7 +244,9 @@ func (s *testSession) targetMessage(id string) (*discord.Message, error) {
 		Content:   "Test message",
 		Timestamp: discord.NewTimestamp(time.Now()),
 		Type:      discord.DefaultMessage,
-	}, nil
+	}
+	s.addTargetMessage(msg)
+	return &msg, nil
 }
 
 func (s *testSession) commandOptionValue(arg map[string]any, t discord.CommandOptionType, raw json.RawMessage, resolved map[string]any) (any, error) {
