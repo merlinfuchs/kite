@@ -404,6 +404,9 @@ func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, e
 		} `json:"groupJoinRequests"`
 	}
 	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/join-requests?%s", groupID, robloxUserFilter(userID)), nil, &res)
+	if isMissingJoinRequest(err) {
+		return "", nil
+	}
 	if err != nil || len(res.GroupJoinRequests) == 0 {
 		return "", err
 	}
@@ -414,6 +417,15 @@ func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, e
 		return "", fmt.Errorf("Roblox returned the join request of %s instead of %s", request.User, robloxUserPath(userID))
 	}
 	return request.Path, nil
+}
+
+// isMissingJoinRequest reports whether Roblox answered that the user has no
+// pending join request. Roblox answers with a 404 that names the join
+// request, while a 404 for a group that doesn't exist stays an error.
+func isMissingJoinRequest(err error) bool {
+	var integrationErr *integrationError
+	return errors.As(err, &integrationErr) && integrationErr.Status == http.StatusNotFound &&
+		strings.Contains(strings.ToLower(integrationErr.Error()), "join request")
 }
 
 func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -439,7 +451,10 @@ func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext
 	}
 	if path != "" {
 		err := robloxOpenCloudRequest(ctx, http.MethodPost, path+":"+string(action), map[string]string{}, nil)
-		if err != nil {
+		if isMissingJoinRequest(err) {
+			// Someone answered the request in the meantime.
+			path = ""
+		} else if err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -185,7 +186,9 @@ func TestBloxlinkUserGetErrors(t *testing.T) {
 // and records them.
 type openCloudTestProvider struct {
 	responses map[string]string
-	requests  []openCloudTestRequest
+	// The status of a response, if not 200.
+	statuses map[string]int
+	requests []openCloudTestRequest
 }
 
 type openCloudTestRequest struct {
@@ -212,7 +215,7 @@ func (p *openCloudTestProvider) HTTPRequestWithoutRedirects(ctx context.Context,
 	p.requests = append(p.requests, openCloudTestRequest{key: key, body: string(body)})
 
 	res, ok := p.responses[key]
-	status := http.StatusOK
+	status := cmp.Or(p.statuses[key], http.StatusOK)
 	if !ok {
 		status, res = http.StatusNotFound, `{"code":"NOT_FOUND","message":"Not found"}`
 	}
@@ -406,6 +409,31 @@ func TestRobloxJoinRequestRespond(t *testing.T) {
 		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
 	require.NoError(t, err)
 	assert.False(t, found.Bool())
+
+	// Roblox answers with a 404 when the user has no request, or when it was
+	// answered between finding and accepting it.
+	notFound := `{ "code": "NOT_FOUND", "message": "The join request with identifier 156 was not found." }`
+	httpProvider = newOpenCloudTestProvider()
+	httpProvider.responses[testJoinRequestsPath] = notFound
+	httpProvider.statuses = map[string]int{testJoinRequestsPath: http.StatusNotFound}
+	found, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.False(t, found.Bool())
+
+	httpProvider = newOpenCloudTestProvider()
+	httpProvider.responses[testJoinRequestsPath] = `{"groupJoinRequests":[{"path":"groups/7/join-requests/156","user":"users/156"}]}`
+	httpProvider.responses["POST groups/7/join-requests/156:accept"] = notFound
+	httpProvider.statuses = map[string]int{"POST groups/7/join-requests/156:accept": http.StatusNotFound}
+	found, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.False(t, found.Bool())
+
+	// Other 404s, like for a group that doesn't exist, are still errors.
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
+		FlowNodeData{RobloxUserTarget: "156"}, newOpenCloudTestProvider())
+	assert.ErrorContains(t, err, "Not found")
 
 	// A misspelled username isn't the same as having no request.
 	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
