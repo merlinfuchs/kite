@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-11",
+    title: "Name styles for your bot in each server",
+    description:
+      "The Edit server profile block and the server profile on the Servers page can give your bot's name a font, an effect, and colors, like Nitro members can. Servers show the font. The bot's profile also shows the effect and colors. Part of Kite Premium and up.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_server_profile_edit`,
+  },
+  {
     date: "2026-11-09",
     title:
       "Run JavaScript can read Discord, use stored variables, and send requests",

@@ -9,6 +9,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 func patchDiscordProxyURL(cfg *config.Config) {
@@ -147,4 +149,14 @@ func warnNoEgressProxy() {
 			"network. Set engine.http_proxy_url to an egress proxy that " +
 			"rejects internal address ranges.",
 	)
+}
+
+// flowAIDecisions is the decision model that checks Flow AI prompts, or nil
+// without an OpenRouter key. The calls are Kite's own, so they skip the
+// egress proxy of flow requests.
+func flowAIDecisions(cfg *config.Config) provider.DecisionProvider {
+	if cfg.OpenRouter.APIKey == "" {
+		return nil
+	}
+	return engine.NewDecisionProvider(http.DefaultClient, cfg.OpenRouter.APIKey)
 }

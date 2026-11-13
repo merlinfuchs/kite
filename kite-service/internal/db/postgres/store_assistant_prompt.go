@@ -80,6 +80,16 @@ func (c *Client) AddAssistantPromptUsage(ctx context.Context, appID string, id s
 	})
 }
 
+func (c *Client) RefuseAssistantPrompt(ctx context.Context, appID string, id string, chance float64, edited bool, updatedAt time.Time) error {
+	return c.Q.RefuseAssistantPrompt(ctx, pgmodel.RefuseAssistantPromptParams{
+		Edited:        edited,
+		RefusalChance: pgtype.Float4{Float32: float32(chance), Valid: true},
+		ID:            id,
+		AppID:         appID,
+		UpdatedAt:     pgtype.Timestamp{Time: updatedAt, Valid: true},
+	})
+}
+
 func (c *Client) CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error) {
 	row, err := c.Q.CountAssistantPromptsByAppBetween(ctx, pgmodel.CountAssistantPromptsByAppBetweenParams{
 		AppID:   appID,
@@ -91,13 +101,14 @@ func (c *Client) CountAssistantPromptsBetween(ctx context.Context, appID string,
 
 func rowToAssistantPrompt(row pgmodel.AssistantPrompt) *model.AssistantPrompt {
 	return &model.AssistantPrompt{
-		ID:     row.ID,
-		AppID:  row.AppID,
-		UserID: row.UserID,
-		Model:  row.Model,
-		Prompt: row.Prompt,
-		Rounds: int(row.Rounds),
-		Edited: row.Edited,
+		ID:            row.ID,
+		AppID:         row.AppID,
+		UserID:        row.UserID,
+		Model:         row.Model,
+		Prompt:        row.Prompt,
+		Rounds:        int(row.Rounds),
+		Edited:        row.Edited,
+		RefusalChance: float64(row.RefusalChance.Float32),
 		Usage: model.AssistantUsage{
 			InputTokens:       int(row.InputTokens),
 			CachedInputTokens: int(row.CachedInputTokens),

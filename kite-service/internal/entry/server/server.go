@@ -101,6 +101,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			ReasoningEffort: cfg.Assistant.ReasoningEffort,
 			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
 			Format:          cfg.Assistant.Format,
+			Decisions:       flowAIDecisions(cfg),
 		})
 	}
 
@@ -117,6 +118,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordBotToken:      cfg.Discord.BotToken,
 		DiscordGuildID:       cfg.Discord.GuildID,
 		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
+		AdminUserIDs:         cfg.App.AdminUserIDs,
 	})
 
 	httpClient := engineHTTPClient(cfg)

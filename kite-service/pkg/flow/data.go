@@ -969,9 +969,20 @@ type ServerProfileData struct {
 	AvatarURL *string `json:"avatar_url,omitempty"`
 	BannerURL *string `json:"banner_url,omitempty"`
 	Bio       *string `json:"bio,omitempty"`
+	// NameStyle changes the style of the bot's name, the bot's own has none.
+	NameStyle *NameStyleData `json:"name_style,omitempty"`
 	// Reset resets the whole profile to the bot's own, the other fields are
 	// ignored then.
 	Reset bool `json:"reset,omitempty"`
+}
+
+type NameStyleData struct {
+	// Font and Effect are keys of provider.NameStyleFonts and
+	// provider.NameStyleEffects.
+	Font   string `json:"font"`
+	Effect string `json:"effect"`
+	// Colors are hex colors like #5865F2 or numbers, with placeholders.
+	Colors []string `json:"colors"`
 }
 
 type ChannelData struct {

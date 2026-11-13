@@ -33,10 +33,14 @@ type Bundle struct {
 	Owner *BundleOwner `json:"owner"`
 	// VersionNotes are what changed in the last versions, newest first.
 	VersionNotes []BundleVersionNotes `json:"version_notes"`
-	// InstallCount is how many apps added it.
+	// InstallCount is how many apps added it, not counting its owner's.
 	InstallCount int `json:"install_count"`
+	// ActiveInstallCount is how many of them ran a flow in the last 30 days.
+	ActiveInstallCount int `json:"active_install_count"`
 	// StarCount is how many users starred it.
 	StarCount int `json:"star_count"`
+	// StaffPick is whether Kite picked it.
+	StaffPick bool `json:"staff_pick"`
 	// CreatedAt is when it was made, which the marketplace shows the newest
 	// by.
 	CreatedAt time.Time `json:"created_at"`
@@ -54,6 +58,9 @@ type BundleOwner struct {
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
 	DiscordAvatar   null.String `json:"discord_avatar"`
+	// Badges are the badges of the user, only set in the list of all
+	// templates.
+	Badges []UserBadge `json:"badges,omitempty"`
 }
 
 func BundleOwnerToWire(user *model.User) *BundleOwner {
@@ -87,17 +94,19 @@ type BundleGetResponse = Bundle
 
 func BundleToWire(bundle *model.Bundle) *Bundle {
 	res := &Bundle{
-		ID:           bundle.ID,
-		Version:      bundle.Version,
-		Name:         bundle.Name,
-		Description:  bundle.Description,
-		Content:      bundle.Content,
-		Listed:       bundle.Listed,
-		Official:     !bundle.OwnerUserID.Valid,
-		VersionNotes: make([]BundleVersionNotes, len(bundle.VersionNotes)),
-		InstallCount: bundle.InstallCount,
-		StarCount:    bundle.StarCount,
-		CreatedAt:    bundle.CreatedAt,
+		ID:                 bundle.ID,
+		Version:            bundle.Version,
+		Name:               bundle.Name,
+		Description:        bundle.Description,
+		Content:            bundle.Content,
+		Listed:             bundle.Listed,
+		Official:           !bundle.OwnerUserID.Valid,
+		VersionNotes:       make([]BundleVersionNotes, len(bundle.VersionNotes)),
+		InstallCount:       bundle.InstallCount,
+		ActiveInstallCount: bundle.ActiveInstallCount,
+		StarCount:          bundle.StarCount,
+		StaffPick:          bundle.StaffPickedAt.Valid,
+		CreatedAt:          bundle.CreatedAt,
 	}
 	for i, n := range bundle.VersionNotes {
 		res.VersionNotes[i] = BundleVersionNotes{Version: n.Version, Notes: n.Notes, CreatedAt: n.CreatedAt}
@@ -123,9 +132,11 @@ type UserBundle struct {
 	// ItemCount is how many commands, event listeners, messages and variables
 	// the version has.
 	ItemCount int `json:"item_count"`
-	// InstallCount is how many apps added it, also ones not from the
-	// marketplace.
+	// InstallCount is how many apps of other users added it, also ones not
+	// from the marketplace.
 	InstallCount int `json:"install_count"`
+	// ActiveInstallCount is how many of them ran a flow in the last 30 days.
+	ActiveInstallCount int `json:"active_install_count"`
 	// ListedVersion is the version apps install from the marketplace, null if
 	// it isn't listed.
 	ListedVersion null.Int `json:"listed_version"`
@@ -229,15 +240,16 @@ type BundleListingDeleteResponse struct{}
 
 func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 	res := &UserBundle{
-		ID:           bundle.ID,
-		Version:      bundle.Version,
-		Name:         bundle.Name,
-		Description:  bundle.Description,
-		SourceAppID:  bundle.SourceAppID,
-		ItemCount:    bundle.ItemCount,
-		InstallCount: bundle.InstallCount,
-		Page:         BundleListingToWire(bundle.Page),
-		LatestReview: BundleReviewToWire(bundle.LatestReview),
+		ID:                 bundle.ID,
+		Version:            bundle.Version,
+		Name:               bundle.Name,
+		Description:        bundle.Description,
+		SourceAppID:        bundle.SourceAppID,
+		ItemCount:          bundle.ItemCount,
+		InstallCount:       bundle.InstallCount,
+		ActiveInstallCount: bundle.ActiveInstallCount,
+		Page:               BundleListingToWire(bundle.Page),
+		LatestReview:       BundleReviewToWire(bundle.LatestReview),
 	}
 	if bundle.RemovedAt.Valid {
 		res.RemovedReason = null.StringFrom(bundle.RemovedReason)

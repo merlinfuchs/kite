@@ -61,3 +61,14 @@ An automatic check looks at every submission first. It rejects what's clearly no
 New versions and changes to the page are reviewed too. Until they're approved, apps keep the last approved version and the Marketplace shows the last approved page. Say what changed when you publish an update, apps that added your template see it.
 
 Your listed templates are on your creator page, which your name on their pages links to.
+
+Your creator page shows your badges, which you also see in the menu of your account in the dashboard. Hover over a badge to see what it's for.
+
+- Template creator, in green once your first template is listed. It turns cyan, purple or gold once 10, 100 or 1,000 different people added any of your listed templates. Your own apps don't count.
+- Early creator, for everyone who had a template in the Marketplace before November 13, 2026.
+- Early supporter, for everyone who paid for a plan before Kite Plus launched on October 30, 2026.
+- Subscriber, while you pay for a plan.
+- Contributor, for people who helped build Kite.
+- Staff, for the Kite team.
+
+The Kite team also picks templates it likes, which then show a Staff pick seal in the Marketplace.

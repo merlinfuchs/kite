@@ -32,7 +32,7 @@ You can find these on the `Settings` page of your app.
 
 The `Servers` page lists every server your bot is in. Click on the `...` next to a server and on `Leave server` to make your bot leave it.
 
-With [Kite Premium](../reference/premium.md) or Kite Ultimate, click `Edit server profile` to give your bot its own nickname, avatar, banner, and About Me in that server. A preview shows how the profile looks with your changes. Discord doesn't share the About Me your bot has in a server, so the preview shows its own until you type one. Fields you leave empty stay as they are, and `Reset` changes all of them back to your bot's own profile. Images can be up to 5 MB here. To change the profile from a flow, use the [Edit server profile](../reference/blocks/actions/action_server_profile_edit.md) block.
+With [Kite Premium](../reference/premium.md) or Kite Ultimate, click `Edit server profile` to give your bot its own nickname, avatar, banner, About Me, and name style in that server. The name style is a font, an effect, and colors. Servers show the font, and the bot's profile also shows the effect and colors. A preview shows how the profile looks with your changes. Discord doesn't share the About Me your bot has in a server, so the preview shows its own until you type one. Fields you leave empty stay as they are, and `Reset` changes all of them back to your bot's own profile. Images can be up to 5 MB here. To change the profile from a flow, use the [Edit server profile](../reference/blocks/actions/action_server_profile_edit.md) block.
 
 ## Emojis
 

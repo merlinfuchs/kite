@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 // A preview of the bot's profile the way Discord shows it when someone clicks
@@ -8,6 +9,7 @@ export default function BotProfilePreview({
   avatarUrl,
   bannerUrl,
   about,
+  nameStyle,
   className,
 }: {
   name: string;
@@ -15,6 +17,8 @@ export default function BotProfilePreview({
   avatarUrl?: string;
   bannerUrl?: string;
   about?: string;
+  // The style of the name, see nameStyleCss.
+  nameStyle?: CSSProperties;
   className?: string;
 }) {
   return (
@@ -40,7 +44,9 @@ export default function BotProfilePreview({
           aria-label="Avatar"
         />
         <div className="mt-2 flex items-center gap-1.5">
-          <div className="truncate text-lg font-semibold">{name}</div>
+          <div className="truncate text-lg font-semibold" style={nameStyle}>
+            {name}
+          </div>
           <span className="shrink-0 rounded bg-indigo-500 px-1 text-[10px] font-semibold text-white">
             APP
           </span>

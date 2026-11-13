@@ -106,6 +106,7 @@ type AssistantPrompt struct {
 	OutputTokens      int32
 	CreatedAt         pgtype.Timestamp
 	UpdatedAt         pgtype.Timestamp
+	RefusalChance     pgtype.Float4
 }
 
 type Bundle struct {
@@ -124,6 +125,7 @@ type Bundle struct {
 	Category        string
 	About           []byte
 	Setup           []byte
+	StaffPickedAt   pgtype.Timestamp
 }
 
 type BundleInstall struct {
@@ -139,6 +141,12 @@ type BundleInstall struct {
 	BundleID      string
 	BundleVersion int32
 	Settings      []byte
+}
+
+type BundleInstallCount struct {
+	BundleID string
+	Total    int64
+	Active   int64
 }
 
 type BundleListing struct {
@@ -433,6 +441,13 @@ type User struct {
 	DiscordAvatar   pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+}
+
+type UserBadgeGrant struct {
+	UserID          string
+	Badge           string
+	GrantedByUserID pgtype.Text
+	CreatedAt       pgtype.Timestamp
 }
 
 type UserBan struct {

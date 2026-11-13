@@ -14,6 +14,8 @@ type PlanManagerConfig struct {
 	DiscordBotToken      string
 	DiscordGuildID       string
 	DiscordCreatorRoleID string
+	// AdminUserIDs are the Kite team, who get the staff badge.
+	AdminUserIDs []string
 }
 
 type PlanManager struct {
