@@ -19,7 +19,7 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
-  { label: "All comparisons", href: "/alternatives" },
+  { label: "Best free bot makers", href: "/alternatives" },
 ];
 
 export default function HomeFooter() {

@@ -18,7 +18,7 @@ Situations that bring people here, from Google Search Console queries and OpenPa
 - Leaving another bot maker, mostly BotGhost. /alternatives/botghost is the most visited comparison page.
 - Asking ChatGPT how to make a bot. ChatGPT is the third biggest referrer after Google and Discord, with 1,916 sessions.
 Main alternatives:
-- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked.
+- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked. /alternatives itself is a roundup of the best free Discord bot makers, with Kite first and a note that we make it.
 - Writing a bot in code and hosting it yourself. Some searches for free hosting ask for Python, like "free discord bot hosting python".
 Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 servers, and you can replace Kite's status with your own for free. Kite is open source under AGPL-3.0. Don't claim it's the only or first bot maker to do anything.
 
@@ -84,7 +84,7 @@ Stats (number | what it counts | source | date checked):
 - 79,314 | users | same endpoint | 2026-11-02
 - 198,504 | commands and event listeners | same endpoint | 2026-11-02
 - 23,098,351 | flow runs last month | same endpoint | 2026-11-02
-- 108 | Marketplace templates, 19 by Kite and 89 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-05
+- 160 | Marketplace templates, 19 by Kite and 141 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-13
 - 334 | GitHub stars | github.com/merlinfuchs/kite | 2026-11-02
 - 2024 | year Kite started | first commit 2024-01-10 | 2026-11-02
 - Most added templates: Moderation 482, Ask AI 432, Server Info 260, Welcomer 257, Giveaways 235 | install_count from /v1/bundles | 2026-11-02
