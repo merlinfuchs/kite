@@ -78,6 +78,7 @@ import ConfirmDialog from "../../common/ConfirmDialog";
 import MessageCollapsibleSection from "../../message/MessageCollapsibleSection";
 import MessageControlsButton from "../../message/MessageControlsButton";
 import { ChannelTypesInput } from "../../message/MessageComponentSelectMenu";
+import FlowDialogTrigger from "../FlowDialogTrigger";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import {
@@ -85,7 +86,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  DialogTrigger,
 } from "../../ui/dialog";
 import { Drawer, DrawerContent, DrawerTrigger } from "../../ui/drawer";
 import {
@@ -206,24 +206,17 @@ export default function ModalEditorDialog({
 
   return (
     <Dialog>
-      <div className="space-y-2">
-        <DialogTrigger asChild>
-          <Button className="w-full">Configure modal</Button>
-        </DialogTrigger>
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <div className="truncate flex-auto">
+      <FlowDialogTrigger
+        label="Configure modal"
+        summary={
+          <>
             {inputCount} {inputCount === 1 ? "input" : "inputs"}
             {textCount > 0 &&
               `, ${textCount} ${textCount === 1 ? "text" : "texts"}`}
-          </div>
-          {errorCount > 0 && (
-            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 flex-none">
-              <CircleAlertIcon className="h-4 w-4" />
-              {errorCount} {errorCount === 1 ? "issue" : "issues"}
-            </div>
-          )}
-        </div>
-      </div>
+          </>
+        }
+        errorCount={errorCount}
+      />
       <DialogContent
         className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none overflow-hidden"
         // Opening shouldn't select the title, so typing doesn't replace it.

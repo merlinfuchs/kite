@@ -145,6 +145,7 @@ import ScheduleCronPreview, {
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
@@ -182,6 +183,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowDialogTrigger from "./FlowDialogTrigger";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowCodeInput from "./FlowCodeInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
@@ -3799,24 +3801,17 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-const channelTypeOptions = [
-  { label: "Text channel", value: "0" },
-  { label: "Voice channel", value: "2" },
-  { label: "Category", value: "4" },
-  { label: "Announcement channel", value: "5" },
-  { label: "Stage channel", value: "13" },
-  { label: "Forum", value: "15" },
-  { label: "Media channel", value: "16" },
-];
+// Public first, it's the default.
+const threadTypes = ["11", "12", "10"];
+const channelOnlyTypeOptions = channelTypeOptions.filter(
+  (o) => !threadTypes.includes(o.value)
+);
+const threadTypeOptions = threadTypes.map(
+  (value) => channelTypeOptions.find((o) => o.value === value)!
+);
 
-const threadTypeOptions = [
-  { label: "Public thread", value: "11" },
-  { label: "Private thread", value: "12" },
-  { label: "Announcement thread", value: "10" },
-];
-
-function typeLabel(options: { label: string; value: string }[], type: number) {
-  return options.find((o) => o.value === type.toString())?.label;
+function channelTypeLabel(type: number) {
+  return channelTypeOptions.find((o) => o.value === type.toString())?.label;
 }
 
 // How many errors the settings with one of the prefixes have.
@@ -3840,9 +3835,7 @@ function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
-// The dialog of the channel and thread blocks. Below its button it sums up the
-// settings and how many of them have an error, as they're hidden until it's
-// opened.
+// The dialog of the channel and thread blocks.
 function ChannelDialog({
   title,
   description,
@@ -3852,26 +3845,18 @@ function ChannelDialog({
 }: {
   title: string;
   description: string;
-  summary: string;
+  // The parts that are set, joined with dots.
+  summary: (string | false | undefined)[];
   errorCount: number;
   children: ReactNode;
 }) {
   return (
     <Dialog>
-      <div className="space-y-2">
-        <DialogTrigger asChild>
-          <Button className="w-full">{title}</Button>
-        </DialogTrigger>
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <div className="truncate flex-auto">{summary}</div>
-          {errorCount > 0 && (
-            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 flex-none">
-              <CircleAlertIcon className="h-4 w-4" />
-              {plural(errorCount, "issue")}
-            </div>
-          )}
-        </div>
-      </div>
+      <FlowDialogTrigger
+        label={title}
+        summary={summary.filter(Boolean).join(" · ")}
+        errorCount={errorCount}
+      />
       <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -3898,6 +3883,12 @@ function isEveryoneOverwrite(overwrite: PermissionOverwriteData) {
   );
 }
 
+const overwriteKindOptions = [
+  { label: "Role", value: "role" },
+  { label: "User", value: "user" },
+  { label: "Everyone", value: "everyone" },
+];
+
 // One permission overwrite. Closed it shows who it's for and how many
 // permissions it allows and denies, like the cards of the modal editor.
 function OverwriteCard({
@@ -3920,9 +3911,12 @@ function OverwriteCard({
   errors: Record<string, string>;
 }) {
   const field = `channel_data.permission_overwrites.${index}`;
-  const isUser = overwrite.type === 1;
-  const isEveryone = isEveryoneOverwrite(overwrite);
-  const kind = isEveryone ? "everyone" : isUser ? "user" : "role";
+  const kind = isEveryoneOverwrite(overwrite)
+    ? "everyone"
+    : overwrite.type === 1
+    ? "user"
+    : "role";
+  const label = overwriteKindOptions.find((o) => o.value === kind)!.label;
 
   return (
     <Card className="px-4 py-3">
@@ -3939,10 +3933,8 @@ function OverwriteCard({
               open && "rotate-90"
             )}
           />
-          <div className="flex-none">
-            {isEveryone ? "Everyone" : isUser ? "User" : "Role"}
-          </div>
-          {!isEveryone && (
+          <div className="flex-none">{label}</div>
+          {kind !== "everyone" && (
             <div className="pl-1 text-sm italic font-light text-muted-foreground truncate">
               {overwrite.id || "No ID yet"}
             </div>
@@ -3986,11 +3978,7 @@ function OverwriteCard({
                 field={`${field}.type`}
                 title="Type"
                 value={kind}
-                options={[
-                  { label: "Role", value: "role" },
-                  { label: "User", value: "user" },
-                  { label: "Everyone", value: "everyone" },
-                ]}
+                options={overwriteKindOptions}
                 updateValue={(v) => {
                   if (v === "everyone") {
                     onChange({ type: 0, id: everyoneOverwriteId });
@@ -3998,14 +3986,14 @@ function OverwriteCard({
                     // The server ID is neither a role nor a user to keep.
                     onChange({
                       type: v === "user" ? 1 : 0,
-                      id: isEveryone ? undefined : overwrite.id,
+                      id: kind === "everyone" ? undefined : overwrite.id,
                     });
                   }
                 }}
                 errors={errors}
               />
             </div>
-            {isEveryone ? (
+            {kind === "everyone" ? (
               <div className="flex-auto text-sm text-muted-foreground sm:pt-9">
                 Applies to every member of the server.
               </div>
@@ -4013,7 +4001,7 @@ function OverwriteCard({
               <BaseInput
                 type="text"
                 field={`${field}.id`}
-                title={isUser ? "User" : "Role"}
+                title={label}
                 value={overwrite.id || ""}
                 updateValue={(v) => onChange({ id: v || undefined })}
                 errors={errors}
@@ -4108,12 +4096,10 @@ function ChannelDataInput({
   };
 
   const summary = [
-    typeLabel(channelTypeOptions, type) ?? "Channel",
+    channelTypeLabel(type) ?? "Channel",
     channel?.name,
     overwrites.length > 0 && plural(overwrites.length, "overwrite"),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ];
 
   return (
     <ChannelDialog
@@ -4138,7 +4124,7 @@ function ChannelDataInput({
               field="channel_data.type"
               title="Type"
               value={type.toString()}
-              options={channelTypeOptions}
+              options={channelOnlyTypeOptions}
               updateValue={(v) => updateType(parseInt(v) || 0)}
               errors={errors}
             />
@@ -4426,11 +4412,9 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
   const summary = [
     data.message_target
       ? "Thread from a message"
-      : typeLabel(threadTypeOptions, type) ?? "Thread",
+      : channelTypeLabel(type) ?? "Thread",
     channel?.name,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  ];
 
   return (
     <ChannelDialog
