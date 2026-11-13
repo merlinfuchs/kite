@@ -410,14 +410,7 @@ export function useAppCollaborators(
 // useAppRole returns the role of the current user in the app: owner, admin or
 // developer.
 export function useAppRole() {
-  const app = useApp();
-  const user = useUser();
-  const collaborators = useAppCollaborators();
-
-  if (!app || !user) return undefined;
-  if (app.owner_user_id === user.id) return "owner";
-  if (app.user_role) return app.user_role;
-  return collaborators?.find((c) => c?.user.id === user.id)?.role;
+  return useApp()?.user_role;
 }
 
 export function useUserInvites(

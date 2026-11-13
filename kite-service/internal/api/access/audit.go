@@ -272,7 +272,7 @@ func readAuditResponse(resp any) (auditResponse, bool) {
 func (m *AccessManager) RequireSettingsAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
 		if !c.UserAppRole.CanManageSettings() {
-			return handler.ErrForbidden("missing_permissions", "Developers can't change the app's settings, ask an admin or the owner of the app")
+			return handler.ErrForbidden("missing_permissions", "Only admins and the owner of the app can do this")
 		}
 		return next(c)
 	}

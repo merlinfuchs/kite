@@ -104,8 +104,9 @@ export default function AppSettingsCollaborators() {
               </div>
             </div>
             <CardDescription>
-              Invite other users to help build this app. Admins can change
-              everything, developers everything but the app&apos;s settings.
+              Invite others to help build this app. Admins can change
+              everything. Developers can change everything except the app&apos;s
+              settings.
             </CardDescription>
           </div>
           {canManageSettings(role) && (

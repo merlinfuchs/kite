@@ -52,9 +52,9 @@ export default function AppSettingsPage() {
             <LockIcon className="h-4 w-4" />
             <AlertTitle>You&apos;re a developer of this app</AlertTitle>
             <AlertDescription>
-              Developers can edit commands, events, messages and everything
-              else, but only admins and the owner can change the app&apos;s
-              settings.
+              Developers can edit commands, event listeners, message templates,
+              and everything else. Only admins and the owner can change the
+              app&apos;s settings.
             </AlertDescription>
           </Alert>
           <AppSettingsCollaborators />
