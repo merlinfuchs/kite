@@ -285,8 +285,8 @@ UPDATE bundles SET staff_picked_at = @staff_picked_at
 WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;
 
 -- How long the users have had a bundle listed in the marketplace, by when the
--- oldest of their listed bundles was made, and how many other users added any
--- of them. Users without a listed bundle aren't in it.
+-- oldest of their listed bundles was made, how many other users added any of
+-- them and how many stars they got. Users without a listed bundle aren't in it.
 -- name: GetCreatorStats :many
 SELECT
     bundles.owner_user_id::text AS user_id,
@@ -300,7 +300,16 @@ SELECT
         WHERE owned.owner_user_id = bundles.owner_user_id
             AND owned.removed_at IS NULL
             AND apps.owner_user_id != owned.owner_user_id
-    )::int AS installer_count
+    )::int AS installer_count,
+    (
+        SELECT count(*)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_stars ON bundle_stars.bundle_id = owned.id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND bundle_stars.user_id != owned.owner_user_id
+    )::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 WHERE bundles.owner_user_id = ANY(@user_ids::text[]) AND bundles.removed_at IS NULL
