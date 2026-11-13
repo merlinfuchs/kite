@@ -31,8 +31,7 @@ export default function BaseLayout({
   const router = useRouter();
 
   const pageTitle = title ?? "Free Discord bot maker, no coding required";
-  // The homepage keeps Kite first, it gets most of the clicks from Google.
-  const fullTitle = title ? `${title} | Kite` : `Kite | ${pageTitle}`;
+  const fullTitle = `${pageTitle} | Kite`;
   const fullDescription =
     description ||
     "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.";
