@@ -36,10 +36,10 @@ const botMakers: {
     summary:
       "A no-code bot maker with more than 35 ready-made modules and a marketplace, plus blocks for your own commands.",
     freePlan:
-      'One bot online at a time, on up to 5 servers, with 3 custom commands and 3 custom events. The status says "Made with BotGhost", and the bot is switched off after 2 days without activity.',
+      'One bot online at a time, on up to 5 servers, with 3 custom commands and 3 custom events. 11 modules, like tickets and giveaways, are free and don\'t count toward those limits. The status says "Made with BotGhost", and the bot is switched off after 2 days without activity.',
     paidPlans: "$12.50 a month or $75 a year per bot.",
     bestFor:
-      "Switching on ready-made modules like music and reaction roles instead of building commands.",
+      "Switching on ready-made modules like tickets, giveaways, and reaction roles instead of building commands.",
     lastChecked: "November 2026",
   },
   {
