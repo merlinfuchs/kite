@@ -614,6 +614,7 @@ func (a *App) resumeFlowOrRespondExpired(resumePointID string, session *state.St
 // entityLinksFromResumePoint recovers the links the flow was running with when
 // it suspended. CreateResumePoint stores them verbatim, so attribution of logs
 // and usage survives the suspend rather than being guessed on the way back in.
+// Only the event source isn't stored, so it's taken from the loaded listener.
 func (a *App) entityLinksFromResumePoint(resumePoint *model.ResumePoint) entityLinks {
 	var eventSource model.EventSource
 	if resumePoint.EventListenerID.Valid {

@@ -66,6 +66,14 @@ func NewEventListener(
 	return res, nil
 }
 
+// entityLinks attributes runs of the listener to it, and to its source.
+func (l *EventListener) entityLinks() entityLinks {
+	return entityLinks{
+		EventListenerID: null.NewString(l.listener.ID, true),
+		EventSource:     l.listener.Source,
+	}
+}
+
 func (l *EventListener) HandleScheduledRun(session *state.State, occurrence time.Time) {
 	l.env.executeFlowEvent(
 		context.Background(),
@@ -73,20 +81,12 @@ func (l *EventListener) HandleScheduledRun(session *state.State, occurrence time
 		l.flow,
 		session,
 		&schedule.Event{Time: occurrence},
-		entityLinks{
-			EventListenerID: null.NewString(l.listener.ID, true),
-			EventSource:     l.listener.Source,
-		},
+		l.entityLinks(),
 		nil,
 	)
 }
 
 func (l *EventListener) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	links := entityLinks{
-		EventListenerID: null.NewString(l.listener.ID, true),
-		EventSource:     l.listener.Source,
-	}
-
 	var botID discord.UserID
 	if session != nil {
 		botID = session.Ready().User.ID
@@ -103,7 +103,7 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		l.flow,
 		session,
 		event,
-		links,
+		l.entityLinks(),
 		nil,
 	)
 }
