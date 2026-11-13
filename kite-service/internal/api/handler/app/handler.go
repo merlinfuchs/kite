@@ -247,7 +247,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
+		return h.switchDiscordApp(c, req, appInfo)
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
@@ -291,6 +291,55 @@ func (h *AppHandler) checkOwnerNotBanned(c *handler.Context) error {
 		return fmt.Errorf("failed to get user ban: %w", err)
 	}
 	return handler.ErrForbidden("app_owner_banned", "Kite banned the owner of this app, so it can't be started")
+}
+
+// switchDiscordApp moves the app to the Discord app the token belongs to. The
+// flows stay, but the old bot's servers, emojis and sent messages don't carry
+// over.
+func (h *AppHandler) switchDiscordApp(c *handler.Context, req wire.AppTokenUpdateRequest, appInfo *DiscordAppInfo) (*wire.AppTokenUpdateResponse, error) {
+	if !c.UserAppRole.CanChangeDiscordApp() {
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
+	}
+	if !req.ChangeApp {
+		// The dashboard asks the owner to confirm, then sends change_app.
+		err := handler.ErrBadRequest("discord_app_changed", fmt.Sprintf("This token belongs to a different bot, %s. Confirm to move the app to it.", appInfo.Name))
+		err.Data = map[string]string{"name": appInfo.Name}
+		return nil, err
+	}
+
+	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
+	app, err := h.appStore.SwitchAppDiscordApp(c.Context(), store.AppSwitchOpts{
+		ID:               c.App.ID,
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		DiscordID:        appInfo.ID,
+		DiscordToken:     encryptedToken,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		UpdatedAt:        time.Now().UTC(),
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite as another app. Delete that app first, or switch to a different bot.")
+		}
+		return nil, fmt.Errorf("failed to switch discord app: %w", err)
+	}
+
+	// The old bot would keep showing commands that do nothing. Its token may
+	// already be reset, which is fine.
+	if err := h.clearDiscordAppCommands(c.Context(), c.App); err != nil {
+		slog.Info(
+			"Failed to clear commands of old discord app",
+			slog.String("app_id", app.ID),
+			slog.String("discord_id", c.App.DiscordID),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	return wire.AppToWire(app), nil
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {

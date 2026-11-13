@@ -49,6 +49,26 @@ UPDATE apps SET
     updated_at = $8
 WHERE id = $1 RETURNING *;
 
+-- Moves the app to a different Discord app and starts it, like a new token.
+-- What belonged to the old one is cleared, and its commands are deployed.
+-- name: SwitchAppDiscordApp :one
+UPDATE apps SET
+    name = $2,
+    description = $3,
+    discord_id = $4,
+    discord_token = $5,
+    discord_verify_key = $6,
+    enabled = TRUE,
+    disabled_reason = NULL,
+    discord_guild_count = NULL,
+    discord_user_install_count = NULL,
+    discord_counts_updated_at = NULL,
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = NULL,
+    commands_deploy_error = NULL,
+    updated_at = $7
+WHERE id = $1 RETURNING *;
+
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write
 -- that bumps updated_at, which several polls use as their cursor.
 -- name: DisableApp :execrows

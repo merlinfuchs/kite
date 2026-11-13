@@ -159,6 +159,30 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 	return rowToApp(row)
 }
 
+func (c *Client) SwitchAppDiscordApp(ctx context.Context, opts store.AppSwitchOpts) (*model.App, error) {
+	row, err := c.Q.SwitchAppDiscordApp(ctx, pgmodel.SwitchAppDiscordAppParams{
+		ID:   opts.ID,
+		Name: opts.Name,
+		Description: pgtype.Text{
+			String: opts.Description.String,
+			Valid:  opts.Description.Valid,
+		},
+		DiscordID:    opts.DiscordID,
+		DiscordToken: opts.DiscordToken,
+		DiscordVerifyKey: pgtype.Text{
+			String: opts.DiscordVerifyKey.String,
+			Valid:  opts.DiscordVerifyKey.Valid,
+		},
+		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		// apps.discord_id is unique, so each bot can only be used once.
+		return nil, uniqueViolation(err)
+	}
+
+	return rowToApp(row)
+}
+
 func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
 	n, err := c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
 		ID: opts.ID,

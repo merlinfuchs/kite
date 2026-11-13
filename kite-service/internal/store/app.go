@@ -19,6 +19,17 @@ type AppUpdateOpts struct {
 	UpdatedAt      time.Time
 }
 
+// AppSwitchOpts moves an app to a different Discord app.
+type AppSwitchOpts struct {
+	ID               string
+	Name             string
+	Description      null.String
+	DiscordID        string
+	DiscordToken     string
+	DiscordVerifyKey null.String
+	UpdatedAt        time.Time
+}
+
 type AppDisableOpts struct {
 	ID             string
 	DisabledReason null.String
@@ -54,6 +65,10 @@ type AppStore interface {
 	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
+	// SwitchAppDiscordApp moves the app to a different Discord app, starts it
+	// and deploys its commands there. It returns ErrAlreadyExists if another
+	// app uses that Discord app.
+	SwitchAppDiscordApp(ctx context.Context, opts AppSwitchOpts) (*model.App, error)
 	// DisableApp reports whether the app was enabled before.
 	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
 	// PauseAppForCredits and UnpauseAppForCredits report whether the app

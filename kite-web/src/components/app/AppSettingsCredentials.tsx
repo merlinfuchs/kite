@@ -18,7 +18,8 @@ export default function AppSettingsCredentials() {
         <CardTitle>Credentials</CardTitle>
         <CardDescription>
           Update your bot&apos;s token if you reset it in the Discord Developer
-          Portal.
+          Portal. The owner can enter another bot&apos;s token to move the app
+          to that bot.
         </CardDescription>
       </CardHeader>
       <CardFooter className="border-t px-6 py-4">

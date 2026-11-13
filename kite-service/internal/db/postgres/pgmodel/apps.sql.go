@@ -799,6 +799,74 @@ func (q *Queries) QueueAppCommandsDeploy(ctx context.Context, arg QueueAppComman
 	return err
 }
 
+const switchAppDiscordApp = `-- name: SwitchAppDiscordApp :one
+UPDATE apps SET
+    name = $2,
+    description = $3,
+    discord_id = $4,
+    discord_token = $5,
+    discord_verify_key = $6,
+    enabled = TRUE,
+    disabled_reason = NULL,
+    discord_guild_count = NULL,
+    discord_user_install_count = NULL,
+    discord_counts_updated_at = NULL,
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = NULL,
+    commands_deploy_error = NULL,
+    updated_at = $7
+WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled
+`
+
+type SwitchAppDiscordAppParams struct {
+	ID               string
+	Name             string
+	Description      pgtype.Text
+	DiscordID        string
+	DiscordToken     string
+	DiscordVerifyKey pgtype.Text
+	UpdatedAt        pgtype.Timestamp
+}
+
+// Moves the app to a different Discord app and starts it, like a new token.
+// What belonged to the old one is cleared, and its commands are deployed.
+func (q *Queries) SwitchAppDiscordApp(ctx context.Context, arg SwitchAppDiscordAppParams) (App, error) {
+	row := q.db.QueryRow(ctx, switchAppDiscordApp,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.DiscordID,
+		arg.DiscordToken,
+		arg.DiscordVerifyKey,
+		arg.UpdatedAt,
+	)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.OwnerUserID,
+		&i.CreatorUserID,
+		&i.DiscordToken,
+		&i.DiscordID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DiscordStatus,
+		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
+		&i.CreditsPausedAt,
+		&i.CreditNoticesEnabled,
+	)
+	return i, err
+}
+
 const unpauseAppForCredits = `-- name: UnpauseAppForCredits :execrows
 UPDATE apps SET
     credits_paused_at = NULL,
