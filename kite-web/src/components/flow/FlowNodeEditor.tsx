@@ -2082,32 +2082,33 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             />
           ))}
           {request?.query?.map((q) => (
-            <div className="flex gap-2 items-end" key={q.key}>
-              <BaseInput
-                type="text"
-                field={`discord_api_request_data.query.${q.key}`}
-                title={q.key}
-                description="Query parameter"
-                value={q.value}
-                updateValue={(v) => setParam("query", q.key, v)}
-                errors={errors}
-                placeholders
-              />
-              <EditOnly>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() =>
-                    updateRequest({
-                      query: request.query?.filter((v) => v.key !== q.key),
-                    })
-                  }
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </EditOnly>
-            </div>
+            <BaseInput
+              key={q.key}
+              type="text"
+              field={`discord_api_request_data.query.${q.key}`}
+              title={q.key}
+              description="Query parameter"
+              value={q.value}
+              updateValue={(v) => setParam("query", q.key, v)}
+              errors={errors}
+              placeholders
+              beside={
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() =>
+                      updateRequest({
+                        query: request.query?.filter((v) => v.key !== q.key),
+                      })
+                    }
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </EditOnly>
+              }
+            />
           ))}
           {unusedQueryParams.length > 0 && (
             <EditOnly>
@@ -3307,24 +3308,21 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <div className="flex space-x-2 items-end">
-        <BaseInput
-          type="select"
-          field="message_template_id"
-          title="Message template"
-          description="Select a message template to use for the response."
-          options={messages?.map((m) => ({
-            value: m!.id,
-            label: m!.name,
-          }))}
-          value={data.message_template_id || ""}
-          updateValue={(v) =>
-            updateData({ message_template_id: v || undefined })
-          }
-          errors={errors}
-          clearable
-        />
-        {!readOnly &&
+      <BaseInput
+        type="select"
+        field="message_template_id"
+        title="Message template"
+        description="Select a message template to use for the response."
+        options={messages?.map((m) => ({
+          value: m!.id,
+          label: m!.name,
+        }))}
+        value={data.message_template_id || ""}
+        updateValue={(v) => updateData({ message_template_id: v || undefined })}
+        errors={errors}
+        clearable
+        beside={
+          !readOnly &&
           (data.message_template_id ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -3353,8 +3351,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
                 <PlusIcon className="h-5 w-5" />
               </Button>
             </MessageCreateDialog>
-          ))}
-      </div>
+          ))
+        }
+      />
       {readOnly && template && (
         <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
@@ -5687,6 +5686,7 @@ function BaseInput({
   emojis,
   clearable,
   imageUpload,
+  beside,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -5707,6 +5707,8 @@ function BaseInput({
   clearable?: boolean;
   // Shows a button that uploads an image as an asset and puts in its URL.
   imageUpload?: boolean;
+  // Buttons next to the input, like one that creates what it selects.
+  beside?: ReactNode;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -5755,22 +5757,14 @@ function BaseInput({
     </div>
   );
 
-  // The buttons sit next to the title, or right above the input when a
-  // description separates the two, or beside the input without either.
-  const actionsPlacement = !actions
-    ? null
-    : description
-    ? "above"
-    : title
-    ? "title"
-    : "beside";
-
   const withUpload = imageUpload && !readOnly;
+  const sideBySide = withUpload || !!beside;
   const control = (
     <div
       className={cn(
-        actionsPlacement === "beside" && "flex items-center gap-1",
-        withUpload ? "flex-auto" : title && "mt-2"
+        // Without a title the buttons sit beside the input.
+        !title && actions && "flex items-center gap-1",
+        sideBySide ? "flex-auto" : title && "mt-2"
       )}
     >
       {type === "textarea" ? (
@@ -5827,7 +5821,7 @@ function BaseInput({
           readOnly={readOnly}
         />
       )}
-      {actionsPlacement === "beside" && actions}
+      {!title && actions}
     </div>
   );
 
@@ -5836,23 +5830,19 @@ function BaseInput({
       {title && (
         <div className="flex items-center justify-between gap-2">
           <div className="font-medium text-foreground">{title}</div>
-          {actionsPlacement === "title" && actions}
+          {actions}
         </div>
       )}
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
-      {actionsPlacement === "above" && (
-        <div className="flex justify-end mt-2 -mb-1">{actions}</div>
-      )}
-      {withUpload ? (
+      {sideBySide ? (
         <div className={cn("flex gap-2", title && "mt-2")}>
           {control}
-          <ImageUploadButton onImageUploaded={updateValue} />
+          {withUpload && <ImageUploadButton onImageUploaded={updateValue} />}
+          {beside}
         </div>
       ) : (
         control
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5861,6 +5851,12 @@ function BaseInput({
       )}
     </div>
   );
+}
+
+// Help text of a field, under its input.
+function FieldDescription({ children }: { children?: ReactNode }) {
+  if (!children) return null;
+  return <div className="text-muted-foreground text-sm mt-2">{children}</div>;
 }
 
 function BaseCheckbox({
@@ -5883,12 +5879,10 @@ function BaseCheckbox({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <PreviewInert>
         <Switch checked={value} onCheckedChange={updateValue} />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5939,9 +5933,6 @@ function BaseMultiSelect({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       {searchable ? (
         <Popover modal>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
@@ -5990,6 +5981,7 @@ function BaseMultiSelect({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -6062,15 +6054,13 @@ function BaseColorInput({
   return (
     <div className="flex-auto">
       <div className="font-medium text-foreground">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
       <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       <EditOnly>
         <Button
           variant="link"
@@ -6165,9 +6155,6 @@ function BaseEmojiPicker({
   return (
     <div className="flex-none">
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <div className="flex">
         <PreviewInert>
           <EmojiPicker onEmojiSelect={onChange}>
@@ -6203,6 +6190,7 @@ function BaseEmojiPicker({
           </EditOnly>
         )}
       </div>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
