@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-13",
+    title: "Roblox Ranking template",
+    description:
+      "Staff with Manage Roles rank members of your Roblox group with /setrank, and /getrank shows anyone's rank. Members verified with Bloxlink use /joingroup to get their join request accepted. It uses an Open Cloud API key, not your cookie.",
+    href: "/marketplace/roblox-ranking",
+  },
+  {
     date: "2026-11-11",
     title: "Name styles for your bot in each server",
     description:
@@ -34,6 +41,13 @@ export const changelog: ChangelogEntry[] = [
     description:
       "Set stored variable in Append or Prepend mode adds the value as one item when the variable holds a list, instead of turning the list into text. Changes from runs at the same time no longer overwrite each other, also for the first value of a variable.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_variable_set`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Roblox group and Bloxlink blocks",
+    description:
+      "Get Roblox group member, Change Roblox group role, and Answer Roblox join request manage your Roblox group with an Open Cloud API key. Get Bloxlink user finds the Roblox account a Discord member verified with Bloxlink.",
+    href: "/roblox-ranking-bot",
   },
   {
     date: "2026-11-08",
