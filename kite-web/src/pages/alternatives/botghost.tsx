@@ -22,11 +22,12 @@ const content: ComparisonPageContent = {
     "You want more than one bot online on the free plan",
     "You want your own status without paying to remove branding",
     "Your bot should stay online even when nobody uses it for a few days",
+    "You want to change how a ready-made feature works without paying",
     "You want a cheaper paid plan",
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
-    "You want tickets, giveaways, reaction roles, or other modules ready to switch on",
+    "You want tickets, giveaways, reaction roles, or other modules ready to switch on, and their settings are enough",
     "You'd rather turn on modules than build commands",
     "You want YouTube, Twitch, or Reddit notifications and are fine paying for them",
   ],
@@ -74,7 +75,14 @@ const content: ComparisonPageContent = {
     {
       feature: "Ready-made features",
       kite: "100+ templates, including leveling and economy",
-      competitor: "35+ modules and a marketplace",
+      competitor:
+        "35+ modules and a marketplace. 11 modules are free and outside the limits.",
+    },
+    {
+      feature: "Change a ready-made feature's blocks (free)",
+      kite: "Yes, a template's commands are yours",
+      competitor:
+        "No, you can look at a module's blocks but changing them needs Premium",
     },
     {
       feature: "Open source",
@@ -92,6 +100,11 @@ const content: ComparisonPageContent = {
       title: "Higher free limits",
       description:
         "BotGhost's free plan allows 5 servers, 3 custom commands, and 3 custom events per bot, with one bot online at a time. Kite's free plan allows 100 servers, 15 commands, and 10 event listeners per bot, and up to 10 bots online.",
+    },
+    {
+      title: "Change any template for free",
+      description:
+        "On BotGhost's free plan you can look at a module's blocks, but changing them needs Premium. A Kite template adds normal commands to your bot, and you can change every block for free. They count toward your 15 commands and 10 event listeners.",
     },
     {
       title: "No inactivity rule",
