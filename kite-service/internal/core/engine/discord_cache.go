@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
-	"slices"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -16,13 +15,19 @@ import (
 // events of the default intents, except for members, which need the Server
 // Members intent. Each answer has the fields Discord's API returns, which
 // TestCachedAPIResponsesMatchTheSpec checks against Discord's spec.
-var (
-	cachedMemberPath   = regexp.MustCompile(`^/guilds/(\d+)/members/(\d+)$`)
-	cachedRolesPath    = regexp.MustCompile(`^/guilds/(\d+)/roles$`)
-	cachedRolePath     = regexp.MustCompile(`^/guilds/(\d+)/roles/(\d+)$`)
-	cachedChannelPath  = regexp.MustCompile(`^/channels/(\d+)$`)
-	cachedChannelsPath = regexp.MustCompile(`^/guilds/(\d+)/channels$`)
-)
+
+// cachedRoutes are the reads the cache answers, by path. answer gets the IDs
+// in the path and returns false if the cache can't answer.
+var cachedRoutes = []struct {
+	path   *regexp.Regexp
+	answer func(p *DiscordProvider, ids []discord.Snowflake) (any, bool)
+}{
+	{regexp.MustCompile(`^/guilds/(\d+)/members/(\d+)$`), (*DiscordProvider).cachedMember},
+	{regexp.MustCompile(`^/guilds/(\d+)/roles$`), (*DiscordProvider).cachedRoles},
+	{regexp.MustCompile(`^/guilds/(\d+)/roles/(\d+)$`), (*DiscordProvider).cachedRole},
+	{regexp.MustCompile(`^/channels/(\d+)$`), (*DiscordProvider).cachedChannel},
+	{regexp.MustCompile(`^/guilds/(\d+)/channels$`), (*DiscordProvider).cachedChannels},
+}
 
 // cachedAPIResponse answers req from the cache, or returns false when the
 // cache can't, like for a member it doesn't have. Requests with a query
@@ -31,86 +36,90 @@ func (p *DiscordProvider) cachedAPIResponse(req provider.DiscordAPIRequest) ([]b
 	if req.Method != http.MethodGet {
 		return nil, false
 	}
-	cabinet := p.session.Cabinet
+	for _, route := range cachedRoutes {
+		m := route.path.FindStringSubmatch(req.Path)
+		if m == nil {
+			continue
+		}
+		ids := make([]discord.Snowflake, len(m)-1)
+		for i, s := range m[1:] {
+			ids[i], _ = discord.ParseSnowflake(s)
+		}
+		res, ok := route.answer(p, ids)
+		if !ok {
+			return nil, false
+		}
+		b, err := json.Marshal(res)
+		return b, err == nil
+	}
+	return nil, false
+}
 
-	var res any
-	switch {
-	case cachedMemberPath.MatchString(req.Path):
-		// Without the intent, members in the cache come from messages and
-		// interactions, and their roles and nickname can be outdated.
-		if !p.session.HasIntents(gateway.IntentGuildMembers) {
-			return nil, false
-		}
-		m := cachedMemberPath.FindStringSubmatch(req.Path)
-		member, err := cabinet.Member(discord.GuildID(snowflake(m[1])), discord.UserID(snowflake(m[2])))
-		if err != nil {
-			return nil, false
-		}
-		res = memberJSON(*member)
-	case cachedRolesPath.MatchString(req.Path):
-		m := cachedRolesPath.FindStringSubmatch(req.Path)
-		roles, err := cabinet.Roles(discord.GuildID(snowflake(m[1])))
-		if err != nil {
-			return nil, false
-		}
-		list := make([]map[string]any, len(roles))
-		for i, r := range roles {
-			list[i] = roleJSON(r)
-		}
-		res = list
-	case cachedRolePath.MatchString(req.Path):
-		m := cachedRolePath.FindStringSubmatch(req.Path)
-		role, err := cabinet.Role(discord.GuildID(snowflake(m[1])), discord.RoleID(snowflake(m[2])))
-		if err != nil {
-			return nil, false
-		}
-		res = roleJSON(*role)
-	case cachedChannelPath.MatchString(req.Path):
-		m := cachedChannelPath.FindStringSubmatch(req.Path)
-		channel, err := cabinet.Channel(discord.ChannelID(snowflake(m[1])))
-		if err != nil || !cachedChannelType(channel) {
-			return nil, false
-		}
-		res = channelJSON(*channel)
-	case cachedChannelsPath.MatchString(req.Path):
-		m := cachedChannelsPath.FindStringSubmatch(req.Path)
-		channels, err := cabinet.Channels(discord.GuildID(snowflake(m[1])))
-		if err != nil {
-			return nil, false
-		}
-		// Like Discord, without threads.
-		list := make([]map[string]any, 0, len(channels))
-		for _, c := range channels {
-			if cachedChannelType(&c) {
-				list = append(list, channelJSON(c))
-			}
-		}
-		res = list
-	default:
+func (p *DiscordProvider) cachedMember(ids []discord.Snowflake) (any, bool) {
+	// Without the intent, members in the cache come from messages and
+	// interactions, and their roles and nickname can be outdated.
+	if !p.session.HasIntents(gateway.IntentGuildMembers) {
 		return nil, false
 	}
-
-	b, err := json.Marshal(res)
+	member, err := p.session.Cabinet.Member(discord.GuildID(ids[0]), discord.UserID(ids[1]))
 	if err != nil {
 		return nil, false
 	}
-	return b, true
+	return memberJSON(*member), true
 }
 
-func snowflake(s string) discord.Snowflake {
-	id, _ := discord.ParseSnowflake(s)
-	return id
+func (p *DiscordProvider) cachedRoles(ids []discord.Snowflake) (any, bool) {
+	roles, err := p.session.Cabinet.Roles(discord.GuildID(ids[0]))
+	if err != nil {
+		return nil, false
+	}
+	list := make([]map[string]any, len(roles))
+	for i, r := range roles {
+		list[i] = roleJSON(r)
+	}
+	return list, true
+}
+
+func (p *DiscordProvider) cachedRole(ids []discord.Snowflake) (any, bool) {
+	role, err := p.session.Cabinet.Role(discord.GuildID(ids[0]), discord.RoleID(ids[1]))
+	if err != nil {
+		return nil, false
+	}
+	return roleJSON(*role), true
+}
+
+func (p *DiscordProvider) cachedChannel(ids []discord.Snowflake) (any, bool) {
+	channel, err := p.session.Cabinet.Channel(discord.ChannelID(ids[0]))
+	if err != nil || !cachedChannelType(channel) {
+		return nil, false
+	}
+	return channelJSON(*channel), true
+}
+
+func (p *DiscordProvider) cachedChannels(ids []discord.Snowflake) (any, bool) {
+	channels, err := p.session.Cabinet.Channels(discord.GuildID(ids[0]))
+	if err != nil {
+		return nil, false
+	}
+	// Like Discord, without threads.
+	list := make([]map[string]any, 0, len(channels))
+	for _, c := range channels {
+		if cachedChannelType(&c) {
+			list = append(list, channelJSON(c))
+		}
+	}
+	return list, true
 }
 
 // cachedChannelType reports whether c is a channel of a server and not a
 // thread, whose API objects have fields the cache doesn't keep up to date,
 // like the thread member of the bot.
 func cachedChannelType(c *discord.Channel) bool {
-	return c.GuildID.IsValid() && !slices.Contains([]discord.ChannelType{
-		discord.GuildAnnouncementThread,
-		discord.GuildPublicThread,
-		discord.GuildPrivateThread,
-	}, c.Type)
+	switch c.Type {
+	case discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
+		return false
+	}
+	return c.GuildID.IsValid()
 }
 
 // toJSONMap turns v into the map of its JSON.
