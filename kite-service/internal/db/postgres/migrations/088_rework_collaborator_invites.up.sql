@@ -5,6 +5,7 @@ ALTER TABLE collaborator_invites ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCE
 ALTER TABLE collaborator_invites ADD COLUMN IF NOT EXISTS invited_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS collaborator_invites_user_id ON collaborator_invites (user_id);
+CREATE INDEX IF NOT EXISTS collaborator_invites_invited_by_user_id ON collaborator_invites (invited_by_user_id);
 
 -- What collaborators did in an app, for its audit log.
 CREATE TABLE IF NOT EXISTS app_audit_logs (
@@ -22,3 +23,6 @@ CREATE TABLE IF NOT EXISTS app_audit_logs (
 );
 
 CREATE INDEX IF NOT EXISTS app_audit_logs_app_id_id ON app_audit_logs (app_id, id DESC);
+CREATE INDEX IF NOT EXISTS app_audit_logs_user_id ON app_audit_logs (user_id);
+-- For deleting old entries.
+CREATE INDEX IF NOT EXISTS app_audit_logs_created_at ON app_audit_logs (created_at);
