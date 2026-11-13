@@ -85,15 +85,15 @@ export function UserBadges({
 
   if (labeled) {
     return (
-      <div className={cn("flex flex-wrap gap-2", className)}>
+      <div className={cn("flex flex-wrap gap-1.5", className)}>
         {known.map(({ badge, info }) => (
           <Tooltip key={badge.kind}>
             <TooltipTrigger asChild>
               <span
                 tabIndex={0}
-                className="flex items-center gap-2 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
+                className="flex items-center gap-1.5 rounded-full border bg-background py-0.5 pl-1 pr-2.5 text-xs font-medium"
               >
-                <BadgeIcon svg={info.svg} className="h-6 w-6" />
+                <BadgeIcon svg={info.svg} className="h-5 w-5" />
                 {info.title}
               </span>
             </TooltipTrigger>
