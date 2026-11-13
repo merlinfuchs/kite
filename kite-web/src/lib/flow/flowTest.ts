@@ -1,17 +1,24 @@
-import { Message, messageSchema } from "../message/schema";
+import { itemVersionPathSegments } from "../api/queries";
+import { parsePreviewMessage } from "../message/documentConvert";
+import { Message } from "../message/schema";
+import { FlowData } from "../types/flow.gen";
+import { ComponentData, ComponentTypeStringSelect } from "../types/message.gen";
 import {
   FlowTestEffect,
   FlowTestMessage,
+  FlowTestRequest,
   FlowTestResponse,
 } from "../types/wire.gen";
+import { isSelectMenu } from "./resume";
+import { findFlowSourceComponent } from "./templates";
 
 // What a test of the flow in the editor runs. Drafts are tested as they are
 // in the editor, without saving them.
 export type FlowTestTarget =
-  | { kind: "command"; id: string }
-  | { kind: "event_listener"; id: string }
+  | { type: "command"; id: string }
+  | { type: "event_listener"; id: string }
   | {
-      kind: "message";
+      type: "message";
       id: string;
       // The button or select menu whose flow is tested.
       flowSourceId: string;
@@ -56,13 +63,130 @@ export const initialFlowTestState: FlowTestState = {
 };
 
 export function flowTestPath(target: FlowTestTarget) {
-  switch (target.kind) {
-    case "command":
-      return `commands/${target.id}`;
-    case "event_listener":
-      return `event-listeners/${target.id}`;
-    case "message":
-      return `messages/${target.id}`;
+  return `${itemVersionPathSegments[target.type]}/${target.id}`;
+}
+
+// The IDs in a text like "123, 456".
+export function splitIds(text: string) {
+  return text
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+// The select menu with the flow, or null if the flow is of a button. Only
+// string selects have options, the others pick users, roles or channels.
+export function findTestSelectMenu(
+  data: unknown,
+  flowSourceId: string
+): ComponentData | null {
+  const c = findFlowSourceComponent(data, flowSourceId) as
+    | ComponentData
+    | undefined;
+  return c && isSelectMenu(c) ? c : null;
+}
+
+const messageEvents = [
+  "message_create",
+  "direct_message_create",
+  "message_update",
+  "message_delete",
+];
+const reactionEvents = ["message_reaction_add", "message_reaction_remove"];
+
+// What the form asks for, which depends on the flow.
+export function flowTestInputs(eventType: string) {
+  return {
+    message: messageEvents.includes(eventType),
+    reaction: reactionEvents.includes(eventType),
+    webhook: eventType === "webhook",
+    // Scheduled and webhook runs have no user, server or channel.
+    place: eventType !== "webhook" && eventType !== "schedule_cron",
+  };
+}
+
+export type FlowTestArgument = { name: string; type?: string };
+
+// The request of a new test from the form.
+export function buildFlowTestRequest(
+  state: FlowTestState,
+  {
+    target,
+    flow,
+    guildId,
+    eventType,
+    commandType,
+    args,
+  }: {
+    target: FlowTestTarget;
+    flow: FlowData;
+    guildId: string | null;
+    eventType: string;
+    commandType: string;
+    // The arguments of a command by the ID of their block.
+    args: Record<string, FlowTestArgument>;
+  }
+): FlowTestRequest {
+  const inputs = flowTestInputs(eventType);
+  const req: FlowTestRequest = {
+    user_id: state.userId.trim() || undefined,
+    guild_id: guildId ?? undefined,
+    channel_id: inputs.place ? state.channelId ?? undefined : undefined,
+  };
+
+  if (target.type === "message") {
+    // The flow of the dialog is only in the message once it's closed.
+    const message = target.getMessage();
+    req.message = {
+      ...message,
+      flow_sources: { ...message.flow_sources, [target.flowSourceId]: flow },
+    };
+    req.flow_source_id = target.flowSourceId;
+    const selectMenu = findTestSelectMenu(message.data, target.flowSourceId);
+    if (selectMenu) {
+      req.values =
+        selectMenu.type === ComponentTypeStringSelect
+          ? state.values
+          : splitIds(state.valueIds);
+    }
+  } else {
+    req.flow_source = flow;
+  }
+
+  if (target.type === "command") {
+    if (commandType === "chat_input") {
+      req.options = {};
+      for (const [id, arg] of Object.entries(args)) {
+        const value = state.options[id]?.trim();
+        if (arg.name && value) {
+          req.options[arg.name] = optionValue(arg.type, value);
+        }
+      }
+    } else if (state.targetId.trim()) {
+      req.options = { target: state.targetId.trim() };
+    }
+  }
+
+  if (inputs.message && state.content) {
+    req.event = { content: state.content };
+  } else if (inputs.reaction && state.emoji.trim()) {
+    req.event = { emoji: { name: state.emoji.trim() } };
+  } else if (inputs.webhook) {
+    req.webhook = { body: state.webhookBody };
+  }
+
+  return req;
+}
+
+function optionValue(type: string | undefined, value: string): unknown {
+  switch (type) {
+    case "integer":
+    case "number":
+      return Number(value);
+    case "boolean":
+      return value === "true";
+    default:
+      return value;
   }
 }
 
@@ -114,35 +238,32 @@ export function flowTestEffectTitle(effect: FlowTestEffect) {
   );
 }
 
-// The message an effect would send or edit to, for the preview. It's in
-// Discord's format, which is close enough to the editor's to show it. Null if
-// it has no message or it can't be shown.
+// The message an effect would send or edit to, for the preview, or null if
+// it has none. It's in Discord's format, which the editor reads like its own
+// once custom IDs are flow_source_id.
 export function flowTestEffectMessage(effect: FlowTestEffect): Message | null {
   const data = effect.data?.message;
   if (!data || typeof data !== "object") return null;
 
-  const res = messageSchema.safeParse({
-    ...(toEditorFormat(data) as object),
+  const msg = parsePreviewMessage({
+    ...data,
+    components: withFlowSourceIds(data.components),
+  });
+  if (!msg) return null;
+  return {
+    ...msg,
     username: effect.data?.name || undefined,
     avatar_url: effect.data?.avatar_url || undefined,
-    attachments: [],
-  });
-  return res.success ? res.data : null;
+  };
 }
 
-// Leaves out nulls, which the editor leaves out instead, and makes the custom
-// IDs of buttons and select menus their flow_source_id.
-function toEditorFormat(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(toEditorFormat);
+function withFlowSourceIds(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withFlowSourceIds);
   if (!value || typeof value !== "object") return value;
-
-  const res: Record<string, unknown> = {};
-  for (const [key, v] of Object.entries(value)) {
-    if (key === "custom_id") {
-      res.flow_source_id = v;
-    } else if (v !== null) {
-      res[key] = toEditorFormat(v);
-    }
-  }
-  return res;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, v]) => [
+      key === "custom_id" ? "flow_source_id" : key,
+      withFlowSourceIds(v),
+    ])
+  );
 }

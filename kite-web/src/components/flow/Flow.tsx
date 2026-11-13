@@ -18,11 +18,7 @@ import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
 import { useFlowParametersStore } from "@/lib/flow/parametersStore";
 import { isNoteNode } from "@/lib/flow/notes";
-import {
-  FlowTestState,
-  FlowTestTarget,
-  initialFlowTestState,
-} from "@/lib/flow/flowTest";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import FlowTestDrawer from "./FlowTestDrawer";
 
 interface Props {
@@ -62,8 +58,6 @@ export default function Flow({
   const [logsOpen, setLogsOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
-  const [testState, setTestState] =
-    useState<FlowTestState>(initialFlowTestState);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -175,8 +169,6 @@ export default function Flow({
           selectedNodeId={selectedNodeId}
           logs={logs}
           testTarget={testTarget}
-          testState={testState}
-          onTestStateChange={setTestState}
           onShowNode={showNode}
         />
 
@@ -265,8 +257,6 @@ export default function Flow({
         {testTarget && (
           <FlowTestDrawer
             target={testTarget}
-            state={testState}
-            onStateChange={setTestState}
             open={testOpen}
             onOpenChange={setTestOpen}
             onShowNode={showNode}

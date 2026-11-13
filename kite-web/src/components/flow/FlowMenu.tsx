@@ -10,13 +10,7 @@ import {
   SlidersHorizontalIcon,
   TextCursorInputIcon,
 } from "lucide-react";
-import {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowLogList from "./FlowLogList";
 import FlowNodeEditor from "./FlowNodeEditor";
@@ -24,7 +18,7 @@ import FlowNodeExplorer from "./FlowNodeExplorer";
 import FlowParameterList from "./FlowParameterList";
 import { useStoreApi } from "@xyflow/react";
 import { useMissingParameterCount } from "@/lib/flow/parametersStore";
-import { FlowTestState, FlowTestTarget } from "@/lib/flow/flowTest";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import FlowTestPanel from "./FlowTestPanel";
 
 type Tab =
@@ -40,15 +34,11 @@ export default function FlowMenu({
   selectedNodeId,
   logs,
   testTarget,
-  testState,
-  onTestStateChange,
   onShowNode,
 }: {
   selectedNodeId: string | null;
   logs?: LogEntry[];
   testTarget?: FlowTestTarget;
-  testState: FlowTestState;
-  onTestStateChange: Dispatch<SetStateAction<FlowTestState>>;
   onShowNode: (id: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("action");
@@ -139,12 +129,7 @@ export default function FlowMenu({
         {tab === "logs" && <FlowLogList logs={logs} onShowNode={onShowNode} />}
 
         {tab === "test" && testTarget && (
-          <FlowTestPanel
-            target={testTarget}
-            state={testState}
-            onStateChange={onTestStateChange}
-            onShowNode={onShowNode}
-          />
+          <FlowTestPanel target={testTarget} onShowNode={onShowNode} />
         )}
 
         {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}

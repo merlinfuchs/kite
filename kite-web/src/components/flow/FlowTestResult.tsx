@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useStore } from "@xyflow/react";
 import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
 import { getNodeTitle, getNodeValues } from "@/lib/flow/nodes";
@@ -12,9 +13,8 @@ import {
   FlowTestResponse,
   FlowTestStep,
 } from "@/lib/types/wire.gen";
-import { useTheme } from "next-themes";
 import DynamicIcon from "../icons/DynamicIcon";
-import MessagePreview from "../message/MessagePreview";
+import MessagePreviewBox from "../message/MessagePreviewBox";
 import { ShowBlockButton } from "./FlowLogList";
 
 export default function FlowTestResult({
@@ -127,8 +127,7 @@ function Step({
 }
 
 function Effect({ effect }: { effect: FlowTestEffect }) {
-  const { resolvedTheme } = useTheme();
-  const message = flowTestEffectMessage(effect);
+  const message = useMemo(() => flowTestEffectMessage(effect), [effect]);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -143,13 +142,7 @@ function Effect({ effect }: { effect: FlowTestEffect }) {
         </div>
       ))}
       {message ? (
-        <div className="rounded-md overflow-hidden">
-          <MessagePreview
-            msg={message}
-            lightTheme={resolvedTheme === "light"}
-            reducePadding
-          />
-        </div>
+        <MessagePreviewBox msg={message} />
       ) : (
         effect.data != null && <Details summary="Details" value={effect.data} />
       )}
@@ -161,16 +154,24 @@ function Note({ text }: { text: string }) {
   return <div className="text-sm text-muted-foreground">{text}</div>;
 }
 
+// Results can be large, so they're only formatted when opened.
 function Details({ summary, value }: { summary: string; value: unknown }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <details className="group text-sm">
+    <details
+      className="group text-sm"
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
       <summary className="cursor-pointer list-none flex items-center gap-1 text-muted-foreground hover:text-foreground">
         <ChevronRightIcon className="size-3.5 transition-transform group-open:rotate-90" />
         {summary}
       </summary>
-      <pre className="mt-1.5 max-h-64 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all">
-        {JSON.stringify(value, null, 2)}
-      </pre>
+      {open && (
+        <pre className="mt-1.5 max-h-64 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      )}
     </details>
   );
 }
