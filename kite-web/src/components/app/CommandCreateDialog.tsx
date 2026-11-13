@@ -12,7 +12,6 @@ import { ReactNode, useState } from "react";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,7 +24,7 @@ import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
-import { CommandAvailability, newCommandFlow } from "@/lib/flow/newFlows";
+import { newCommandFlow } from "@/lib/flow/newFlows";
 import { CommandType, commandTypeOptions } from "@/lib/flow/commandTypes";
 import { track } from "@/lib/analytics";
 import {
@@ -40,7 +39,6 @@ interface FormFields {
   name: string;
   description: string;
   command_type: CommandType;
-  availability: CommandAvailability;
 }
 
 export default function CommandCreateDialog({
@@ -59,7 +57,6 @@ export default function CommandCreateDialog({
       name: "",
       description: "",
       command_type: "chat_input",
-      availability: "everywhere",
     },
   });
   const isSlash = form.watch("command_type") === "chat_input";
@@ -72,8 +69,7 @@ export default function CommandCreateDialog({
         flow_source: newCommandFlow(
           data.name,
           data.description,
-          data.command_type,
-          data.availability
+          data.command_type
         ),
         enabled: true,
       },
@@ -179,34 +175,6 @@ export default function CommandCreateDialog({
                 )}
               />
             )}
-            <FormField
-              control={form.control}
-              name="availability"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Where it works</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="everywhere">Everywhere</SelectItem>
-                      <SelectItem value="servers">Only in servers</SelectItem>
-                      <SelectItem value="users">
-                        Only for users who added the bot
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Users can add the bot to their account to use its commands
-                    anywhere. Change this later with the Command Contexts block.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
                 Create command

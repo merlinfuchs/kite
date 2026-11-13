@@ -1,58 +1,29 @@
 import { getUniqueId } from "../utils";
 import { getNodeId } from "./nodes";
-import { FlowEdge, FlowNode } from "../types/flow.gen";
 import { CommandType } from "./commandTypes";
 
 // The flows new commands, event listeners, buttons and select menus start
-// with: only the entry block, and a Command Contexts block for commands that
-// don't work everywhere.
-
-// Where a new command can be used. Commands work everywhere unless their
-// Command Contexts block limits them.
-export type CommandAvailability = "everywhere" | "servers" | "users";
+// with: only the entry block.
 
 export function newCommandFlow(
   name: string,
   description: string,
-  commandType: CommandType = "chat_input",
-  availability: CommandAvailability = "everywhere"
+  commandType: CommandType = "chat_input"
 ) {
-  const entryId = getNodeId("entry_command");
-  const nodes: FlowNode[] = [
-    {
-      id: entryId,
-      position: { x: 0, y: 0 },
-      data:
-        commandType === "chat_input"
-          ? { name, description }
-          : { name, command_type: commandType },
-      type: "entry_command",
-    },
-  ];
-  const edges: FlowEdge[] = [];
-
-  if (availability !== "everywhere") {
-    const contextsId = getNodeId("option_command_contexts");
-    nodes.push({
-      id: contextsId,
-      position: { x: 0, y: -200 },
-      data:
-        availability === "servers"
-          ? {
-              command_disabled_contexts: ["bot_dm", "private_channel"],
-              command_disabled_integrations: ["user_install"],
-            }
-          : { command_disabled_integrations: ["guild_install"] },
-      type: "option_command_contexts",
-    });
-    edges.push({
-      id: getUniqueId().toString(),
-      source: contextsId,
-      target: entryId,
-    });
-  }
-
-  return { nodes, edges };
+  return {
+    nodes: [
+      {
+        id: getNodeId("entry_command"),
+        position: { x: 0, y: 0 },
+        data:
+          commandType === "chat_input"
+            ? { name, description }
+            : { name, command_type: commandType },
+        type: "entry_command",
+      },
+    ],
+    edges: [],
+  };
 }
 
 export function newEventListenerFlow(
