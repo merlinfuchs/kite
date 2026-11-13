@@ -64,6 +64,8 @@ const config: Config = {
   themeConfig: {
     // Replace with your project's social card
     image: "img/logo.png",
+    // The color of link previews on Discord, like kite.onl.
+    metadata: [{ name: "theme-color", content: "#f97316" }],
     navbar: {
       title: "Kite",
       logo: {
@@ -144,6 +146,7 @@ const config: Config = {
   plugins: [
     "./src/plugins/webpack-config.js",
     "./src/plugins/tailwind-config.js",
+    "./src/plugins/link-previews.js",
   ],
 };
 
