@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-13",
+    title: "Disabled commands and event listeners don't count toward your plan",
+    description:
+      "Keep commands and event listeners you don't need right now disabled instead of deleting them. Only enabled ones count toward your plan's limits. An app can have up to 3 times each limit, enabled or not.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/premium#what-premium-changes`,
+  },
+  {
+    date: "2026-11-13",
     title: "User and Message commands",
     description:
       "Create commands that show in the Apps menu when someone right-clicks a user or a message, like Report message or User info. Pick the type when you create a command. The flow can read the user or message it was used on.",
