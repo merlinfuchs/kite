@@ -93,7 +93,7 @@ export function UserBadges({
                 tabIndex={0}
                 className="flex items-center gap-1.5 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
               >
-                <BadgeIcon svg={info.svg} className="h-5 w-5" />
+                <BadgeIcon svg={info.svg} className="h-[22px] w-[22px]" />
                 {info.title}
               </span>
             </TooltipTrigger>
