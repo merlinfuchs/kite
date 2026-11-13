@@ -8176,20 +8176,17 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 32,
-            "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
-            "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+            "pattern": "\\S",
+            "description": "Name of the command shown in Discord. Slash command names are lowercase letters, numbers, - and _. Up to three space separated words create subcommands, e.g. 'ticket open'."
           },
           "description": {
+            "description": "Description of the command shown in Discord. Required for slash commands.",
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "pattern": "\\S",
-            "description": "Description of the command shown in Discord."
+            "maxLength": 100
           }
         },
         "required": [
-          "name",
-          "description"
+          "name"
         ],
         "additionalProperties": false
       },

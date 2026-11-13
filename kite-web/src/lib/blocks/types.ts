@@ -81,10 +81,6 @@ export interface BlockField {
   // it can't get right, like IDs of blocks, which it only knows by ref for the
   // blocks it adds.
   hidden_from_ai?: boolean;
-  // The schema the flow catalog shows instead, for settings the flow AI only
-  // sets one way, like the name of a slash command, as it can't make context
-  // menu commands.
-  ai_schema?: z.ZodType;
 }
 
 // A request to an integration's API, with the bot's token or the app's

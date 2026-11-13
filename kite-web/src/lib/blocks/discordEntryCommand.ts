@@ -3,26 +3,19 @@ import { BlockDefinition } from "./types";
 import { isContextMenuCommand } from "../flow/commandTypes";
 
 // User and Message commands can have any name and no description, slash
-// commands can't. The flow AI only sees these, as it only makes slash
-// commands.
+// commands can't. The flow AI only makes slash commands, so the descriptions
+// of the fields say these rules.
 const slashCommandName = z
   .string()
-  .max(32)
-  .min(1)
   .regex(
     /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
     "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
-  )
-  .describe(
-    "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
   );
 
 const slashCommandDescription = z
   .string()
-  .max(100)
   .min(1)
-  .regex(/\S/, "Can't be only spaces.")
-  .describe("Description of the command shown in Discord.");
+  .regex(/\S/, "Can't be only spaces.");
 
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
@@ -53,8 +46,9 @@ export const discordEntryCommand: BlockDefinition = {
         .max(32)
         .min(1)
         .regex(/\S/, "Can't be only spaces.")
-        .describe("Name of the command shown in Discord."),
-      ai_schema: slashCommandName,
+        .describe(
+          "Name of the command shown in Discord. Slash command names are lowercase letters, numbers, - and _. Up to three space separated words create subcommands, e.g. 'ticket open'."
+        ),
     },
     {
       name: "description",
@@ -62,8 +56,9 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(100)
         .optional()
-        .describe("Description of a slash command shown in Discord."),
-      ai_schema: slashCommandDescription,
+        .describe(
+          "Description of the command shown in Discord. Required for slash commands."
+        ),
     },
     {
       name: "command_argument_order",
