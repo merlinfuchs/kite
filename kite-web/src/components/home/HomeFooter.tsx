@@ -20,7 +20,7 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
-  { label: "All comparisons", href: "/alternatives" },
+  { label: "Best free bot makers", href: "/alternatives" },
 ];
 
 export default function HomeFooter() {
@@ -171,10 +171,20 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
+            rel="noopener"
             href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             Merlin Fuchs
+          </a>{" "}
+          and{" "}
+          <a
+            target="_blank"
+            rel="noreferrer noopener"
+            href="https://github.com/merlinfuchs/kite/graphs/contributors?all=1"
+            className="text-primary transition-all border-primary hover:border-b-2"
+          >
+            contributors
           </a>
         </h3>
       </section>

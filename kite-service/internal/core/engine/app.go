@@ -354,7 +354,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // so link previews and pins don't run Message Update listeners.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	switch event.(type) {
-	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent:
+	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent, *gateway.VoiceStateUpdateEvent:
 		return nil
 	}
 

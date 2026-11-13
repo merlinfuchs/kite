@@ -132,12 +132,21 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
+	channelID := discord.ChannelID(channelTarget.Snowflake())
+	tags, err := n.forumPostTags(ctx, channelID, true)
+	if err != nil {
+		return err
+	}
+	if tags != nil {
+		editData.AppliedTags = &tags
+	}
+
 	editData.AuditLogReason, err = evalAuditLogReason(n, ctx)
 	if err != nil {
 		return err
 	}
 
-	channel, err := ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
+	channel, err := ctx.Discord.EditChannel(ctx, channelID, editData)
 	if err != nil {
 		return err
 	}
@@ -238,7 +247,7 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return fmt.Errorf("post name is required")
 	}
 
-	tags, err := n.forumPostTags(ctx, channelID)
+	tags, err := n.forumPostTags(ctx, channelID, false)
 	if err != nil {
 		return err
 	}
@@ -289,8 +298,9 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 // forumPostTags returns the IDs of the forum's tags the node names, by name
-// or ID, since Discord doesn't show tag IDs.
-func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.ChannelID) ([]discord.TagID, error) {
+// or ID, since Discord doesn't show tag IDs. When isPost is true, channelID is
+// the forum post and its parent forum channel is looked up.
+func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.ChannelID, isPost bool) ([]discord.TagID, error) {
 	value, err := ctx.EvalTemplate(n.Data.ChannelData.AppliedTags)
 	if err != nil {
 		return nil, err
@@ -316,12 +326,27 @@ func (n *CompiledFlowNode) forumPostTags(ctx *FlowContext, channelID discord.Cha
 		return nil, fmt.Errorf("a post can have at most %d tags, got %d", maxForumPostTags, len(names))
 	}
 
+	notForum := fmt.Errorf("channel %s is not a forum or media channel", channelID)
+	if isPost {
+		// Posts are threads, but so are threads of text channels, which have
+		// no tags.
+		notForum = fmt.Errorf("only forum and media posts have tags, channel %s isn't one", channelID)
+		post, err := ctx.Discord.Channel(ctx, channelID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get post channel: %w", err)
+		}
+		if post == nil || post.Type != discord.GuildPublicThread {
+			return nil, notForum
+		}
+		channelID = post.ParentID
+	}
+
 	channel, err := ctx.Discord.Channel(ctx, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get forum channel: %w", err)
 	}
 	if channel == nil || channel.Type != discord.GuildForum && channel.Type != guildMediaChannel {
-		return nil, fmt.Errorf("channel %s is not a forum or media channel", channelID)
+		return nil, notForum
 	}
 
 	tags := make([]discord.TagID, 0, len(names))

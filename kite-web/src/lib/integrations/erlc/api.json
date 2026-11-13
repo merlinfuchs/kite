@@ -5,6 +5,7 @@
       "id": "get_server",
       "method": "GET",
       "path": "/v2/server",
+      "credits": 1,
       "path_params": [],
       "query_params": [
         {
@@ -59,6 +60,7 @@
       "id": "run_command",
       "method": "POST",
       "path": "/v2/server/command",
+      "credits": 1,
       "path_params": [],
       "query_params": [],
       "has_body": true,

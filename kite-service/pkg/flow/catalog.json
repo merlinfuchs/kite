@@ -245,7 +245,8 @@
               "message_has_attachment",
               "message_mentions_bot",
               "user_is_bot",
-              "audit_log_action"
+              "audit_log_action",
+              "voice_state_action"
             ],
             "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
           },
@@ -277,7 +278,7 @@
           "event_filter_target",
           "event_filter_mode"
         ],
-        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener.",
+        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action and voice_state_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener.",
         "additionalProperties": false
       },
       "result_schema": null
@@ -3783,6 +3784,11 @@
               "locked": {
                 "description": "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
+              },
+              "applied_tags": {
+                "type": "string",
+                "description": "Names or IDs of up to 5 of the forum's tags, separated by commas. Only for forum and media posts. Left as they are if not set.",
+                "x-templated": true
               }
             },
             "description": "Settings of the channel or thread.",
@@ -4859,7 +4865,7 @@
     },
     "action_server_profile_edit": {
       "title": "Edit server profile",
-      "description": "Change the bot's nickname, avatar, banner or bio in a server",
+      "description": "Change the bot's nickname, avatar, banner, bio, or name style in a server",
       "contexts": [
         "command",
         "component_button",
@@ -4919,8 +4925,62 @@
                 "description": "About me of the bot in the server. Empty resets it to the bot's own.",
                 "x-templated": true
               },
+              "name_style": {
+                "description": "Font, effect and colors of the bot's name. Reset profile removes it.",
+                "type": "object",
+                "properties": {
+                  "font": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "sakura",
+                      "jellybean",
+                      "modern",
+                      "medieval",
+                      "8bit",
+                      "vampyre",
+                      "tempo",
+                      "monkey_bars",
+                      "mainframe",
+                      "headbang",
+                      "journal"
+                    ],
+                    "description": "Font of the name, shown in servers and in the bot's profile."
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": [
+                      "solid",
+                      "gradient",
+                      "neon",
+                      "toon",
+                      "pop",
+                      "prism",
+                      "gummy"
+                    ],
+                    "description": "Effect of the name in the bot's profile. Solid, neon, toon and pop use one color, gradient two, gummy four and prism five."
+                  },
+                  "colors": {
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Hex color like #5865F2, or a number like 5793266.",
+                      "x-templated": true
+                    },
+                    "description": "Colors of the name in the bot's profile. Servers show the role color instead."
+                  }
+                },
+                "required": [
+                  "font",
+                  "effect",
+                  "colors"
+                ],
+                "additionalProperties": false
+              },
               "reset": {
-                "description": "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields.",
+                "description": "Reset the nickname, avatar, banner, about me and name style to the bot's own. Can't be combined with the other fields.",
                 "type": "boolean"
               }
             },
@@ -4999,7 +5059,7 @@
               "increment",
               "decrement"
             ],
-            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number."
+            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number. append and prepend add text to the end or start, or the value as one item to a stored list."
           },
           "variable_value": {
             "type": "string",
@@ -5840,6 +5900,111 @@
       },
       "result_schema": {
         "description": "The value the expression evaluates to."
+      }
+    },
+    "action_javascript_run": {
+      "title": "Run JavaScript",
+      "description": "Run a short piece of JavaScript and use what it returns later",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "javascript_data": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. A failed request throws an Error with status, like 404, and Discord's error code as code. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit. Up to 20 calls per run. fetch(url, {method, headers, body}) sends a request to any URL for 3 credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It can't change anything in Discord, and has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
+              },
+              "inputs": {
+                "description": "Values the code gets from the flow.",
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name of the input, read in the code as input.name."
+                    },
+                    "value": {
+                      "description": "Value of the input, like {{arg('amount')}}. A single placeholder keeps its type, like a number or a list. Users, members, channels, roles and messages become objects with the fields of their placeholders, like input.user.display_name, but without user.role_names, permissions, is_admin, is_owner, top_role and color, the category of a channel, and the counts and channels of a server. {{guild}} and {{channel}} are the ID of the server and channel the flow runs in, so pass the fields you need. A response of a Send API Request block has status_code, body and data.",
+                      "x-templated": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "variables": {
+                "description": "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), append({name, scope, value}) and prepend, which add an item to a list or text, increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit.",
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name the code uses for the variable, like variables.get({name: \"xp\", scope: input.user.id})."
+                    },
+                    "variable_id": {
+                      "type": "string",
+                      "description": "ID of an existing stored variable.",
+                      "x-user-picked": true
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "variable_id"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "code"
+            ],
+            "description": "The code to run and the values it gets.",
+            "additionalProperties": false
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "javascript_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "What the code returns, like a number, text, list or object."
       }
     },
     "action_random_generate": {
@@ -8062,6 +8227,7 @@
               "guild_boost",
               "guild_boost_remove",
               "guild_audit_log_entry_create",
+              "voice_state_update",
               "cron",
               "webhook"
             ],

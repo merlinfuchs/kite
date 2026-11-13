@@ -309,3 +309,25 @@ func TestEquals(t *testing.T) {
 		assert.Equal(t, tc.want, tc.b.Equals(&tc.a), "%v == %v", tc.b.Value, tc.a.Value)
 	}
 }
+
+func TestAppendAndPrepend(t *testing.T) {
+	assert.Equal(t, "ab", NewString("a").Append(NewString("b")).String())
+	assert.Equal(t, "ba", NewString("a").Prepend(NewString("b")).String())
+	assert.Equal(t, "12", NewInt(1).Append(NewInt(2)).String())
+
+	list := NewArray([]Thing{NewInt(1)})
+	assert.Equal(t, []any{int64(1), "x"}, list.Append(NewString("x")).JSONValue())
+	assert.Equal(t, []any{"x", int64(1)}, list.Prepend(NewString("x")).JSONValue())
+	// A list is added as one item.
+	assert.Len(t, list.Append(list).Array(), 2)
+	// The list itself isn't changed.
+	assert.Len(t, list.Array(), 1)
+
+	// Nothing adds nothing.
+	assert.Len(t, list.Append(Null).Array(), 1)
+	assert.Len(t, list.Append(NewString("")).Array(), 1)
+	// Objects and lists can't be joined to text, they start a list.
+	obj := NewObject(map[string]Thing{"id": NewInt(1)})
+	assert.Equal(t, []any{"a", map[string]any{"id": int64(1)}}, NewString("a").Append(obj).JSONValue())
+	assert.Equal(t, []any{map[string]any{"id": int64(1)}}, Null.Append(obj).JSONValue())
+}

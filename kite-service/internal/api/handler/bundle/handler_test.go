@@ -96,7 +96,7 @@ func TestBundleGet(t *testing.T) {
 			VersionNotes: []model.BundleVersionNotes{{Version: 2, Notes: "Added /kick."}},
 		},
 	}}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 
 	code, res := get(t, h, "moderation", "")
 	require.Equal(t, http.StatusOK, code, res)
@@ -165,7 +165,7 @@ func list(t *testing.T, h *BundleHandler, userID string) []map[string]any {
 
 func TestBundleList(t *testing.T) {
 	bundles := &listedBundleStore{}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 	data := list(t, h, "")
 	require.Len(t, data, 2)
 	// Official ones first, then users' listed ones with who made them.
@@ -195,7 +195,7 @@ func TestBundleList(t *testing.T) {
 // A bundle whose content can't be read is left out of the list.
 func TestBundleListSkipsBrokenContent(t *testing.T) {
 	bundles := &brokenBundleStore{}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 	data := list(t, h, "")
 	require.Len(t, data, 1)
 	assert.Equal(t, "moderation", data[0]["id"])
@@ -216,7 +216,7 @@ func TestBundleGetRemoved(t *testing.T) {
 			RemovedReason: "Steals tokens.",
 		},
 	}}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 
 	// Apps that added it learn why it's gone, its owner still sees it.
 	code, res := get(t, h, "kit", "someone")
@@ -232,7 +232,7 @@ func TestBundleReportCreate(t *testing.T) {
 		"removed":    {ID: "removed", OwnerUserID: null.StringFrom("owner"), RemovedAt: null.TimeFrom(time.Now())},
 		"moderation": {ID: "moderation"},
 	}}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 	report := func(userID, bundleID string, req wire.BundleReportCreateRequest) int {
 		srv := handler.APIHandler(func(c *handler.Context) error {
 			c.Session = &model.Session{UserID: userID}
@@ -268,7 +268,7 @@ func TestBundleStar(t *testing.T) {
 		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
 		"removed":    {ID: "removed", OwnerUserID: null.StringFrom("owner"), RemovedAt: null.TimeFrom(time.Now())},
 	}}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
+	h := NewBundleHandler(bundles, &memoryUserStore{}, noBadges{})
 	call := func(f func(c *handler.Context) error, userID, bundleID string) (int, map[string]any) {
 		srv := handler.APIHandler(func(c *handler.Context) error {
 			c.Session = &model.Session{UserID: userID}
@@ -318,7 +318,7 @@ func (s *starredBundleStore) StarredBundleIDs(ctx context.Context, userID string
 
 // Users who didn't star any get an empty list, not null.
 func TestStarredBundleListEmpty(t *testing.T) {
-	h := NewBundleHandler(&starredBundleStore{}, &memoryUserStore{})
+	h := NewBundleHandler(&starredBundleStore{}, &memoryUserStore{}, noBadges{})
 	srv := handler.APIHandler(func(c *handler.Context) error {
 		c.Session = &model.Session{UserID: "someone"}
 		return handler.Typed(h.HandleStarredBundleList)(c)
@@ -326,4 +326,10 @@ func TestStarredBundleListEmpty(t *testing.T) {
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	assert.JSONEq(t, `{"success": true, "data": []}`, rec.Body.String())
+}
+
+type noBadges struct{}
+
+func (noBadges) UserBadges(context.Context, []string) (map[string][]model.UserBadge, error) {
+	return nil, nil
 }

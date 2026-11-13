@@ -34,15 +34,16 @@ Copied blocks go to your clipboard, so you can paste them into another command, 
 
 On a Mac, use `Cmd` instead of `Ctrl`.
 
-| Shortcut                               | Action                     |
-| -------------------------------------- | -------------------------- |
-| `Ctrl+C`                               | Copy the selected blocks   |
-| `Ctrl+X`                               | Cut the selected blocks    |
-| `Ctrl+V`                               | Paste at the mouse         |
-| `Delete` or `Backspace`                | Delete the selected blocks |
-| `Ctrl+Z`                               | Undo                       |
-| `Ctrl+Shift+Z`, or `Ctrl+Y` on Windows | Redo                       |
-| `Shift` and drag                       | Select several blocks      |
+| Shortcut                               | Action                        |
+| -------------------------------------- | ----------------------------- |
+| `Ctrl+C`                               | Copy the selected blocks      |
+| `Ctrl+X`                               | Cut the selected blocks       |
+| `Ctrl+V`                               | Paste at the mouse            |
+| `Ctrl+D`                               | Duplicate the selected blocks |
+| `Delete` or `Backspace`                | Delete the selected blocks    |
+| `Ctrl+Z`                               | Undo                          |
+| `Ctrl+Shift+Z`, or `Ctrl+Y` on Windows | Redo                          |
+| `Shift` and drag                       | Select several blocks         |
 
 Undo and redo go through your recent changes to the flow, including the changes [Flow AI](./flow-ai.md) made. While you type in a setting, they undo your typing instead.
 

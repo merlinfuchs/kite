@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
+import {
+  maxNameStyleColors,
+  nameStyleEffects,
+  nameStyleFonts,
+} from "../nameStyle";
 import { guildTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -9,11 +14,40 @@ const imageUrl = (what: string) =>
     `URL of a PNG, JPEG, GIF or WebP image up to 10 MB for the bot's ${what} in the server, like {{user.avatar_url}}. Empty resets it to the bot's own ${what}.`
   ).optional();
 
+const nameStyle = z
+  .object({
+    font: z
+      .enum(nameStyleFonts.map((f) => f.value))
+      .describe("Font of the name, shown in servers and in the bot's profile."),
+    effect: z
+      .enum(nameStyleEffects.map((e) => e.value))
+      .describe(
+        "Effect of the name in the bot's profile. Solid, neon, toon and pop use one color, gradient two, gummy four and prism five."
+      ),
+    colors: z
+      .array(
+        templated(
+          z.string(),
+          "Hex color like #5865F2, or a number like 5793266."
+        )
+      )
+      .min(1)
+      .max(maxNameStyleColors)
+      .describe(
+        "Colors of the name in the bot's profile. Servers show the role color instead."
+      ),
+  })
+  .optional()
+  .describe(
+    "Font, effect and colors of the bot's name. Reset profile removes it."
+  );
+
 export const discordServerProfileEdit: BlockDefinition = {
   type: "action_server_profile_edit",
   id_prefix: "profile",
   title: "Edit server profile",
-  description: "Change the bot's nickname, avatar, banner or bio in a server",
+  description:
+    "Change the bot's nickname, avatar, banner, bio, or name style in a server",
   icon: "id-card",
   category: "Bot",
   requires: ["discord"],
@@ -36,11 +70,12 @@ export const discordServerProfileEdit: BlockDefinition = {
             z.string().max(190),
             "About me of the bot in the server. Empty resets it to the bot's own."
           ).optional(),
+          name_style: nameStyle,
           reset: z
             .boolean()
             .optional()
             .describe(
-              "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields."
+              "Reset the nickname, avatar, banner, about me and name style to the bot's own. Can't be combined with the other fields."
             ),
         })
         .refine((d) => Object.values(d).some((v) => v !== undefined), {
@@ -49,7 +84,7 @@ export const discordServerProfileEdit: BlockDefinition = {
         .refine(
           (d) =>
             !d.reset ||
-            [d.nick, d.avatar_url, d.banner_url, d.bio].every(
+            [d.nick, d.avatar_url, d.banner_url, d.bio, d.name_style].every(
               (v) => v === undefined
             ),
           { message: "Reset can't be combined with other changes" }

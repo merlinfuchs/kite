@@ -141,6 +141,8 @@ github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1 h1:qiTuuY
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030213645-d41ec3c65ad1/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08 h1:GMKYkoAIYASuQitNVmAF+UwILeHLCIdOOANXiQocn6c=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152914-afdb544a6f4c h1:qAyMbcxloFxLwoR5iXhxyCBud7JaCQq5o4+xo7AMO90=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152914-afdb544a6f4c/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18 h1:TzcHgTqhzmYpx2nz5BhZzh1RqDj40BYV/wzsbTntXQ0=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18/go.mod h1:HTdfVqfNwFuLMZu43+UDFOXUseQ8NvkG50KsTRBuBQk=
 github.com/minio/md5-simd v1.1.2 h1:Gdi1DZK69+ZVMoNHRXJyNcxrMA4dSxoYHZSQbirFg34=
@@ -204,6 +206,8 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
+github.com/tetratelabs/wazero v1.12.0 h1:DuWcpNu/FzgEXgGBDp8J1Spc+CWOvvtvVyjKlaZopYU=
+github.com/tetratelabs/wazero v1.12.0/go.mod h1:LvKtzl2RqO4gyF27BiXU+nKAjcV8f38U+kP/q2vgxh0=
 github.com/thomas-vilte/dave-go v0.5.1 h1:sc0roOie5Ayn+3eKOUjry9kbBPDvFQCF8t+gy/EOrW4=
 github.com/thomas-vilte/dave-go v0.5.1/go.mod h1:h0UvVsCDECUe6W6dlSHEQTbx3TT13pGmHGngG0GXg1o=
 github.com/thomas-vilte/mls-go v1.6.0 h1:HGxrRe0kRfEAXu7MtTemNzqGmC/758rfGkarhYGPOYg=

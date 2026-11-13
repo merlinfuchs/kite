@@ -17,6 +17,8 @@ export interface ApiOperation {
   id: string;
   method: string;
   path: string;
+  // Credits each request costs, from request blocks and from code.
+  credits: number;
   path_params: ApiParam[];
   query_params: ApiParam[];
   has_body: boolean;
@@ -35,4 +37,10 @@ export interface IntegrationApi {
   // that they're written by hand.
   source: string;
   operations: ApiOperation[];
+}
+
+// create_message -> Create message
+export function operationLabel(id: string) {
+  const words = id.replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

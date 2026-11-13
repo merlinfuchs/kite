@@ -27,6 +27,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
@@ -100,6 +101,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			ReasoningEffort: cfg.Assistant.ReasoningEffort,
 			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
 			Format:          cfg.Assistant.Format,
+			Decisions:       flowAIDecisions(cfg),
 		})
 	}
 
@@ -116,6 +118,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordBotToken:      cfg.Discord.BotToken,
 		DiscordGuildID:       cfg.Discord.GuildID,
 		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
+		AdminUserIDs:         cfg.App.AdminUserIDs,
 	})
 
 	httpClient := engineHTTPClient(cfg)
@@ -173,6 +176,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	})
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
+
+	// After the gateways have reconnected, which is when the server is
+	// busiest after a deploy.
+	js.Warm(ctx, time.Minute)
 
 	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
 

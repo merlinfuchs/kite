@@ -238,7 +238,9 @@ export default memo(function FlowAIChat({
     async (content: string) => {
       const messages: FlowAIChatMessage[] = [
         ...entries
-          .filter((e) => !e.failed)
+          // A failed prompt isn't sent again, so a refused one doesn't get
+          // the prompts after it refused too.
+          .filter((e, i) => !e.failed && !entries[i + 1]?.failed)
           .map(({ role, content }) => ({ role, content })),
         { role: "user", content },
       ];

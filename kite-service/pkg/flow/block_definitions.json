@@ -315,9 +315,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_message",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/messages/{message_id}"
+        "operation": "delete_message"
       },
       "fields": [
         {
@@ -325,7 +323,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -337,7 +335,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -409,9 +407,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "trigger_typing_indicator",
-        "method": "POST",
-        "path": "/channels/{channel_id}/typing"
+        "operation": "trigger_typing_indicator"
       },
       "fields": [
         {
@@ -440,9 +436,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_my_message_reaction",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+        "operation": "add_my_message_reaction"
       },
       "fields": [
         {
@@ -450,7 +444,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -462,7 +456,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -474,7 +468,7 @@
           "in": "path",
           "target": "emoji_name",
           "type": "emoji",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -495,9 +489,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_my_message_reaction",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/messages/{message_id}/reactions/{emoji_name}/@me"
+        "operation": "delete_my_message_reaction"
       },
       "fields": [
         {
@@ -505,7 +497,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -517,7 +509,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -529,7 +521,7 @@
           "in": "path",
           "target": "emoji_name",
           "type": "emoji",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -550,9 +542,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "deprecated_create_pin",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/pins/{message_id}"
+        "operation": "deprecated_create_pin"
       },
       "fields": [
         {
@@ -560,7 +550,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -572,7 +562,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -593,9 +583,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "deprecated_delete_pin",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/pins/{message_id}"
+        "operation": "deprecated_delete_pin"
       },
       "fields": [
         {
@@ -603,7 +591,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -615,7 +603,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -636,9 +624,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "crosspost_message",
-        "method": "POST",
-        "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
+        "operation": "crosspost_message"
       },
       "fields": [
         {
@@ -646,7 +632,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -658,7 +644,7 @@
           "in": "path",
           "target": "message_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -699,9 +685,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "list_messages",
-        "method": "GET",
-        "path": "/channels/{channel_id}/messages"
+        "operation": "list_messages"
       },
       "fields": [
         {
@@ -769,9 +753,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "bulk_delete_messages",
-        "method": "POST",
-        "path": "/channels/{channel_id}/messages/bulk-delete"
+        "operation": "bulk_delete_messages"
       },
       "fields": [
         {
@@ -812,9 +794,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "ban_user_from_guild",
-        "method": "PUT",
-        "path": "/guilds/{guild_id}/bans/{user_id}"
+        "operation": "ban_user_from_guild"
       },
       "fields": [
         {
@@ -834,7 +814,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -867,9 +847,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "unban_user_from_guild",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/bans/{user_id}"
+        "operation": "unban_user_from_guild"
       },
       "fields": [
         {
@@ -889,7 +867,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -910,9 +888,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_member",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/members/{user_id}"
+        "operation": "delete_guild_member"
       },
       "fields": [
         {
@@ -932,7 +908,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -954,8 +930,6 @@
         "kind": "request",
         "integration": "discord",
         "operation": "update_guild_member",
-        "method": "PATCH",
-        "path": "/guilds/{guild_id}/members/{user_id}",
         "partial": true
       },
       "fields": [
@@ -976,7 +950,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1057,9 +1031,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_guild_member_role",
-        "method": "PUT",
-        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+        "operation": "add_guild_member_role"
       },
       "fields": [
         {
@@ -1079,7 +1051,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1091,7 +1063,7 @@
           "in": "path",
           "target": "role_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1112,9 +1084,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_member_role",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+        "operation": "delete_guild_member_role"
       },
       "fields": [
         {
@@ -1134,7 +1104,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1146,7 +1116,7 @@
           "in": "path",
           "target": "role_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1184,9 +1154,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "create_guild_role",
-        "method": "POST",
-        "path": "/guilds/{guild_id}/roles"
+        "operation": "create_guild_role"
       },
       "fields": [
         {
@@ -1278,9 +1246,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "update_guild_role",
-        "method": "PATCH",
-        "path": "/guilds/{guild_id}/roles/{role_id}"
+        "operation": "update_guild_role"
       },
       "fields": [
         {
@@ -1384,9 +1350,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_guild_role",
-        "method": "DELETE",
-        "path": "/guilds/{guild_id}/roles/{role_id}"
+        "operation": "delete_guild_role"
       },
       "fields": [
         {
@@ -1478,9 +1442,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_channel",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}"
+        "operation": "delete_channel"
       },
       "fields": [
         {
@@ -1488,7 +1450,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1560,9 +1522,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "add_thread_member",
-        "method": "PUT",
-        "path": "/channels/{channel_id}/thread-members/{user_id}"
+        "operation": "add_thread_member"
       },
       "fields": [
         {
@@ -1570,7 +1530,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1582,7 +1542,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1603,9 +1563,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "delete_thread_member",
-        "method": "DELETE",
-        "path": "/channels/{channel_id}/thread-members/{user_id}"
+        "operation": "delete_thread_member"
       },
       "fields": [
         {
@@ -1613,7 +1571,7 @@
           "in": "path",
           "target": "channel_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1625,7 +1583,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1646,9 +1604,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "create_channel_invite",
-        "method": "POST",
-        "path": "/channels/{channel_id}/invites"
+        "operation": "create_channel_invite"
       },
       "fields": [
         {
@@ -1757,8 +1713,6 @@
         "kind": "request",
         "integration": "discord",
         "operation": "update_guild_member",
-        "method": "PATCH",
-        "path": "/guilds/{guild_id}/members/{user_id}",
         "partial": true
       },
       "fields": [
@@ -1779,7 +1733,7 @@
           "in": "path",
           "target": "user_id",
           "type": "snowflake",
-          "required": false,
+          "required": true,
           "fallback": "",
           "min": null,
           "max": null,
@@ -1864,9 +1818,7 @@
       "run": {
         "kind": "request",
         "integration": "discord",
-        "operation": "send_soundboard_sound",
-        "method": "POST",
-        "path": "/channels/{channel_id}/send-soundboard-sound"
+        "operation": "send_soundboard_sound"
       },
       "fields": [
         {
@@ -2109,8 +2061,6 @@
         "kind": "request",
         "integration": "cookie_api",
         "operation": "create_transcript",
-        "method": "POST",
-        "path": "/api/transcript",
         "inject": [
           {
             "in": "body",
@@ -2185,9 +2135,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_card",
-        "method": "POST",
-        "path": "/api/cards/card-builder/build"
+        "operation": "create_card"
       },
       "fields": [
         {
@@ -2219,9 +2167,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_qr_code",
-        "method": "POST",
-        "path": "/api/images/qr-code"
+        "operation": "create_qr_code"
       },
       "fields": [
         {
@@ -2292,9 +2238,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "create_captcha",
-        "method": "POST",
-        "path": "/api/security/captcha/create"
+        "operation": "create_captcha"
       },
       "fields": [
         {
@@ -2341,9 +2285,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "get_captcha",
-        "method": "GET",
-        "path": "/api/security/captcha/get-captcha"
+        "operation": "get_captcha"
       },
       "fields": [
         {
@@ -2375,9 +2317,7 @@
       "run": {
         "kind": "request",
         "integration": "cookie_api",
-        "operation": "get_minecraft_user",
-        "method": "GET",
-        "path": "/api/minecraft/get-user"
+        "operation": "get_minecraft_user"
       },
       "fields": [
         {
@@ -2409,9 +2349,7 @@
       "run": {
         "kind": "request",
         "integration": "erlc",
-        "operation": "get_server",
-        "method": "GET",
-        "path": "/v2/server"
+        "operation": "get_server"
       },
       "fields": [
         {
@@ -2539,9 +2477,7 @@
       "run": {
         "kind": "request",
         "integration": "erlc",
-        "operation": "run_command",
-        "method": "POST",
-        "path": "/v2/server/command"
+        "operation": "run_command"
       },
       "fields": [
         {
@@ -2685,6 +2621,21 @@
       "type": "action_expression_evaluate",
       "title": "Calculate Value",
       "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_javascript_run",
+      "title": "Run JavaScript",
+      "credits": 10,
       "audit_log_reason": false,
       "requires": [],
       "run": {

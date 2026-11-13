@@ -36,13 +36,15 @@ export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings
   // other blocks have too keep their meaning, e.g. channel_target is a channel.
   name: string;
-  // Where a request block sends the setting. Settings of custom blocks have
-  // none.
+  // Where a request block sends the setting, from the parameter of its
+  // operation with the field's target. Not written in definitions, see
+  // withOperation in index.ts. Settings of custom blocks have none.
   in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
   // How a request sends the setting, and the generated schema and input of a
-  // setting without a schema. Other settings don't need one.
+  // setting without a schema. Request blocks default to the type of the
+  // parameter, so it's only needed for what Kite converts, like seconds.
   type?: BlockFieldType;
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
@@ -56,6 +58,8 @@ export interface BlockField {
   // Only needed without a schema, which describes the setting otherwise.
   label?: string;
   description?: string;
+  // Request blocks require what their operation requires, unless the field
+  // has a fallback. Set it to require more.
   required?: boolean;
   // Used when the field is left empty.
   fallback?: "guild" | "channel";
@@ -69,8 +73,10 @@ export interface BlockField {
   options?: { value: string; label: string }[];
   widget?: "permissions";
   // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
-  // handler has to evaluate it with them, see flowSecrets in the service.
-  secrets?: boolean;
+  // handler has to evaluate it with them, see flowSecrets in the service. The
+  // name of a property for settings where only it can, like the code of Run
+  // JavaScript and not its inputs.
+  secrets?: boolean | string;
   // Left out of the flow catalog, so the flow AI doesn't set it. For settings
   // it can't get right, like IDs of blocks, which it only knows by ref for the
   // blocks it adds.
@@ -83,10 +89,10 @@ export interface BlockRequest {
   kind: "request";
   // ID of the integration, see ../integrations.
   integration: string;
-  // operationId in the integration's spec.
+  // operationId in the integration's spec. The service sends the request
+  // with the operation's method and path from
+  // kite-service/pkg/flow/operations.json.
   operation: string;
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  path: string;
   // Values Kite adds to the request, which aren't settings.
   inject?: BlockRequestInject[];
   // The block does one of several things the endpoint does, like a timeout
@@ -167,6 +173,7 @@ export interface BlockDefinition {
   requires?: string[];
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
+  // Request blocks leave it out, they cost the credits of their operation.
   credits?: number | ((data: NodeData) => number);
   permissions?: PermissionFlag[] | ((data: NodeData) => PermissionFlag[]);
   // The block's settings, from which its schema and editor are generated.
@@ -206,6 +213,6 @@ export type BlockResult =
 export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];
-  // The service reads it for requests, so it can't depend on the settings.
+  // From the operation, see withOperationCredits in index.ts.
   credits: number;
 };

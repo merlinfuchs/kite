@@ -8,15 +8,12 @@ export const discordMessagePin: BlockDefinition = {
   description: "Bot pins a message in a channel",
   icon: "pin",
   category: "Messages",
-  credits: 1,
   permissions: ["PIN_MESSAGES"],
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "deprecated_create_pin",
-    method: "PUT",
-    path: "/channels/{channel_id}/pins/{message_id}",
   },
   fields: [channelTargetField, messageTargetField],
 };

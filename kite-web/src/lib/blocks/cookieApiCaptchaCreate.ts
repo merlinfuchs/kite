@@ -8,23 +8,17 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
   description: "Create a captcha page with Cookie API for a user to solve",
   icon: "shield-check",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "cookie_api",
     operation: "create_captcha",
-    method: "POST",
-    path: "/api/security/captcha/create",
   },
   fields: [
     {
       name: "captcha_provider",
-      in: "query",
-      type: "string",
       label: "Provider",
       description: "Who shows the captcha.",
-      required: true,
       options: [
         { value: "Cloudflare", label: "Cloudflare Turnstile" },
         { value: "Google", label: "Google reCAPTCHA" },
@@ -32,9 +26,7 @@ export const cookieApiCaptchaCreate: BlockDefinition = {
     },
     {
       name: "captcha_color",
-      in: "query",
       target: "color",
-      type: "string",
       label: "Color",
       description: "Accent color of the page as a hex code, like #4EAF54.",
     },

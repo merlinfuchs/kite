@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
-import { integrationApis } from "../integrations/apis";
-import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
+import {
+  blockDefinitions,
+  blockIntegrations,
+  blockOperation,
+  requestBlocks,
+} from ".";
 import { getNodeValues } from "../flow/nodes";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -124,70 +128,33 @@ describe("block definitions", () => {
 
   it("match their integration's API", () => {
     for (const block of requestBlocks()) {
-      const op = integrationApis[block.run.integration]?.operations.find(
-        (o) => o.id === block.run.operation
-      );
+      const op = blockOperation(block);
       expect(op, block.type).toBeDefined();
       if (!op) continue;
 
-      expect([block.run.method, block.run.path], block.type).toEqual([
-        op.method,
-        op.path,
-      ]);
-
-      const targets = (location: string) =>
-        block.fields
-          .filter((f) => f.in === location)
-          .map((f) => f.target ?? f.name);
-      expect(targets("path").sort(), block.type).toEqual(
-        op.path_params.map((p) => p.name).sort()
-      );
-      for (const name of targets("query")) {
-        expect(
-          op.query_params.some((p) => p.name === name),
-          `${block.type}.${name}`
-        ).toBe(true);
-      }
-      for (const param of op.query_params.filter((p) => p.required)) {
-        const field = block.fields.find(
-          (f) => f.in === "query" && (f.target ?? f.name) === param.name
-        );
-        expect(
-          field?.required || !!field?.fallback,
-          `${block.type} requires ${param.name}`
-        ).toBe(true);
+      // Where each field goes comes from the operation, see withOperation.
+      // What's left is that the block sets every parameter the operation
+      // needs, and only values it takes.
+      const sets = (name: string) =>
+        block.fields.some((f) => (f.target ?? f.name) === name) ||
+        !!block.run.inject?.some((i) => i.name === name);
+      const params = [
+        ...op.path_params,
+        ...op.query_params,
+        ...(op.body_params ?? []),
+      ];
+      for (const param of params.filter(
+        (p) => p.required || op.path_params.includes(p)
+      )) {
+        expect(sets(param.name), `${block.type} sets ${param.name}`).toBe(true);
       }
       for (const field of block.fields.filter((f) => f.options)) {
-        const param = [...op.query_params, ...(op.body_params ?? [])].find(
+        const param = params.find(
           (p) => p.name === (field.target ?? field.name)
         );
         expect(param?.enum, `${block.type}.${field.name}`).toEqual(
           expect.arrayContaining(field.options!.map((o) => o.value))
         );
-      }
-
-      if (targets("body").length > 0) {
-        expect(op.has_body, block.type).toBe(true);
-      }
-      if (op.body_params) {
-        for (const name of targets("body")) {
-          expect(
-            op.body_params.some((p) => p.name === name),
-            `${block.type}.${name}`
-          ).toBe(true);
-        }
-        for (const param of op.body_params.filter((p) => p.required)) {
-          const field = block.fields.find(
-            (f) => f.in === "body" && (f.target ?? f.name) === param.name
-          );
-          const injected = block.run.inject?.some(
-            (i) => i.in === "body" && i.name === param.name
-          );
-          expect(
-            field?.required || injected,
-            `${block.type} requires ${param.name}`
-          ).toBe(true);
-        }
       }
     }
   });

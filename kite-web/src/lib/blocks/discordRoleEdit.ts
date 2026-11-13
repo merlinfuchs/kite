@@ -8,7 +8,6 @@ export const discordRoleEdit: BlockDefinition = {
   description: "Edit a role in the server",
   icon: "shield-ellipsis",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   strict_settings: true,
@@ -16,13 +15,7 @@ export const discordRoleEdit: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "update_guild_role",
-    method: "PATCH",
-    path: "/guilds/{guild_id}/roles/{role_id}",
   },
-  fields: [
-    guildField,
-    { ...roleTargetField, required: true },
-    ...roleDataFields(true),
-  ],
+  fields: [guildField, roleTargetField, ...roleDataFields(true)],
   result: { thing: "discord_role" },
 };

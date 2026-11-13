@@ -80,17 +80,7 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 
 	c.Env["ctx"] = proxyContext{ctx: ctx}
 
-	opts := []expr.Option{
-		expr.Env(c.Env),
-		expr.AllowUndefinedVariables(),
-		expr.WithContext("ctx"),
-		expr.Timezone("UTC"),
-		calculateFunc,
-		durationFunc,
-	}
-	opts = append(opts, patchOptions(c.Patchers)...)
-
-	program, err := expr.Compile(expression, opts...)
+	program, err := compile(expression, c)
 	if err != nil {
 		return thing.Null, fmt.Errorf("eval error: %w", &CompileError{err})
 	}

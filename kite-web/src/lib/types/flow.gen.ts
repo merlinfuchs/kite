@@ -95,6 +95,7 @@ export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
+export const FlowNodeTypeActionJavaScriptRun: FlowNodeType = "action_javascript_run";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
@@ -372,6 +373,10 @@ export interface FlowNodeData {
    */
   expression?: string;
   /**
+   * Run JavaScript
+   */
+  javascript_data?: JavaScriptData;
+  /**
    * Value Lookup
    */
   lookup_value?: string;
@@ -456,6 +461,7 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export const EventFilterTypeVoiceStateAction: EventFilterTarget = "voice_state_action";
 export type RandomMode = string;
 /**
  * Empty is the number mode too, as blocks from before the item mode have
@@ -509,10 +515,26 @@ export interface ServerProfileData {
   banner_url?: string;
   bio?: string;
   /**
+   * NameStyle changes the style of the bot's name, the bot's own has none.
+   */
+  name_style?: NameStyleData;
+  /**
    * Reset resets the whole profile to the bot's own, the other fields are
    * ignored then.
    */
   reset?: boolean;
+}
+export interface NameStyleData {
+  /**
+   * Font and Effect are keys of provider.NameStyleFonts and
+   * provider.NameStyleEffects.
+   */
+  font: string;
+  effect: string;
+  /**
+   * Colors are hex colors like #5865F2 or numbers, with placeholders.
+   */
+  colors: string[];
 }
 export interface ChannelData {
   name?: string;
@@ -687,6 +709,40 @@ export interface AIDecisionData {
    */
   levels?: string[];
 }
+export interface JavaScriptData {
+  /**
+   * The body of a function with the parameter input. Placeholders in it
+   * aren't evaluated, they would let anyone who can put text in them run
+   * code. Values go in through inputs.
+   */
+  code?: string;
+  inputs?: JavaScriptInput[];
+  /**
+   * The stored variables the code can use, by the names it uses for them.
+   */
+  variables?: JavaScriptVariable[];
+}
+/**
+ * MaxJavaScriptVariables is how many stored variables a Run JavaScript block
+ * can use.
+ */
+export const MaxJavaScriptVariables = 10;
+/**
+ * JavaScriptVariable is a stored variable the code uses as name, like
+ * variables.get({name: "xp"}). The name stays the same when the variable is
+ * renamed, or gets another ID when a template is added.
+ */
+export interface JavaScriptVariable {
+  name: string;
+  variable_id?: string;
+}
+export interface JavaScriptInput {
+  /**
+   * Property of input in the code.
+   */
+  name: string;
+  value?: string;
+}
 export interface AITranslateData {
   text?: string;
   /**
@@ -720,6 +776,18 @@ export interface FlowEdge {
 
 //////////
 // source: modal.go
+
+
+//////////
+// source: operation_handlers.go
+
+
+//////////
+// source: operation_handlers_variables.go
+
+
+//////////
+// source: operations.go
 
 
 //////////

@@ -46,6 +46,7 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 	}
 	b.InReview = row.InReview
 	b.InstallCount = int(row.InstallCount)
+	b.ActiveInstallCount = int(row.ActiveInstallCount)
 	b.StarCount = int(row.StarCount)
 
 	b.Version = b.InstallVersion()
@@ -93,6 +94,7 @@ func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
 		}
 		bundles[i].VersionNotes = notes[row.Bundle.ID]
 		bundles[i].InstallCount = int(row.InstallCount)
+		bundles[i].ActiveInstallCount = int(row.ActiveInstallCount)
 		bundles[i].StarCount = int(row.StarCount)
 	}
 	return bundles, nil
@@ -147,10 +149,42 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 		b.Version = b.InstallVersion()
 		b.Owner = rowToUser(row.User)
 		b.InstallCount = int(row.InstallCount)
+		b.ActiveInstallCount = int(row.ActiveInstallCount)
 		b.StarCount = int(row.StarCount)
 		bundles[i] = b
 	}
 	return bundles, nil
+}
+
+func (c *Client) SetBundleStaffPick(ctx context.Context, id string, at null.Time) error {
+	rows, err := c.Q.SetBundleStaffPickedAt(ctx, pgmodel.SetBundleStaffPickedAtParams{
+		ID:            id,
+		StaffPickedAt: pgtype.Timestamp{Time: at.Time.UTC(), Valid: at.Valid},
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+func (c *Client) CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error) {
+	rows, err := c.Q.GetCreatorStats(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]*model.CreatorStats, len(rows))
+	for i, row := range rows {
+		stats[i] = &model.CreatorStats{
+			UserID:         row.UserID,
+			FirstListedAt:  row.FirstListedAt.Time,
+			InstallerCount: int(row.InstallerCount),
+		}
+	}
+	return stats, nil
 }
 
 func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
@@ -257,6 +291,7 @@ func (c *Client) BundlesByOwner(ctx context.Context, userID string) ([]*model.Bu
 		}
 		bundles[i].ItemCount = int(row.ItemCount)
 		bundles[i].InstallCount = int(row.InstallCount)
+		bundles[i].ActiveInstallCount = int(row.ActiveInstallCount)
 		bundles[i].LatestReview = reviews[row.Bundle.ID]
 		bundles[i].Listed = row.Listed
 	}
@@ -555,6 +590,7 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 		RemovedAt:     null.NewTime(row.RemovedAt.Time, row.RemovedAt.Valid),
 		RemovedReason: row.RemovedReason,
+		StaffPickedAt: null.NewTime(row.StaffPickedAt.Time, row.StaffPickedAt.Valid),
 		Version:       int(row.Version),
 		LatestVersion: int(row.Version),
 		// Official bundles are never reviewed.

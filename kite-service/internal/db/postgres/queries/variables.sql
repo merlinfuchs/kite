@@ -91,6 +91,29 @@ ON CONFLICT (variable_id, scope) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
+-- name: InsertOrLockVariableValue :one
+-- Inserts the first value, or locks and returns the existing one, also when
+-- another transaction inserted it and hasn't committed yet, which it waits
+-- for. inserted says which. A variable from another app returns nothing
+-- (ErrNoRows).
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+)
+SELECT
+    variables.id,
+    sqlc.narg(scope)::text,
+    @value::jsonb,
+    @created_at::timestamp,
+    @updated_at::timestamp
+FROM variables
+WHERE variables.id = @variable_id AND variables.app_id = @app_id
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING sqlc.embed(variable_values), (xmax = 0)::boolean AS inserted;
+
 -- name: DeleteVariableValue :exec
 -- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
 -- same as the get queries above. Plain `= NULL` never matches and made

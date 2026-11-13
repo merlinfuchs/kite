@@ -32,6 +32,7 @@ require (
 	github.com/rs/cors v1.11.0
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/stretchr/testify v1.11.1
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2
@@ -105,4 +106,4 @@ require (
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261108155218-5a802b0efa08
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261109152914-afdb544a6f4c

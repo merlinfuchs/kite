@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
@@ -210,6 +211,7 @@ const (
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionAITranslate           FlowNodeType = "action_ai_translate"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
+	FlowNodeTypeActionJavaScriptRun         FlowNodeType = "action_javascript_run"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionValueLookup           FlowNodeType = "action_value_lookup"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -475,6 +477,9 @@ type FlowNodeData struct {
 	// Expression Evaluate
 	Expression string `json:"expression,omitempty"`
 
+	// Run JavaScript
+	JavaScriptData *JavaScriptData `json:"javascript_data,omitempty"`
+
 	// Value Lookup
 	LookupValue      string         `json:"lookup_value,omitempty"`
 	LookupMode       ComparsionMode `json:"lookup_mode,omitempty"`
@@ -717,6 +722,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// Run JavaScript
+		validation.Field(&d.JavaScriptData, validation.When(
+			nodeType == FlowNodeTypeActionJavaScriptRun,
+			validation.Required,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
@@ -740,12 +751,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// An empty sort means VariableListSortValueDesc, the default the
 		// editor shows.
 		validation.Field(&d.VariableSort, validation.When(nodeType == FlowNodeTypeActionVariableList,
-			validation.In(
-				provider.VariableListSortValueDesc,
-				provider.VariableListSortValueAsc,
-				provider.VariableListSortUpdatedDesc,
-				provider.VariableListSortUpdatedAsc,
-			),
+			validation.In(anys(provider.VariableListSorts)...),
 		)),
 
 		// Command Cooldown
@@ -882,7 +888,8 @@ const (
 	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
-	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+	EventFilterTypeAuditLogAction   EventFilterTarget = "audit_log_action"
+	EventFilterTypeVoiceStateAction EventFilterTarget = "voice_state_action"
 )
 
 type RandomMode string
@@ -962,9 +969,20 @@ type ServerProfileData struct {
 	AvatarURL *string `json:"avatar_url,omitempty"`
 	BannerURL *string `json:"banner_url,omitempty"`
 	Bio       *string `json:"bio,omitempty"`
+	// NameStyle changes the style of the bot's name, the bot's own has none.
+	NameStyle *NameStyleData `json:"name_style,omitempty"`
 	// Reset resets the whole profile to the bot's own, the other fields are
 	// ignored then.
 	Reset bool `json:"reset,omitempty"`
+}
+
+type NameStyleData struct {
+	// Font and Effect are keys of provider.NameStyleFonts and
+	// provider.NameStyleEffects.
+	Font   string `json:"font"`
+	Effect string `json:"effect"`
+	// Colors are hex colors like #5865F2 or numbers, with placeholders.
+	Colors []string `json:"colors"`
 }
 
 type ChannelData struct {
@@ -1335,6 +1353,105 @@ type AIDecisionData struct {
 	Levels []string `json:"levels,omitempty"`
 }
 
+type JavaScriptData struct {
+	// The body of a function with the parameter input. Placeholders in it
+	// aren't evaluated, they would let anyone who can put text in them run
+	// code. Values go in through inputs.
+	Code   string            `json:"code,omitempty"`
+	Inputs []JavaScriptInput `json:"inputs,omitempty"`
+	// The stored variables the code can use, by the names it uses for them.
+	Variables []JavaScriptVariable `json:"variables,omitempty"`
+}
+
+// MaxJavaScriptVariables is how many stored variables a Run JavaScript block
+// can use.
+const MaxJavaScriptVariables = 10
+
+// JavaScriptVariable is a stored variable the code uses as name, like
+// variables.get({name: "xp"}). The name stays the same when the variable is
+// renamed, or gets another ID when a template is added.
+type JavaScriptVariable struct {
+	Name       string `json:"name"`
+	VariableID string `json:"variable_id,omitempty"`
+}
+
+type JavaScriptInput struct {
+	// Property of input in the code.
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
+}
+
+func (d JavaScriptData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Code, validation.Required, validation.Length(1, js.MaxCodeLength)),
+		validation.Field(&d.Inputs, validation.Length(0, js.MaxInputs), validation.By(func(value any) error {
+			names := map[string]bool{}
+			for _, input := range value.([]JavaScriptInput) {
+				if !ParameterKeyPattern.MatchString(input.Name) || len(input.Name) > 32 {
+					return fmt.Errorf("input name %q must start with a letter or _ and have up to 32 letters, digits and _", input.Name)
+				}
+				if names[input.Name] {
+					return fmt.Errorf("input name %q is used twice", input.Name)
+				}
+				names[input.Name] = true
+			}
+			return nil
+		})),
+		validation.Field(&d.Variables, validation.Length(0, MaxJavaScriptVariables), validation.By(func(value any) error {
+			names := map[string]bool{}
+			for _, v := range value.([]JavaScriptVariable) {
+				if !ParameterKeyPattern.MatchString(v.Name) || len(v.Name) > 32 {
+					return fmt.Errorf("variable name %q must start with a letter or _ and have up to 32 letters, digits and _", v.Name)
+				}
+				if names[v.Name] {
+					return fmt.Errorf("variable name %q is used twice", v.Name)
+				}
+				names[v.Name] = true
+			}
+			return nil
+		})),
+	)
+}
+
+// VariableIDs are the IDs of the stored variables the block uses: its
+// variable_id, and those of a Run JavaScript block's variables.
+func (d FlowNodeData) VariableIDs() []string {
+	var ids []string
+	if d.VariableID != "" {
+		ids = append(ids, d.VariableID)
+	}
+	if d.JavaScriptData != nil {
+		for _, v := range d.JavaScriptData.Variables {
+			if v.VariableID != "" {
+				ids = append(ids, v.VariableID)
+			}
+		}
+	}
+	return ids
+}
+
+// RemapVariableIDs replaces each ID of VariableIDs with what f returns for
+// it, like when a template's variables get the IDs of the app's.
+func (d *FlowNodeData) RemapVariableIDs(f func(id string) (string, error)) error {
+	var err error
+	if d.VariableID != "" {
+		if d.VariableID, err = f(d.VariableID); err != nil {
+			return err
+		}
+	}
+	if d.JavaScriptData != nil {
+		for i, v := range d.JavaScriptData.Variables {
+			if v.VariableID == "" {
+				continue
+			}
+			if d.JavaScriptData.Variables[i].VariableID, err = f(v.VariableID); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type AITranslateData struct {
 	Text string `json:"text,omitempty"`
 	// A code of aiTranslateLanguages, or a placeholder that becomes one.
@@ -1604,4 +1721,13 @@ func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
 // limit for the given channel type.
 func channelTypeSupportsVoice(t discord.ChannelType) bool {
 	return t == discord.GuildVoice || t == discord.GuildStageVoice
+}
+
+// anys is values for validation.In.
+func anys[T any](values []T) []any {
+	res := make([]any, len(values))
+	for i, v := range values {
+		res[i] = v
+	}
+	return res
 }

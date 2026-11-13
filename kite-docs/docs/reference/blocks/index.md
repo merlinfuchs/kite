@@ -78,7 +78,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
 - [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
-- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner, bio, or name style in a server
 
 ## Variable blocks
 
@@ -99,6 +99,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Utility blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
+- [Run JavaScript](./actions/action_javascript_run.md) - Run a short piece of JavaScript and use what it returns
 - [Generate Random Value](./actions/action_random_generate.md) - Generate random numbers or pick random items from a list
 - [Lookup Value](./actions/action_value_lookup.md) - Find the value for a key in a table
 - [Log Message](./actions/action_log.md) - Log messages for debugging

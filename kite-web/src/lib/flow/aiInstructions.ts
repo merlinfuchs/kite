@@ -92,6 +92,9 @@ const rules: { text: string; chatOnly?: boolean }[] = [
     text: `Use action_discord_api_request and action_http_request only when no other block does the job.`,
   },
   {
+    text: `Use action_javascript_run only for logic that other blocks and placeholders can't do in a few steps, like going through a list, parsing text or several calculations that depend on each other. Pass values to it through its inputs, as placeholders in its code aren't filled in.`,
+  },
+  {
     text: `Keep the flow as it is unless the user asks for a change, and make as few edits as needed. Answer questions without changing the flow, and offer to make the change instead.`,
     chatOnly: true,
   },
