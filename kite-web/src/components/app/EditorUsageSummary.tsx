@@ -1,27 +1,23 @@
-import type { EditorUsageItem } from "@/lib/types/editorUsage";
-import { formatDateTime, formatInterval } from "@/lib/utils";
+import type { EditorUsage } from "@/lib/types/wire.gen";
 
-export default function EditorUsageSummary({
-  usage,
-}: {
-  usage?: EditorUsageItem | null;
-}) {
-  if (usage === undefined) return null;
-  if (usage === null) {
-    return (
-      <div className="mt-2 text-xs text-muted-foreground">
-        No editor activity in the last 30 days.
-      </div>
-    );
-  }
+// formatEditingTime formats a time like "2h 15m", or "<1m" for less than a
+// minute.
+export function formatEditingTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 1) return "<1m";
+  const hours = Math.floor(minutes / 60);
+  if (hours === 0) return `${minutes}m`;
+  return minutes % 60 ? `${hours}h ${minutes % 60}m` : `${hours}h`;
+}
 
+export default function EditorUsageSummary({ usage }: { usage?: EditorUsage }) {
+  if (!usage) return null;
+
+  const saves = usage.save_count === 1 ? "1 save" : `${usage.save_count} saves`;
   return (
-    <div className="mt-2 text-xs text-muted-foreground">
-      Last 30 days: {formatInterval(usage.active_seconds)} active ·{" "}
-      {usage.session_count} sessions · {usage.save_count} saves · Last edited{" "}
-      {usage.last_edited_at
-        ? formatDateTime(new Date(usage.last_edited_at))
-        : "not in this period"}
-    </div>
+    <span className="block text-xs mt-1">
+      {formatEditingTime(usage.active_seconds)} of editing and {saves} in the
+      last 30 days
+    </span>
   );
 }

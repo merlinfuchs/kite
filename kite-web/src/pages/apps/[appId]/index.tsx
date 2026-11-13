@@ -58,9 +58,9 @@ export default function AppPage() {
               }}
             />
           </div>
-          <AppEditorUsageCard />
           <UsageCreditsByDayChart />
           <AppChartCards />
+          <AppEditorUsageCard />
         </div>
         <div className="order-1 lg:order-2">
           <AppInfoCard />

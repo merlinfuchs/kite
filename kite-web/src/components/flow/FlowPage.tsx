@@ -11,7 +11,7 @@ import {
   useEditorSession,
   useVersionHistory,
 } from "@/lib/hooks/versionHistory";
-import { useEditorUsageReport } from "@/lib/hooks/editorUsage";
+import { useEditorTimeReport } from "@/lib/hooks/editorUsage";
 import VersionHistory from "@/components/common/VersionHistory";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import {
@@ -58,7 +58,7 @@ function InnerFlowPage({
   const [saveCount, setSaveCount] = useState(0);
 
   const editorSession = useEditorSession();
-  useEditorUsageReport(versionTarget, editorSession, saveCount);
+  useEditorTimeReport(versionTarget, editorSession);
   // Set by a restore until it's saved, so it's saved without the session even
   // if the first try fails.
   const restorePending = useRef(false);

@@ -1,7 +1,6 @@
-import { useEditorUsage } from "@/lib/hooks/api";
-import { formatDateTime, formatInterval } from "@/lib/utils";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { useEditorUsageQuery } from "@/lib/api/queries";
+import { useAppId } from "@/lib/hooks/params";
+import { formatDateTime } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -10,57 +9,39 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
+import { formatEditingTime } from "./EditorUsageSummary";
 
 export default function AppEditorUsageCard() {
-  const [loadFailed, setLoadFailed] = useState(false);
-  const onResponse = useCallback(
-    (response: {
-      success: boolean;
-      error?: { message: string; code: string };
-    }) => {
-      setLoadFailed(!response.success);
-      if (!response.success) {
-        toast.error(
-          `Failed to load editor activity: ${response.error?.message} (${response.error?.code})`
-        );
-      }
-    },
-    []
-  );
-  const usage = useEditorUsage(onResponse);
+  const { data } = useEditorUsageQuery(useAppId());
+  // It's only extra information, so it's left out if it fails to load.
+  if (data && !data.success) return null;
+  const total = data?.data.total;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Editor activity</CardTitle>
         <CardDescription>
-          Across all commands and event listeners in the last 30 days.
+          Time spent and saves in the editor in the last 30 days, by you and
+          your collaborators.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {loadFailed ? (
-          <div className="text-sm text-destructive">
-            Editor activity could not be loaded.
-          </div>
-        ) : !usage ? (
-          <Skeleton className="h-16" />
+        {!total ? (
+          <Skeleton className="h-12" />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-3">
             <UsageValue
-              label="Active editor time"
-              value={formatInterval(usage.total.active_seconds)}
+              label="Time editing"
+              value={formatEditingTime(total.active_seconds)}
             />
-            <UsageValue label="Saves" value={usage.total.save_count} />
+            <UsageValue label="Saves" value={total.save_count} />
             <UsageValue
-              label="Editor sessions"
-              value={usage.total.session_count}
-            />
-            <UsageValue
-              label="Last edited"
+              label="Last save"
               value={
-                usage.total.last_edited_at
-                  ? formatDateTime(new Date(usage.total.last_edited_at))
-                  : "No saves"
+                total.last_saved_at
+                  ? formatDateTime(new Date(total.last_saved_at))
+                  : "None"
               }
             />
           </div>

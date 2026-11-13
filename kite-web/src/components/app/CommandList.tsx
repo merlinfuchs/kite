@@ -7,7 +7,7 @@ import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
-import { useCommands } from "@/lib/hooks/api";
+import { useCommands, useEditorUsage } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
@@ -15,6 +15,7 @@ import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function CommandList() {
   const commands = useCommands();
+  const editorUsage = useEditorUsage();
   const limit = usePlanLimit("max_commands", commands?.length);
 
   const commandActions = (
@@ -56,7 +57,11 @@ export default function CommandList() {
                 command.description,
               ]}
               renderItem={(command) => (
-                <CommandListEntry command={command} key={command.id} />
+                <CommandListEntry
+                  command={command}
+                  editorUsage={editorUsage?.commands[command.id]}
+                  key={command.id}
+                />
               )}
               placeholder="Search commands"
               actions={commandActions}

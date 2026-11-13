@@ -1073,6 +1073,36 @@ export interface DiscordAPIRequestResponse {
 }
 
 //////////
+// source: editor_usage.go
+
+/**
+ * EditorSessionUpdateRequest reports how long an editor of a command or event
+ * listener has been in use so far.
+ */
+export interface EditorSessionUpdateRequest {
+  active_seconds: number /* int */;
+}
+export type EditorSessionUpdateResponse = Empty;
+/**
+ * EditorUsage is how much commands and event listeners were worked on in the
+ * editor.
+ */
+export interface EditorUsage {
+  active_seconds: number /* int */;
+  save_count: number /* int */;
+  last_saved_at: null | string /* RFC3339 */;
+}
+/**
+ * EditorUsageGetResponse has the usage of the last 30 days, for the whole app
+ * and by the ID of each command and event listener that was worked on.
+ */
+export interface EditorUsageGetResponse {
+  total: EditorUsage;
+  commands: { [key: string]: EditorUsage | undefined};
+  event_listeners: { [key: string]: EditorUsage | undefined};
+}
+
+//////////
 // source: event_listener.go
 
 export interface EventListener {

@@ -43,6 +43,8 @@ import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
 import FlowExportDialog from "./FlowExportDialog";
+import EditorUsageSummary from "./EditorUsageSummary";
+import type { EditorUsage } from "@/lib/types/wire.gen";
 import {
   capitalize,
   discordEventType,
@@ -53,8 +55,10 @@ import { describeSchedule } from "@/lib/flow/schedule";
 
 export default function EventListenerListEntry({
   listener,
+  editorUsage,
 }: {
   listener: EventListener;
+  editorUsage?: EditorUsage;
 }) {
   const router = useRouter();
 
@@ -157,6 +161,7 @@ export default function EventListenerListEntry({
         </CardTitle>
         <CardDescription className="text-sm">
           {!isWebhook && listener.description}
+          <EditorUsageSummary usage={editorUsage} />
           {isSchedule && listener.last_run_at && (
             <span className="block">
               Last run {formatDateTime(new Date(listener.last_run_at))}

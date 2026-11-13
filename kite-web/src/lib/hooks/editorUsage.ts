@@ -1,107 +1,114 @@
-import { apiRequest } from "@/lib/api/client";
+import queryClient, { apiRequest } from "@/lib/api/client";
 import type { ItemVersionTarget } from "@/lib/api/queries";
-import { useEffect, useRef } from "react";
+import type { EditorSessionUpdateResponse } from "@/lib/types/wire.gen";
+import { useEffect } from "react";
 
-export function useEditorUsageReport(
+// How long after an input the editor still counts as in use.
+const idleAfterMs = 2 * 60_000;
+const reportIntervalMs = 60_000;
+
+const pathSegments = {
+  command: "commands",
+  event_listener: "event-listeners",
+};
+
+// useEditorTimeReport reports how long the flow editor is in use. Time counts
+// while the tab is visible and up to two minutes after each input. Nothing is
+// reported until the first input, so opening a flow to look at it isn't a
+// session. Saves are counted by the server.
+export function useEditorTimeReport(
   target: ItemVersionTarget,
-  sessionId: string,
-  saveCount: number
+  sessionId: string
 ) {
   const { appId, type, id } = target;
-  const saveCountRef = useRef(saveCount);
-  const previousSaveCount = useRef(saveCount);
-  const flushRef = useRef<(() => void) | null>(null);
-  saveCountRef.current = saveCount;
 
   useEffect(() => {
-    if (!appId || type === "message") return;
+    if (type === "message") return;
+    const path = `/v1/apps/${appId}/${pathSegments[type]}/${id}/editor-sessions/${sessionId}`;
 
-    let activeMilliseconds = 0;
-    let checkpointAt = performance.now();
-    let wasVisible = document.visibilityState === "visible";
-    let sending = false;
-    let sendAgain = false;
-    let sendAgainKeepalive = false;
+    // The time of earlier stretches of input, and of the current one if any.
+    let pastMs = 0;
+    let activeSince: number | null = null;
+    let activeUntil = 0;
+    let started = false;
+    let reportedSeconds = -1;
 
-    function checkpoint() {
+    function endStretch(now: number) {
+      if (activeSince === null) return;
+      pastMs += Math.min(now, activeUntil) - activeSince;
+      activeSince = null;
+    }
+
+    function activeSeconds() {
       const now = performance.now();
-      if (wasVisible) activeMilliseconds += now - checkpointAt;
-      checkpointAt = now;
-      wasVisible = document.visibilityState === "visible";
+      if (now >= activeUntil) endStretch(now);
+      const currentMs = activeSince === null ? 0 : now - activeSince;
+      return Math.floor((pastMs + currentMs) / 1000);
     }
 
-    async function send(keepalive = false) {
-      checkpoint();
-      if (sending) {
-        sendAgain = true;
-        sendAgainKeepalive ||= keepalive;
-        return;
-      }
+    async function report(keepalive = false) {
+      if (!started) return;
+      const seconds = activeSeconds();
+      if (seconds <= reportedSeconds) return;
 
-      sending = true;
+      // The server keeps the highest time, so the order of the requests
+      // doesn't matter.
       try {
-        const response = await apiRequest<{ saved: boolean }>(
-          `/v1/apps/${encodeURIComponent(
-            appId
-          )}/editor-sessions/${encodeURIComponent(sessionId)}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              target_type: type,
-              target_id: id,
-              active_seconds: Math.floor(activeMilliseconds / 1000),
-              save_count: saveCountRef.current,
-            }),
-            keepalive,
-          }
-        );
-        if (!response.success) {
-          console.error(
-            "Failed to record editor usage:",
-            response.error.message
-          );
-        }
-      } catch (error) {
-        console.error("Failed to record editor usage:", error);
-      } finally {
-        sending = false;
-        if (sendAgain) {
-          sendAgain = false;
-          const keepaliveAgain = sendAgainKeepalive;
-          sendAgainKeepalive = false;
-          void send(keepaliveAgain);
-        }
+        const res = await apiRequest<EditorSessionUpdateResponse>(path, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active_seconds: seconds }),
+          keepalive,
+        });
+        if (res.success) reportedSeconds = Math.max(reportedSeconds, seconds);
+      } catch {
+        // Tried again with the next report.
       }
     }
 
-    const flush = () => void send();
-    const onVisibilityChange = () => {
-      checkpoint();
-      void send(document.visibilityState === "hidden");
-    };
-    const onPageHide = () => void send(true);
+    function onInput() {
+      const now = performance.now();
+      if (now >= activeUntil) endStretch(now);
+      activeSince ??= now;
+      activeUntil = now + idleAfterMs;
+      if (!started) {
+        started = true;
+        void report();
+      }
+    }
 
-    flushRef.current = flush;
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        endStretch(performance.now());
+        void report(true);
+      }
+    }
+
+    const onPageHide = () => void report(true);
+    const inputEvents = ["pointerdown", "keydown", "wheel"] as const;
+    const listenerOptions = { capture: true, passive: true };
+
+    for (const event of inputEvents) {
+      window.addEventListener(event, onInput, listenerOptions);
+    }
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pagehide", onPageHide);
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") void send();
-    }, 60_000);
-    void send();
+    const interval = window.setInterval(() => void report(), reportIntervalMs);
 
     return () => {
-      window.clearInterval(interval);
+      for (const event of inputEvents) {
+        window.removeEventListener(event, onInput, listenerOptions);
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("pagehide", onPageHide);
-      if (flushRef.current === flush) flushRef.current = null;
-      void send(true);
+      window.clearInterval(interval);
+      if (!started) return;
+      // So the lists show this session once it's reported.
+      void report(true).then(() =>
+        queryClient.invalidateQueries({
+          queryKey: ["apps", appId, "editor-usage"],
+        })
+      );
     };
-  }, [appId, id, sessionId, type]);
-
-  useEffect(() => {
-    if (previousSaveCount.current === saveCount) return;
-    previousSaveCount.current = saveCount;
-    flushRef.current?.();
-  }, [saveCount]);
+  }, [appId, type, id, sessionId]);
 }

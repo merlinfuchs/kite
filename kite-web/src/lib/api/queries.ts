@@ -59,8 +59,8 @@ import {
   ItemVersionListResponse,
   StatsGetResponse,
   APITokenListResponse,
+  EditorUsageGetResponse,
 } from "../types/wire.gen";
-import type { EditorUsageGetResponse } from "../types/editorUsage";
 
 export function useUserQuery(userId = "@me") {
   return useQuery({

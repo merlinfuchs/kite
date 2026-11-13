@@ -1,7 +1,7 @@
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
-import { useEventListeners } from "@/lib/hooks/api";
+import { useEditorUsage, useEventListeners } from "@/lib/hooks/api";
 import EventListenerListEntry from "./EventListenerListEntry";
 import AppEmptyPlaceholder, {
   AppEmptyTemplatesLink,
@@ -50,6 +50,7 @@ export default function EventListenerList({
   source: EventListenerSource;
 }) {
   const allListeners = useEventListeners();
+  const editorUsage = useEditorUsage();
   const listeners = useMemo(
     () => allListeners?.filter((l) => l?.source === source),
     [allListeners, source]
@@ -96,7 +97,11 @@ export default function EventListenerList({
             listener.source,
           ]}
           renderItem={(listener) => (
-            <EventListenerListEntry listener={listener} key={listener.id} />
+            <EventListenerListEntry
+              listener={listener}
+              editorUsage={editorUsage?.event_listeners[listener.id]}
+              key={listener.id}
+            />
           )}
           placeholder={`Search ${name.singular}s`}
           actions={listenerActions}
