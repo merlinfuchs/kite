@@ -1,5 +1,11 @@
 import { NodeData } from "@/lib/flow/dataSchema";
-import { AlertTriangleIcon, CheckIcon, LinkIcon, XIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  LinkIcon,
+  MinusIcon,
+  XIcon,
+} from "lucide-react";
 import { useTestNodeStatus } from "@/lib/flow/context";
 import { useMemo } from "react";
 import { useEdges } from "@xyflow/react";
@@ -49,6 +55,8 @@ export default function FlowNodeMarkers({
               ? "bg-red-500"
               : testStatus === "warning"
               ? "bg-amber-500"
+              : testStatus === "skipped"
+              ? "bg-zinc-500"
               : "bg-green-600"
           }`}
           title={testNodeStatusTitles[testStatus]}
@@ -57,6 +65,8 @@ export default function FlowNodeMarkers({
             <XIcon className="h-3 w-3" />
           ) : testStatus === "warning" ? (
             <AlertTriangleIcon className="h-3 w-3" />
+          ) : testStatus === "skipped" ? (
+            <MinusIcon className="h-3 w-3" />
           ) : (
             <CheckIcon className="h-3 w-3" />
           )}
@@ -80,6 +90,7 @@ export default function FlowNodeMarkers({
 
 const testNodeStatusTitles = {
   ok: "Ran in the test",
+  skipped: "Didn't run in the test, it calls a service other than Discord",
   warning: "Ran in the test, Discord would likely reject what it does",
   error: "Failed in the test",
 };

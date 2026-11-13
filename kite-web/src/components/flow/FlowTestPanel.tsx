@@ -1,6 +1,6 @@
-import { Dispatch, SetStateAction, useMemo } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import { Node, useEdges, useNodes } from "@xyflow/react";
-import { LoaderCircleIcon, PlayIcon } from "lucide-react";
+import { LoaderCircleIcon, PlayIcon, XIcon } from "lucide-react";
 import { useFlowTestMutation } from "@/lib/api/mutations";
 import { useAppStateGuilds } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
@@ -11,10 +11,16 @@ import {
   FlowTestTarget,
   flowTestPath,
   newFlowTestSeed,
+  parseTestValue,
   withFlowTestAction,
 } from "@/lib/flow/flowTest";
 import { useGetFlowData } from "@/lib/flow/parametersStore";
-import { FlowTestAction, FlowTestRequest } from "@/lib/types/wire.gen";
+import {
+  FlowTestAction,
+  FlowTestMock,
+  FlowTestRequest,
+} from "@/lib/types/wire.gen";
+import { getNodeTitle } from "@/lib/flow/nodes";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -31,6 +37,8 @@ import GuildSelect from "../common/GuildSelect";
 import ChannelSelect from "../common/ChannelSelect";
 import RoleSelect from "../common/RoleSelect";
 import FlowTestResult from "./FlowTestResult";
+import FlowTestMockDialog, { MockTarget } from "./FlowTestMockDialog";
+import FlowTestVariables from "./FlowTestVariables";
 
 // Text, voice, announcement, stage, forum, media
 const allChannelTypes = [0, 2, 5, 13, 15, 16];
@@ -89,6 +97,8 @@ export default function FlowTestPanel({
   } = state;
   const set = (patch: Partial<FlowTestState>) =>
     onStateChange((s) => ({ ...s, ...patch }));
+
+  const [mockTarget, setMockTarget] = useState<MockTarget | null>(null);
 
   const guilds = useAppStateGuilds();
   const currentGuildId = guildId ?? guilds?.[0]?.id ?? null;
@@ -156,6 +166,15 @@ export default function FlowTestPanel({
       req.webhook = { body: webhookBody };
     }
 
+    if (Object.keys(state.mocks).length) req.mocks = state.mocks;
+    const variables = state.variables.filter((v) => v.variableId);
+    if (variables.length) {
+      req.variables = variables.map((v) => ({
+        variable_id: v.variableId,
+        scope: v.scope.trim() || undefined,
+        value: v.value.trim() ? parseTestValue(v.value.trim()) : null,
+      }));
+    }
     req.seed = newFlowTestSeed();
     send(req, true);
   }
@@ -164,6 +183,19 @@ export default function FlowTestPanel({
   // the result before them stays.
   function act(action: FlowTestAction) {
     if (state.request) send(withFlowTestAction(state.request, action), false);
+  }
+
+  // A new test result runs the test again with it, with the same clicks.
+  function saveMock(nodeId: string, mock: FlowTestMock | undefined) {
+    const mocks = { ...state.mocks };
+    if (mock) {
+      mocks[nodeId] = mock;
+    } else {
+      delete mocks[nodeId];
+    }
+    set({ mocks });
+    setMockTarget(null);
+    if (state.request) send({ ...state.request, mocks }, false);
   }
 
   function send(req: FlowTestRequest, isNew: boolean) {
@@ -339,6 +371,57 @@ export default function FlowTestPanel({
                 </Field>
               )}
 
+              {Object.keys(state.mocks).length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-sm font-medium">Test results</div>
+                  {Object.keys(state.mocks).map((nodeId) => {
+                    const node = nodes.find((n) => n.id === nodeId);
+                    if (!node) return null;
+                    const title = getNodeTitle(node);
+                    return (
+                      <div
+                        key={nodeId}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <button
+                          className="flex-auto text-left truncate hover:underline"
+                          onClick={() =>
+                            setMockTarget({
+                              nodeId,
+                              nodeType: node.type!,
+                              title,
+                            })
+                          }
+                        >
+                          {title}:{" "}
+                          {state.mocks[nodeId].error
+                            ? "fails"
+                            : "returns your result"}
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="flex-none size-7"
+                          onClick={() => {
+                            const mocks = { ...state.mocks };
+                            delete mocks[nodeId];
+                            set({ mocks });
+                          }}
+                        >
+                          <XIcon className="size-4" />
+                          <span className="sr-only">Remove</span>
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <FlowTestVariables
+                value={state.variables}
+                onChange={(variables) => set({ variables })}
+              />
+
               <Button
                 onClick={run}
                 disabled={mutation.isPending}
@@ -361,7 +444,9 @@ export default function FlowTestPanel({
               <FlowTestResult
                 result={result}
                 pending={mutation.isPending}
+                mocks={state.mocks}
                 onAction={act}
+                onEditMock={setMockTarget}
                 onShowNode={onShowNode}
               />
               <Button
@@ -378,6 +463,13 @@ export default function FlowTestPanel({
           )}
         </div>
       </ScrollArea>
+
+      <FlowTestMockDialog
+        target={mockTarget}
+        mock={mockTarget ? state.mocks[mockTarget.nodeId] : undefined}
+        onClose={() => setMockTarget(null)}
+        onSave={(mock) => mockTarget && saveMock(mockTarget.nodeId, mock)}
+      />
     </div>
   );
 }

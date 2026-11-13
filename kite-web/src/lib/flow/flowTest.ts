@@ -3,6 +3,7 @@ import {
   FlowTestAction,
   FlowTestEffect,
   FlowTestMessage,
+  FlowTestMock,
   FlowTestRequest,
   FlowTestResponse,
 } from "../types/wire.gen";
@@ -39,6 +40,10 @@ export type FlowTestState = {
   // channels.
   values: string[];
   valueIds: string;
+  // What blocks do instead of running, by the ID of the block.
+  mocks: Record<string, FlowTestMock>;
+  // Values of stored variables the test starts with.
+  variables: FlowTestVariableInput[];
   // The test the result is of. Clicks and submits run it again with the same
   // seed and one more action, see TestRandom in the service.
   request: FlowTestRequest | null;
@@ -57,6 +62,8 @@ export const initialFlowTestState: FlowTestState = {
   webhookBody: "",
   values: [],
   valueIds: "",
+  mocks: {},
+  variables: [],
   request: null,
   result: null,
   error: null,
@@ -71,6 +78,58 @@ export function flowTestPath(target: FlowTestTarget) {
     case "message":
       return `messages/${target.id}`;
   }
+}
+
+export type FlowTestVariableInput = {
+  variableId: string;
+  scope: string;
+  // Text, or JSON like 5 or {"xp": 10}. Empty for no value.
+  value: string;
+};
+
+// JSON if the text is JSON, like numbers and lists, otherwise the text.
+export function parseTestValue(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+// The notes of the service are written for the MCP server, which mocks
+// blocks. The editor calls that setting a test result. Unknown notes are shown
+// as they are.
+const notRunNote = "Not run, test runs don't send requests outside of Discord";
+
+const notePrefixes: [string, string][] = [
+  [
+    notRunNote,
+    "Didn't run. Tests don't send requests outside of Discord. Set a test result to test what comes after it.",
+  ],
+  [
+    "AI isn't asked in test runs, so no option was picked",
+    "AI isn't asked in tests, so no option was picked. Set a test result to pick one.",
+  ],
+  [
+    "AI isn't asked in test runs, so the answer was no",
+    "AI isn't asked in tests, so the answer was no. Set a test result to change it.",
+  ],
+  [
+    "Signature not checked in test runs",
+    "The signature isn't checked in tests, so the request counts as valid. Set a test result to test an invalid one.",
+  ],
+  ["Mocked", "Used the test result you set."],
+];
+
+export function flowTestNoteText(note: string) {
+  return notePrefixes.find(([prefix]) => note.startsWith(prefix))?.[1] ?? note;
+}
+
+// Whether a step can be given a test result: blocks that didn't run because
+// they call other services, asked AI or checked a webhook, and the ones that
+// have one.
+export function canSetTestResult(step: { notes?: string[] }) {
+  return (step.notes ?? []).some((note) => flowTestNoteText(note) !== note);
 }
 
 // A seed for a new test, which JSON keeps exactly.
@@ -91,7 +150,7 @@ export function withFlowTestAction(
 export function flowTestNodeStatus(
   result: FlowTestResponse | null
 ): Record<string, TestNodeStatus> {
-  const rank = { ok: 0, warning: 1, error: 2 };
+  const rank = { ok: 0, skipped: 1, warning: 2, error: 3 };
   const res: Record<string, TestNodeStatus> = {};
   for (const execution of result?.executions ?? []) {
     for (const step of execution.steps) {
@@ -99,6 +158,8 @@ export function flowTestNodeStatus(
         ? "error"
         : step.effects?.some((e) => e.warnings?.length)
         ? "warning"
+        : step.notes?.some((n) => n.startsWith(notRunNote))
+        ? "skipped"
         : "ok";
       const current = res[step.node_id];
       if (!current || rank[status] > rank[current]) {

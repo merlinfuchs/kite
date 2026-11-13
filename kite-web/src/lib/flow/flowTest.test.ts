@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  canSetTestResult,
   flowTestEffectMessage,
   flowTestEffectTitle,
   flowTestNodeStatus,
+  flowTestNoteText,
+  parseTestValue,
   withFlowTestAction,
 } from "./flowTest";
 
@@ -70,11 +73,18 @@ describe("flowTestNodeStatus", () => {
             },
             { node_id: "b", node_type: "action_message_create", error: "x" },
             { node_id: "b", node_type: "action_message_create" },
+            {
+              node_id: "c",
+              node_type: "action_http_request",
+              notes: [
+                "Not run, test runs don't send requests outside of Discord. Mock the block to set its result.",
+              ],
+            },
           ],
         },
       ],
     });
-    expect(status).toEqual({ a: "warning", b: "error" });
+    expect(status).toEqual({ a: "warning", b: "error", c: "skipped" });
   });
 });
 
@@ -88,5 +98,26 @@ describe("withFlowTestAction", () => {
       seed: 5,
       then: [{ click: "a" }, { submit: { name: "x" } }],
     });
+  });
+});
+
+describe("flowTestNoteText", () => {
+  it("rewrites the notes of the service for the editor", () => {
+    const note =
+      "Not run, test runs don't send requests outside of Discord. Mock the block to set its result.";
+    expect(flowTestNoteText(note)).toContain("Set a test result");
+    expect(canSetTestResult({ notes: [note] })).toBe(true);
+    expect(flowTestNoteText("Waited 5m0s, which test runs skip")).toBe(
+      "Waited 5m0s, which test runs skip"
+    );
+    expect(canSetTestResult({ notes: ["Waited 5m0s"] })).toBe(false);
+  });
+});
+
+describe("parseTestValue", () => {
+  it("keeps text that isn't JSON", () => {
+    expect(parseTestValue("95")).toBe(95);
+    expect(parseTestValue('{"xp": 3}')).toEqual({ xp: 3 });
+    expect(parseTestValue("hello")).toBe("hello");
   });
 });

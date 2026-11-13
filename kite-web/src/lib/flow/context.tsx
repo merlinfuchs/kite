@@ -99,9 +99,9 @@ export interface FlowContextStore {
   setTestNodeStatus(status: Record<string, TestNodeStatus>): void;
 }
 
-// A block that ran in a test failed, would likely be rejected by Discord, or
-// ran without either.
-export type TestNodeStatus = "ok" | "warning" | "error";
+// A block that ran in a test failed, would likely be rejected by Discord, ran
+// without either, or was skipped because it calls another service.
+export type TestNodeStatus = "ok" | "skipped" | "warning" | "error";
 
 export const createFlowContextStore = () => {
   return create<FlowContextStore>()(

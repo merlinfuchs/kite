@@ -24,6 +24,10 @@ Click the buttons and select menus of the messages in the result, or fill in and
 
 Nothing is sent or changed, and tests don't cost credits. Changes to stored variables only last for the test. The bot still reads your server for real, so a wrong channel or role ID shows up as an error. Blocks that call services other than Discord, like `Send API Request` and the AI blocks, don't run in a test and have no result. `Wait` blocks are skipped.
 
+To test what comes after such a block, click `Set test result` on it in the result. Enter what it returns, like the answer of `Ask AI` or the response of a request, or make it fail to test an error handler. For `AI Check` and `AI Choice`, pick the answer. The test runs again with it, and later tests use it too until you remove it.
+
+To test with other stored values, like a balance that's too low, click `Start with stored values` above `Run test`. Pick the stored variable and enter the value. For variables with a value per member or server, also enter the scope with the IDs filled in, like `123_456`.
+
 Your app has to be online to run a test.
 
 ## My bot is offline

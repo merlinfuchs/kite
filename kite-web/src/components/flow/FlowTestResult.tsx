@@ -4,12 +4,15 @@ import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
 import { getNodeTitle, getNodeValues } from "@/lib/flow/nodes";
 import { NodeData } from "@/lib/flow/dataSchema";
 import {
+  canSetTestResult,
   flowTestEffectMessage,
   flowTestEffectTitle,
+  flowTestNoteText,
 } from "@/lib/flow/flowTest";
 import {
   FlowTestAction,
   FlowTestEffect,
+  FlowTestMock,
   FlowTestExecution,
   FlowTestResponse,
   FlowTestStep,
@@ -21,6 +24,8 @@ import { PreviewComponentActionsContext } from "../message/MessagePreviewCompone
 import { MessageComponentSelectMenu } from "@/lib/message/schema";
 import { ShowBlockButton } from "./FlowLogList";
 import FlowTestModalForm from "./FlowTestModalForm";
+import { MockTarget } from "./FlowTestMockDialog";
+import { Button } from "../ui/button";
 import FlowTestSelectDialog from "./FlowTestSelectDialog";
 
 // What the user does in the result, like clicking a button the flow sent,
@@ -28,19 +33,31 @@ import FlowTestSelectDialog from "./FlowTestSelectDialog";
 // one whose modal can still be submitted.
 const TestActionContext = createContext<{
   onAction(action: FlowTestAction): void;
+  onEditMock(target: MockTarget): void;
+  mocks: Record<string, FlowTestMock>;
   pending: boolean;
   isLast: boolean;
-}>({ onAction: () => {}, pending: false, isLast: false });
+}>({
+  onAction: () => {},
+  onEditMock: () => {},
+  mocks: {},
+  pending: false,
+  isLast: false,
+});
 
 export default function FlowTestResult({
   result,
   pending,
+  mocks,
   onAction,
+  onEditMock,
   onShowNode,
 }: {
   result: FlowTestResponse;
   pending: boolean;
+  mocks: Record<string, FlowTestMock>;
   onAction: (action: FlowTestAction) => void;
+  onEditMock: (target: MockTarget) => void;
   onShowNode: (id: string) => void;
 }) {
   const [selectMenu, setSelectMenu] =
@@ -64,7 +81,13 @@ export default function FlowTestResult({
         {result.executions.map((execution, i) => (
           <TestActionContext.Provider
             key={i}
-            value={{ onAction, pending, isLast: i === last }}
+            value={{
+              onAction,
+              onEditMock,
+              mocks,
+              pending,
+              isLast: i === last,
+            }}
           >
             <Execution execution={execution} onShowNode={onShowNode} />
           </TestActionContext.Provider>
@@ -135,6 +158,7 @@ function Step({
   step: FlowTestStep;
   onShowNode: (id: string) => void;
 }) {
+  const { onEditMock, mocks } = useContext(TestActionContext);
   const node = useStore((s) => s.nodeLookup.get(step.node_id));
   const values = getNodeValues(step.node_type);
   const title = node
@@ -162,8 +186,25 @@ function Step({
       )}
 
       {step.notes?.map((note, i) => (
-        <Note key={i} text={note} />
+        <Note key={i} text={flowTestNoteText(note)} />
       ))}
+
+      {node && (canSetTestResult(step) || mocks[step.node_id]) && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() =>
+            onEditMock({
+              nodeId: step.node_id,
+              nodeType: step.node_type,
+              title,
+            })
+          }
+        >
+          {mocks[step.node_id] ? "Change test result" : "Set test result"}
+        </Button>
+      )}
 
       {step.effects?.map((effect, i) => (
         <Effect key={i} effect={effect} />
