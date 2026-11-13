@@ -11,6 +11,8 @@ import (
 type UserBadgeKind string
 
 const (
+	// UserBadgeStaff is for the Kite team, the admins in the config.
+	UserBadgeStaff UserBadgeKind = "staff"
 	// UserBadgeContributor is for people who helped build Kite. Admins give it
 	// by hand.
 	UserBadgeContributor UserBadgeKind = "contributor"

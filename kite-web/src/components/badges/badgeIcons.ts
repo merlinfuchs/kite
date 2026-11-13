@@ -24,6 +24,19 @@ export type CreatorTier = 10 | 100 | 1000;
 // The SVGs of the badges, each the inside of a 24x24 viewBox. g is a prefix
 // that keeps the IDs of their gradients apart when several are on a page.
 export const badgeIcons = {
+  // Kite's logo on a shield: they're on the Kite team.
+  staff: (g: string) => `<defs>${lg(g + "a", 5, 2, 19, 22, [
+    [0, "#FDBA74"],
+    [0.5, "#F97316"],
+    [1, "#C2410C"],
+  ])}</defs>
+    <path d="M12 1.8 20 4.8V11.2C20 16.2 16.6 20 12 22 7.4 20 4 16.2 4 11.2V4.8z" fill="url(#${g}a)"/>
+    <path d="M20 11.2C20 16.2 16.6 20 12 22 9.4 20.9 7.2 19.1 5.8 16.8 11 18 16.6 16 20 10.4z" fill="#7C2D12" fill-opacity=".3"/>
+    <path d="M12 3.2 5.4 5.7V9.2C7.6 7.4 10 6.4 12.6 6.1 13.4 5 14.2 4.3 15 4.3z" fill="#fff" fill-opacity=".3"/>
+    <g fill="#fff" transform="translate(${12 - 21.5 * 0.31} ${
+    11.8 - 20 * 0.31
+  }) scale(.31)">${LOGO}</g>
+    ${sparkle(20.6, 2.8, 1.8)}`,
   // A puzzle piece: they helped put Kite together.
   contributor: (g: string) => `<defs>${lg(g + "a", 5, 4, 19, 21, [
     [0, "#7DD3FC"],

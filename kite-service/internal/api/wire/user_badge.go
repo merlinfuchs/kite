@@ -9,8 +9,8 @@ import (
 
 // UserBadge is a badge on a user's creator page and in the dashboard.
 type UserBadge struct {
-	// Kind is contributor, early_supporter, subscriber, early_creator or
-	// creator.
+	// Kind is staff, contributor, early_supporter, subscriber,
+	// early_creator or creator.
 	Kind string `json:"kind"`
 	// Plan is the title of the plan of a subscriber.
 	Plan string `json:"plan,omitempty"`

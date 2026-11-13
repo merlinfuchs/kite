@@ -1736,8 +1736,8 @@ export type UserGetResponse = User;
  */
 export interface UserBadge {
   /**
-   * Kind is contributor, early_supporter, subscriber, early_creator or
-   * creator.
+   * Kind is staff, contributor, early_supporter, subscriber,
+   * early_creator or creator.
    */
   kind: string;
   /**

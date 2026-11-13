@@ -69,5 +69,6 @@ Your creator page shows your badges, which you also see in the menu of your acco
 - Early supporter, for everyone who paid for a plan before Kite Plus launched on October 30, 2026.
 - Subscriber, while you pay for a plan.
 - Contributor, for people who helped build Kite.
+- Staff, for the Kite team.
 
 The Kite team also picks templates it likes, which then show a Staff pick seal in the Marketplace.

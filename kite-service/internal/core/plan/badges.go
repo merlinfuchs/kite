@@ -3,6 +3,7 @@ package plan
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -42,7 +43,14 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 		return nil, fmt.Errorf("failed to get creator stats: %w", err)
 	}
 
-	return userBadges(grants, subs, stats, func(productID string) string {
+	var staff []string
+	for _, id := range m.config.AdminUserIDs {
+		if slices.Contains(userIDs, id) {
+			staff = append(staff, id)
+		}
+	}
+
+	return userBadges(staff, grants, subs, stats, func(productID string) string {
 		if plan := m.PlanByLemonSqueezyProductID(productID); plan != nil {
 			return plan.Title
 		}
@@ -50,10 +58,12 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 	}), nil
 }
 
-// userBadges works out the badges of users from the badges admins gave them,
-// their subscriptions and their templates in the marketplace. planTitle is the
-// title of the plan of a product, or empty if it isn't one.
+// userBadges works out the badges of users from whether they're staff, the
+// badges admins gave them, their subscriptions and their templates in the
+// marketplace. planTitle is the title of the plan of a product, or empty if it
+// isn't one.
 func userBadges(
+	staff []string,
 	grants []*model.UserBadgeGrant,
 	subs []*model.Subscription,
 	stats []*model.CreatorStats,
@@ -89,8 +99,11 @@ func userBadges(
 		res[userID] = append(res[userID], b)
 	}
 
-	// Badges are in the same order for everyone: what admins gave, then
-	// support, then templates.
+	// Badges are in the same order for everyone: staff, what admins gave,
+	// then support, then templates.
+	for _, userID := range staff {
+		add(userID, model.UserBadge{Kind: model.UserBadgeStaff})
+	}
 	for userID, kinds := range granted {
 		for _, kind := range model.GrantableUserBadges {
 			if kinds[kind] {

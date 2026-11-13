@@ -17,6 +17,7 @@ func TestUserBadges(t *testing.T) {
 	titles := map[string]string{"premium": "Premium", "plus": "Plus"}
 
 	got := userBadges(
+		[]string{"dev"},
 		[]*model.UserBadgeGrant{{UserID: "dev", Kind: model.UserBadgeContributor}},
 		[]*model.Subscription{
 			// Newest first, like the store returns them.
@@ -36,6 +37,7 @@ func TestUserBadges(t *testing.T) {
 
 	want := map[string][]model.UserBadge{
 		"dev": {
+			{Kind: model.UserBadgeStaff},
 			{Kind: model.UserBadgeContributor},
 			{Kind: model.UserBadgeEarlyCreator},
 			{Kind: model.UserBadgeCreator, Milestone: 100},

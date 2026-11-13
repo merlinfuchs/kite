@@ -18,6 +18,12 @@ type BadgeInfo = {
 // undefined for badges this version of the site doesn't know.
 function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
   switch (badge.kind) {
+    case "staff":
+      return {
+        svg: badgeIcons.staff,
+        title: "Kite staff",
+        description: "Part of the team behind Kite",
+      };
     case "contributor":
       return {
         svg: badgeIcons.contributor,
