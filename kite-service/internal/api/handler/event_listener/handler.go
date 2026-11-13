@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/limit"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -57,11 +58,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		return nil, err
 	}
 
-	added := map[model.EventSource]addedListeners{source: {total: 1}}
+	added := store.ItemCounts{Total: 1}
 	if req.Enabled {
-		added[source] = addedListeners{total: 1, enabled: 1}
+		added.Enabled = 1
 	}
-	if err := h.checkEventListenerLimit(c, added); err != nil {
+	if err := h.checkEventListenerLimit(c, map[model.EventSource]store.ItemCounts{source: added}); err != nil {
 		return nil, err
 	}
 
@@ -112,7 +113,7 @@ func (h *EventListenerHandler) PrepareImport(c *handler.Context, reqs []wire.Eve
 	}
 
 	eventListeners := make([]*model.EventListener, len(reqs))
-	added := make(map[model.EventSource]addedListeners)
+	added := make(map[model.EventSource]store.ItemCounts)
 
 	for i, listener := range reqs {
 		source := model.EventSource(listener.Source)
@@ -121,9 +122,9 @@ func (h *EventListenerHandler) PrepareImport(c *handler.Context, reqs []wire.Eve
 			return nil, err
 		}
 		a := added[source]
-		a.total++
+		a.Total++
 		if listener.Enabled {
-			a.enabled++
+			a.Enabled++
 		}
 		added[source] = a
 
@@ -206,7 +207,7 @@ func (h *EventListenerHandler) PrepareUpdate(c *handler.Context, listener *model
 
 func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Context, req wire.EventListenerUpdateEnabledRequest) (*wire.EventListenerUpdateEnabledResponse, error) {
 	if req.Enabled && !c.EventListener.Enabled {
-		added := map[model.EventSource]addedListeners{c.EventListener.Source: {enabled: 1}}
+		added := map[model.EventSource]store.ItemCounts{c.EventListener.Source: {Enabled: 1}}
 		if err := h.checkEventListenerLimit(c, added); err != nil {
 			return nil, err
 		}
@@ -283,25 +284,12 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 	return eventFlow, nil
 }
 
-type addedListeners struct {
-	total   int
-	enabled int
-}
-
 // checkEventListenerLimit checks that the app can have added more listeners
 // of each source. Each source has its own limit.
-func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]addedListeners) error {
+func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]store.ItemCounts) error {
 	for source, add := range added {
-		// Named like the pages they're on in the dashboard, so the limit that
-		// was reached is clear.
-		limit, name := c.Features.MaxEventListeners, "Discord events"
-		switch source {
-		case model.EventSourceSchedule:
-			limit, name = c.Features.MaxScheduledEventListeners, "scheduled tasks"
-		case model.EventSourceWebhook:
-			limit, name = c.Features.MaxWebhookEventListeners, "webhooks"
-		}
-		if limit == 0 {
+		allowed, name := limit.EventListenerLimit(c.Features, source)
+		if allowed == 0 {
 			continue
 		}
 
@@ -310,8 +298,8 @@ func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added
 			return fmt.Errorf("failed to count event listeners: %w", err)
 		}
 
-		if err := handler.CheckEnabledLimit(name, limit, counts, add.total, add.enabled); err != nil {
-			return err
+		if err := limit.Check(name, allowed, counts, add); err != nil {
+			return handler.ErrBadRequest("resource_limit", err.Error())
 		}
 	}
 

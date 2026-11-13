@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/limit"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -48,7 +49,7 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	if err := h.checkCommandLimit(c, 1, enabledCount(req.Enabled)); err != nil {
+	if err := h.checkCommandLimit(c, store.ItemCounts{Total: 1, Enabled: enabledCount(req.Enabled)}); err != nil {
 		return nil, err
 	}
 
@@ -105,11 +106,11 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		return nil, nil
 	}
 
-	addedEnabled := 0
+	added := store.ItemCounts{Total: len(reqs)}
 	for _, cmd := range reqs {
-		addedEnabled += enabledCount(cmd.Enabled)
+		added.Enabled += enabledCount(cmd.Enabled)
 	}
-	if err := h.checkCommandLimit(c, len(reqs), addedEnabled); err != nil {
+	if err := h.checkCommandLimit(c, added); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +210,7 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, cmd *model.Command, f
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
 	if req.Enabled && !c.Command.Enabled {
-		if err := h.checkCommandLimit(c, 0, 1); err != nil {
+		if err := h.checkCommandLimit(c, store.ItemCounts{Enabled: 1}); err != nil {
 			return nil, err
 		}
 	}
@@ -279,9 +280,8 @@ func commandNamesError(err error) error {
 	return fmt.Errorf("failed to check command names: %w", err)
 }
 
-// checkCommandLimit checks that the app can have added more commands,
-// addedEnabled of them enabled.
-func (h *CommandHandler) checkCommandLimit(c *handler.Context, added, addedEnabled int) error {
+// checkCommandLimit checks that the app can have added more commands.
+func (h *CommandHandler) checkCommandLimit(c *handler.Context, added store.ItemCounts) error {
 	if c.Features.MaxCommands == 0 {
 		return nil
 	}
@@ -291,7 +291,10 @@ func (h *CommandHandler) checkCommandLimit(c *handler.Context, added, addedEnabl
 		return fmt.Errorf("failed to count commands: %w", err)
 	}
 
-	return handler.CheckEnabledLimit("commands", c.Features.MaxCommands, counts, added, addedEnabled)
+	if err := limit.Check("commands", c.Features.MaxCommands, counts, added); err != nil {
+		return handler.ErrBadRequest("resource_limit", err.Error())
+	}
+	return nil
 }
 
 func enabledCount(enabled bool) int {

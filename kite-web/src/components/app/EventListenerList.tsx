@@ -64,7 +64,7 @@ export default function EventListenerList({
   );
 
   const listenerActions = (
-    <PlanLimitGate limit={limit} noun={noun} from={from} countsEnabled>
+    <PlanLimitGate limit={limit} noun={noun} from={from}>
       <EventListenerCreateDialog source={source}>
         <Button>Create {name.singular}</Button>
       </EventListenerCreateDialog>
@@ -109,14 +109,7 @@ export default function EventListenerList({
           )}
           placeholder={`Search ${name.singular}s`}
           actions={listenerActions}
-          status={
-            <PlanLimitCount
-              limit={limit}
-              noun={noun}
-              from={from}
-              countsEnabled
-            />
-          }
+          status={<PlanLimitCount limit={limit} noun={noun} from={from} />}
         />
       )}
     </AutoAnimate>

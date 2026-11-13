@@ -22,7 +22,7 @@ export default function CommandList() {
   );
 
   const commandActions = (
-    <PlanLimitGate limit={limit} noun="commands" from="commands" countsEnabled>
+    <PlanLimitGate limit={limit} noun="commands" from="commands">
       <CommandCreateDialog>
         <Button>Create command</Button>
       </CommandCreateDialog>
@@ -79,7 +79,6 @@ export default function CommandList() {
                     limit={limit}
                     noun="commands"
                     from="commands"
-                    countsEnabled
                   />
                 </div>
               }

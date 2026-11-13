@@ -45,6 +45,9 @@ export interface PlanLimit {
   limit: number;
   reached: boolean;
   near: boolean;
+  // Only enabled commands and event listeners count. Message templates and
+  // variables can't be disabled, so all of them count.
+  countsEnabled: boolean;
   // The cheapest plan with a higher limit, and that limit (0 is unlimited).
   nextPlan?: BillingPlan;
   nextLimit: number;
@@ -82,6 +85,7 @@ function planLimit(
     limit,
     reached: count >= limit,
     near: count >= limit * nearLimitRatio,
+    countsEnabled: key !== "max_messages" && key !== "max_variables",
     nextPlan,
     nextLimit: nextPlan?.[planKey] ?? 0,
   };
@@ -156,17 +160,14 @@ export function PlanLimitCount({
   limit,
   noun,
   from,
-  countsEnabled,
 }: {
   limit?: PlanLimit;
   noun: string;
   from: string;
-  // Only enabled commands and event listeners count against the limit.
-  countsEnabled?: boolean;
 }) {
   if (!limit) return null;
 
-  const used = countsEnabled ? "enabled" : "used";
+  const used = limit.countsEnabled ? "enabled" : "used";
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -197,14 +198,11 @@ export function PlanLimitGate({
   limit,
   noun,
   from,
-  countsEnabled,
   children,
 }: {
   limit?: PlanLimit;
   noun: string;
   from: string;
-  // Only enabled commands and event listeners count against the limit.
-  countsEnabled?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -228,7 +226,7 @@ export function PlanLimitGate({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {countsEnabled
+              {limit.countsEnabled
                 ? `You've enabled all ${limit.limit} ${noun} your plan allows`
                 : `You've used all ${limit.limit} ${noun}`}
             </DialogTitle>
@@ -236,8 +234,11 @@ export function PlanLimitGate({
               {limit.nextPlan
                 ? `Upgrade to Kite ${
                     limit.nextPlan.title
-                  } to keep building, or ${makeRoom(noun, countsEnabled)}.`
-                : `To make room, ${makeRoom(noun, countsEnabled)}.`}
+                  } to keep building, or ${makeRoom(
+                    noun,
+                    limit.countsEnabled
+                  )}.`
+                : `To make room, ${makeRoom(noun, limit.countsEnabled)}.`}
             </DialogDescription>
           </DialogHeader>
           {limit.nextPlan && (
@@ -269,7 +270,7 @@ export function PlanLimitGate({
   );
 }
 
-function makeRoom(noun: string, countsEnabled?: boolean) {
+function makeRoom(noun: string, countsEnabled: boolean) {
   return countsEnabled
     ? `disable or delete ${noun} you don't need`
     : `delete ${noun} you don't need`;
@@ -362,13 +363,11 @@ export function PlanLimitNotice({
   }, [from, key]);
 
   // Message templates and variables are always added, the blocks use them.
-  // They can't be disabled, so all of them count.
-  const countsEnabled = key !== "max_messages" && key !== "max_variables";
-  const canLeaveOut = room > 0 && countsEnabled;
+  const canLeaveOut = room > 0 && limit.countsEnabled;
   const leaveOut = canLeaveOut
     ? "leave some out"
-    : makeRoom(noun, countsEnabled);
-  const has = countsEnabled ? `${limit.count} enabled` : `${limit.count}`;
+    : makeRoom(noun, limit.countsEnabled);
+  const has = limit.countsEnabled ? `${limit.count} enabled` : `${limit.count}`;
 
   return (
     <div

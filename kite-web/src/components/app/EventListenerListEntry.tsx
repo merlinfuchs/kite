@@ -164,7 +164,6 @@ export default function EventListenerListEntry({
             limit={listener.enabled ? undefined : limit}
             noun={noun}
             from={from}
-            countsEnabled
           >
             <Switch
               checked={listener.enabled}

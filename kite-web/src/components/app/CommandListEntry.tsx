@@ -124,7 +124,6 @@ export default function CommandListEntry({
             limit={command.enabled ? undefined : limit}
             noun="commands"
             from="commands"
-            countsEnabled
           >
             <Switch checked={command.enabled} onCheckedChange={toggleEnabled} />
           </PlanLimitGate>
