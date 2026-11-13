@@ -5,6 +5,7 @@ import {
   FeaturedTemplateEntry,
   TemplateListEntry,
 } from "@/components/app/TemplateListEntry";
+import { UserBadges } from "@/components/badges/Badges";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
@@ -85,7 +86,8 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   const categories = templateCategories.filter((c) =>
     templates.some((t) => t.category === c.value)
   );
-  const since = creatorSince(templates);
+  const firstListedAt = firstCreatedAt(templates);
+  const since = firstListedAt && creatorSince(firstListedAt);
 
   return (
     <HomeLayout
@@ -124,6 +126,11 @@ export default function CreatorPage({ creatorId, listed }: Props) {
                 @{owner.discord_username}
                 {since && ` · Creator since ${since}`}
               </div>
+              <UserBadges
+                badges={owner.badges ?? []}
+                className="mt-4"
+                labeled
+              />
             </div>
             <CopyLinkButton />
           </div>
@@ -222,13 +229,16 @@ function Stat({
   );
 }
 
-// creatorSince is the month of their first listed template.
-function creatorSince(templates: Template[]) {
-  const first = templates
+// firstCreatedAt is when their oldest listed template was made.
+function firstCreatedAt(templates: Template[]) {
+  return templates
     .flatMap((t) => t.createdAt ?? [])
     .sort()
     .at(0);
-  if (!first) return undefined;
+}
+
+// creatorSince is the month of their first listed template.
+function creatorSince(first: string) {
   return new Date(first).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",

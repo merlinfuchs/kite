@@ -505,6 +505,8 @@ export type Template = {
   activeInstalls?: number;
   // How many users starred it, unknown for the official ones from the files.
   stars?: number;
+  // Whether Kite picked it, which only templates of users can be.
+  staffPick?: boolean;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -643,6 +645,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     installs: bundle.install_count,
     activeInstalls: bundle.active_install_count,
     stars: bundle.star_count,
+    staffPick: bundle.staff_pick,
     createdAt: bundle.created_at,
   };
 }

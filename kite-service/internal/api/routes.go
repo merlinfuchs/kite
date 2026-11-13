@@ -33,6 +33,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	userbadge "github.com/kitecloud/kite/kite-service/internal/api/handler/user_badge"
 	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
@@ -129,7 +130,7 @@ func (s *APIServer) RegisterRoutes(
 
 	// Bundles are public, like the templates on the website. A token gets the
 	// user's own ones too, so the MCP server can add them.
-	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore, planManager)
 	v1Group.AllowAPIToken().Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
 	v1Group.AllowAPIToken().Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
@@ -149,7 +150,7 @@ func (s *APIServer) RegisterRoutes(
 	authGroup.Post("/logout", handler.Typed(authHandler.HandleAuthLogout))
 
 	// User routes
-	userHandler := user.NewUserHandler(userStore, s.config.AdminUserIDs)
+	userHandler := user.NewUserHandler(userStore, s.config.AdminUserIDs, planManager)
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
@@ -524,11 +525,18 @@ func (s *APIServer) RegisterRoutes(
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
+	adminGroup.Post("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPick))
+	adminGroup.Delete("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPickDelete))
 
 	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
 	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))
 	adminGroup.Post("/user-bans", handler.TypedWithBody(userBanHandler.HandleUserBanCreate))
 	adminGroup.Delete("/user-bans/{userID}/{feature}", handler.Typed(userBanHandler.HandleUserBanDelete))
+
+	userBadgeHandler := userbadge.NewUserBadgeHandler(userStore)
+	adminGroup.Get("/user-badges", handler.Typed(userBadgeHandler.HandleUserBadgeGrantList))
+	adminGroup.Post("/user-badges", handler.TypedWithBody(userBadgeHandler.HandleUserBadgeGrantCreate))
+	adminGroup.Delete("/user-badges/{userID}/{kind}", handler.Typed(userBadgeHandler.HandleUserBadgeGrantDelete))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

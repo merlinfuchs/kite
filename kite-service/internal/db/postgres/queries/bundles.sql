@@ -278,3 +278,30 @@ WHERE bundles.id = ANY(@ids::text[]);
 
 -- name: SetBundleApprovedVersion :exec
 UPDATE bundles SET approved_version = @approved_version WHERE id = @id;
+
+-- Only users' bundles that weren't taken down can be picked.
+-- name: SetBundleStaffPickedAt :execrows
+UPDATE bundles SET staff_picked_at = @staff_picked_at
+WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;
+
+-- How long the users have had a bundle listed in the marketplace, by when the
+-- oldest of their listed bundles was made, and how many other users added any
+-- of them. Users without a listed bundle aren't in it.
+-- name: GetCreatorStats :many
+SELECT
+    bundles.owner_user_id::text AS user_id,
+    min(bundles.created_at)::timestamp AS first_listed_at,
+    (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND apps.owner_user_id != owned.owner_user_id
+    )::int AS installer_count
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id = ANY(@user_ids::text[]) AND bundles.removed_at IS NULL
+GROUP BY bundles.owner_user_id;
