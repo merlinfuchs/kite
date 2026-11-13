@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useId, useMemo, useState } from "react";
 import {
   Form,
   FormControl,
@@ -40,6 +40,7 @@ import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
 import {
+  discordEventType,
   discordEventTypes,
   schedulePresets,
   capitalize,
@@ -52,6 +53,7 @@ import { getSchedulePreview } from "@/lib/flow/schedule";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  BotIcon,
   LayersIcon,
   LucideIcon,
   MessageSquareIcon,
@@ -60,6 +62,7 @@ import {
   ScrollTextIcon,
   SearchIcon,
   SmileIcon,
+  TagIcon,
   UsersIcon,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,23 +75,10 @@ interface FormFields {
   description: string;
 }
 
-const dialogTexts: Record<
-  EventListenerSource,
-  { description: string; picker: string }
-> = {
-  discord: {
-    description: "Pick the Discord event that runs the flow.",
-    picker: "Event",
-  },
-  schedule: {
-    description: "Pick how often the flow runs.",
-    picker: "Schedule",
-  },
-  webhook: {
-    description:
-      "The flow runs whenever another service sends a request to its URL.",
-    picker: "Webhook",
-  },
+const dialogDescriptions: Record<EventListenerSource, string> = {
+  discord: "Pick the Discord event that runs the flow.",
+  schedule: "Pick how often the flow runs.",
+  webhook: "The flow runs whenever another service sends a request to its URL.",
 };
 
 export default function EventListenerCreateDialog({
@@ -99,9 +89,11 @@ export default function EventListenerCreateDialog({
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  // On mobile the picker and the description are two steps, so the keyboard
+  // doesn't cover the picker. Webhooks have nothing to pick.
+  const [step, setStep] = useState<"pick" | "describe">("pick");
   const isMobile = useIsMobile();
+  const formId = useId();
 
   const router = useRouter();
   const appId = useAppId();
@@ -115,41 +107,25 @@ export default function EventListenerCreateDialog({
     },
   });
 
-  const texts = dialogTexts[source];
   const name = eventSourceName(source);
+  const pickField =
+    source === "discord" ? "type" : source === "schedule" ? "cron" : undefined;
+  const mobileStep = pickField ? step : "describe";
 
+  // Resets on open instead of on close, so the content doesn't change while
+  // the dialog animates out.
   function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      setStep("pick");
+      form.reset();
+    }
     setOpen(nextOpen);
-    if (!nextOpen) {
-      setTimeout(() => {
-        setStep(1);
-        setDirection("forward");
-        form.reset({
-          type: "",
-          cron: source === "schedule" ? schedulePresets[0].cron : "",
-          description: "",
-        });
-      }, 250);
-    }
   }
 
-  function handleNext() {
-    if (source === "discord" && !form.getValues("type")) {
-      form.setError("type", { message: "Pick an event to continue." });
-      return;
+  async function handleNext() {
+    if (pickField && (await form.trigger(pickField))) {
+      setStep("describe");
     }
-    if (source === "schedule" && !form.getValues("cron")) {
-      form.setError("cron", { message: "Pick or enter a schedule." });
-      return;
-    }
-    form.clearErrors();
-    setDirection("forward");
-    setStep(2);
-  }
-
-  function handleBack() {
-    setDirection("backward");
-    setStep(1);
   }
 
   function onSubmit(data: FormFields) {
@@ -178,7 +154,6 @@ export default function EventListenerCreateDialog({
             track("event_listener_created", { type, source: "blank" });
             toast.success(`${capitalize(name.singular)} created.`);
             setOpen(false);
-            form.reset();
 
             setTimeout(
               () =>
@@ -198,57 +173,34 @@ export default function EventListenerCreateDialog({
     );
   }
 
-  // Preview data for mobile Step 2 confirmation card
-  const selectedDiscordEvent = discordEventTypes.find(
-    (t) => t.value === form.watch("type")
-  );
-  const selectedSchedulePreset = schedulePresets.find(
-    (p) => p.cron === form.watch("cron")?.trim()
-  );
-
-  const pickerFields = (
-    <div className="flex-1 min-h-0 flex flex-col">
-      {source === "discord" && (
-        <FormField
-          control={form.control}
-          name="type"
-          rules={{ required: "Pick an event." }}
-          render={({ field }) => (
-            <FormItem className="flex-1 min-h-0 flex flex-col">
-              <DiscordEventPicker
-                value={field.value}
-                onChange={(val) => {
-                  field.onChange(val);
-                  form.clearErrors("type");
-                }}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-      {source === "schedule" && (
-        <FormField
-          control={form.control}
-          name="cron"
-          rules={{ required: "Pick or enter a schedule." }}
-          render={({ field }) => (
-            <FormItem className="flex-1 min-h-0 flex flex-col">
-              <SchedulePicker
-                value={field.value}
-                onChange={(val) => {
-                  field.onChange(val);
-                  form.clearErrors("cron");
-                }}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-      {source === "webhook" && <WebhookPicker />}
-    </div>
-  );
+  const picker =
+    source === "discord" ? (
+      <FormField
+        control={form.control}
+        name="type"
+        rules={{ required: "Pick an event." }}
+        render={({ field }) => (
+          <FormItem className="flex-1 min-h-0 flex flex-col">
+            <DiscordEventPicker value={field.value} onChange={field.onChange} />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    ) : source === "schedule" ? (
+      <FormField
+        control={form.control}
+        name="cron"
+        rules={{ required: "Pick or enter a schedule." }}
+        render={({ field }) => (
+          <FormItem className="flex-1 min-h-0 flex flex-col">
+            <SchedulePicker value={field.value} onChange={field.onChange} />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    ) : (
+      <WebhookPicker />
+    );
 
   const descriptionField = (
     <FormField
@@ -256,14 +208,14 @@ export default function EventListenerCreateDialog({
       name="description"
       rules={{ required: "Enter a description." }}
       render={({ field }) => (
-        <FormItem className="flex-none pt-1">
+        <FormItem className="flex-none">
           <FormLabel>Description</FormLabel>
           <FormDescription>What will you use it for?</FormDescription>
           <FormControl>
             <Input
               type="text"
-              placeholder="e.g. Welcome new members and send rules"
               maxLength={100}
+              autoFocus={isMobile}
               {...field}
             />
           </FormControl>
@@ -273,207 +225,129 @@ export default function EventListenerCreateDialog({
     />
   );
 
-  // Mobile 2-step views
-  const mobileStep1Content = (
-    <div
-      key="mobile-step-1"
-      className={cn(
-        "flex-1 min-h-0 flex flex-col",
-        direction === "backward"
-          ? "animate-in fade-in slide-in-from-left-4 duration-200"
-          : "animate-in fade-in duration-150"
-      )}
-    >
-      {pickerFields}
-    </div>
-  );
-
-  const mobileStep2Content = (
-    <div
-      key="mobile-step-2"
-      className="flex-1 min-h-0 overflow-y-auto space-y-5 animate-in fade-in slide-in-from-right-4 duration-200 p-1"
-    >
-      {/* Selected choice summary card */}
-      {source === "discord" && selectedDiscordEvent && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 p-3.5 rounded-lg border border-border/60 bg-muted/30">
-            <div className="rounded-md w-8 h-8 flex items-center justify-center shrink-0 bg-primary/10 text-primary">
-              <selectedDiscordEvent.icon className="size-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium leading-5 truncate text-foreground">
-                {selectedDiscordEvent.label}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {selectedDiscordEvent.description}
-              </div>
-            </div>
-          </div>
-          {selectedDiscordEvent.note && (
-            <PickerNote>{selectedDiscordEvent.note}</PickerNote>
-          )}
-        </div>
-      )}
-
-      {source === "schedule" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 p-3.5 rounded-lg border border-border/60 bg-muted/30">
-            <div className="rounded-md w-8 h-8 flex items-center justify-center shrink-0 bg-primary/10 text-primary">
-              {selectedSchedulePreset?.icon ? (
-                <selectedSchedulePreset.icon className="size-4" />
-              ) : (
-                <PencilIcon className="size-4" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium leading-5 truncate text-foreground">
-                {selectedSchedulePreset?.label ?? "Custom schedule"}
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {form.watch("cron")}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {source === "webhook" && (
-        <div className="p-3.5 rounded-lg border border-border/60 bg-muted/30">
-          <div className="text-sm font-medium text-foreground">
-            Webhook endpoint
-          </div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            A unique incoming URL will be generated upon creation.
-          </div>
-        </div>
-      )}
-
-      <FormField
-        control={form.control}
-        name="description"
-        rules={{ required: "Enter a description." }}
-        render={({ field }) => (
-          <FormItem className="space-y-2">
-            <div>
-              <FormLabel>Description</FormLabel>
-              <FormDescription className="mt-0.5">
-                What will you use it for?
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Input
-                type="text"
-                autoFocus
-                placeholder="e.g. Welcome new members and send rules"
-                maxLength={100}
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
-  );
-
-  const mobileFooterContent =
-    step === 1 ? (
-      <div className="flex items-center justify-between w-full gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => handleOpenChange(false)}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          onClick={handleNext}
-          disabled={source === "discord" && !form.watch("type")}
-        >
-          Next
-          <ArrowRightIcon className="ml-1.5 size-4" />
-        </Button>
-      </div>
-    ) : (
-      <div className="flex items-center justify-between w-full gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleBack}
-          disabled={createMutation.isPending}
-        >
-          <ArrowLeftIcon className="mr-1.5 size-4" /> Back
-        </Button>
-        <LoadingButton
-          type="submit"
-          form="mobile-event-create-form"
-          loading={createMutation.isPending}
-        >
-          Create {name.singular}
-        </LoadingButton>
-      </div>
-    );
-
   if (isMobile) {
+    // The picked values can't change while the describe step is shown.
+    const [type, cron] = form.getValues(["type", "cron"]);
+    const selectedEvent = discordEventType(type);
+    const selectedPreset = schedulePresets.find((p) => p.cron === cron.trim());
+
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerTrigger asChild>{children}</DrawerTrigger>
         <DrawerContent className="h-[85dvh] max-h-[85dvh] flex flex-col">
-          <DrawerHeader className="text-left px-5 pt-3 pb-2 border-b border-border/40 flex-none">
+          <DrawerHeader className="text-left px-4 pt-3 pb-3 border-b flex-none">
             <DrawerTitle>Create {name.singular}</DrawerTitle>
-            <DrawerDescription>
-              {step === 1
-                ? texts.description
-                : `Add details for this ${name.singular}.`}
-            </DrawerDescription>
+            <DrawerDescription>{dialogDescriptions[source]}</DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-            <Form {...form}>
-              <form
-                id="mobile-event-create-form"
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="flex-1 min-h-0 flex flex-col"
+          <Form {...form}>
+            <form
+              id={formId}
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex-1 min-h-0 flex flex-col p-4"
+            >
+              {mobileStep === "pick" ? (
+                <div
+                  key="pick"
+                  className="flex-1 min-h-0 flex flex-col animate-in fade-in duration-200"
+                >
+                  {picker}
+                </div>
+              ) : (
+                <div
+                  key="describe"
+                  className="flex-1 min-h-0 overflow-y-auto space-y-5 p-1 animate-in fade-in slide-in-from-right-4 duration-200"
+                >
+                  {source === "discord" && selectedEvent && (
+                    <div className="space-y-2">
+                      <OptionCard
+                        icon={selectedEvent.icon}
+                        title={selectedEvent.label}
+                        description={selectedEvent.description}
+                        selected
+                      />
+                      {selectedEvent.note && (
+                        <PickerNote>{selectedEvent.note}</PickerNote>
+                      )}
+                    </div>
+                  )}
+                  {source === "schedule" && (
+                    <OptionCard
+                      icon={selectedPreset?.icon ?? PencilIcon}
+                      title={selectedPreset?.label ?? "Custom"}
+                      description={selectedPreset?.description ?? cron}
+                      selected
+                    />
+                  )}
+                  {source === "webhook" && <WebhookPicker />}
+                  {descriptionField}
+                </div>
+              )}
+            </form>
+          </Form>
+          <DrawerFooter className="flex-row justify-between px-4 py-3 border-t flex-none">
+            {mobileStep === "describe" && pickField ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep("pick")}
+                disabled={createMutation.isPending}
               >
-                {step === 1 ? mobileStep1Content : mobileStep2Content}
-              </form>
-            </Form>
-          </div>
-          <DrawerFooter className="px-4 py-3 border-t border-border/40 bg-muted/20 flex-none">
-            {mobileFooterContent}
+                <ArrowLeftIcon className="mr-1.5 size-4" />
+                Back
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+              >
+                Cancel
+              </Button>
+            )}
+            {mobileStep === "pick" ? (
+              <Button type="button" onClick={handleNext}>
+                Next
+                <ArrowRightIcon className="ml-1.5 size-4" />
+              </Button>
+            ) : (
+              <LoadingButton
+                type="submit"
+                form={formId}
+                loading={createMutation.isPending}
+              >
+                Create {name.singular}
+              </LoadingButton>
+            )}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
   }
 
-  // Desktop single-screen view
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         className={cn(
-          "sm:max-w-2xl max-h-[90dvh] flex flex-col p-0 overflow-hidden",
-          source === "webhook" ? "sm:h-auto" : "sm:h-[640px]"
+          "sm:max-w-2xl max-h-[90dvh] flex flex-col gap-0 p-0 overflow-hidden",
+          pickField && "sm:h-[640px]"
         )}
       >
-        <DialogHeader className="p-6 pb-3 border-b border-border/40 flex-none">
+        <DialogHeader className="p-6 pb-4 border-b flex-none">
           <DialogTitle>Create {name.singular}</DialogTitle>
-          <DialogDescription>{texts.description}</DialogDescription>
+          <DialogDescription>{dialogDescriptions[source]}</DialogDescription>
         </DialogHeader>
-        <div className="px-6 py-4 flex-1 min-h-0 overflow-hidden flex flex-col">
-          <Form {...form}>
-            <form
-              id="desktop-event-create-form"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex-1 min-h-0 flex flex-col space-y-3 p-1"
-            >
-              {pickerFields}
-              {descriptionField}
-            </form>
-          </Form>
-        </div>
-        <DialogFooter className="px-6 py-3 border-t border-border/40 bg-muted/20 flex-none flex items-center justify-between sm:justify-between w-full">
+        <Form {...form}>
+          <form
+            id={formId}
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex-1 min-h-0 flex flex-col gap-4 px-6 py-4"
+          >
+            {picker}
+            {descriptionField}
+          </form>
+        </Form>
+        <DialogFooter className="px-6 py-3 border-t flex-none sm:justify-between">
           <Button
             type="button"
             variant="outline"
@@ -483,9 +357,8 @@ export default function EventListenerCreateDialog({
           </Button>
           <LoadingButton
             type="submit"
-            form="desktop-event-create-form"
+            form={formId}
             loading={createMutation.isPending}
-            disabled={source === "discord" && !form.watch("type")}
           >
             Create {name.singular}
           </LoadingButton>
@@ -511,20 +384,18 @@ function OptionCard({
   onSelect?: () => void;
 }) {
   const className = cn(
-    "flex items-start gap-3 rounded-lg border p-2.5 text-left transition-colors w-full min-h-[64px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+    "flex items-start gap-3 rounded-lg border p-2.5 text-left transition-colors w-full min-h-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     selected
       ? "border-primary bg-primary/5 ring-1 ring-inset ring-primary"
-      : onSelect && "border-border/60 hover:border-border hover:bg-muted/40"
+      : onSelect && "hover:bg-muted/50"
   );
 
   const content = (
     <>
       <div
         className={cn(
-          "rounded-md w-8 h-8 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
-          selected
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
+          "rounded-md size-8 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+          selected ? "bg-primary text-primary-foreground" : "bg-muted"
         )}
       >
         <Icon className="size-4" />
@@ -556,20 +427,25 @@ function OptionCard({
 
 function PickerNote({ children }: { children: ReactNode }) {
   return (
-    <div className="text-sm text-muted-foreground rounded-lg bg-muted/50 px-3 py-2 leading-relaxed">
+    <div className="text-sm text-muted-foreground rounded-lg bg-muted/50 px-3 py-2">
       {children}
     </div>
   );
 }
 
-const eventCategoryTabs = [
-  { id: "all", label: "All", icon: LayersIcon },
-  { id: "Messages", label: "Messages", icon: MessageSquareIcon },
-  { id: "Members", label: "Members", icon: UsersIcon },
-  { id: "Reactions", label: "Reactions", icon: SmileIcon },
-  { id: "Moderation", label: "Moderation", icon: ScrollTextIcon },
-  { id: "Voice", label: "Voice", icon: MicIcon },
-];
+// The categories of discordEventTypes, in the order of the picker.
+const eventCategories = Array.from(
+  new Set(discordEventTypes.map((t) => t.category))
+);
+
+const eventCategoryIcons: Record<string, LucideIcon> = {
+  Messages: MessageSquareIcon,
+  Reactions: SmileIcon,
+  Members: UsersIcon,
+  Moderation: ScrollTextIcon,
+  Voice: MicIcon,
+  Bot: BotIcon,
+};
 
 function DiscordEventPicker({
   value,
@@ -578,23 +454,17 @@ function DiscordEventPicker({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
-
-  const isSearching = search.trim() !== "";
+  // Undefined shows all categories.
+  const [activeCategory, setActiveCategory] = useState<string>();
 
   const categories = useMemo(() => {
     const res: { name: string; types: typeof discordEventTypes }[] = [];
     for (const type of discordEventTypes) {
-      if (
-        !isSearching &&
-        activeCategory !== "all" &&
-        type.category !== activeCategory
-      ) {
+      if (activeCategory && type.category !== activeCategory) {
         continue;
       }
       if (
-        isSearching &&
         !matchesSearch(search, [type.label, type.description, type.category])
       ) {
         continue;
@@ -607,47 +477,39 @@ function DiscordEventPicker({
       category.types.push(type);
     }
     return res;
-  }, [search, isSearching, activeCategory]);
+  }, [search, activeCategory]);
 
-  const selected = discordEventTypes.find((t) => t.value === value);
+  const selected = discordEventType(value);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col space-y-3">
-      {/* Sleek inline filter pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-none">
-        {eventCategoryTabs.map((tab) => {
-          const { id, label, icon: Icon } = tab;
-          const isActive = activeCategory === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => {
-                setActiveCategory(id);
-                setSearch("");
-              }}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <Icon className="size-3.5" />
-              <span>{label}</span>
-            </button>
-          );
-        })}
+    <div className="flex-1 min-h-0 flex flex-col gap-3">
+      <div className="flex-none flex gap-1 overflow-x-auto no-scrollbar p-0.5">
+        <CategoryPill
+          icon={LayersIcon}
+          label="All"
+          active={!activeCategory}
+          onClick={() => setActiveCategory(undefined)}
+        />
+        {eventCategories.map((category) => (
+          <CategoryPill
+            key={category}
+            icon={eventCategoryIcons[category] ?? TagIcon}
+            label={category}
+            active={activeCategory === category}
+            onClick={() => setActiveCategory(category)}
+          />
+        ))}
       </div>
 
       <div className="relative flex-none">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Search events…"
+          placeholder="Search events"
+          aria-label="Search events"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-9"
+          className="pl-9"
         />
       </div>
 
@@ -660,11 +522,8 @@ function DiscordEventPicker({
           )}
           {categories.map((category) => (
             <div key={category.name} className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground px-0.5">
-                <span>{category.name}</span>
-                <span className="text-muted-foreground/70 text-[11px] font-normal">
-                  {category.types.length}
-                </span>
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {category.name}
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {category.types.map((type) => (
@@ -684,11 +543,38 @@ function DiscordEventPicker({
       </ScrollArea>
 
       {selected?.note && (
-        <div className="flex-none animate-in fade-in duration-150">
+        <div className="flex-none">
           <PickerNote>{selected.note}</PickerNote>
         </div>
       )}
     </div>
+  );
+}
+
+// CategoryPill looks like the category chips of the template list.
+function CategoryPill({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant={active ? "secondary" : "ghost"}
+      className="rounded-full flex-none gap-1.5"
+      onClick={onClick}
+      aria-pressed={active}
+    >
+      <Icon className="size-4" />
+      {label}
+    </Button>
   );
 }
 
@@ -700,13 +586,17 @@ function SchedulePicker({
   onChange: (value: string) => void;
 }) {
   const preset = schedulePresets.find((p) => p.cron === value.trim());
+  // Custom stays picked while the expression is edited, even if it happens to
+  // match a preset on the way.
   const [custom, setCustom] = useState(false);
   const isCustom = custom || !preset;
+  // Custom has its own expression, so picking it doesn't carry over the
+  // preset that was picked before, and switching back keeps what was typed.
   const [customCron, setCustomCron] = useState("");
   const isValid = useMemo(() => !!getSchedulePreview(value), [value]);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col space-y-3">
+    <div className="flex-1 min-h-0 flex flex-col gap-3">
       <ScrollArea className="flex-1 min-h-0 pr-2">
         <div className="space-y-3 p-1">
           <div className="grid gap-2 sm:grid-cols-2">
