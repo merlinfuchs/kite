@@ -18,7 +18,7 @@ Situations that bring people here, from Google Search Console queries and OpenPa
 - Leaving another bot maker, mostly BotGhost. /alternatives/botghost is the most visited comparison page.
 - Asking ChatGPT how to make a bot. ChatGPT is the third biggest referrer after Google and Discord, with 1,916 sessions.
 Main alternatives:
-- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked. /alternatives itself is a roundup of the best free Discord bot makers, with Kite first and a note that we make it.
+- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked. /alternatives itself is a roundup of the best free Discord bot makers, with Kite first.
 - Writing a bot in code and hosting it yourself. Some searches for free hosting ask for Python, like "free discord bot hosting python".
 Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 servers, and you can replace Kite's status with your own for free. Kite is open source under AGPL-3.0. Don't claim it's the only or first bot maker to do anything.
 
@@ -140,3 +140,26 @@ Language notes:
 - Sentence case for headings, page titles, buttons, menu items, and labels. Product, plan, block, and integration names keep their capitals, like Flow AI, Kite Premium, Send message, and ER:LC.
 - Use the Oxford comma: "commands, events, and messages". Older copy without it gets fixed when the sentence is edited anyway.
 ```
+
+## Where Kite is listed
+
+Update these when the free plan, prices, or the description change. Listings that quote limits are marked.
+
+| Where | Page | Quotes limits | How to update |
+| --- | --- | --- | --- |
+| AlternativeTo | https://alternativeto.net/software/kite-onl/ | Yes | Edit the listing while logged in |
+| SaaSHub | https://www.saashub.com/kite-onl | Yes | Edit the listing, verified with an @kite.onl email on 2026-11-13 |
+| Open Launch | https://open-launch.com/projects/kite-discord-bot-maker, launches 2026-11-14 | Yes | Edit the project while logged in |
+| Uneed | https://www.uneed.best/tool/kite-discord-bot-maker, launches 2026-11-27 | Yes | Edit the product while logged in |
+| Startup Stash | Submitted 2026-11-13, waiting for approval | Yes | Email hello@startupstash.com |
+| Official MCP Registry | `onl.kite/kite` | No | `kite-web/src/lib/mcp/server.json`, then `mcp-publisher publish` with a higher version |
+| Glama | `onl.kite/kite`, imported from the registry | No | Claimed through `kite-web/public/.well-known/glama.json` |
+| LobeHub | `merlinfuchs-kite` | No | `lhm` CLI |
+| mcpservers.org, mcp.so | Kite MCP server | No | Edit the listing while logged in |
+| Claude connector directory | Kite Discord Bot Builder, submitted 2026-10-28 | No | Anthropic's submission form |
+| top.gg | Kite's own bot | No | Edit the bot page |
+
+Articles by others that quote Kite's limits, checked 2026-11-13:
+
+- https://www.creatediscordbot.com/blog/botghost-alternatives ranks Kite first but still has the old free plan of 25 commands and 5 event listeners. Contact the author at hello@creatediscordbot.com.
+- https://mavibot.ai/posts/best-no-code-discord-bot-builders-2026 has the current free plan and prices.
