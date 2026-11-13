@@ -58,7 +58,10 @@ export default function EventListenerList({
   const name = eventSourceName(source);
   const noun = name.plural.toLowerCase();
   const from = noun.replace(" ", "_");
-  const limit = usePlanLimit(sourceLimitKeys[source], listeners?.length);
+  const limit = usePlanLimit(
+    sourceLimitKeys[source],
+    listeners?.filter((l) => l?.enabled).length
+  );
 
   const listenerActions = (
     <PlanLimitGate limit={limit} noun={noun} from={from}>
@@ -96,7 +99,13 @@ export default function EventListenerList({
             listener.source,
           ]}
           renderItem={(listener) => (
-            <EventListenerListEntry listener={listener} key={listener.id} />
+            <EventListenerListEntry
+              listener={listener}
+              limit={limit}
+              noun={noun}
+              from={from}
+              key={listener.id}
+            />
           )}
           placeholder={`Search ${name.singular}s`}
           actions={listenerActions}

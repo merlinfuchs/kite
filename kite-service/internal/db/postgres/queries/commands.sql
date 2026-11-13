@@ -5,7 +5,10 @@ SELECT * FROM commands WHERE id = $1;
 SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id;
 
 -- name: CountCommandsByApp :one
-SELECT COUNT(*) FROM commands WHERE app_id = $1;
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM commands WHERE app_id = $1;
 
 -- name: CreateCommand :one
 INSERT INTO commands (

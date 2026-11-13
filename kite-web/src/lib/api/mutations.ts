@@ -364,6 +364,10 @@ export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      // The dashboard counts the enabled ones.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "entities"],
+      });
     },
   });
 }
@@ -1006,6 +1010,10 @@ export function useEventListenerUpdateEnabledMutation(
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+      // The dashboard counts the enabled ones.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "entities"],
       });
     },
   });

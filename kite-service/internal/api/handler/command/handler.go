@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/limit"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -48,15 +49,8 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		if commandCount >= c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	if err := h.checkCommandLimit(c, store.ItemCounts{Total: 1, Enabled: enabledCount(req.Enabled)}); err != nil {
+		return nil, err
 	}
 
 	cmdFlow, err := compileCommand(req.FlowSource)
@@ -112,17 +106,12 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		return nil, nil
 	}
 
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		newCommandCount := commandCount + len(reqs)
-
-		if newCommandCount > c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	added := store.ItemCounts{Total: len(reqs)}
+	for _, cmd := range reqs {
+		added.Enabled += enabledCount(cmd.Enabled)
+	}
+	if err := h.checkCommandLimit(c, added); err != nil {
+		return nil, err
 	}
 
 	commands := make([]*model.Command, len(reqs))
@@ -220,6 +209,12 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, cmd *model.Command, f
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
+	if req.Enabled && !c.Command.Enabled {
+		if err := h.checkCommandLimit(c, store.ItemCounts{Enabled: 1}); err != nil {
+			return nil, err
+		}
+	}
+
 	command, err := h.commandStore.UpdateCommandEnabled(c.Context(), c.Command.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -283,4 +278,28 @@ func commandNamesError(err error) error {
 		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
 	}
 	return fmt.Errorf("failed to check command names: %w", err)
+}
+
+// checkCommandLimit checks that the app can have added more commands.
+func (h *CommandHandler) checkCommandLimit(c *handler.Context, added store.ItemCounts) error {
+	if c.Features.MaxCommands == 0 {
+		return nil
+	}
+
+	counts, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return fmt.Errorf("failed to count commands: %w", err)
+	}
+
+	if err := limit.Check("commands", c.Features.MaxCommands, counts, added); err != nil {
+		return handler.ErrBadRequest("resource_limit", err.Error())
+	}
+	return nil
+}
+
+func enabledCount(enabled bool) int {
+	if enabled {
+		return 1
+	}
+	return 0
 }

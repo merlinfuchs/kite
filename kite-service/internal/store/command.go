@@ -7,9 +7,16 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
+// ItemCounts counts the commands or event listeners of an app. Only the
+// enabled ones count against the limit of the plan.
+type ItemCounts struct {
+	Total   int
+	Enabled int
+}
+
 type CommandStore interface {
 	CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error)
-	CountCommandsByApp(ctx context.Context, appID string) (int, error)
+	CountCommandsByApp(ctx context.Context, appID string) (ItemCounts, error)
 	Command(ctx context.Context, id string) (*model.Command, error)
 	CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error)
 	// UpdateCommand saves everything but Enabled, which only

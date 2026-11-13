@@ -12,14 +12,22 @@ import (
 )
 
 const countCommandsByApp = `-- name: CountCommandsByApp :one
-SELECT COUNT(*) FROM commands WHERE app_id = $1
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM commands WHERE app_id = $1
 `
 
-func (q *Queries) CountCommandsByApp(ctx context.Context, appID string) (int64, error) {
+type CountCommandsByAppRow struct {
+	Total   int64
+	Enabled int64
+}
+
+func (q *Queries) CountCommandsByApp(ctx context.Context, appID string) (CountCommandsByAppRow, error) {
 	row := q.db.QueryRow(ctx, countCommandsByApp, appID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+	var i CountCommandsByAppRow
+	err := row.Scan(&i.Total, &i.Enabled)
+	return i, err
 }
 
 const createCommand = `-- name: CreateCommand :one

@@ -208,28 +208,32 @@ SELECT EXISTS(
 SELECT 
     id,
     'command' AS type,
-    name
+    name,
+    enabled
 FROM commands
 WHERE commands.app_id = $1
 UNION ALL
 SELECT 
     id,
     'event_listener' AS type,
-    type as name
+    type as name,
+    enabled
 FROM event_listeners
 WHERE event_listeners.app_id = $1
 UNION ALL
 SELECT 
     id,
     'message' AS type,
-    name
+    name,
+    TRUE AS enabled
 FROM messages
 WHERE messages.app_id = $1
 UNION ALL
 SELECT 
     id,
     'variable' AS type,
-    name
+    name,
+    TRUE AS enabled
 FROM variables
 WHERE variables.app_id = $1;
 -- Changes to commands and plugins queue a deploy by themselves, see migration

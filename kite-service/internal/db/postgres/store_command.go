@@ -36,12 +36,12 @@ func (c *Client) CommandsByApp(ctx context.Context, appID string) ([]*model.Comm
 	return commands, nil
 }
 
-func (c *Client) CountCommandsByApp(ctx context.Context, appID string) (int, error) {
+func (c *Client) CountCommandsByApp(ctx context.Context, appID string) (store.ItemCounts, error) {
 	res, err := c.Q.CountCommandsByApp(ctx, appID)
 	if err != nil {
-		return 0, err
+		return store.ItemCounts{}, err
 	}
-	return int(res), nil
+	return store.ItemCounts{Total: int(res.Total), Enabled: int(res.Enabled)}, nil
 }
 
 func (c *Client) Command(ctx context.Context, id string) (*model.Command, error) {

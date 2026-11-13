@@ -304,6 +304,8 @@ type AppEntity struct {
 	ID   string
 	Type AppEntityType
 	Name string
+	// Enabled is always true for messages and variables.
+	Enabled bool
 }
 
 type AppEntityType string

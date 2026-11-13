@@ -36,15 +36,15 @@ func (c *Client) EventListenersByApp(ctx context.Context, appID string) ([]*mode
 	return listeners, nil
 }
 
-func (c *Client) CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (int, error) {
+func (c *Client) CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (store.ItemCounts, error) {
 	res, err := c.Q.CountEventListenersByAppAndSource(ctx, pgmodel.CountEventListenersByAppAndSourceParams{
 		AppID:  appID,
 		Source: string(source),
 	})
 	if err != nil {
-		return 0, err
+		return store.ItemCounts{}, err
 	}
-	return int(res), nil
+	return store.ItemCounts{Total: int(res.Total), Enabled: int(res.Enabled)}, nil
 }
 
 func (c *Client) UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error {
