@@ -22,7 +22,7 @@ const botMakers: {
     href: "/",
     linkLabel: "See how Kite works",
     summary:
-      "You build commands and event listeners by connecting blocks in a visual editor, or describe them to Flow AI, the AI assistant that builds your bot. Kite hosts the bot 24/7 and is open source.",
+      "You build commands and event listeners by connecting blocks in a visual editor, or describe them to Flow AI, the AI assistant that builds your bot. You can also start from over 100 templates, like moderation, giveaways, and welcome messages, and change every block. Kite hosts the bot 24/7 and is open source.",
     freePlan:
       "15 commands, 10 event listeners, and 10,000 credits a month per bot, on up to 100 servers. You can make up to 10 bots and set your own status for free. Bots stay online even when nobody uses them.",
     paidPlans: "From $2.99 a month per bot.",
@@ -140,9 +140,8 @@ export default function AlternativesPage() {
           The best free Discord bot makers in 2026
         </h1>
         <p className="text-xl text-muted-foreground mt-6">
-          Kite is ours, so it&apos;s at the top. For the other seven, we list
-          what each free plan includes and when it&apos;s a better fit than
-          Kite.
+          See what each free plan includes and when each bot maker is the better
+          choice. We checked every plan in October or November 2026.
         </p>
       </section>
 
