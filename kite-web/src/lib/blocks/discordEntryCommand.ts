@@ -1,6 +1,28 @@
 import { z } from "zod";
 import { BlockDefinition } from "./types";
 
+// User and Message commands can have any name and no description, slash
+// commands can't. The flow AI only sees these, as it only makes slash
+// commands.
+const slashCommandName = z
+  .string()
+  .max(32)
+  .min(1)
+  .regex(
+    /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/,
+    "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words"
+  )
+  .describe(
+    "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+  );
+
+const slashCommandDescription = z
+  .string()
+  .max(100)
+  .min(1)
+  .regex(/\S/, "Can't be only spaces.")
+  .describe("Description of the command shown in Discord.");
+
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
   id_prefix: "command",
@@ -14,14 +36,24 @@ export const discordEntryCommand: BlockDefinition = {
   custom_label: false,
   fields: [
     {
+      name: "command_type",
+      schema: z
+        .enum(["chat_input", "user", "message"])
+        .optional()
+        .describe(
+          "A slash command, or a User or Message command in the Apps menu of a user or message."
+        ),
+      hidden_from_ai: true,
+    },
+    {
       name: "name",
       schema: z
         .string()
         .max(32)
         .min(1)
-        .describe(
-          "Name of a slash command (lowercase letters, numbers, hyphens and underscores; up to three words) or the text shown for a context menu command."
-        ),
+        .regex(/\S/, "Can't be only spaces.")
+        .describe("Name of the command shown in Discord."),
+      ai_schema: slashCommandName,
     },
     {
       name: "description",
@@ -29,20 +61,8 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(100)
         .optional()
-        .describe(
-          "Description shown in Discord. Required for slash commands; unused by context menu commands."
-        ),
-    },
-    {
-      name: "command_type",
-      input: "command_type",
-      schema: z
-        .enum(["chat_input", "user", "message"])
-        .optional()
-        .describe(
-          "Slash command, User context menu command, or Message context menu command."
-        ),
-      hidden_from_ai: true,
+        .describe("Description of a slash command shown in Discord."),
+      ai_schema: slashCommandDescription,
     },
     {
       name: "command_argument_order",
@@ -58,35 +78,17 @@ export const discordEntryCommand: BlockDefinition = {
   ],
   refine: (schema) =>
     schema.superRefine((data, ctx) => {
-      const isContextual =
-        data.command_type === "user" || data.command_type === "message";
-      if (typeof data.name === "string") {
-        const validName = isContextual
-          ? data.name.trim().length > 0
-          : /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/.test(data.name);
-        if (!validName) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["name"],
-            message: isContextual
-              ? "Can't be only spaces."
-              : "Must be only lowercase alphanumeric characters and underscores, and have at most 3 words",
-          });
-        }
+      if (data.command_type === "user" || data.command_type === "message") {
+        return;
       }
-
-      if (
-        !isContextual &&
-        (typeof data.description !== "string" || !data.description.trim())
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["description"],
-          message:
-            typeof data.description === "string"
-              ? "Can't be only spaces."
-              : "A slash command needs a description.",
-        });
+      for (const [field, fieldSchema] of [
+        ["name", slashCommandName],
+        ["description", slashCommandDescription],
+      ] as const) {
+        const res = fieldSchema.safeParse(data[field]);
+        for (const issue of res.error?.issues ?? []) {
+          ctx.addIssue({ ...issue, path: [field, ...issue.path] });
+        }
       }
     }),
   run: { kind: "custom" },

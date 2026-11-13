@@ -44,7 +44,7 @@ export function buildFlowCatalog() {
             owned_children: getOwnedChildTypes(type),
             fixed: !!values.fixed,
             data_schema: values.dataSchema
-              ? withoutHiddenFields(type, toJsonSchema(values.dataSchema))
+              ? schemaForAI(type, toJsonSchema(values.dataSchema))
               : null,
             result_schema: values.result
               ? resultJsonSchema(values.result, refTypeJsonSchema)
@@ -62,18 +62,24 @@ export function buildFlowCatalog() {
   };
 }
 
-function withoutHiddenFields(
-  type: string,
-  schema: ReturnType<typeof toJsonSchema>
-) {
+// The schema without the fields hidden from the flow AI, and with the
+// ai_schema of fields that have one.
+function schemaForAI(type: string, schema: ReturnType<typeof toJsonSchema>) {
   const res = schema as {
     properties?: Record<string, unknown>;
     required?: string[];
   };
   for (const field of getBlockDefinition(type)?.fields ?? []) {
-    if (!field.hidden_from_ai) continue;
-    delete res.properties?.[field.name];
-    res.required = res.required?.filter((name) => name !== field.name);
+    if (field.hidden_from_ai) {
+      delete res.properties?.[field.name];
+      res.required = res.required?.filter((name) => name !== field.name);
+    } else if (field.ai_schema && res.properties) {
+      res.properties[field.name] = toJsonSchema(field.ai_schema);
+      const required = !field.ai_schema.safeParse(undefined).success;
+      if (required && !res.required?.includes(field.name)) {
+        res.required = [...(res.required ?? []), field.name];
+      }
+    }
   }
   return schema;
 }
