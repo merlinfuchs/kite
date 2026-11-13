@@ -8,6 +8,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle, loginUrlTo } from "@/lib/api/client";
+import { useBundleStaffPickMutation } from "@/lib/api/mutations";
 import { useUserQuery } from "@/lib/api/queries";
 import { isExport } from "@/lib/env/client";
 import {
@@ -22,6 +23,8 @@ import { faqJsonLd } from "@/lib/seo";
 import { fetchBundles } from "@/lib/apiData";
 import { Bundle, BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type Props = {
   bundle: BundleGetResponse;
@@ -98,7 +101,12 @@ export default function TemplatePage({ bundle, related }: Props) {
           template={template}
           backHref="/marketplace"
           backOnMobile
-          aside={<TemplateGetStartedCard template={template} />}
+          aside={
+            <div className="space-y-4">
+              <TemplateGetStartedCard template={template} />
+              <TemplateStaffPickCard template={template} />
+            </div>
+          }
           related={{
             templates: related.flatMap((b) => templateFromBundle(b) ?? []),
             categoryHref: categoryPath,
@@ -141,6 +149,55 @@ function TemplateGetStartedCard({ template }: { template: Template }) {
       </p>
       <Button className="w-full" asChild>
         <a href={loginUrlTo(templatePath(template.id))}>Get started</a>
+      </Button>
+    </Card>
+  );
+}
+
+// TemplateStaffPickCard lets admins pick templates of users. The page is cached
+// for a minute, so it remembers what they picked until then.
+function TemplateStaffPickCard({ template }: { template: Template }) {
+  const { data: user } = useUserQuery();
+  const mutation = useBundleStaffPickMutation();
+  const [picked, setPicked] = useState(!!template.staffPick);
+
+  if (
+    !user?.success ||
+    !user.data.is_admin ||
+    template.author.kind === "kite"
+  ) {
+    return null;
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">Staff pick</div>
+      <p className="text-sm text-muted-foreground mb-4">
+        {picked
+          ? "This template shows the Staff pick badge."
+          : "Give this template the Staff pick badge in the Marketplace."}
+      </p>
+      <Button
+        variant="outline"
+        disabled={mutation.isPending}
+        onClick={() =>
+          mutation.mutate(
+            { bundleId: template.id, picked: !picked },
+            {
+              onSuccess: (res) => {
+                if (res.success) {
+                  setPicked(!picked);
+                } else {
+                  toast.error(
+                    `Failed to change it: ${res.error.message} (${res.error.code})`
+                  );
+                }
+              },
+            }
+          )
+        }
+      >
+        {picked ? "Remove staff pick" : "Make staff pick"}
       </Button>
     </Card>
   );
