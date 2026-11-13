@@ -191,6 +191,34 @@ func (c *Client) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetCreditsPausedAppIDs(ctx)
 }
 
+func (c *Client) MarkAppOverLimit(ctx context.Context, appID string, now time.Time) (bool, error) {
+	n, err := c.Q.MarkAppOverLimit(ctx, pgmodel.MarkAppOverLimitParams{
+		ID:             appID,
+		OverLimitSince: pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) AppsOverLimitSince(ctx context.Context, appIDs []string) (map[string]time.Time, error) {
+	rows, err := c.Q.GetAppsOverLimitSince(ctx, appIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]time.Time, len(rows))
+	for _, row := range rows {
+		res[row.ID] = row.OverLimitSince.Time
+	}
+	return res, nil
+}
+
+func (c *Client) ClearAppsOverLimit(ctx context.Context, keepAppIDs []string) error {
+	if keepAppIDs == nil {
+		keepAppIDs = []string{}
+	}
+	return c.Q.ClearAppsOverLimit(ctx, keepAppIDs)
+}
+
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
 	return c.Q.DeleteApp(ctx, id)
 }

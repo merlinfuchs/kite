@@ -172,6 +172,69 @@ func (q *Queries) DeleteEventListenersByBundleInstall(ctx context.Context, bundl
 	return items, nil
 }
 
+const disableNewestEventListeners = `-- name: DisableNewestEventListeners :execrows
+UPDATE event_listeners SET enabled = FALSE, updated_at = $1
+WHERE id IN (
+    SELECT el.id FROM event_listeners el
+    WHERE el.app_id = $2 AND el.source = $3 AND el.enabled
+    ORDER BY el.created_at DESC
+    LIMIT $4::INT
+)
+`
+
+type DisableNewestEventListenersParams struct {
+	UpdatedAt pgtype.Timestamp
+	AppID     string
+	Source    string
+	Count     int32
+}
+
+func (q *Queries) DisableNewestEventListeners(ctx context.Context, arg DisableNewestEventListenersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, disableNewestEventListeners,
+		arg.UpdatedAt,
+		arg.AppID,
+		arg.Source,
+		arg.Count,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getAppsWithEnabledEventListenersOver = `-- name: GetAppsWithEnabledEventListenersOver :many
+SELECT app_id, source, COUNT(*) AS count FROM event_listeners
+WHERE enabled
+GROUP BY app_id, source
+HAVING COUNT(*) > $1::INT
+`
+
+type GetAppsWithEnabledEventListenersOverRow struct {
+	AppID  string
+	Source string
+	Count  int64
+}
+
+func (q *Queries) GetAppsWithEnabledEventListenersOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledEventListenersOverRow, error) {
+	rows, err := q.db.Query(ctx, getAppsWithEnabledEventListenersOver, minCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAppsWithEnabledEventListenersOverRow
+	for rows.Next() {
+		var i GetAppsWithEnabledEventListenersOverRow
+		if err := rows.Scan(&i.AppID, &i.Source, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEnabledEventListenerIDs = `-- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE
 `

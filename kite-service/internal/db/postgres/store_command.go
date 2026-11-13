@@ -44,6 +44,28 @@ func (c *Client) CountCommandsByApp(ctx context.Context, appID string) (store.It
 	return store.ItemCounts{Total: int(res.Total), Enabled: int(res.Enabled)}, nil
 }
 
+func (c *Client) AppsWithEnabledCommandsOver(ctx context.Context, minCount int) (map[string]int, error) {
+	rows, err := c.Q.GetAppsWithEnabledCommandsOver(ctx, int32(minCount))
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]int, len(rows))
+	for _, row := range rows {
+		res[row.AppID] = int(row.Count)
+	}
+	return res, nil
+}
+
+func (c *Client) DisableNewestCommands(ctx context.Context, appID string, count int, updatedAt time.Time) (int, error) {
+	n, err := c.Q.DisableNewestCommands(ctx, pgmodel.DisableNewestCommandsParams{
+		AppID:     appID,
+		Count:     int32(count),
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	return int(n), err
+}
+
 func (c *Client) Command(ctx context.Context, id string) (*model.Command, error) {
 	row, err := c.Q.GetCommand(ctx, id)
 	if err != nil {

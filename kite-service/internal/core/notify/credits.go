@@ -14,9 +14,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// AppOwnerNotifier tells the owners of apps about the credits of their app,
-// with a DM from the app's own bot. If that fails, because the owner shares no
-// server with their bot or doesn't allow its DMs, Kite's bot sends it.
+// AppOwnerNotifier tells the owners of apps about the credits and limits of
+// their app, with a DM from the app's own bot. If that fails, because the owner
+// shares no server with their bot or doesn't allow its DMs, Kite's bot sends it.
 //
 // The terms allow these DMs as notices about the app, so they only say what
 // happened and how to get the bot running, never advertise a plan.

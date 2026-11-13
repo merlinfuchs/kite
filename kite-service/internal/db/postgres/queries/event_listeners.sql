@@ -77,3 +77,18 @@ DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING *;
 
 -- name: GetEventListenerForUpdate :one
 SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;
+
+-- name: GetAppsWithEnabledEventListenersOver :many
+SELECT app_id, source, COUNT(*) AS count FROM event_listeners
+WHERE enabled
+GROUP BY app_id, source
+HAVING COUNT(*) > @min_count::INT;
+
+-- name: DisableNewestEventListeners :execrows
+UPDATE event_listeners SET enabled = FALSE, updated_at = @updated_at
+WHERE id IN (
+    SELECT el.id FROM event_listeners el
+    WHERE el.app_id = @app_id AND el.source = @source AND el.enabled
+    ORDER BY el.created_at DESC
+    LIMIT @count::INT
+);

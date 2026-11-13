@@ -54,3 +54,18 @@ DELETE FROM commands WHERE bundle_install_id = $1 RETURNING *;
 
 -- name: GetCommandForUpdate :one
 SELECT * FROM commands WHERE id = $1 FOR UPDATE;
+
+-- name: GetAppsWithEnabledCommandsOver :many
+SELECT app_id, COUNT(*) AS count FROM commands
+WHERE enabled
+GROUP BY app_id
+HAVING COUNT(*) > @min_count::INT;
+
+-- name: DisableNewestCommands :execrows
+UPDATE commands SET enabled = FALSE, updated_at = @updated_at
+WHERE id IN (
+    SELECT c.id FROM commands c
+    WHERE c.app_id = @app_id AND c.enabled
+    ORDER BY c.created_at DESC
+    LIMIT @count::INT
+);
