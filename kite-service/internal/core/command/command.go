@@ -240,7 +240,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 
 		node, err := flow.CompileCommand(command.FlowSource)
 		if err != nil {
-			return nil, modelKey(command).deployError(fmt.Sprintf("The command can't be compiled: %v", err))
+			return nil, ModelKey(command).deployError(fmt.Sprintf("The command can't be compiled: %v", err))
 		}
 
 		data := node.CommandData()
@@ -253,7 +253,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 			Contexts:                 node.CommandContexts(),
 			IntegrationTypes:         node.CommandIntegrations(),
 		})
-		keys = append(keys, NewKey(data.Type, node.CommandName()))
+		keys = append(keys, FlowKey(node))
 	}
 
 	for _, command := range pluginCommands {
@@ -284,7 +284,7 @@ func (m *CommandManager) takenCommands(ctx context.Context, appID string, replac
 	res := make([]Key, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
 		if command.ID != replacedCommandID {
-			res = append(res, modelKey(command))
+			res = append(res, ModelKey(command))
 		}
 	}
 	for _, command := range pluginCommands {

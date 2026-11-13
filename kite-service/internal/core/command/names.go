@@ -38,8 +38,14 @@ func NewKey(t discord.CommandType, name string) Key {
 	return Key{Type: t, Name: name}
 }
 
-func modelKey(command *model.Command) Key {
+// ModelKey returns the key of a saved command.
+func ModelKey(command *model.Command) Key {
 	return NewKey(command.FlowSource.CommandType(), command.Name)
+}
+
+// FlowKey returns the key of a compiled command.
+func FlowKey(node *flow.CompiledFlowNode) Key {
+	return NewKey(node.CommandType(), node.CommandName())
 }
 
 func (k Key) isSlash() bool {

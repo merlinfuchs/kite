@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -36,13 +37,13 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "ping"}]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "config set"}]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "missing"}]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "missing")]; got != nil {
 		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
 	}
 }
@@ -54,10 +55,10 @@ func TestCommandIndexDropsOldNameOnRename(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "oldname"))
 	app.AddCommand(testCommand("cmd-1", "newname"))
 
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "oldname"}]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "oldname")]; got != nil {
 		t.Error("old name still resolves after rename")
 	}
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "newname"}]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "newname")]; got == nil {
 		t.Fatal("new name does not resolve after rename")
 	}
 	if len(app.commands) != 1 {
@@ -103,10 +104,10 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 
 	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "drop"}]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "drop")]; got != nil {
 		t.Error("removed command still resolves by name")
 	}
-	if got := app.commandsByKey[commandKey{typ: discord.ChatInputCommand, name: "keep"}]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "keep")]; got == nil {
 		t.Error("surviving command no longer resolves by name")
 	}
 }

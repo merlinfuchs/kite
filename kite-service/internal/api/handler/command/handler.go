@@ -64,7 +64,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	if err := h.checkCommandNames(c, "", commandKey(cmdFlow)); err != nil {
+	if err := h.checkCommandNames(c, "", command.FlowKey(cmdFlow)); err != nil {
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		if err != nil {
 			return nil, err
 		}
-		keys[i] = commandKey(cmdFlow)
+		keys[i] = command.FlowKey(cmdFlow)
 
 		commands[i] = &model.Command{
 			ID:            util.UniqueID(),
@@ -198,20 +198,20 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 
 // PrepareUpdate checks that the command can be changed to the flow and returns
 // it changed, without saving it.
-func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Command, flowSource flow.FlowData) (*model.Command, error) {
+func (h *CommandHandler) PrepareUpdate(c *handler.Context, cmd *model.Command, flowSource flow.FlowData) (*model.Command, error) {
 	cmdFlow, err := compileCommand(flowSource)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't block saving an existing conflict that this change didn't cause.
-	if key := commandKey(cmdFlow); key != savedCommandKey(command) {
-		if err := h.checkCommandNames(c, command.ID, key); err != nil {
+	if key := command.FlowKey(cmdFlow); key != command.ModelKey(cmd) {
+		if err := h.checkCommandNames(c, cmd.ID, key); err != nil {
 			return nil, err
 		}
 	}
 
-	updated := *command
+	updated := *cmd
 	updated.Name = cmdFlow.CommandName()
 	updated.Description = cmdFlow.CommandDescription()
 	updated.FlowSource = flowSource
@@ -264,14 +264,6 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 		return nil, handler.ErrBadRequest("invalid_command", err.Error())
 	}
 	return cmdFlow, nil
-}
-
-func commandKey(cmdFlow *flow.CompiledFlowNode) command.Key {
-	return command.NewKey(cmdFlow.CommandType(), cmdFlow.CommandName())
-}
-
-func savedCommandKey(cmd *model.Command) command.Key {
-	return command.NewKey(cmd.FlowSource.CommandType(), cmd.Name)
 }
 
 // checkCommandNames rejects names Discord would reject, which would keep all

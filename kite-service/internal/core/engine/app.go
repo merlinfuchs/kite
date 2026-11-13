@@ -14,6 +14,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -38,7 +39,7 @@ type App struct {
 	// than patched, so renames and type changes can't leave stale entries,
 	// and always replaced rather than mutated in place so readers can take a
 	// reference and drop the lock before dispatching.
-	commandsByKey   map[commandKey]*Command
+	commandsByKey   map[command.Key]*Command
 	listenersByType map[model.EventListenerType][]*EventListener
 	scheduled       []*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
@@ -54,7 +55,7 @@ func NewApp(
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
 		pluginInstances: make(map[string]*pluginInstance),
-		commandsByKey:   make(map[commandKey]*Command),
+		commandsByKey:   make(map[command.Key]*Command),
 		listenersByType: make(map[model.EventListenerType][]*EventListener),
 	}
 }
@@ -62,9 +63,9 @@ func NewApp(
 // rebuildCommandIndex regenerates the name lookup from a.commands. Callers
 // must hold the write lock.
 func (a *App) rebuildCommandIndex() {
-	index := make(map[commandKey]*Command, len(a.commands))
-	for _, command := range a.commands {
-		index[savedCommandKey(command.cmd)] = command
+	index := make(map[command.Key]*Command, len(a.commands))
+	for _, cmd := range a.commands {
+		index[command.ModelKey(cmd.cmd)] = cmd
 	}
 	a.commandsByKey = index
 }
@@ -731,28 +732,17 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 	}()
 }
 
-// commandKey finds the command of an interaction. Commands of different types
-// can have the same name.
-type commandKey struct {
-	typ  discord.CommandType
-	name string
-}
-
-func savedCommandKey(cmd *model.Command) commandKey {
-	return commandKey{typ: cmd.FlowSource.CommandType(), name: cmd.Name}
-}
-
 // interactionCommandKey is the command the interaction is for. The library
 // drops the type Discord sends, but only User and Message commands have a
 // target, and only the target of a Message command is a resolved message.
-func interactionCommandKey(d *discord.CommandInteraction) commandKey {
+func interactionCommandKey(d *discord.CommandInteraction) command.Key {
 	if !d.TargetID.IsValid() {
-		return commandKey{typ: discord.ChatInputCommand, name: getFullCommandName(d)}
+		return command.NewKey(discord.ChatInputCommand, getFullCommandName(d))
 	}
 	if _, ok := d.Resolved.Messages[d.TargetMessageID()]; ok {
-		return commandKey{typ: discord.MessageCommand, name: d.Name}
+		return command.NewKey(discord.MessageCommand, d.Name)
 	}
-	return commandKey{typ: discord.UserCommand, name: d.Name}
+	return command.NewKey(discord.UserCommand, d.Name)
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

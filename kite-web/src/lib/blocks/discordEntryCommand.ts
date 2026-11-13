@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BlockDefinition } from "./types";
+import { isContextMenuCommand } from "../flow/commandTypes";
 
 // User and Message commands can have any name and no description, slash
 // commands can't. The flow AI only sees these, as it only makes slash
@@ -78,9 +79,7 @@ export const discordEntryCommand: BlockDefinition = {
   ],
   refine: (schema) =>
     schema.superRefine((data, ctx) => {
-      if (data.command_type === "user" || data.command_type === "message") {
-        return;
-      }
+      if (isContextMenuCommand(data)) return;
       for (const [field, fieldSchema] of [
         ["name", slashCommandName],
         ["description", slashCommandDescription],

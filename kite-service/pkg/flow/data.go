@@ -644,7 +644,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			notBlank,
 			validation.Length(1, 32),
 			validation.When(
-				d.CommandType == "" || d.CommandType == CommandTypeChatInput,
+				d.CommandType.Discord() == discord.ChatInputCommand,
 				validation.Match(commandNameRe).
 					Error("must be lowercase without special characters and up to two spaces"),
 			),
@@ -654,7 +654,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(
 			nodeType == FlowNodeTypeEntryCommand &&
-				(d.CommandType == "" || d.CommandType == CommandTypeChatInput),
+				d.CommandType.Discord() == discord.ChatInputCommand,
 			validation.Required,
 			notBlank,
 			validation.Length(1, 100),
