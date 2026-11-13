@@ -584,13 +584,15 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup := appGroup.Group("/state")
 	stateGroup.AllowAPIToken().Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.AllowAPIToken().Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
-	stateGroup.Group("", accessManager.RequireSettingsAccess).Patch("/user",
+	// The bot's profile and servers are settings, developers can't change them.
+	stateSettingsGroup := stateGroup.Group("", accessManager.RequireSettingsAccess)
+	stateSettingsGroup.Patch("/user",
 		handler.TypedWithBody(stateHandler.HandleStateUserUpdate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
 	stateGroup.AllowAPIToken().Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.AllowAPIToken().Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
-	stateGroup.Delete("/guilds/{guildID}",
+	stateSettingsGroup.Delete("/guilds/{guildID}",
 		handler.Typed(stateHandler.HandleStateGuildLeave),
 		handler.RateLimitByUser(5, time.Minute),
 	)
@@ -598,7 +600,7 @@ func (s *APIServer) RegisterRoutes(
 		handler.Typed(stateHandler.HandleStateGuildProfileGet),
 		handler.RateLimitByUser(30, time.Minute),
 	)
-	stateGroup.Patch("/guilds/{guildID}/profile",
+	stateSettingsGroup.Patch("/guilds/{guildID}/profile",
 		handler.TypedWithBody(stateHandler.HandleStateGuildProfileUpdate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
