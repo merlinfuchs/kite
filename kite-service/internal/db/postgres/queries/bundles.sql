@@ -5,7 +5,8 @@
 SELECT
     sqlc.embed(bundles),
     bundle_versions.content,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    COALESCE(bundle_install_counts.total, 0)::int AS install_count,
+    COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
     (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
     EXISTS (
         SELECT 1 FROM bundle_reviews
@@ -24,6 +25,7 @@ FROM bundles
 LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id
     AND bundle_versions.version = COALESCE(bundles.approved_version, bundles.version)
+LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
 WHERE bundles.id = $1;
 
 -- name: GetOfficialBundlesCurrentVersion :many
@@ -31,11 +33,13 @@ SELECT
     sqlc.embed(bundles),
     sqlc.embed(bundle_listings),
     bundle_versions.content,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    COALESCE(bundle_install_counts.total, 0)::int AS install_count,
+    COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
     (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
+LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
 WHERE bundles.owner_user_id IS NULL
 ORDER BY bundle_listings.position, bundles.id;
 
@@ -106,12 +110,13 @@ WHERE bundles.owner_user_id IS NULL AND bundle_versions.notes <> ''
 ORDER BY bundle_versions.version DESC;
 
 -- Without the content, only how many items the newest version has, and how
--- many apps added it.
+-- many apps of others added it.
 -- name: GetBundlesByOwner :many
 SELECT
     sqlc.embed(bundles),
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    COALESCE(bundle_install_counts.total, 0)::int AS install_count,
+    COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
         + jsonb_array_length(COALESCE(bundle_versions.content->'event_listeners', '[]'))
@@ -121,6 +126,7 @@ SELECT
 FROM bundles
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
 WHERE bundles.owner_user_id = $1
 ORDER BY bundles.created_at DESC, bundles.id;
 
@@ -200,12 +206,14 @@ SELECT
     sqlc.embed(bundle_listings),
     bundle_versions.content,
     sqlc.embed(users),
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    COALESCE(bundle_install_counts.total, 0)::int AS install_count,
+    COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
     (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
 JOIN users ON users.id = bundles.owner_user_id
+LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
 
@@ -222,11 +230,12 @@ SELECT
     bundle_listings.category
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+LEFT JOIN bundle_install_counts ON bundle_install_counts.bundle_id = bundles.id
 WHERE bundles.owner_user_id IS NULL OR (bundles.approved_version > 0 AND bundles.removed_at IS NULL)
 ORDER BY
     bundles.owner_user_id IS NOT NULL,
     CASE WHEN bundles.owner_user_id IS NULL THEN bundle_listings.position END,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id) DESC,
+    COALESCE(bundle_install_counts.total, 0) DESC,
     bundles.id
 LIMIT $1;
 
@@ -269,3 +278,30 @@ WHERE bundles.id = ANY(@ids::text[]);
 
 -- name: SetBundleApprovedVersion :exec
 UPDATE bundles SET approved_version = @approved_version WHERE id = @id;
+
+-- Only users' bundles that weren't taken down can be picked.
+-- name: SetBundleStaffPickedAt :execrows
+UPDATE bundles SET staff_picked_at = @staff_picked_at
+WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;
+
+-- How long the users have had a bundle listed in the marketplace, by when the
+-- oldest of their listed bundles was made, and how many other users added any
+-- of them. Users without a listed bundle aren't in it.
+-- name: GetCreatorStats :many
+SELECT
+    bundles.owner_user_id::text AS user_id,
+    min(bundles.created_at)::timestamp AS first_listed_at,
+    (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_installs ON bundle_installs.bundle_id = owned.id
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND apps.owner_user_id != owned.owner_user_id
+    )::int AS installer_count
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id = ANY(@user_ids::text[]) AND bundles.removed_at IS NULL
+GROUP BY bundles.owner_user_id;

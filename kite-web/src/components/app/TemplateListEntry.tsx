@@ -1,6 +1,7 @@
 import logo from "@/assets/logo/orange@1024.png";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
+import { StaffPickIcon } from "../badges/Badges";
 import { Card } from "@/components/ui/card";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -9,6 +10,7 @@ import {
   templateCategory,
 } from "@/lib/flow/templates";
 import {
+  ActivityIcon,
   BotIcon,
   CircleCheckIcon,
   MailIcon,
@@ -104,7 +106,7 @@ function TemplateEntryHead({
     <div className="flex items-center gap-3 min-w-0">
       <div
         className={cn(
-          "h-10 w-10 flex-none rounded-lg flex items-center justify-center",
+          "relative h-10 w-10 flex-none rounded-lg flex items-center justify-center",
           category.tile
         )}
       >
@@ -112,6 +114,12 @@ function TemplateEntryHead({
           name={template.icon}
           className={cn("h-5 w-5", category.icon)}
         />
+        {/* On the corner of the icon, so it doesn't take room from the name. */}
+        {template.staffPick && (
+          <div className="absolute -right-1.5 -bottom-1.5 rounded-full bg-card p-0.5">
+            <StaffPickIcon className="h-4 w-4" />
+          </div>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="font-semibold truncate">{template.name}</div>
@@ -270,15 +278,32 @@ export function TemplateContents({ template }: { template: Template }) {
   );
 }
 
-export function TemplateInstallCount({ installs }: { installs?: number }) {
+export function TemplateInstallCount({
+  installs,
+  activeInstalls,
+}: {
+  installs?: number;
+  activeInstalls?: number;
+}) {
   if (!installs) {
     return null;
   }
 
   return (
-    <span className="flex items-center gap-1">
-      <BotIcon className="h-3.5 w-3.5" />
-      Added to {formatNumber(installs)} {installs === 1 ? "bot" : "bots"}
-    </span>
+    <>
+      <span className="flex items-center gap-1">
+        <BotIcon className="h-3.5 w-3.5" />
+        Added to {formatNumber(installs)} {installs === 1 ? "bot" : "bots"}
+      </span>
+      {!!activeInstalls && (
+        <span className="flex items-center gap-1" title={activeInstallsTitle}>
+          <ActivityIcon className="h-3.5 w-3.5" />
+          {formatNumber(activeInstalls)} active
+        </span>
+      )}
+    </>
   );
 }
+
+export const activeInstallsTitle =
+  "Bots that ran a command or event in the last 30 days";
