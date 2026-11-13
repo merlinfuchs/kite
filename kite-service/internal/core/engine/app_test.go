@@ -80,10 +80,9 @@ func TestCommandIndexByType(t *testing.T) {
 		want string
 	}{
 		{data: &discord.CommandInteraction{Name: "report"}, want: "slash"},
-		{data: &discord.CommandInteraction{Name: "report", TargetID: 5}, want: "user"},
-		{data: &discord.CommandInteraction{Name: "report", TargetID: 5, Resolved: discord.ResolvedData{
-			Messages: map[discord.MessageID]discord.Message{5: {ID: 5}},
-		}}},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.ChatInputCommand}, want: "slash"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.UserCommand, TargetID: 5}, want: "user"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.MessageCommand, TargetID: 5}},
 	}
 	for _, test := range tests {
 		got := app.commandsByKey[interactionCommandKey(test.data)]

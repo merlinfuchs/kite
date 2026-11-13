@@ -744,17 +744,13 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 	}()
 }
 
-// interactionCommandKey is the command the interaction is for. The library
-// drops the type Discord sends, but only User and Message commands have a
-// target, and only the target of a Message command is a resolved message.
+// interactionCommandKey is the command the interaction is for. Only slash
+// commands have subcommands, which are part of their name.
 func interactionCommandKey(d *discord.CommandInteraction) command.Key {
-	if !d.TargetID.IsValid() {
-		return command.NewKey(discord.ChatInputCommand, getFullCommandName(d))
+	if d.Type == discord.UserCommand || d.Type == discord.MessageCommand {
+		return command.NewKey(d.Type, d.Name)
 	}
-	if _, ok := d.Resolved.Messages[d.TargetMessageID()]; ok {
-		return command.NewKey(discord.MessageCommand, d.Name)
-	}
-	return command.NewKey(discord.UserCommand, d.Name)
+	return command.NewKey(discord.ChatInputCommand, getFullCommandName(d))
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {
