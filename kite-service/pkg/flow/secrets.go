@@ -103,10 +103,8 @@ func newFlowSecrets(ctx *FlowContext, templates ...string) (*flowSecrets, error)
 	}
 
 	res.values = values
-	res.evalCtx = eval.Context{
-		Env:      maps.Clone(ctx.EvalCtx.Env),
-		Patchers: ctx.EvalCtx.Patchers,
-	}
+	// Only the env is cloned, so the flow's own env doesn't get the secrets.
+	res.evalCtx.Env = maps.Clone(ctx.EvalCtx.Env)
 	if res.evalCtx.Env == nil {
 		res.evalCtx.Env = eval.Env{}
 	}
@@ -207,7 +205,9 @@ func (s *flowSecrets) redactString(msg string) string {
 		if len(value) < 4 {
 			continue
 		}
-		for _, form := range []string{value, url.QueryEscape(value), url.PathEscape(value)} {
+		// A URL's path is escaped like EscapedPath does, which keeps slashes.
+		forms := []string{value, url.QueryEscape(value), url.PathEscape(value), (&url.URL{Path: value}).EscapedPath()}
+		for _, form := range forms {
 			msg = strings.ReplaceAll(msg, form, "[secret]")
 		}
 	}

@@ -595,6 +595,12 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleEventListenerTest), flowTestRateLimit)
 	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit)
 
+	// Sends a request with the app's secrets, so it's only for the editor.
+	appGroup.Post("/test-http-request",
+		handler.TypedWithBody(flowTestHandler.HandleHTTPRequestTest),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+
 	// Discord API routes. The handler checks the discord scope, as the access
 	// a request needs depends on the endpoint it calls. Limited more than the
 	// other routes of apps, which share 60 requests a minute.

@@ -1,0 +1,95 @@
+package flow
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSendTestHTTPRequest(t *testing.T) {
+	// The server echoes the token, which the editor mustn't see.
+	p := &codeHTTPProvider{status: 201, body: `{"token":"s3cret-t0ken"}`}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:      "https://api.example.com/users/{{ user.id }}?key={{secrets.TOKEN}}",
+		Method:   "POST",
+		Headers:  []HTTPRequestDataKeyValue{{Key: "Authorization", Value: "Bearer {{secrets.TOKEN}}"}},
+		BodyJSON: json.RawMessage(`{"name":"{{user.name}}","token":"{{secrets.TOKEN}}"}`),
+	}, map[string]string{"user.id": "42", "user.name": `Jack "the dev"`}, FlowProviders{
+		HTTP:   p,
+		Secret: &secretTestProvider{values: map[string]string{"TOKEN": "s3cret-t0ken"}},
+	})
+	require.Empty(t, res.Error)
+
+	// The request itself has the values and secrets.
+	req := p.reqs[0]
+	assert.Equal(t, "https://api.example.com/users/42?key=s3cret-t0ken", req.URL.String())
+	assert.Equal(t, "Bearer s3cret-t0ken", req.Header.Get("Authorization"))
+	assert.JSONEq(t, `{"name":"Jack \"the dev\"","token":"s3cret-t0ken"}`, p.reqBody)
+
+	assert.Equal(t, "POST", res.Method)
+	assert.Equal(t, "https://api.example.com/users/42?key=[secret]", res.URL)
+	require.NotNil(t, res.Response)
+	assert.Equal(t, 201, res.Response.StatusCode)
+	assert.JSONEq(t, `{"token":"[secret]"}`, res.Response.Body)
+	assert.False(t, res.Response.BodyTruncated)
+}
+
+func TestSendTestHTTPRequestTruncatesBody(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", maxTestHTTPResponseBody+1)}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "GET",
+	}, nil, FlowProviders{HTTP: p})
+	require.NotNil(t, res.Response)
+	assert.Len(t, res.Response.Body, maxTestHTTPResponseBody)
+	assert.True(t, res.Response.BodyTruncated)
+}
+
+func TestSendTestHTTPRequestError(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "ftp://example.com",
+		Method: "GET",
+	}, nil, FlowProviders{HTTP: p})
+	assert.Equal(t, "the URL must start with http:// or https://", res.Error)
+	assert.Nil(t, res.Response)
+	assert.Empty(t, p.reqs)
+}
+
+func TestSendTestHTTPRequestHidesSecretInPath(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com/{{secrets.TOKEN}}",
+		Method: "GET",
+	}, nil, FlowProviders{
+		HTTP:   p,
+		Secret: &secretTestProvider{values: map[string]string{"TOKEN": "ab/cd ef"}},
+	})
+	require.Empty(t, res.Error)
+	assert.Equal(t, "https://api.example.com/[secret]", res.URL)
+}
+
+func TestSendTestHTTPRequestMethod(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "TRACE",
+	}, nil, FlowProviders{HTTP: p})
+	assert.Equal(t, "the method must be one of GET, POST, PUT, PATCH, DELETE", res.Error)
+	assert.Empty(t, p.reqs)
+}
+
+func TestSendTestHTTPRequestTruncatesAtCharacter(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", maxTestHTTPResponseBody-1) + "é"}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "GET",
+	}, nil, FlowProviders{HTTP: p})
+	require.NotNil(t, res.Response)
+	assert.Equal(t, strings.Repeat("a", maxTestHTTPResponseBody-1), res.Response.Body)
+	assert.True(t, res.Response.BodyTruncated)
+}
