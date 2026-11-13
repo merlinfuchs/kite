@@ -326,11 +326,18 @@ export default function FlowEditor({
       });
       const [newNodes, newEdges] = createNode(type, position);
 
-      addNodes(newNodes);
+      if (newNodes.some((n) => n.selected)) {
+        editNodes((nodes) => [
+          ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+          ...newNodes,
+        ]);
+      } else {
+        addNodes(newNodes);
+      }
       addEdges(newEdges);
       track("block_added", { type, source: "drag" });
     },
-    [screenToFlowPosition, addNodes, addEdges]
+    [screenToFlowPosition, editNodes, addNodes, addEdges]
   );
 
   const { onMouseMove, copy, cut, duplicate, deleteNodes, paste } =

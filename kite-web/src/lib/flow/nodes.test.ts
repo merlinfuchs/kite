@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getDeletedNodeIds, getNodeId, withOwnedNodes } from "./nodes";
+import {
+  createNode,
+  getDeletedNodeIds,
+  getNodeId,
+  withOwnedNodes,
+} from "./nodes";
 import { testEdge as edge, testNode as node } from "./testUtils";
 
 const nodes = [
@@ -55,5 +60,52 @@ describe("getNodeId", () => {
     expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{3}$/);
     expect(getNodeId("unknown")).toMatch(/^node_[a-z0-9]{3}$/);
     expect(getNodeId()).toMatch(/^node_[a-z0-9]{3}$/);
+  });
+});
+
+describe("createNode", () => {
+  it("selects compound blocks and their permanently connected sub-blocks together", () => {
+    const [nodes, edges] = createNode("control_condition_compare", {
+      x: 100,
+      y: 100,
+    });
+
+    expect(nodes.length).toBeGreaterThan(1);
+    expect(nodes.every((n) => n.selected === true)).toBe(true);
+    expect(edges.every((e) => e.type === "fixed")).toBe(true);
+  });
+
+  it("selects loops and their loop-end and loop-each children together", () => {
+    const [nodes] = createNode("control_loop", { x: 0, y: 0 });
+
+    expect(nodes).toHaveLength(3);
+    expect(nodes.every((n) => n.selected === true)).toBe(true);
+  });
+
+  it("does not select standalone blocks without owned children by default", () => {
+    const [nodes] = createNode("action_log", { x: 0, y: 0 });
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].selected).toBeUndefined();
+  });
+
+  it("respects explicit selected prop on compound blocks", () => {
+    const [nodes] = createNode(
+      "control_condition_compare",
+      { x: 0, y: 0 },
+      { selected: false }
+    );
+
+    expect(nodes.every((n) => n.selected === false)).toBe(true);
+  });
+
+  it("propagates explicit selected: true prop to all nodes", () => {
+    const [nodes] = createNode(
+      "action_log",
+      { x: 0, y: 0 },
+      { selected: true }
+    );
+
+    expect(nodes[0].selected).toBe(true);
   });
 });
