@@ -30,7 +30,7 @@ export default function AppPage() {
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2 order-2 lg:order-1">
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <AppResourceCard
-              title="Enabled commands"
+              title="Commands"
               count={entityCounts?.command || 0}
               limit={features?.max_commands}
               actionTitle="Manage commands"
@@ -40,7 +40,7 @@ export default function AppPage() {
               }}
             />
             <AppResourceCard
-              title="Enabled event listeners"
+              title="Event listeners"
               count={entityCounts?.event_listener || 0}
               actionTitle="Manage events"
               actionHref={{
