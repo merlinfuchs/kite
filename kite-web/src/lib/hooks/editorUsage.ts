@@ -1,16 +1,11 @@
 import queryClient, { apiRequest } from "@/lib/api/client";
-import type { ItemVersionTarget } from "@/lib/api/queries";
+import { itemPath, type ItemVersionTarget } from "@/lib/api/queries";
 import type { EditorSessionUpdateResponse } from "@/lib/types/wire.gen";
 import { useEffect } from "react";
 
 // How long after an input the editor still counts as in use.
 const idleAfterMs = 2 * 60_000;
 const reportIntervalMs = 60_000;
-
-const pathSegments = {
-  command: "commands",
-  event_listener: "event-listeners",
-};
 
 // useEditorTimeReport reports how long the flow editor is in use. Time counts
 // while the tab is visible and up to two minutes after each input. Nothing is
@@ -24,7 +19,11 @@ export function useEditorTimeReport(
 
   useEffect(() => {
     if (type === "message") return;
-    const path = `/v1/apps/${appId}/${pathSegments[type]}/${id}/editor-sessions/${sessionId}`;
+    const path = `${itemPath({
+      appId,
+      type,
+      id,
+    })}/editor-sessions/${sessionId}`;
 
     // The time of earlier stretches of input, and of the current one if any.
     let pastMs = 0;

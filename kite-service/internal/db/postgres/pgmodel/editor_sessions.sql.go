@@ -160,8 +160,7 @@ INSERT INTO editor_sessions (
 ON CONFLICT (id) DO UPDATE SET
     active_seconds = GREATEST(editor_sessions.active_seconds, LEAST(
         $6::integer,
-        EXTRACT(EPOCH FROM $8::timestamp - editor_sessions.created_at)::integer + $7::integer,
-        $9::integer
+        EXTRACT(EPOCH FROM $8::timestamp - editor_sessions.created_at)::integer + $7::integer
     )),
     updated_at = $8
 WHERE editor_sessions.app_id = EXCLUDED.app_id
@@ -179,12 +178,10 @@ type UpdateEditorSessionTimeParams struct {
 	ActiveSeconds   int32
 	SlackSeconds    int32
 	Now             pgtype.Timestamp
-	MaxSeconds      int32
 }
 
 // The editor reports its total active time. It can be at most the time
-// since the session started plus slack_seconds, or max_seconds, and never goes
-// down. A session ID sent for another app, user or item changes nothing.
+// since the session started plus slack_seconds, and never goes down. A session ID sent for another app, user or item changes nothing.
 func (q *Queries) UpdateEditorSessionTime(ctx context.Context, arg UpdateEditorSessionTimeParams) error {
 	_, err := q.db.Exec(ctx, updateEditorSessionTime,
 		arg.ID,
@@ -195,7 +192,6 @@ func (q *Queries) UpdateEditorSessionTime(ctx context.Context, arg UpdateEditorS
 		arg.ActiveSeconds,
 		arg.SlackSeconds,
 		arg.Now,
-		arg.MaxSeconds,
 	)
 	return err
 }

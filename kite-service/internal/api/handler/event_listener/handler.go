@@ -176,7 +176,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
 
-	editorusage.RecordSave(c, h.editorSessionStore, editorusage.EventListenerSession(c, req.EditorSession))
+	editorusage.RecordSave(c, h.editorSessionStore, editorusage.ItemSession(c, req.EditorSession))
 	return wire.EventListenerToWire(eventListener), nil
 }
 

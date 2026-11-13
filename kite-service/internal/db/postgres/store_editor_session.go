@@ -20,7 +20,6 @@ func (c *Client) UpdateEditorSessionTime(ctx context.Context, session model.Edit
 		EventListenerID: pgtype.Text{String: session.EventListenerID.String, Valid: session.EventListenerID.Valid},
 		ActiveSeconds:   int32(min(activeSeconds, int(store.EditorSessionMaxTime.Seconds()))),
 		SlackSeconds:    int32(store.EditorSessionTimeSlack.Seconds()),
-		MaxSeconds:      int32(store.EditorSessionMaxTime.Seconds()),
 		Now:             pgtype.Timestamp{Time: now.UTC(), Valid: true},
 	})
 }

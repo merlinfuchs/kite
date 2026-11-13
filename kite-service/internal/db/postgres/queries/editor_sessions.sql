@@ -1,7 +1,6 @@
 -- name: UpdateEditorSessionTime :exec
 -- The editor reports its total active time. It can be at most the time
--- since the session started plus slack_seconds, or max_seconds, and never goes
--- down. A session ID sent for another app, user or item changes nothing.
+-- since the session started plus slack_seconds, and never goes down. A session ID sent for another app, user or item changes nothing.
 INSERT INTO editor_sessions (
     id,
     app_id,
@@ -24,8 +23,7 @@ INSERT INTO editor_sessions (
 ON CONFLICT (id) DO UPDATE SET
     active_seconds = GREATEST(editor_sessions.active_seconds, LEAST(
         sqlc.arg(active_seconds)::integer,
-        EXTRACT(EPOCH FROM sqlc.arg(now)::timestamp - editor_sessions.created_at)::integer + sqlc.arg(slack_seconds)::integer,
-        sqlc.arg(max_seconds)::integer
+        EXTRACT(EPOCH FROM sqlc.arg(now)::timestamp - editor_sessions.created_at)::integer + sqlc.arg(slack_seconds)::integer
     )),
     updated_at = @now
 WHERE editor_sessions.app_id = EXCLUDED.app_id

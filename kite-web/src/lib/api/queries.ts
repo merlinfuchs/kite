@@ -429,10 +429,15 @@ const itemVersionPathSegments = {
   message: "messages",
 };
 
-function itemVersionsPath(target: ItemVersionTarget) {
+// itemPath is the API path of the item.
+export function itemPath(target: ItemVersionTarget) {
   return `/v1/apps/${target.appId}/${itemVersionPathSegments[target.type]}/${
     target.id
-  }/versions`;
+  }`;
+}
+
+function itemVersionsPath(target: ItemVersionTarget) {
+  return `${itemPath(target)}/versions`;
 }
 
 // Under the key of the item, so saving it refreshes the versions too.

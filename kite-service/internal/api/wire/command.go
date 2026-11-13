@@ -105,4 +105,7 @@ func CommandToWire(command *model.Command) *Command {
 	}
 }
 
-var editorSessionLength = validation.Length(0, 64)
+// EditorSessionMaxLength is the longest ID of an editor session.
+const EditorSessionMaxLength = 64
+
+var editorSessionLength = validation.Length(0, EditorSessionMaxLength)

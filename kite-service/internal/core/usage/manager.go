@@ -33,8 +33,8 @@ const (
 	// is still found and revokes its token.
 	UsedOAuthCodeExpiry = time.Hour
 	NotificationExpiry  = 90 * 24 * time.Hour
-	// The dashboard only shows the last 30 days.
-	EditorSessionExpiry = 90 * 24 * time.Hour
+	// Only the last 30 days are ever read.
+	EditorSessionExpiry = 40 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the

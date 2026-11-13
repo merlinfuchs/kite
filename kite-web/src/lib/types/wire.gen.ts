@@ -1046,6 +1046,10 @@ export interface CommandUpdateEnabledRequest {
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
+/**
+ * EditorSessionMaxLength is the longest ID of an editor session.
+ */
+export const EditorSessionMaxLength = 64;
 
 //////////
 // source: discord_api.go

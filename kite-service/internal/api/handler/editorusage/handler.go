@@ -25,17 +25,12 @@ func NewEditorUsageHandler(editorSessionStore store.EditorSessionStore) *EditorU
 	}
 }
 
-func (h *EditorUsageHandler) HandleCommandEditorSessionUpdate(c *handler.Context, req wire.EditorSessionUpdateRequest) (*wire.EditorSessionUpdateResponse, error) {
-	return h.updateSession(c, CommandSession(c, c.Param("sessionID")), req)
-}
-
-func (h *EditorUsageHandler) HandleEventListenerEditorSessionUpdate(c *handler.Context, req wire.EditorSessionUpdateRequest) (*wire.EditorSessionUpdateResponse, error) {
-	return h.updateSession(c, EventListenerSession(c, c.Param("sessionID")), req)
-}
-
-func (h *EditorUsageHandler) updateSession(c *handler.Context, session model.EditorSession, req wire.EditorSessionUpdateRequest) (*wire.EditorSessionUpdateResponse, error) {
-	if session.ID == "" || len(session.ID) > 64 {
-		return nil, handler.ErrBadRequest("invalid_editor_session", "Editor session ID must be 1 to 64 characters")
+// HandleEditorSessionUpdate is routed under the command and event listener
+// routes.
+func (h *EditorUsageHandler) HandleEditorSessionUpdate(c *handler.Context, req wire.EditorSessionUpdateRequest) (*wire.EditorSessionUpdateResponse, error) {
+	session := ItemSession(c, c.Param("sessionID"))
+	if len(session.ID) > wire.EditorSessionMaxLength {
+		return nil, handler.ErrBadRequest("invalid_editor_session", "Editor session ID is too long")
 	}
 
 	err := h.editorSessionStore.UpdateEditorSessionTime(c.Context(), session, req.ActiveSeconds, time.Now().UTC())
@@ -67,24 +62,20 @@ func (h *EditorUsageHandler) HandleEditorUsageGet(c *handler.Context) (*wire.Edi
 	return res, nil
 }
 
-// CommandSession is the editor session of the request's command.
-func CommandSession(c *handler.Context, sessionID string) model.EditorSession {
-	return model.EditorSession{
-		ID:        sessionID,
-		AppID:     c.App.ID,
-		UserID:    c.Session.UserID,
-		CommandID: null.StringFrom(c.Command.ID),
+// ItemSession is the editor session of the request's command or event
+// listener.
+func ItemSession(c *handler.Context, sessionID string) model.EditorSession {
+	session := model.EditorSession{
+		ID:     sessionID,
+		AppID:  c.App.ID,
+		UserID: c.Session.UserID,
 	}
-}
-
-// EventListenerSession is the editor session of the request's event listener.
-func EventListenerSession(c *handler.Context, sessionID string) model.EditorSession {
-	return model.EditorSession{
-		ID:              sessionID,
-		AppID:           c.App.ID,
-		UserID:          c.Session.UserID,
-		EventListenerID: null.StringFrom(c.EventListener.ID),
+	if c.Command != nil {
+		session.CommandID = null.StringFrom(c.Command.ID)
+	} else {
+		session.EventListenerID = null.StringFrom(c.EventListener.ID)
 	}
+	return session
 }
 
 // RecordSave counts a save made in an editor. Saves made with an API token or

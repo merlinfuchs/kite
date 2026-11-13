@@ -197,7 +197,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
-	editorusage.RecordSave(c, h.editorSessionStore, editorusage.CommandSession(c, req.EditorSession))
+	editorusage.RecordSave(c, h.editorSessionStore, editorusage.ItemSession(c, req.EditorSession))
 	return wire.CommandToWire(command), nil
 }
 

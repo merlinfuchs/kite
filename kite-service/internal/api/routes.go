@@ -337,7 +337,7 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 	commandGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleCommandVersionList))
 	commandGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleCommandVersionGet))
-	commandGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleCommandEditorSessionUpdate))
+	commandGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleEditorSessionUpdate))
 	commandsGroup.Post("/deploy",
 		handler.Typed(commandsHandler.HandleCommandsDeploy),
 		handler.RateLimitByUser(2, time.Minute),
@@ -358,7 +358,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
 	eventListenerGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleEventListenerVersionList))
 	eventListenerGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleEventListenerVersionGet))
-	eventListenerGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleEventListenerEditorSessionUpdate))
+	eventListenerGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleEditorSessionUpdate))
 	// A new secret breaks the webhook URL wherever it's used.
 	eventListenerGroup.DenyAPIToken().Post("/webhook-secret",
 		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),
