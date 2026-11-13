@@ -137,15 +137,15 @@ WHERE id = @id RETURNING *;
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
 SELECT el.app_id FROM event_listeners el
 WHERE el.updated_at > $1
-    AND (el.source = 'discord' OR el.flow_source::text LIKE '%"action_voice_audio_play"%')
+    AND (el.source = 'discord' OR el.flow_source::text ~ '"action_voice_(audio_play|tts_speak)"')
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 UNION
 SELECT c.app_id FROM commands c
-WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text ~ '"action_voice_(audio_play|tts_speak)"'
 UNION
 SELECT m.app_id FROM message_instances mi JOIN messages m ON m.id = mi.message_id
-WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%';
+WHERE mi.updated_at > $1 AND mi.flow_sources::text ~ '"action_voice_(audio_play|tts_speak)"';
 
 -- Everything the gateway needs to decide which intents to identify with.
 -- Plugin resources come back as "plugin_id:resource_id" so this stays a single
@@ -179,16 +179,16 @@ SELECT
     EXISTS (
         SELECT 1 FROM commands c
         WHERE c.app_id = $1 AND c.enabled
-            AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+            AND c.flow_source::text ~ '"action_voice_(audio_play|tts_speak)"'
         UNION ALL
         SELECT 1 FROM event_listeners el
         WHERE el.app_id = $1 AND el.enabled
-            AND el.flow_source::text LIKE '%"action_voice_audio_play"%'
+            AND el.flow_source::text ~ '"action_voice_(audio_play|tts_speak)"'
         UNION ALL
         SELECT 1 FROM messages m
         JOIN message_instances mi ON mi.message_id = m.id
         WHERE m.app_id = $1
-            AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
+            AND mi.flow_sources::text ~ '"action_voice_(audio_play|tts_speak)"'
     ) AS uses_voice;
 
 -- name: HasAppFlows :one

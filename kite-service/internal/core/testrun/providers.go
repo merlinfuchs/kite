@@ -362,6 +362,11 @@ func (p *testDiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayA
 	return nil
 }
 
+func (p *testDiscordProvider) SpeakText(ctx context.Context, opts provider.SpeakTextOpts) error {
+	p.record("speak_text", opts)
+	return nil
+}
+
 func (p *testDiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
 	p.record("stop_audio", map[string]any{"guild_id": guildID})
 	return nil

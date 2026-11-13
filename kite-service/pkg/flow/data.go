@@ -233,6 +233,7 @@ const (
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionVoiceAudioPlay        FlowNodeType = "action_voice_audio_play"
 	FlowNodeTypeActionVoiceAudioStop        FlowNodeType = "action_voice_audio_stop"
+	FlowNodeTypeActionVoiceTTSSpeak         FlowNodeType = "action_voice_tts_speak"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
@@ -392,6 +393,10 @@ type FlowNodeData struct {
 	// Voice Audio Play
 	AudioAssetID    string `json:"audio_asset_id,omitempty"`
 	AudioLeaveAfter bool   `json:"audio_leave_after,omitempty"`
+
+	// Voice TTS Speak, also uses AudioLeaveAfter
+	TTSText     string `json:"tts_text,omitempty"`
+	TTSLanguage string `json:"tts_language,omitempty"`
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`

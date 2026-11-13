@@ -141,6 +141,7 @@ export const harmlessTypes = [
   "action_voice_audio_stop",
   "action_voice_channel_join",
   "action_voice_channel_leave",
+  "action_voice_tts_speak",
   "action_webhook_response_create",
   "control_condition_channel",
   "control_condition_compare",

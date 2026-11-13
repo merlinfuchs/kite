@@ -72,6 +72,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Edit voice state](./actions/action_member_voice_edit.md) - Server-mute, deafen or move members in voice
 - [Play audio](./actions/action_voice_audio_play.md) - Play an uploaded sound in a voice channel
 - [Stop audio](./actions/action_voice_audio_stop.md) - Stop the audio the app plays
+- [Speak text](./actions/action_voice_tts_speak.md) - Read a text out loud in a voice channel
 - [Play soundboard sound](./actions/action_soundboard_sound_play.md) - Play a soundboard sound in a voice channel
 
 ## Bot blocks

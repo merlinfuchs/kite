@@ -21,6 +21,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/kitecloud/kite/kite-service/internal/core/sound"
+	"github.com/kitecloud/kite/kite-service/internal/core/tts"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -420,6 +422,37 @@ func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudio
 	}
 
 	return p.voice.Play(ctx, p.appID, p.session, opts)
+}
+
+func (p *DiscordProvider) SpeakText(ctx context.Context, opts provider.SpeakTextOpts) error {
+	if p.voice == nil {
+		return fmt.Errorf("speaking in voice channels isn't available here")
+	}
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.VoiceAudio {
+		return fmt.Errorf("speaking in voice channels requires premium")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	speech, err := tts.Speak(ctx, opts.Text, opts.Language)
+	if err != nil {
+		return err
+	}
+	content, err := sound.Convert(ctx, bytes.NewReader(speech))
+	if err != nil {
+		return fmt.Errorf("failed to convert the speech: %w", err)
+	}
+
+	return p.voice.PlaySound(ctx, p.appID, p.session, provider.PlayAudioOpts{
+		GuildID:    opts.GuildID,
+		ChannelID:  opts.ChannelID,
+		LeaveAfter: opts.LeaveAfter,
+	}, content)
 }
 
 func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {

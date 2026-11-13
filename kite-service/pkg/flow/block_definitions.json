@@ -1808,6 +1808,20 @@
       "result": null
     },
     {
+      "type": "action_voice_tts_speak",
+      "title": "Speak text",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_soundboard_sound_play",
       "title": "Play soundboard sound",
       "credits": 1,
