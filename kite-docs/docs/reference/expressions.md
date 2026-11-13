@@ -101,6 +101,16 @@ interaction?: # For commands and interactive components
   id: string
   value?: string # The value of the picked option in a select menu, or the ID of the picked user, role or channel
   values?: []string # All picked values or IDs if the select menu allows picking more than one
+  command?: # For commands
+    target_user: # The user a User command was used on, with the same fields as user. Empty for other commands
+      id: string
+      username: string
+    target_message: # The message a Message command was used on, with the same fields as message. Empty for other commands
+      id: string
+      content: string
+      author:
+        id: string
+        username: string
   components?: # For modal submissions, by input identifier
     identifier:
       value: string # What input('identifier') returns

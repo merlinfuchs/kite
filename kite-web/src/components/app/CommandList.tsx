@@ -12,6 +12,7 @@ import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
 import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
+import { commandTypeOf } from "@/lib/flow/commandTypes";
 
 export default function CommandList() {
   const commands = useCommands();
@@ -51,8 +52,11 @@ export default function CommandList() {
             <SearchableList
               items={commands}
               // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
+              // User and Message commands are found by their name.
               fields={(command) => [
-                "/" + command.name.split(" ").join(" /"),
+                commandTypeOf(command.flow_source) === "chat_input"
+                  ? "/" + command.name.split(" ").join(" /")
+                  : command.name,
                 command.description,
               ]}
               renderItem={(command) => (

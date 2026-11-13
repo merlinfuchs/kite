@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,6 +80,67 @@ func TestFlowCompileCommand(t *testing.T) {
 	got, err := CompileCommand(flowCommandInput)
 	require.NoError(t, err)
 	assert.Equal(t, expected, got)
+}
+
+func TestFlowCompileContextCommand(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{
+				ID:   "entry",
+				Type: FlowNodeTypeEntryCommand,
+				Data: FlowNodeData{
+					Name:        "inspect",
+					CommandType: CommandTypeUser,
+				},
+			},
+			{
+				ID:   "contexts",
+				Type: FlowNodeTypeOptionCommandContexts,
+				Data: FlowNodeData{
+					CommandDisabledContexts: []CommandContextType{
+						CommandContextTypeBotDM,
+						CommandContextTypePrivateChannel,
+					},
+					CommandDisabledIntegrations: []CommandDisabledIntegrationType{
+						CommandDisabledIntegrationTypeUserInstall,
+					},
+				},
+			},
+		},
+		Edges: []FlowEdge{{Source: "contexts", Target: "entry"}},
+	}
+
+	require.NoError(t, data.Nodes[0].Data.Validate(FlowNodeTypeEntryCommand))
+	entry, err := CompileCommand(data)
+	require.NoError(t, err)
+
+	command := entry.CommandData()
+	assert.Equal(t, discord.UserCommand, command.Type)
+	assert.Equal(t, "inspect", command.Name)
+	assert.Empty(t, command.Description)
+	assert.Empty(t, command.Options)
+	assert.NoError(t, entry.CheckCommandArguments())
+	assert.Equal(t, []discord.InteractionContext{discord.InteractionContextGuild}, entry.CommandContexts())
+	assert.Equal(t, []discord.ApplicationIntegrationType{discord.ApplicationIntegrationTypeGuild}, entry.CommandIntegrations())
+}
+
+func TestFlowCompileRejectsUnknownCommandType(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{
+				ID:   "entry",
+				Type: FlowNodeTypeEntryCommand,
+				Data: FlowNodeData{
+					Name:        "help",
+					Description: "Shows help",
+					CommandType: "unknown",
+				},
+			},
+		},
+	}
+
+	_, err := CompileCommand(data)
+	assert.EqualError(t, err, `unknown command type "unknown"`)
 }
 
 func scheduleFlow(action FlowNodeType) FlowData {
@@ -383,4 +445,76 @@ func TestFlowNoteValidation(t *testing.T) {
 		Edges: []FlowEdge{{ID: "1", Source: "1", Target: "note_abc"}},
 	}
 	assert.Error(t, data.Validate())
+}
+
+func TestContextCommandNameValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		commandType CommandType
+		commandName string
+		description string
+		wantError   bool
+	}{
+		{
+			name:        "user context command",
+			commandType: CommandTypeUser,
+			commandName: "View User",
+		},
+		{
+			name:        "message context command",
+			commandType: CommandTypeMessage,
+			commandName: "Summarize Message",
+		},
+		{
+			name:        "context command rejects blank name",
+			commandType: CommandTypeUser,
+			commandName: "  ",
+			wantError:   true,
+		},
+		{
+			name:        "context command rejects long name",
+			commandType: CommandTypeMessage,
+			commandName: strings.Repeat("a", 33),
+			wantError:   true,
+		},
+		{
+			name:        "slash command keeps lowercase name rules",
+			commandType: CommandTypeChatInput,
+			commandName: "View User",
+			description: "View details",
+			wantError:   true,
+		},
+		{
+			name:        "slash command still needs a description",
+			commandType: CommandTypeChatInput,
+			commandName: "view_user",
+			wantError:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := FlowData{
+				Nodes: []FlowNode{
+					{
+						ID:   "entry",
+						Type: FlowNodeTypeEntryCommand,
+						Data: FlowNodeData{
+							Name:        tt.commandName,
+							Description: tt.description,
+							CommandType: tt.commandType,
+						},
+					},
+				},
+			}
+
+			err := data.Validate()
+			if tt.wantError && err == nil {
+				t.Fatal("expected validation error")
+			}
+			if !tt.wantError && err != nil {
+				t.Fatalf("unexpected validation error: %v", err)
+			}
+		})
+	}
 }

@@ -112,6 +112,7 @@ export interface App {
 export interface CommandsDeployError {
   message: string;
   command?: string;
+  command_type?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];

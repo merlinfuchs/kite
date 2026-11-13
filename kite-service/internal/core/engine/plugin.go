@@ -89,7 +89,9 @@ func (p *pluginInstance) Events() []plugin.Event {
 func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
 	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
 		if d, ok := e.Data.(*discord.CommandInteraction); ok {
-			return p.commandNames[d.Name]
+			// Plugin commands are slash commands. A User or Message command
+			// of the app can have the same name.
+			return p.commandNames[d.Name] && interactionCommandKey(d).Type == discord.ChatInputCommand
 		}
 
 		return true

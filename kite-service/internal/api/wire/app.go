@@ -44,8 +44,9 @@ type App struct {
 }
 
 type CommandsDeployError struct {
-	Message string `json:"message"`
-	Command string `json:"command,omitempty"`
+	Message     string `json:"message"`
+	Command     string `json:"command,omitempty"`
+	CommandType string `json:"command_type,omitempty"`
 }
 
 type AppDiscordStatus struct {

@@ -185,10 +185,7 @@ func (s *testSession) checkChannelManage(channelID discord.ChannelID) []string {
 // checkOwnMessage warns about edits of messages the bot didn't send, which
 // Discord doesn't allow.
 func (s *testSession) checkOwnMessage(channelID discord.ChannelID, messageID discord.MessageID) []string {
-	if _, ok := s.fakeMessage(messageID); ok {
-		return nil
-	}
-	msg, err := s.session.Message(channelID, messageID)
+	msg, err := s.message(channelID, messageID)
 	if err != nil {
 		return []string{fmt.Sprintf("Message %s doesn't exist in channel %s or the bot can't see it.", messageID, channelID)}
 	}
@@ -201,10 +198,7 @@ func (s *testSession) checkOwnMessage(channelID discord.ChannelID, messageID dis
 // checkMessageDelete checks that the bot can delete a message, which needs
 // Manage Messages unless the bot sent it.
 func (s *testSession) checkMessageDelete(channelID discord.ChannelID, messageID discord.MessageID) []string {
-	if _, ok := s.fakeMessage(messageID); ok {
-		return nil
-	}
-	if msg, err := s.session.Message(channelID, messageID); err == nil && msg.Author.ID == s.botID {
+	if msg, err := s.message(channelID, messageID); err == nil && msg.Author.ID == s.botID {
 		return nil
 	}
 	return s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionManageMessages)

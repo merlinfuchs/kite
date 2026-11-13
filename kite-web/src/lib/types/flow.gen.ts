@@ -175,6 +175,7 @@ export interface FlowNodeData {
   /**
    * Command Entry
    */
+  command_type?: CommandType;
   command_argument_order?: string[];
   /**
    * Command Argument
@@ -443,6 +444,10 @@ export type CommandContextType = string;
 export const CommandContextTypeGuild: CommandContextType = "guild";
 export const CommandContextTypeBotDM: CommandContextType = "bot_dm";
 export const CommandContextTypePrivateChannel: CommandContextType = "private_channel";
+export type CommandType = string;
+export const CommandTypeChatInput: CommandType = "chat_input";
+export const CommandTypeUser: CommandType = "user";
+export const CommandTypeMessage: CommandType = "message";
 export type CommandDisabledIntegrationType = string;
 export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrationType = "guild_install";
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";

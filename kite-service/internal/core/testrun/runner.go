@@ -457,7 +457,11 @@ func (s *testSession) start(ctx context.Context, test Test, root *flow.CompiledF
 		if err != nil {
 			return err
 		}
-		s.execute(ctx, "/"+root.CommandName(), root, root, event, nil, nil)
+		trigger := root.CommandName()
+		if root.CommandType() == discord.ChatInputCommand {
+			trigger = "/" + trigger
+		}
+		s.execute(ctx, trigger, root, root, event, nil, nil)
 		return nil
 	case KindEventListener:
 		event, err := s.listenerEvent(root, test)

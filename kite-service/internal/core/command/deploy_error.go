@@ -66,17 +66,19 @@ func formError(rawErrors []byte, cmdData []api.CreateCommandData) *DeployError {
 		return &DeployError{Message: message}
 	}
 
+	key := NewKey(cmdData[i].Type, cmdData[i].Name)
+
 	// Walk the same path through the command to name the options on the way.
 	raw, err := json.Marshal(cmdData[i])
 	if err != nil {
-		return &DeployError{Message: message, Command: cmdData[i].Name}
+		return key.deployError(message)
 	}
 	var node any
 	if err := json.Unmarshal(raw, &node); err != nil {
-		return &DeployError{Message: message, Command: cmdData[i].Name}
+		return key.deployError(message)
 	}
 
-	names := []string{"/" + cmdData[i].Name}
+	names := []string{key.String()}
 	field := ""
 	for _, key := range path[1:] {
 		switch v := node.(type) {
@@ -102,14 +104,11 @@ func formError(rawErrors []byte, cmdData []api.CreateCommandData) *DeployError {
 
 	location := strings.Join(names, " ")
 	if field != "" {
-		field = strings.ReplaceAll(field, "_", " ")
-		location = fmt.Sprintf("%s%s of %s", strings.ToUpper(field[:1]), field[1:], location)
+		location = strings.ReplaceAll(field, "_", " ") + " of " + location
 	}
+	location = strings.ToUpper(location[:1]) + location[1:]
 
-	return &DeployError{
-		Message: fmt.Sprintf("%s: %s", location, message),
-		Command: cmdData[i].Name,
-	}
+	return key.deployError(fmt.Sprintf("%s: %s", location, message))
 }
 
 func firstFormError(errs map[string]any, path []string) ([]string, string) {

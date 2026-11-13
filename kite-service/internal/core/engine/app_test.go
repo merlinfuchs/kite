@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -36,13 +37,13 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByName["ping"]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByName["config set"]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
-	if got := app.commandsByName["missing"]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "missing")]; got != nil {
 		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
 	}
 }
@@ -54,14 +55,44 @@ func TestCommandIndexDropsOldNameOnRename(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "oldname"))
 	app.AddCommand(testCommand("cmd-1", "newname"))
 
-	if got := app.commandsByName["oldname"]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "oldname")]; got != nil {
 		t.Error("old name still resolves after rename")
 	}
-	if got := app.commandsByName["newname"]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "newname")]; got == nil {
 		t.Fatal("new name does not resolve after rename")
 	}
 	if len(app.commands) != 1 {
 		t.Errorf("commands = %d entries, want 1 after rename of same ID", len(app.commands))
+	}
+}
+
+// A slash command and a User command can have the same name, and each
+// interaction goes to the command of its type.
+func TestCommandIndexByType(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddCommand(testCommand("slash", "report"))
+	app.AddCommand("user", &Command{cmd: &model.Command{ID: "user", Name: "report", FlowSource: flow.FlowData{
+		Nodes: []flow.FlowNode{{Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{CommandType: flow.CommandTypeUser}}},
+	}}})
+
+	tests := []struct {
+		data *discord.CommandInteraction
+		want string
+	}{
+		{data: &discord.CommandInteraction{Name: "report"}, want: "slash"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.ChatInputCommand}, want: "slash"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.UserCommand, TargetID: 5}, want: "user"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.MessageCommand, TargetID: 5}},
+	}
+	for _, test := range tests {
+		got := app.commandsByKey[interactionCommandKey(test.data)]
+		if test.want == "" {
+			if got != nil {
+				t.Errorf("%+v resolved to %s, want none", test.data, got.cmd.ID)
+			}
+		} else if got == nil || got.cmd.ID != test.want {
+			t.Errorf("%+v did not resolve to %s", test.data, test.want)
+		}
 	}
 }
 
@@ -72,10 +103,10 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 
 	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
-	if got := app.commandsByName["drop"]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "drop")]; got != nil {
 		t.Error("removed command still resolves by name")
 	}
-	if got := app.commandsByName["keep"]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "keep")]; got == nil {
 		t.Error("surviving command no longer resolves by name")
 	}
 }

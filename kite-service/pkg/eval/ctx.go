@@ -193,8 +193,10 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string         `expr:"id" json:"id"`
-	Args map[string]any `expr:"args" json:"args"`
+	ID            string         `expr:"id" json:"id"`
+	Args          map[string]any `expr:"args" json:"args"`
+	TargetUser    any            `expr:"target_user" json:"target_user"`
+	TargetMessage *MessageEnv    `expr:"target_message" json:"target_message"`
 }
 
 func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
@@ -256,9 +258,33 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		addArg(option)
 	}
 
+	// The fields of a missing target, like for a slash command, are empty
+	// instead of failing.
+	var targetUser any = (*UserEnv)(nil)
+	if targetID := data.TargetUserID(); targetID.IsValid() {
+		user, userExists := data.Resolved.Users[targetID]
+		member, memberExists := data.Resolved.Members[targetID]
+		if memberExists {
+			if !userExists {
+				user = discord.User{ID: targetID}
+			}
+			member.User = user
+			targetUser = guild.memberEnv(member)
+		} else if userExists {
+			targetUser = NewUserEnv(user)
+		}
+	}
+
+	targetMessage := &MessageEnv{}
+	if msg, ok := data.Resolved.Messages[data.TargetMessageID()]; ok && msg.ID.IsValid() {
+		targetMessage = NewMessageEnv(msg)
+	}
+
 	return &CommandEnv{
-		interaction: i,
-		cmd:         data,
+		interaction:   i,
+		cmd:           data,
+		TargetUser:    targetUser,
+		TargetMessage: targetMessage,
 
 		ID:   data.ID.String(),
 		Args: args,

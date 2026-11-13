@@ -14,6 +14,10 @@ import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
+  commandTypeOptions,
+  isContextMenuCommand,
+} from "@/lib/flow/commandTypes";
+import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
@@ -226,6 +230,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_type: CommandTypeInput,
   command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
@@ -638,7 +643,10 @@ function NameInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function DescriptionInput({ data, updateData, errors }: InputProps) {
+function DescriptionInput({ type, data, updateData, errors }: InputProps) {
+  // Only slash commands have a description in Discord.
+  if (type === "entry_command" && isContextMenuCommand(data)) return null;
+
   return (
     <BaseInput
       field="description"
@@ -742,6 +750,21 @@ function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
       ]}
       value={data.command_argument_type || ""}
       updateValue={(v) => updateData({ command_argument_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_type"
+      title="Type"
+      description="User and Message commands show in the Apps menu when someone right-clicks a user or message."
+      type="select"
+      options={commandTypeOptions}
+      value={data.command_type || "chat_input"}
+      updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />
   );
