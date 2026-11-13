@@ -19,7 +19,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-11-13",
     title: "Disabled commands and event listeners don't count toward your plan",
     description:
-      "Keep commands and event listeners you don't need right now disabled instead of deleting them. Only enabled ones count toward your plan's limits. An app can have up to 3 times each limit, enabled or not.",
+      "Keep commands and event listeners you don't need right now disabled instead of deleting them. Only enabled ones count toward your plan's limits.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/premium#what-premium-changes`,
   },
   {
