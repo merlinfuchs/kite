@@ -139,20 +139,24 @@ export default function EventListenerCreateDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
+      {/* Only the picker scrolls, so the description and button stay in view. */}
+      <DialogContent className="sm:max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Create {name.title}</DialogTitle>
+          <DialogTitle>Create {name.singular}</DialogTitle>
           <DialogDescription>{texts.description}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-5 min-h-0"
+          >
             {source === "discord" && (
               <FormField
                 control={form.control}
                 name="type"
                 rules={{ required: "Pick an event." }}
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col min-h-0">
                     <FormLabel>{texts.picker}</FormLabel>
                     <DiscordEventPicker
                       value={field.value}
@@ -169,7 +173,7 @@ export default function EventListenerCreateDialog({
                 name="cron"
                 rules={{ required: "Pick or enter a schedule." }}
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-h-0 overflow-y-auto -m-1 p-1">
                     <FormLabel>{texts.picker}</FormLabel>
                     <SchedulePicker
                       value={field.value}
@@ -186,7 +190,7 @@ export default function EventListenerCreateDialog({
               name="description"
               rules={{ required: "Enter a description." }}
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="shrink-0">
                   <FormLabel>Description</FormLabel>
                   <FormDescription>What will you use it for?</FormDescription>
                   <FormControl>
@@ -196,9 +200,9 @@ export default function EventListenerCreateDialog({
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="shrink-0">
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                Create {name.title}
+                Create {name.singular}
               </LoadingButton>
             </DialogFooter>
           </form>
@@ -309,8 +313,8 @@ function DiscordEventPicker({
   const selected = discordEventTypes.find((t) => t.value === value);
 
   return (
-    <div className="space-y-3">
-      <div className="relative">
+    <div className="flex flex-col gap-3 min-h-0">
+      <div className="relative shrink-0">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
@@ -320,7 +324,7 @@ function DiscordEventPicker({
           className="pl-9"
         />
       </div>
-      <div className="space-y-4">
+      <div className="space-y-4 min-h-0 overflow-y-auto -m-1 p-1">
         {categories.length === 0 && (
           <div className="text-sm text-muted-foreground text-center py-8">
             No events match your search.
@@ -347,7 +351,11 @@ function DiscordEventPicker({
           </div>
         ))}
       </div>
-      {selected?.note && <PickerNote>{selected.note}</PickerNote>}
+      {selected?.note && (
+        <div className="shrink-0">
+          <PickerNote>{selected.note}</PickerNote>
+        </div>
+      )}
     </div>
   );
 }
