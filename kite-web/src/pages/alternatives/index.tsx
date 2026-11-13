@@ -140,9 +140,9 @@ export default function AlternativesPage() {
           The best free Discord bot makers in 2026
         </h1>
         <p className="text-xl text-muted-foreground mt-6">
-          We make Kite, so it&apos;s first on this list. For every other bot
-          maker, you&apos;ll see what its free plan includes and when it&apos;s
-          the better choice.
+          Kite is ours, so it&apos;s at the top. For the other seven, we list
+          what each free plan includes and when it&apos;s a better fit than
+          Kite.
         </p>
       </section>
 
