@@ -27,7 +27,7 @@ func (h *AppHandler) HandleAppCollaboratorsList(c *handler.Context) (*wire.AppCo
 
 	res := make(wire.AppCollaboratorListResponse, len(collaborators)+1)
 	res[0] = &wire.AppCollaborator{
-		User:      *wire.UserToWire(ownerUser, true),
+		User:      *wire.UserToWire(ownerUser, false),
 		Role:      string(model.AppCollaboratorRoleOwner),
 		CreatedAt: c.App.CreatedAt,
 		UpdatedAt: c.App.CreatedAt,
@@ -87,12 +87,27 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 		userID = null.StringFrom(user.ID)
 		// Invites are keyed by username, so one by ID replaces one by name.
 		discordUsername = strings.ToLower(user.DiscordUsername)
+
+		// The user might have a pending invite from before they changed
+		// their username, which this one replaces.
+		invites, err := h.appStore.CollaboratorInvitesByApp(c.Context(), c.App.ID, now)
+		if err != nil {
+			return nil, err
+		}
+		for _, invite := range invites {
+			if invite.UserID.Valid && invite.UserID.String == user.ID {
+				discordUsername = invite.DiscordUsername
+				break
+			}
+		}
 	}
 
 	// Inviting again replaces the pending invite, so admins can't turn the
 	// owner's invite of an admin into one of a developer.
 	existing, err := h.appStore.CollaboratorInvite(c.Context(), c.App.ID, discordUsername)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || (err == nil && !existing.ExpiresAt.After(now)) {
+		existing = nil
+	} else if err != nil {
 		return nil, err
 	}
 	if existing != nil && !c.UserAppRole.CanRemoveRole(existing.Role) {
@@ -100,7 +115,7 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 	}
 
 	// A new invite takes a seat, one that replaces a pending invite already has one.
-	if c.Features.MaxCollaborators != 0 && (existing == nil || !existing.ExpiresAt.After(now)) {
+	if c.Features.MaxCollaborators != 0 && existing == nil {
 		count, err := h.appStore.CountCollaboratorsAndInvitesByApp(c.Context(), c.App.ID, now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count collaborators: %w", err)

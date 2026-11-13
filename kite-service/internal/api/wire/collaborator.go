@@ -94,7 +94,7 @@ func CollaboratorToWire(collaborator *model.AppCollaborator) *AppCollaborator {
 
 	var user User
 	if collaborator.User != nil {
-		user = *UserToWire(collaborator.User, true)
+		user = *UserToWire(collaborator.User, false)
 	} else {
 		user.ID = collaborator.UserID
 	}

@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -127,7 +128,8 @@ func (m *AccessManager) AuditLog(next handler.HandlerFunc) handler.HandlerFunc {
 		}
 
 		entry := auditEntry(c, route)
-		if err := m.appStore.CreateAppAuditLogEntry(c.Context(), entry); err != nil {
+		// The change is made, so it's logged even if the client went away.
+		if err := m.appStore.CreateAppAuditLogEntry(context.WithoutCancel(c.Context()), entry); err != nil {
 			slog.Error(
 				"Failed to create audit log entry",
 				slog.String("app_id", c.App.ID),
