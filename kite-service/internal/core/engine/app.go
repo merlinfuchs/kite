@@ -449,7 +449,7 @@ func (a *App) resumeFlow(
 		node,
 		session,
 		event,
-		entityLinksFromResumePoint(resumePoint),
+		a.entityLinksFromResumePoint(resumePoint),
 		&resumePoint.FlowState,
 	)
 	return true
@@ -526,7 +526,7 @@ func (a *App) resumeFlowAfterSleep(resumePoint *model.ResumePoint, session *stat
 		node,
 		session,
 		event,
-		entityLinksFromResumePoint(resumePoint),
+		a.entityLinksFromResumePoint(resumePoint),
 		&state,
 	)
 }
@@ -615,8 +615,20 @@ func (a *App) resumeFlowOrRespondExpired(resumePointID string, session *state.St
 // entityLinksFromResumePoint recovers the links the flow was running with when
 // it suspended. CreateResumePoint stores them verbatim, so attribution of logs
 // and usage survives the suspend rather than being guessed on the way back in.
-func entityLinksFromResumePoint(resumePoint *model.ResumePoint) entityLinks {
+// Only the event source isn't stored, so it's taken from the loaded listener.
+func (a *App) entityLinksFromResumePoint(resumePoint *model.ResumePoint) entityLinks {
+	var eventSource model.EventSource
+	if resumePoint.EventListenerID.Valid {
+		a.RLock()
+		listener, ok := a.listeners[resumePoint.EventListenerID.String]
+		a.RUnlock()
+		if ok {
+			eventSource = listener.listener.Source
+		}
+	}
+
 	return entityLinks{
+		EventSource:       eventSource,
 		CommandID:         resumePoint.CommandID,
 		EventListenerID:   resumePoint.EventListenerID,
 		MessageID:         resumePoint.MessageID,

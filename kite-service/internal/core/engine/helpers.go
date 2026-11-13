@@ -59,11 +59,21 @@ type entityLinks struct {
 	MessageID         null.String
 	MessageInstanceID null.Int
 	FlowSourceID      null.String // For message templates that have multiple flows
+	// EventSource tells Discord event listeners, scheduled tasks and webhooks
+	// apart for usage records. They are all event listeners otherwise. The
+	// zero value counts as Discord.
+	EventSource model.EventSource
 }
 
 func (l entityLinks) usageRecordType() model.UsageRecordType {
 	switch {
 	case l.EventListenerID.Valid:
+		switch l.EventSource {
+		case model.EventSourceWebhook:
+			return model.UsageRecordTypeWebhookFlowExecution
+		case model.EventSourceSchedule:
+			return model.UsageRecordTypeScheduleFlowExecution
+		}
 		return model.UsageRecordTypeEventListenerFlowExecution
 	case l.MessageID.Valid:
 		return model.UsageRecordTypeMessageFlowExecution
