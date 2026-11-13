@@ -6,6 +6,7 @@ import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import { ItemVersionTarget } from "@/lib/api/queries";
 import {
   useEditorSession,
@@ -34,6 +35,7 @@ interface Props {
   onSave: (data: FlowData, editorSession?: string) => Promise<boolean>;
   onExit: () => void;
   versionTarget: ItemVersionTarget;
+  testTarget?: FlowTestTarget;
 }
 
 function InnerFlowPage({
@@ -49,6 +51,7 @@ function InnerFlowPage({
   onSave,
   onExit,
   versionTarget,
+  testTarget,
 }: Props) {
   const getFlowData = useGetFlowData();
   const [chatOpen, setChatOpen] = useState(false);
@@ -154,6 +157,7 @@ function InnerFlowPage({
         onChatOpenChange={setChatOpen}
         editorRef={editorRef}
         saveCount={saveCount}
+        testTarget={testTarget}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}

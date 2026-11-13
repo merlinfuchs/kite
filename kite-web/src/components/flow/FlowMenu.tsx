@@ -2,6 +2,7 @@ import { LogEntry } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import {
   BoxIcon,
+  FlaskConicalIcon,
   GitCompareIcon,
   LucideIcon,
   MessageSquareWarningIcon,
@@ -9,7 +10,13 @@ import {
   SlidersHorizontalIcon,
   TextCursorInputIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowLogList from "./FlowLogList";
 import FlowNodeEditor from "./FlowNodeEditor";
@@ -17,6 +24,8 @@ import FlowNodeExplorer from "./FlowNodeExplorer";
 import FlowParameterList from "./FlowParameterList";
 import { useStoreApi } from "@xyflow/react";
 import { useMissingParameterCount } from "@/lib/flow/parametersStore";
+import { FlowTestState, FlowTestTarget } from "@/lib/flow/flowTest";
+import FlowTestPanel from "./FlowTestPanel";
 
 type Tab =
   | "action"
@@ -24,15 +33,22 @@ type Tab =
   | "option"
   | "integration"
   | "parameters"
+  | "test"
   | "logs";
 
 export default function FlowMenu({
   selectedNodeId,
   logs,
+  testTarget,
+  testState,
+  onTestStateChange,
   onShowNode,
 }: {
   selectedNodeId: string | null;
   logs?: LogEntry[];
+  testTarget?: FlowTestTarget;
+  testState: FlowTestState;
+  onTestStateChange: Dispatch<SetStateAction<FlowTestState>>;
   onShowNode: (id: string) => void;
 }) {
   const [tab, setTab] = useState<Tab>("action");
@@ -94,6 +110,15 @@ export default function FlowMenu({
             tab={tab}
             setTab={wrappedSetTab}
           />
+          {testTarget && (
+            <Tab
+              id="test"
+              icon={FlaskConicalIcon}
+              title="Test"
+              tab={tab}
+              setTab={wrappedSetTab}
+            />
+          )}
           <Tab
             id="logs"
             icon={MessageSquareWarningIcon}
@@ -112,6 +137,15 @@ export default function FlowMenu({
         {tab === "parameters" && <FlowParameterList />}
 
         {tab === "logs" && <FlowLogList logs={logs} onShowNode={onShowNode} />}
+
+        {tab === "test" && testTarget && (
+          <FlowTestPanel
+            target={testTarget}
+            state={testState}
+            onStateChange={onTestStateChange}
+            onShowNode={onShowNode}
+          />
+        )}
 
         {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
       </div>

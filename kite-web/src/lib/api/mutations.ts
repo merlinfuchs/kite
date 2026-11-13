@@ -45,6 +45,8 @@ import {
   EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  FlowTestRequest,
+  FlowTestResponse,
   HTTPRequestTestRequest,
   HTTPRequestTestResponse,
   MessageCreateRequest,
@@ -1806,6 +1808,20 @@ export function useHTTPRequestTestMutation(appId: string) {
           },
         }
       ),
+  });
+}
+
+// The path of what a test runs, like "commands/<id>".
+export function useFlowTestMutation(appId: string) {
+  return useMutation({
+    mutationFn: ({ path, req }: { path: string; req: FlowTestRequest }) =>
+      apiRequest<FlowTestResponse>(`/v1/apps/${appId}/${path}/test`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
   });
 }
 

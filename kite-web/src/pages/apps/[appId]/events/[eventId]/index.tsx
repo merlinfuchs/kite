@@ -105,6 +105,11 @@ export default function AppEventListenerPage() {
     [appId, eventId]
   );
 
+  const testTarget = useMemo(
+    () => ({ kind: "event_listener" as const, id: eventId }),
+    [eventId]
+  );
+
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
@@ -129,6 +134,7 @@ export default function AppEventListenerPage() {
           onExit={exit}
           logs={logs}
           versionTarget={versionTarget}
+          testTarget={testTarget}
         />
       )}
       <LogEntryListDrawer

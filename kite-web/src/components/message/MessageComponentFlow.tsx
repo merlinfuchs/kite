@@ -1,8 +1,14 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { FlowContextType } from "@/lib/flow/context";
-import { useCurrentFlow } from "@/lib/message/state";
+import {
+  getMessage,
+  useCurrentFlow,
+  useCurrentFlowStore,
+  useDocumentStoreApi,
+} from "@/lib/message/state";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import { newComponentFlow } from "@/lib/flow/newFlows";
 import FlowDialog from "../flow/FlowDialog";
 import FlowPreview from "../flow/FlowPreview";
@@ -32,6 +38,25 @@ export default memo(function MessageComponentFlow({
   );
 
   const messageId = useMessageId();
+  const documentStore = useDocumentStoreApi();
+  const flowStore = useCurrentFlowStore();
+  // Only message templates can be tested, not messages of the message
+  // creator.
+  const testTarget = useMemo<FlowTestTarget | undefined>(
+    () =>
+      messageId
+        ? {
+            kind: "message",
+            id: messageId,
+            flowSourceId,
+            getMessage: () => ({
+              data: getMessage(documentStore),
+              flow_sources: flowStore.getState().flowSources,
+            }),
+          }
+        : undefined,
+    [messageId, flowSourceId, documentStore, flowStore]
+  );
 
   return (
     <FlowDialog
@@ -39,6 +64,7 @@ export default memo(function MessageComponentFlow({
       logFilter={{ messageId }}
       context={context}
       viewportKey={`component:${messageId}:${flowSourceId}`}
+      testTarget={testTarget}
       onClose={onClose}
     >
       <FlowPreview
