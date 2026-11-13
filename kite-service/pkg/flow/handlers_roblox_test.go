@@ -312,15 +312,16 @@ func TestRobloxGroupRoleEdit(t *testing.T) {
 	}
 }
 
-// The result has the roles Roblox says the member has after the change, which
-// can differ from what the mode should leave.
-func TestRobloxGroupRoleEditReadsResult(t *testing.T) {
+// Roblox can answer a change with the member's roles from before it, which
+// the result must not show.
+func TestRobloxGroupRoleEditIgnoresStaleResponse(t *testing.T) {
 	httpProvider := newOpenCloudTestProvider()
-	httpProvider.responses["PATCH groups/7/memberships/abc"] = `{"path":"groups/7/memberships/abc","user":"users/156","role":"groups/7/roles/20","roles":["groups/7/roles/10","groups/7/roles/20"]}`
+	httpProvider.responses["PATCH groups/7/memberships/abc"] = `{"path":"groups/7/memberships/abc","user":"users/156","role":"groups/7/roles/30","roles":["groups/7/roles/10"]}`
 	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
 		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Moderator"}, httpProvider)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"Moderator", "Member"}, roleNames(member))
+	assert.Equal(t, []string{"Moderator"}, roleNames(member))
+	assert.Equal(t, "Moderator", member.Object()["role"].String())
 }
 
 // A list Roblox didn't filter by the user must not change another member.

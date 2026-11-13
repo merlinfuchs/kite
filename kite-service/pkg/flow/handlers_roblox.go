@@ -359,35 +359,31 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 		return err
 	}
 
-	// The roles the mode should leave, unless the request returns the
-	// membership, whose roles are then what Roblox actually did.
+	// The roles the mode leaves. The membership Roblox returns can still have
+	// the roles from before the change, so it isn't used.
 	held := member.Roles
-	var updated robloxGroupMembership
 	switch n.Data.RobloxGroupRoleMode {
 	case RobloxGroupRoleModeAdd:
 		if !slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, &updated)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, nil)
 			held = append(held, role.Path)
 		}
 	case RobloxGroupRoleModeRemove:
 		if slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, &updated)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, nil)
 			held = slices.DeleteFunc(held, func(p string) bool { return p == role.Path })
 		}
 	case RobloxGroupRoleModeSet, "":
 		// Roblox deprecated this for assigning and unassigning roles one by
 		// one, but it's the only request that replaces all of them, including
 		// the hidden base role every member has.
-		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, &updated)
+		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, nil)
 		held = []string{role.Path}
 	default:
 		return fmt.Errorf("unknown mode %q", n.Data.RobloxGroupRoleMode)
 	}
 	if err != nil {
 		return err
-	}
-	if updated.Path != "" {
-		held = updated.rolePaths()
 	}
 
 	ctx.StoreNodeResult(n, robloxGroupMemberResult(userID, held, roles))
