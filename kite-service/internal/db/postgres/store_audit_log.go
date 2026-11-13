@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -23,11 +24,18 @@ func (c *Client) CreateAppAuditLogEntry(ctx context.Context, entry *model.AppAud
 	})
 }
 
-func (c *Client) AppAuditLogEntries(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.AppAuditLogEntry, error) {
+func (c *Client) AppAuditLogEntries(ctx context.Context, appID string, filter store.AppAuditLogFilter) ([]*model.AppAuditLogEntry, error) {
+	kinds := filter.Kinds
+	if kinds == nil {
+		kinds = []string{}
+	}
+
 	rows, err := c.Q.GetAppAuditLogs(ctx, pgmodel.GetAppAuditLogsParams{
 		AppID:      appID,
-		BeforeID:   beforeID,
-		LimitCount: int32(limit),
+		BeforeID:   filter.BeforeID,
+		UserID:     filter.UserID,
+		Kinds:      kinds,
+		LimitCount: int32(filter.Limit),
 	})
 	if err != nil {
 		return nil, err

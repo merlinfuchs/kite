@@ -21,12 +21,11 @@ import {
 import LoadingButton from "@/components/common/LoadingButton";
 import { useAppAuditLogQuery } from "@/lib/api/queries";
 import {
-  auditActionCategory,
   auditActionLabel,
   auditCategories,
   canManageSettings,
 } from "@/lib/collaborators";
-import { useAppRole } from "@/lib/hooks/api";
+import { useAppCollaborators, useAppRole } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { AppAuditLogEntry } from "@/lib/types/wire.gen";
 import { abbreviateName, formatDateTime } from "@/lib/utils";
@@ -47,10 +46,16 @@ const breadcrumbs = [
 export default function AppAuditLogPage() {
   const appId = useAppId();
   const role = useAppRole();
-  const query = useAppAuditLogQuery(canManageSettings(role) ? appId : "");
+  const canView = canManageSettings(role);
+  const collaborators = useAppCollaborators();
 
   const [category, setCategory] = useState("all");
   const [userId, setUserId] = useState("all");
+
+  const query = useAppAuditLogQuery(canView ? appId : "", {
+    userId: userId === "all" ? undefined : userId,
+    kinds: auditCategories.find((c) => c.value === category)?.kinds,
+  });
 
   const entries = useMemo(
     () =>
@@ -59,20 +64,7 @@ export default function AppAuditLogPage() {
       ) ?? [],
     [query.data]
   );
-
-  const users = useMemo(() => {
-    const byId = new Map<string, string>();
-    for (const entry of entries) {
-      if (entry.user) byId.set(entry.user.id, entry.user.display_name);
-    }
-    return Array.from(byId, ([id, name]) => ({ id, name }));
-  }, [entries]);
-
-  const filtered = entries.filter(
-    (entry) =>
-      (category === "all" || auditActionCategory(entry.action) === category) &&
-      (userId === "all" || entry.user?.id === userId)
-  );
+  const filtered = category !== "all" || userId !== "all";
 
   const error = query.data?.pages.find((page) => !page.success);
 
@@ -95,7 +87,7 @@ export default function AppAuditLogPage() {
       </div>
       <Separator className="my-6" />
 
-      {role !== undefined && !canManageSettings(role) ? (
+      {role !== undefined && !canView ? (
         <EmptyState
           icon={<LockIcon className="size-8" />}
           title="No access"
@@ -123,11 +115,14 @@ export default function AppAuditLogPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Everyone</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
+                {collaborators?.map(
+                  (c) =>
+                    c && (
+                      <SelectItem key={c.user.id} value={c.user.id}>
+                        {c.user.display_name}
+                      </SelectItem>
+                    )
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -147,16 +142,24 @@ export default function AppAuditLogPage() {
                 ))}
               </CardContent>
             </Card>
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon={<HistoryIcon className="size-8" />}
-              title="Nothing here yet"
-              description="Changes collaborators make to the app show up here."
-            />
+          ) : entries.length === 0 ? (
+            filtered ? (
+              <EmptyState
+                icon={<HistoryIcon className="size-8" />}
+                title="No matching changes"
+                description="Nothing in the last 90 days matches these filters."
+              />
+            ) : (
+              <EmptyState
+                icon={<HistoryIcon className="size-8" />}
+                title="Nothing here yet"
+                description="Changes collaborators make to the app show up here."
+              />
+            )
           ) : (
             <Card>
               <CardContent className="p-0 divide-y">
-                {filtered.map((entry) => (
+                {entries.map((entry) => (
                   <AuditLogRow key={entry.id} entry={entry} appId={appId} />
                 ))}
               </CardContent>

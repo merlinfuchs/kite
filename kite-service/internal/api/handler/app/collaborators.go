@@ -276,7 +276,17 @@ func (h *AppHandler) HandleAppAuditLogList(c *handler.Context) (*wire.AppAuditLo
 		limit = n
 	}
 
-	entries, err := h.appStore.AppAuditLogEntries(c.Context(), c.App.ID, beforeID, limit)
+	var kinds []string
+	if k := c.Query("kinds"); k != "" {
+		kinds = strings.Split(k, ",")
+	}
+
+	entries, err := h.appStore.AppAuditLogEntries(c.Context(), c.App.ID, store.AppAuditLogFilter{
+		BeforeID: beforeID,
+		UserID:   c.Query("user_id"),
+		Kinds:    kinds,
+		Limit:    limit,
+	})
 	if err != nil {
 		return nil, err
 	}

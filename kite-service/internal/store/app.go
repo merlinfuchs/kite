@@ -112,13 +112,24 @@ type AppStore interface {
 	DeclineCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string) error
 
 	CreateAppAuditLogEntry(ctx context.Context, entry *model.AppAuditLogEntry) error
-	// AppAuditLogEntries returns the newest entries of the app, before the
-	// entry with beforeID unless it's 0.
-	AppAuditLogEntries(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.AppAuditLogEntry, error)
+	// AppAuditLogEntries returns the newest entries of the app that match
+	// the filter.
+	AppAuditLogEntries(ctx context.Context, appID string, filter AppAuditLogFilter) ([]*model.AppAuditLogEntry, error)
 	DeleteAppAuditLogEntriesBefore(ctx context.Context, before time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
 	// HasAppFlows reports whether the app has an enabled command or event
 	// listener, or a posted message with flows.
 	HasAppFlows(ctx context.Context, appID string) (bool, error)
+}
+
+type AppAuditLogFilter struct {
+	// BeforeID only returns entries before the one with the ID, unless it's 0.
+	BeforeID int64
+	// UserID only returns entries of the user, unless it's empty.
+	UserID string
+	// Kinds only returns entries whose action starts with one of them, like
+	// "command" for "command.update", unless it's empty.
+	Kinds []string
+	Limit int
 }

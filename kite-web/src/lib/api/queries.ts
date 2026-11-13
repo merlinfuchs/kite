@@ -696,15 +696,22 @@ export function useAppCollaboratorInvitesQuery(appId: string) {
 
 export const auditLogPageSize = 50;
 
-export function useAppAuditLogQuery(appId: string) {
+// kinds are the part of the actions before the dot, like "command".
+export function useAppAuditLogQuery(
+  appId: string,
+  filter: { userId?: string; kinds?: string[] } = {}
+) {
   return useInfiniteQuery({
-    queryKey: ["apps", appId, "audit-log"],
-    queryFn: ({ pageParam }) =>
-      apiRequest<AppAuditLogListResponse>(
-        `/v1/apps/${appId}/audit-log?limit=${auditLogPageSize}${
-          pageParam ? `&before=${pageParam}` : ""
-        }`
-      ),
+    queryKey: ["apps", appId, "audit-log", filter],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: `${auditLogPageSize}` });
+      if (pageParam) params.set("before", pageParam);
+      if (filter.userId) params.set("user_id", filter.userId);
+      if (filter.kinds?.length) params.set("kinds", filter.kinds.join(","));
+      return apiRequest<AppAuditLogListResponse>(
+        `/v1/apps/${appId}/audit-log?${params}`
+      );
+    },
     initialPageParam: "",
     getNextPageParam: (lastPage) => {
       if (!lastPage.success || lastPage.data.length < auditLogPageSize) {

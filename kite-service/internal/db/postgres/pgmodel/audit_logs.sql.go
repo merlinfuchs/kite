@@ -54,14 +54,20 @@ const getAppAuditLogs = `-- name: GetAppAuditLogs :many
 SELECT app_audit_logs.id, app_audit_logs.app_id, app_audit_logs.user_id, app_audit_logs.action, app_audit_logs.target_type, app_audit_logs.target_id, app_audit_logs.target_name, app_audit_logs.api_token_id, app_audit_logs.created_at, users.display_name AS user_display_name, users.discord_username AS user_discord_username, users.discord_id AS user_discord_id, users.discord_avatar AS user_discord_avatar
 FROM app_audit_logs
 LEFT JOIN users ON users.id = app_audit_logs.user_id
-WHERE app_audit_logs.app_id = $1 AND ($2::bigint = 0 OR app_audit_logs.id < $2::bigint)
+WHERE app_audit_logs.app_id = $1
+    AND ($2::bigint = 0 OR app_audit_logs.id < $2::bigint)
+    AND ($3::text = '' OR app_audit_logs.user_id = $3::text)
+    -- The kinds are the part of the action before the dot, like "command".
+    AND (cardinality($4::text[]) = 0 OR split_part(app_audit_logs.action, '.', 1) = ANY($4::text[]))
 ORDER BY app_audit_logs.id DESC
-LIMIT $3
+LIMIT $5
 `
 
 type GetAppAuditLogsParams struct {
 	AppID      string
 	BeforeID   int64
+	UserID     string
+	Kinds      []string
 	LimitCount int32
 }
 
@@ -82,7 +88,13 @@ type GetAppAuditLogsRow struct {
 }
 
 func (q *Queries) GetAppAuditLogs(ctx context.Context, arg GetAppAuditLogsParams) ([]GetAppAuditLogsRow, error) {
-	rows, err := q.db.Query(ctx, getAppAuditLogs, arg.AppID, arg.BeforeID, arg.LimitCount)
+	rows, err := q.db.Query(ctx, getAppAuditLogs,
+		arg.AppID,
+		arg.BeforeID,
+		arg.UserID,
+		arg.Kinds,
+		arg.LimitCount,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -12,12 +12,12 @@ export const collaboratorRoles: Record<
   admin: {
     label: "Admin",
     description:
-      "Can edit everything and change the app's settings, and invite developers.",
+      "Can edit everything, change the app's settings, and invite developers.",
   },
   developer: {
     label: "Developer",
     description:
-      "Can edit commands, events, messages and everything else, but not the app's settings.",
+      "Can edit commands, event listeners, message templates, and everything else, but not the app's settings.",
   },
 };
 
@@ -77,32 +77,32 @@ const auditActions: Record<string, string> = {
   "plugin.delete": "removed the plugin",
   "plugin.enable": "enabled the plugin",
   "plugin.disable": "disabled the plugin",
-  "variable.create": "created the variable",
-  "variable.import": "imported variables",
-  "variable.update": "edited the variable",
-  "variable.delete": "deleted the variable",
+  "variable.create": "created the stored variable",
+  "variable.import": "imported stored variables",
+  "variable.update": "edited the stored variable",
+  "variable.delete": "deleted the stored variable",
   "variable.value_set": "changed a stored value of",
   "variable.value_delete": "deleted a stored value of",
-  "secret.create": "created a secret",
-  "secret.update": "changed a secret",
+  "secret.create": "created the secret",
+  "secret.update": "changed the secret",
   "secret.delete": "deleted a secret",
   "integration.connect": "connected the integration",
   "integration.update": "changed the integration",
   "integration.remove": "removed the integration",
-  "message.create": "created the message",
-  "message.import": "imported messages",
-  "message.update": "edited the message",
-  "message.delete": "deleted the message",
-  "message.send": "sent the message",
+  "message.create": "created the message template",
+  "message.import": "imported message templates",
+  "message.update": "edited the message template",
+  "message.delete": "deleted the message template",
+  "message.send": "sent the message template",
   "message.sent_update": "updated a sent copy of",
   "message.sent_delete": "deleted a sent copy of",
-  "template.install": "added a template",
-  "template.update": "updated a template",
+  "template.install": "added the template",
+  "template.update": "updated the template",
   "template.uninstall": "removed a template",
   "template.parameters_update": "changed the parameters of a template",
-  "bundle.import": "imported a bundle",
-  "bundle.create": "published a bundle",
-  "bundle.version_create": "published a new version of a bundle",
+  "bundle.import": "imported a template",
+  "bundle.create": "shared the template",
+  "bundle.version_create": "shared a new version of a template",
   "bot.profile_update": "changed the bot's profile",
   "guild.leave": "made the bot leave a server",
   "guild.profile_update": "changed the bot's profile in a server",
@@ -112,20 +112,30 @@ export function auditActionLabel(action: string) {
   return auditActions[action] ?? action.replace(/[._]/g, " ");
 }
 
-// The kind of thing an action is about, for filtering the audit log.
-export const auditCategories: { value: string; label: string }[] = [
-  { value: "command", label: "Commands" },
-  { value: "event_listener", label: "Event listeners" },
-  { value: "message", label: "Messages" },
-  { value: "variable", label: "Variables" },
-  { value: "collaborator", label: "Collaborators" },
-  { value: "app", label: "Settings" },
+// The kinds of changes the audit log can be filtered by, with the part of
+// their actions before the dot.
+export const auditCategories: {
+  value: string;
+  label: string;
+  kinds: string[];
+}[] = [
+  { value: "commands", label: "Commands", kinds: ["command"] },
+  {
+    value: "event_listeners",
+    label: "Event listeners",
+    kinds: ["event_listener"],
+  },
+  { value: "messages", label: "Message templates", kinds: ["message"] },
+  { value: "variables", label: "Stored variables", kinds: ["variable"] },
+  { value: "secrets", label: "Secrets", kinds: ["secret"] },
+  { value: "integrations", label: "Integrations", kinds: ["integration"] },
+  { value: "templates", label: "Templates", kinds: ["template", "bundle"] },
+  { value: "plugins", label: "Plugins", kinds: ["plugin"] },
+  { value: "servers", label: "Servers", kinds: ["guild"] },
+  { value: "collaborators", label: "Collaborators", kinds: ["collaborator"] },
+  {
+    value: "settings",
+    label: "Settings",
+    kinds: ["app", "billing", "bot", "share_code"],
+  },
 ];
-
-// Settings covers everything only admins and the owner can change.
-const settingsTypes = ["app", "billing", "bot", "share_code"];
-
-export function auditActionCategory(action: string) {
-  const type = action.split(".")[0];
-  return settingsTypes.includes(type) ? "app" : type;
-}
