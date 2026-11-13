@@ -4,6 +4,13 @@ import LoadingButton from "@/components/common/LoadingButton";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useUserBadgeGrantCreateMutation,
   useUserBadgeGrantDeleteMutation,
 } from "@/lib/api/mutations";
@@ -12,13 +19,14 @@ import { UserBadgeGrant } from "@/lib/types/wire.gen";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// AdminBadgesPage is where admins give users the contributor badge. The other
-// badges follow from what users did, like subscribing or listing templates.
+// AdminBadgesPage is where admins give users the staff and contributor badges.
+// Admins have the staff badge without it. The other badges follow from what
+// users did, like subscribing or listing templates.
 export default function AdminBadgesPage() {
   return (
     <AdminPage
       title="Badges"
-      description="Users with the Contributor badge, newest first. The other badges come from plans and templates on their own."
+      description="Users given the Staff or Contributor badge, newest first. Admins have the Staff badge without being on this list. The other badges come from plans and templates on their own."
       className="container max-w-3xl py-12"
     >
       <div className="space-y-8">
@@ -29,14 +37,29 @@ export default function AdminBadgesPage() {
   );
 }
 
+// grantableBadges are the badges admins give here, with who they're for.
+const grantableBadges = {
+  staff: {
+    title: "Staff",
+    description:
+      "For the Kite team, like the staff of the Kite Discord server who aren't admins.",
+  },
+  contributor: {
+    title: "Contributor",
+    description: "For people who helped build Kite.",
+  },
+};
+
 function GrantForm() {
   const grantMutation = useUserBadgeGrantCreateMutation();
+  const [kind, setKind] = useState<keyof typeof grantableBadges>("staff");
   const [discordId, setDiscordId] = useState("");
+  const badge = grantableBadges[kind];
 
   async function grant() {
     const res = await grantMutation.mutateAsync({
       discord_id: discordId.trim(),
-      kind: "contributor",
+      kind,
     });
     if (!res.success) {
       toast.error(
@@ -44,19 +67,36 @@ function GrantForm() {
       );
       return;
     }
-    toast.success(`Gave ${res.data.user?.display_name} the Contributor badge`);
+    toast.success(
+      `Gave ${res.data.user?.display_name} the ${badge.title} badge`
+    );
     setDiscordId("");
   }
 
   return (
     <Card className="p-5 space-y-3">
       <div>
-        <div className="font-semibold">Give the Contributor badge</div>
+        <div className="font-semibold">Give a badge</div>
         <p className="text-sm text-muted-foreground">
-          For people who helped build Kite. It shows on their creator page and
-          in their dashboard.
+          {badge.description} It shows on their creator page and in their
+          dashboard.
         </p>
       </div>
+      <Select
+        value={kind}
+        onValueChange={(v) => setKind(v as keyof typeof grantableBadges)}
+      >
+        <SelectTrigger aria-label="Badge">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(grantableBadges).map(([value, b]) => (
+            <SelectItem key={value} value={value}>
+              {b.title}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         value={discordId}
         inputMode="numeric"
@@ -79,7 +119,7 @@ function GrantList() {
   if (grants && !grants.length) {
     return (
       <p className="text-sm text-muted-foreground">
-        No one has the Contributor badge yet.
+        No one was given a badge yet.
       </p>
     );
   }

@@ -43,14 +43,14 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 		return nil, fmt.Errorf("failed to get creator stats: %w", err)
 	}
 
-	var staff []string
+	var admins []string
 	for _, id := range m.config.AdminUserIDs {
 		if slices.Contains(userIDs, id) {
-			staff = append(staff, id)
+			admins = append(admins, id)
 		}
 	}
 
-	return userBadges(staff, grants, subs, stats, func(productID string) string {
+	return userBadges(admins, grants, subs, stats, func(productID string) string {
 		if plan := m.PlanByLemonSqueezyProductID(productID); plan != nil {
 			return plan.Title
 		}
@@ -58,23 +58,30 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 	}), nil
 }
 
-// userBadges works out the badges of users from whether they're staff, the
+// userBadges works out the badges of users from whether they're admins, the
 // badges admins gave them, their subscriptions and their templates in the
 // marketplace. planTitle is the title of the plan of a product, or empty if it
 // isn't one.
 func userBadges(
-	staff []string,
+	admins []string,
 	grants []*model.UserBadgeGrant,
 	subs []*model.Subscription,
 	stats []*model.CreatorStats,
 	planTitle func(productID string) string,
 ) map[string][]model.UserBadge {
 	granted := map[string]map[model.UserBadgeKind]bool{}
-	for _, g := range grants {
-		if granted[g.UserID] == nil {
-			granted[g.UserID] = map[model.UserBadgeKind]bool{}
+	grant := func(userID string, kind model.UserBadgeKind) {
+		if granted[userID] == nil {
+			granted[userID] = map[model.UserBadgeKind]bool{}
 		}
-		granted[g.UserID][g.Kind] = true
+		granted[userID][kind] = true
+	}
+	// Admins are staff without a grant, and once if they have one too.
+	for _, userID := range admins {
+		grant(userID, model.UserBadgeStaff)
+	}
+	for _, g := range grants {
+		grant(g.UserID, g.Kind)
 	}
 
 	early := map[string]bool{}
@@ -101,9 +108,6 @@ func userBadges(
 
 	// Badges are in the same order for everyone: staff, what admins gave,
 	// then support, then templates.
-	for _, userID := range staff {
-		add(userID, model.UserBadge{Kind: model.UserBadgeStaff})
-	}
 	for userID, kinds := range granted {
 		for _, kind := range model.GrantableUserBadges {
 			if kinds[kind] {
