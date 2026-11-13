@@ -5,7 +5,6 @@ import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -127,11 +126,11 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
       description="Free templates for Discord bots made with Kite, from moderation commands to a verification button. Add one to your bot and change anything in the editor."
       jsonLd={[faqJsonLd(faqs)]}
     >
-      <MarketplaceBar category={null} search={false} />
       <TemplateList
         templates={templates}
         href={(t) => templatePath(t.id)}
         buildHref="/apps"
+        category={null}
         categoryHref={categoryPath}
         featuredDay={featuredDay}
         hero={

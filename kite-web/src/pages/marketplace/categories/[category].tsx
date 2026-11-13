@@ -3,7 +3,6 @@ import { TemplateList } from "@/components/app/TemplateList";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { fetchBundles, withApiData } from "@/lib/apiData";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import {
@@ -17,25 +16,33 @@ import { Bundle } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useMemo } from "react";
 
+type Category = TemplateCategory | "all";
+
 type Props = {
-  category: TemplateCategory;
+  category: Category;
   // The templates of the category, the official ones first.
   bundles: Bundle[];
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticPaths: GetStaticPaths = () => ({
-  paths: templateCategories.map((c) => categoryPath(c.value)),
+  paths: [
+    categoryPath("all"),
+    ...templateCategories.map((c) => categoryPath(c.value)),
+  ],
   fallback: false,
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-  const category = templateCategories.find(
-    (c) => c.value === params?.category
-  )!.value;
-  const bundles = ((await fetchBundles()) ?? []).filter(
-    (b) => templateFromBundle(b)?.category === category
-  );
+  const category: Category =
+    params?.category === "all"
+      ? "all"
+      : templateCategories.find((c) => c.value === params?.category)!.value;
+  const allBundles = (await fetchBundles()) ?? [];
+  const bundles =
+    category === "all"
+      ? allBundles
+      : allBundles.filter((b) => templateFromBundle(b)?.category === category);
   return withApiData(
     {
       category,
@@ -53,21 +60,27 @@ export default function CategoryPage({ category, bundles }: Props) {
     () => bundles.flatMap((b) => templateFromBundle(b) ?? []),
     [bundles]
   );
-  const { title, description } = templateCategories.find(
-    (c) => c.value === category
-  )!;
+  const { title, description } =
+    category === "all"
+      ? {
+          title: "All Discord Bot Templates",
+          description:
+            "Every template from Kite and the community, ready to add to your bot and customize in the editor.",
+        }
+      : templateCategories.find((c) => c.value === category)!;
 
   return (
     <HomeLayout
       title={title}
       description={`${description} Free templates for Discord bots made with Kite.`}
     >
-      <MarketplaceBar category={category} search={false} />
       <TemplateList
         templates={templates}
         href={(t) => templatePath(t.id)}
         buildHref="/apps"
         rows={false}
+        category={category}
+        categoryHref={categoryPath}
         hero={
           <div>
             <h1 className="text-3xl md:text-4xl font-bold">{title}</h1>

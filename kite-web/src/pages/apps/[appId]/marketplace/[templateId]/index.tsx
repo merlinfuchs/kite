@@ -30,6 +30,10 @@ export default function AppTemplatePage() {
           related={
             templates && {
               templates,
+              categoryHref: (category) => ({
+                pathname: "/apps/[appId]/marketplace",
+                query: { appId, category },
+              }),
               href: (t) => ({
                 pathname: "/apps/[appId]/marketplace/[templateId]",
                 query: { appId, templateId: t.id },

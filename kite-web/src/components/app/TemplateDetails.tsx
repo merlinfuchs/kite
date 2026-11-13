@@ -18,6 +18,7 @@ import {
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
+import { useRouter } from "next/router";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import {
@@ -76,10 +77,11 @@ export function TemplateDetails({
   related?: {
     templates: Template[];
     href: (template: Template) => LinkProps["href"];
-    // The page of the category, which only the public marketplace has.
+    // The page or filtered view of the category.
     categoryHref?: (category: TemplateCategory) => LinkProps["href"];
   };
 }) {
+  const router = useRouter();
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
@@ -99,6 +101,19 @@ export function TemplateDetails({
       {backHref && (
         <Link
           href={backHref}
+          onClick={(e) => {
+            if (
+              !e.metaKey &&
+              !e.ctrlKey &&
+              !e.shiftKey &&
+              !e.altKey &&
+              e.button === 0 &&
+              window.history.state?.idx > 0
+            ) {
+              e.preventDefault();
+              router.back();
+            }
+          }}
           className={cn(
             "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
             backOnMobile ? "inline-flex" : "hidden md:inline-flex"
@@ -166,7 +181,17 @@ export function TemplateDetails({
             ) : (
               <span>Made by you</span>
             )}
-            {category && <span>{category.label}</span>}
+            {category &&
+              (related?.categoryHref ? (
+                <Link
+                  href={related.categoryHref(category.value)}
+                  className="hover:text-foreground hover:underline"
+                >
+                  {category.label}
+                </Link>
+              ) : (
+                <span>{category.label}</span>
+              ))}
             <TemplateContents template={template} />
             <TemplateInstallCount
               installs={template.installs}
@@ -355,7 +380,11 @@ function RelatedTemplates({
       <Separator className="my-10" />
       <div className="space-y-10">
         {template.author.kind === "user" &&
-          row(`More by ${template.author.name}`, byCreator)}
+          row(
+            `More by ${template.author.name}`,
+            byCreator,
+            creatorPath(template.author.discordId)
+          )}
         {row(
           `More in ${category.label}`,
           similar,

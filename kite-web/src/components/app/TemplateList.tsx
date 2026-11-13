@@ -8,7 +8,12 @@ import {
 import { matchesSearch } from "@/lib/search";
 import { useStarredTemplateIds } from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
-import { ArrowRightIcon, SearchIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  SearchIcon,
+  SparklesIcon,
+  StarIcon,
+} from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -44,6 +49,7 @@ export function TemplateList({
   buildHref,
   hero,
   rows = true,
+  category,
   categoryHref,
   featuredDay,
 }: {
@@ -59,9 +65,11 @@ export function TemplateList({
   // Whether it starts with rows of picks instead of all templates, like on
   // the page of a category.
   rows?: boolean;
+  // Active category when each category has its own page.
+  category?: TemplateCategory | "all" | null;
   // The page of a category, which the row of a category links to. Without
   // one, it filters by the category.
-  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  categoryHref?: (category: TemplateCategory | "all") => LinkProps["href"];
   // The day the featured templates are picked for, from when a page was
   // rendered on the server, so it doesn't change while it hydrates. Today
   // without one.
@@ -72,9 +80,23 @@ export function TemplateList({
   const router = useRouter();
   const param = (key: string) =>
     typeof router.query[key] === "string" ? router.query[key] : undefined;
-  const category =
-    templateCategories.find((c) => c.value === param("category"))?.value ??
-    null;
+  const urlCategory: TemplateCategory | "all" | null =
+    param("category") === "all"
+      ? "all"
+      : templateCategories.find((c) => c.value === param("category"))?.value ??
+        null;
+  const activeCategory = category !== undefined ? category : urlCategory;
+  const categoryLink = (
+    target: TemplateCategory | "all" | null
+  ): LinkProps["href"] => {
+    const pathname = target ? String(categoryHref!(target)) : "/marketplace";
+    const query: Record<string, string> = {};
+    for (const key of ["q", "source", "sort", "starred"]) {
+      const v = param(key);
+      if (v) query[key] = v;
+    }
+    return Object.keys(query).length ? { pathname, query } : pathname;
+  };
   const source = (sources.find((s) => s.value === param("source"))?.value ??
     "all") as Source;
   const sort = (sorts.find((s) => s === param("sort")) ?? "installs") as Sort;
@@ -89,15 +111,15 @@ export function TemplateList({
       scroll: false,
     });
   };
-  const setCategory = (value: TemplateCategory | null) =>
+  const setCategory = (value: TemplateCategory | "all" | null) =>
     setQuery({ category: value });
   const setSource = (value: Source) =>
     setQuery({ source: value === "all" ? null : value });
-  // A sort in the URL shows all templates instead of the rows.
-  const setSort = (value: Sort) => setQuery({ sort: value });
   // Only the ones the user starred, of any page of the marketplace.
   const starredIds = useStarredTemplateIds();
-  const starred = templates.filter((t) => starredIds?.includes(t.id)).length;
+  const starred = categoryHref
+    ? starredIds?.length ?? 0
+    : templates.filter((t) => starredIds?.includes(t.id)).length;
   // It's off without starred ones left, like after unstarring the last one,
   // since the chip to turn it off is gone then.
   const starredOnly = param("starred") === "1" && starred > 0;
@@ -128,18 +150,20 @@ export function TemplateList({
 
   const hasUsers = templates.some((t) => t.author.kind !== "kite");
   // Without filters it shows the rows instead of all templates.
-  const browsing =
+  const canBrowse =
     rows &&
     !search &&
-    !category &&
+    !activeCategory &&
     source === "all" &&
     !addedOnly &&
-    !starredOnly &&
-    !param("sort");
+    !starredOnly;
+  const browsing = canBrowse && !param("sort");
 
   const filtered = templates.filter(
     (t) =>
-      (!category || t.category === category) &&
+      (!activeCategory ||
+        activeCategory === "all" ||
+        t.category === activeCategory) &&
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
@@ -163,82 +187,144 @@ export function TemplateList({
   );
 
   const controls = (
-    // Without the categories, the toggle fits next to the search.
-    <div
-      className={cn(
-        hero ? "flex flex-col md:flex-row md:items-center gap-3" : "space-y-4"
-      )}
-    >
-      <div className={cn("relative", hero && "flex-1")}>
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search templates, commands like /ban, or creators"
-          className="h-12 pl-11 text-base bg-background"
-        />
-      </div>
-      <div className="flex flex-col-reverse md:flex-row gap-3 md:items-center justify-between">
-        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap empty:hidden">
-          {/* The marketplace bar has the categories of the public pages. */}
-          {!hero && (
-            <>
-              <Chip
-                active={category === null}
-                onClick={() => setCategory(null)}
-                label="All"
-                count={templates.length}
-              />
-              {templateCategories.map((c) => {
-                // Only categories that have a template, so no filter ends up
-                // empty.
-                const count = templates.filter(
-                  (t) => t.category === c.value
-                ).length;
-                if (!count) return null;
-                return (
-                  <Chip
-                    key={c.value}
-                    active={category === c.value}
-                    onClick={() => setCategory(c.value)}
-                    label={c.label}
-                    count={count}
-                  />
-                );
-              })}
-            </>
-          )}
-          {added && templates.some(added) && (
-            <Chip
-              active={addedOnly}
-              onClick={() => setAddedOnly(!addedOnly)}
-              label="Added"
-            />
-          )}
-          {!!starred && (
-            <Chip
-              active={starredOnly}
-              onClick={() => setStarredOnly(!starredOnly)}
-              label="Starred"
-              count={starred}
-            />
-          )}
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row md:items-center gap-3">
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search templates, commands like /ban, or creators"
+            className="h-12 pl-11 text-base bg-background"
+          />
         </div>
         {hasUsers && (
-          <div className="flex flex-none self-start rounded-lg border bg-background p-0.5">
-            {sources.map((s) => (
-              <button
-                key={s.value}
-                onClick={() => setSource(s.value)}
-                className={cn(
-                  "px-3 py-1 text-sm rounded-md text-muted-foreground transition-colors",
-                  source === s.value && "bg-muted text-foreground font-medium"
-                )}
+          <>
+            <div className="md:hidden w-full">
+              <Select
+                value={source}
+                onValueChange={(v) => setSource(v as Source)}
               >
-                {s.label}
-              </button>
+                <SelectTrigger className="h-10 w-full bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="hidden md:flex flex-none rounded-lg border bg-background p-1">
+              {sources.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => setSource(s.value)}
+                  className={cn(
+                    "px-3 py-1.5 text-sm rounded-md text-muted-foreground transition-colors",
+                    source === s.value && "bg-muted text-foreground font-medium"
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap empty:hidden">
+        {categoryHref ? (
+          <>
+            <Chip
+              active={activeCategory === null && browsing}
+              href="/marketplace"
+              label="Home"
+            />
+            <Chip
+              active={
+                activeCategory === "all" ||
+                (activeCategory === null && !browsing)
+              }
+              href={categoryLink("all")}
+              label="All"
+            />
+            {templateCategories.map((c) => (
+              <Chip
+                key={c.value}
+                active={activeCategory === c.value}
+                href={categoryLink(c.value)}
+                label={c.label}
+              />
             ))}
-          </div>
+          </>
+        ) : (
+          <>
+            <Chip
+              active={browsing}
+              onClick={() => {
+                setSearch("");
+                setAddedOnly(false);
+                setQuery({
+                  category: null,
+                  sort: null,
+                  source: null,
+                  starred: null,
+                  q: null,
+                });
+              }}
+              label="Home"
+            />
+            <Chip
+              active={
+                activeCategory === "all" || (!activeCategory && !browsing)
+              }
+              onClick={() => setCategory("all")}
+              label="All"
+              count={templates.length}
+            />
+            {templateCategories.map((c) => {
+              // Only categories that have a template, so no filter ends up
+              // empty.
+              const count = templates.filter(
+                (t) => t.category === c.value
+              ).length;
+              if (!count) return null;
+              return (
+                <Chip
+                  key={c.value}
+                  active={activeCategory === c.value}
+                  onClick={() => setCategory(c.value)}
+                  label={c.label}
+                  count={count}
+                />
+              );
+            })}
+          </>
+        )}
+        {added && templates.some(added) && (
+          <Chip
+            active={addedOnly}
+            onClick={() => setAddedOnly(!addedOnly)}
+            label="Added"
+          />
+        )}
+        {!!starred && (
+          <Chip
+            active={starredOnly}
+            onClick={() => setStarredOnly(!starredOnly)}
+            label="Starred"
+            count={starred}
+            icon={
+              <StarIcon
+                className={cn(
+                  "h-3.5 w-3.5 mr-1.5",
+                  starredOnly && "fill-current"
+                )}
+              />
+            }
+          />
         )}
       </div>
     </div>
@@ -248,6 +334,24 @@ export function TemplateList({
   const scrollToAll = () =>
     setTimeout(() => allRef.current?.scrollIntoView({ behavior: "smooth" }));
 
+  const sortSelect = (
+    <Select
+      value={browsing ? "featured" : sort}
+      onValueChange={(v) => setQuery({ sort: v === "featured" ? null : v })}
+    >
+      <SelectTrigger className="w-36 h-9 flex-none">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {canBrowse && <SelectItem value="featured">Featured</SelectItem>}
+        <SelectItem value="installs">Most added</SelectItem>
+        <SelectItem value="stars">Most starred</SelectItem>
+        <SelectItem value="newest">Newest</SelectItem>
+        <SelectItem value="name">Name</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
   const content = browsing ? (
     <Rows
       templates={templates}
@@ -255,11 +359,22 @@ export function TemplateList({
       added={added}
       entry={entry}
       showAll={(sort, source) => {
-        setQuery({ sort, source: source ?? null });
+        if (categoryHref) {
+          const query: Record<string, string> = { sort };
+          if (source) query.source = source;
+          router.push({ pathname: String(categoryHref("all")), query });
+          return;
+        }
+        setQuery({
+          category: "all",
+          sort,
+          source: source ?? null,
+        });
         scrollToAll();
       }}
       categoryHref={categoryHref}
       featuredDay={featuredDay}
+      sortSelect={sortSelect}
     />
   ) : (
     <section>
@@ -267,17 +382,7 @@ export function TemplateList({
         <h2 className="text-xl font-semibold">
           {sorted.length} {sorted.length === 1 ? "template" : "templates"}
         </h2>
-        <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-          <SelectTrigger className="w-36 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="installs">Most added</SelectItem>
-            <SelectItem value="stars">Most starred</SelectItem>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="name">Name</SelectItem>
-          </SelectContent>
-        </Select>
+        {sortSelect}
       </div>
       {sorted.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -326,14 +431,16 @@ function Rows({
   showAll,
   categoryHref,
   featuredDay,
+  sortSelect,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
   entry: (template: Template) => React.ReactNode;
   showAll: (sort: Sort, source?: Source) => void;
-  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  categoryHref?: (category: TemplateCategory | "all") => LinkProps["href"];
   featuredDay?: number;
+  sortSelect: React.ReactNode;
 }) {
   const featured = featuredTemplates(templates, featuredDay ?? utcDay());
   // Without the featured ones, which are right above.
@@ -357,6 +464,7 @@ function Rows({
         <Row
           title="Featured"
           description="A few templates worth a look, new every day."
+          headerRight={sortSelect}
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
@@ -499,11 +607,13 @@ function Row({
   title,
   description,
   action,
+  headerRight,
   children,
 }: {
   title: string;
   description?: string;
   action?: { label: string; onClick: () => void };
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -515,15 +625,16 @@ function Row({
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>
-        {action && (
-          <button
-            onClick={action.onClick}
-            className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            {action.label}
-            <ArrowRightIcon className="h-4 w-4" />
-          </button>
-        )}
+        {headerRight ??
+          (action && (
+            <button
+              onClick={action.onClick}
+              className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              {action.label}
+              <ArrowRightIcon className="h-4 w-4" />
+            </button>
+          ))}
       </div>
       {children}
     </section>
@@ -533,14 +644,43 @@ function Row({
 function Chip({
   active,
   onClick,
+  href,
   label,
   count,
+  icon,
 }: {
   active: boolean;
-  onClick: () => void;
+  onClick?: () => void;
+  href?: LinkProps["href"];
   label: string;
   count?: number;
+  icon?: React.ReactNode;
 }) {
+  const body = (
+    <>
+      {icon}
+      {label}
+      {count !== undefined && (
+        <span className="ml-1 text-muted-foreground font-normal">{count}</span>
+      )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <Button
+        size="sm"
+        variant={active ? "secondary" : "ghost"}
+        className="rounded-full flex-none"
+        asChild
+      >
+        <Link href={href} scroll={false}>
+          {body}
+        </Link>
+      </Button>
+    );
+  }
+
   return (
     <Button
       size="sm"
@@ -548,10 +688,7 @@ function Chip({
       className="rounded-full flex-none"
       onClick={onClick}
     >
-      {label}
-      {count !== undefined && (
-        <span className="ml-1 text-muted-foreground font-normal">{count}</span>
-      )}
+      {body}
     </Button>
   );
 }

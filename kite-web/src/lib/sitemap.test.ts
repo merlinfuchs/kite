@@ -41,8 +41,10 @@ const dynamicRoutes: Record<string, () => string[]> = {
   // the export has none.
   "/marketplace/[templateId]": () => [],
   "/marketplace/creators/[creatorId]": () => [],
-  "/marketplace/categories/[category]": () =>
-    templateCategories.map((c) => categoryPath(c.value)),
+  "/marketplace/categories/[category]": () => [
+    categoryPath("all"),
+    ...templateCategories.map((c) => categoryPath(c.value)),
+  ],
 };
 
 const indexableRoutes = pageFiles(pagesDir)

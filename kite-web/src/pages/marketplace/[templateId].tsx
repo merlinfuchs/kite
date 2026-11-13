@@ -5,7 +5,6 @@ import TemplateAppPickerCard from "@/components/app/TemplateAppPickerCard";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle, loginUrlTo } from "@/lib/api/client";
@@ -94,10 +93,11 @@ export default function TemplatePage({ bundle, related }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
-      <MarketplaceBar category={template.category ?? null} />
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
+          backHref="/marketplace"
+          backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
           related={{
             templates: related.flatMap((b) => templateFromBundle(b) ?? []),

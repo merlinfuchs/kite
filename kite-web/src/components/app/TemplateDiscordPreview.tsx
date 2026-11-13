@@ -41,7 +41,7 @@ function CommandsPreview({
 
   return (
     <div className="rounded-lg bg-[#2b2d31] text-[#dbdee1] shadow-lg overflow-hidden border border-black/20 text-left">
-      <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#b5bac1] truncate">
+      <div className="px-3 pt-2 pb-1 text-[11px] font-semibold text-[#b5bac1] truncate">
         Commands matching /{typed}
       </div>
       <div>
@@ -92,9 +92,7 @@ function EventsPreview({
               <Icon className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wide text-[#b5bac1]">
-                Runs when
-              </div>
+              <div className="text-[11px] text-[#b5bac1]">Runs when</div>
               <div className="text-sm text-white truncate">
                 {event?.description ?? eventSourceName(l.source).title}
               </div>

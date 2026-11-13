@@ -8,7 +8,6 @@ import {
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { fetchBundles } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
@@ -27,8 +26,9 @@ import { creatorImageVersion, ogImagePath } from "@/lib/og/path";
 import { Bundle } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
 import { GetStaticPaths, GetStaticProps } from "next";
-import { CheckIcon, LinkIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckIcon, LinkIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
 type Props = {
@@ -65,6 +65,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 
 // CreatorPage lists the templates a user has in the marketplace.
 export default function CreatorPage({ creatorId, listed }: Props) {
+  const router = useRouter();
   const templates = useMemo(
     () => listed.flatMap((b) => templateFromBundle(b) ?? []),
     [listed]
@@ -99,9 +100,28 @@ export default function CreatorPage({ creatorId, listed }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
-      <MarketplaceBar />
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl pt-12 pb-10 md:pt-16">
+          <Link
+            href="/marketplace"
+            onClick={(e) => {
+              if (
+                !e.metaKey &&
+                !e.ctrlKey &&
+                !e.shiftKey &&
+                !e.altKey &&
+                e.button === 0 &&
+                window.history.state?.idx > 0
+              ) {
+                e.preventDefault();
+                router.back();
+              }
+            }}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            All templates
+          </Link>
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="relative h-24 w-24 md:h-28 md:w-28 flex-none">
               {/* A glow in the colors of their avatar. */}

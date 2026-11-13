@@ -571,7 +571,7 @@ export function templatePath(id: string) {
 
 // categoryPath is the page of the templates of a category in the
 // marketplace.
-export function categoryPath(category: TemplateCategory) {
+export function categoryPath(category: TemplateCategory | "all") {
   return `/marketplace/categories/${category}`;
 }
 
