@@ -95,22 +95,12 @@ import {
   ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
-  FolderIcon,
-  HashIcon,
   HelpCircleIcon,
-  ImageIcon,
-  LockIcon,
-  LucideIcon,
-  MegaphoneIcon,
-  MessageSquareIcon,
-  MessagesSquareIcon,
   MinusIcon,
   PencilIcon,
   PlusIcon,
-  RadioIcon,
   SmileIcon,
   TrashIcon,
-  Volume2Icon,
   XIcon,
   PlugIcon,
 } from "lucide-react";
@@ -191,12 +181,7 @@ import {
 } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipPortal,
-  TooltipTrigger,
-} from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowCodeInput from "./FlowCodeInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
@@ -3814,21 +3799,25 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-const channelTypeInfo: Record<number, { label: string; Icon: LucideIcon }> = {
-  0: { label: "Text channel", Icon: HashIcon },
-  2: { label: "Voice channel", Icon: Volume2Icon },
-  4: { label: "Category", Icon: FolderIcon },
-  5: { label: "Announcement channel", Icon: MegaphoneIcon },
-  13: { label: "Stage channel", Icon: RadioIcon },
-  15: { label: "Forum", Icon: MessagesSquareIcon },
-  16: { label: "Media channel", Icon: ImageIcon },
-};
+const channelTypeOptions = [
+  { label: "Text channel", value: "0" },
+  { label: "Voice channel", value: "2" },
+  { label: "Category", value: "4" },
+  { label: "Announcement channel", value: "5" },
+  { label: "Stage channel", value: "13" },
+  { label: "Forum", value: "15" },
+  { label: "Media channel", value: "16" },
+];
 
-const threadTypeInfo: Record<number, { label: string; Icon: LucideIcon }> = {
-  10: { label: "Announcement thread", Icon: MessageSquareIcon },
-  11: { label: "Public thread", Icon: MessageSquareIcon },
-  12: { label: "Private thread", Icon: LockIcon },
-};
+const threadTypeOptions = [
+  { label: "Public thread", value: "11" },
+  { label: "Private thread", value: "12" },
+  { label: "Announcement thread", value: "10" },
+];
+
+function typeLabel(options: { label: string; value: string }[], type: number) {
+  return options.find((o) => o.value === type.toString())?.label;
+}
 
 // How many errors the settings with one of the prefixes have.
 function countErrors(errors: Record<string, string>, ...prefixes: string[]) {
@@ -3851,29 +3840,27 @@ function plural(n: number, word: string) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
-// The dialog of the channel and thread blocks. Like the modal editor it has
-// the settings on the left and a preview on the right, which opens from a
-// button on smaller screens.
-function ChannelEditorShell({
-  triggerLabel,
+// The dialog of the channel and thread blocks. Below its button it sums up the
+// settings and how many of them have an error, as they're hidden until it's
+// opened.
+function ChannelDialog({
   title,
   description,
   summary,
   errorCount,
-  form,
+  children,
 }: {
-  triggerLabel: string;
   title: string;
   description: string;
-  summary: ReactNode;
+  summary: string;
   errorCount: number;
-  form: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Dialog>
       <div className="space-y-2">
         <DialogTrigger asChild>
-          <Button className="w-full">{triggerLabel}</Button>
+          <Button className="w-full">{title}</Button>
         </DialogTrigger>
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           <div className="truncate flex-auto">{summary}</div>
@@ -3885,20 +3872,12 @@ function ChannelEditorShell({
           )}
         </div>
       </div>
-      <DialogContent
-        className="overflow-y-auto max-h-[90dvh] max-w-2xl"
-        // Opening shouldn't select the first input, so typing doesn't replace it.
-        onOpenAutoFocus={(e) => {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement | null)?.focus();
-        }}
-      >
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        {/* Previews show the settings without letting them change. */}
-        <PreviewInert className="space-y-6">{form}</PreviewInert>
+        <div className="space-y-6">{children}</div>
       </DialogContent>
     </Dialog>
   );
@@ -3908,13 +3887,19 @@ function permissionCount(bitset?: string) {
   return decodePermissionsBitset(bitset || "0").length;
 }
 
-// The @everyone role has the ID of the server. Saving "Everyone" as the
-// placeholder for it keeps the data as it was (a role with an ID), so older
-// flows that use the placeholder show up as Everyone too.
-const EVERYONE_OVERWRITE_ID = "{{guild.id}}";
+// The @everyone role has the ID of the server. Saving "Everyone" as a role
+// with the placeholder keeps the data as it was, so older flows that use the
+// placeholder show up as Everyone too.
+const everyoneOverwriteId = "{{guild.id}}";
 
-// One permission overwrite. Closed it shows who it is for and how many
-// permissions it changes, like the cards of the modal editor.
+function isEveryoneOverwrite(overwrite: PermissionOverwriteData) {
+  return (
+    overwrite.type !== 1 && /^\{\{\s*guild\.id\s*\}\}$/.test(overwrite.id ?? "")
+  );
+}
+
+// One permission overwrite. Closed it shows who it's for and how many
+// permissions it allows and denies, like the cards of the modal editor.
 function OverwriteCard({
   index,
   overwrite,
@@ -3936,7 +3921,7 @@ function OverwriteCard({
 }) {
   const field = `channel_data.permission_overwrites.${index}`;
   const isUser = overwrite.type === 1;
-  const isEveryone = !isUser && overwrite.id === EVERYONE_OVERWRITE_ID;
+  const isEveryone = isEveryoneOverwrite(overwrite);
   const kind = isEveryone ? "everyone" : isUser ? "user" : "role";
 
   return (
@@ -3957,9 +3942,11 @@ function OverwriteCard({
           <div className="flex-none">
             {isEveryone ? "Everyone" : isUser ? "User" : "Role"}
           </div>
-          <div className="pl-1 text-sm italic font-light text-muted-foreground truncate">
-            {isEveryone ? "@everyone" : overwrite.id || "No ID yet"}
-          </div>
+          {!isEveryone && (
+            <div className="pl-1 text-sm italic font-light text-muted-foreground truncate">
+              {overwrite.id || "No ID yet"}
+            </div>
+          )}
           {!open && (
             <div className="pl-2 flex-none text-sm space-x-2">
               <span className="text-green-600 dark:text-green-400">
@@ -3992,13 +3979,12 @@ function OverwriteCard({
 
       {open && (
         <div className="mt-3 space-y-4">
-          <div className="flex gap-3">
-            <div className="w-40 flex-none">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-none sm:w-40">
               <BaseInput
                 type="select"
                 field={`${field}.type`}
                 title="Type"
-                description="Who it is for."
                 value={kind}
                 options={[
                   { label: "Role", value: "role" },
@@ -4006,33 +3992,28 @@ function OverwriteCard({
                   { label: "Everyone", value: "everyone" },
                 ]}
                 updateValue={(v) => {
-                  // Leaving Everyone clears the server ID, it isn't a role or user.
-                  const id = isEveryone ? undefined : overwrite.id;
                   if (v === "everyone") {
-                    onChange({ type: 0, id: EVERYONE_OVERWRITE_ID });
+                    onChange({ type: 0, id: everyoneOverwriteId });
                   } else {
-                    onChange({ type: v === "user" ? 1 : 0, id });
+                    // The server ID is neither a role nor a user to keep.
+                    onChange({
+                      type: v === "user" ? 1 : 0,
+                      id: isEveryone ? undefined : overwrite.id,
+                    });
                   }
                 }}
                 errors={errors}
               />
             </div>
             {isEveryone ? (
-              <div className="flex-auto min-w-0">
-                <div className="font-medium text-foreground">Applies to</div>
-                <div className="text-muted-foreground text-sm mt-1">
-                  Every member of the server.
-                </div>
-                <div className="mt-2 h-10 flex items-center text-sm text-muted-foreground">
-                  The @everyone role, which has the ID of the server.
-                </div>
+              <div className="flex-auto text-sm text-muted-foreground sm:pt-9">
+                Applies to every member of the server.
               </div>
             ) : (
               <BaseInput
                 type="text"
                 field={`${field}.id`}
                 title={isUser ? "User" : "Role"}
-                description={`The ID of the ${isUser ? "user" : "role"}.`}
                 value={overwrite.id || ""}
                 updateValue={(v) => onChange({ id: v || undefined })}
                 errors={errors}
@@ -4062,72 +4043,26 @@ function OverwriteCard({
   );
 }
 
-// A switch for beside an input, like the NSFW switch beside the topic. The
-// switch is as high as the input, so they line up.
-function InlineSwitch({
-  title,
-  description,
-  value,
-  onChange,
-}: {
-  title: string;
-  description: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div className="flex-none w-28">
-      <div className="font-medium text-foreground">{title}</div>
-      <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      <PreviewInert className="mt-2 h-10 flex items-center">
-        <Switch checked={value} onCheckedChange={onChange} />
-      </PreviewInert>
-    </div>
-  );
-}
-
-// Text isn't a position. Blocks only check settings when they're saved, so
-// this tells right away.
-function positionError(position?: string) {
-  if (!position) return undefined;
-  if (/^[0-9]+$/.test(position) || /^\{\{[^{}]+\}\}$/.test(position)) {
-    return undefined;
-  }
-  return "Must be a whole number like 0 or 3, or a single {{ }} placeholder. Text isn't allowed.";
-}
-
 function ChannelDataInput({
   data,
   updateData,
-  errors: savedErrors,
+  errors,
   children,
   edit,
 }: InputProps & { children?: ReactNode; edit?: boolean }) {
-  const positionIssue = positionError(data.channel_data?.position?.toString());
-  const errors = useMemo(
-    () =>
-      positionIssue
-        ? { ...savedErrors, "channel_data.position": positionIssue }
-        : savedErrors,
-    [savedErrors, positionIssue]
-  );
-  const readOnly = useContext(FlowReadOnlyContext);
   const channel = data.channel_data;
-  const overwrites = useMemo(
-    () => channel?.permission_overwrites ?? [],
-    [channel?.permission_overwrites]
-  );
+  const overwrites = channel?.permission_overwrites ?? [];
   const type = channel?.type ?? 0;
 
   // The overwrite that is open. They start closed, the list can get long.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const errorIndexes = overwriteErrorIndexes(errors);
 
-  const setOverwrites = useCallback(
-    (permission_overwrites: PermissionOverwriteData[]) =>
-      updateData({ channel_data: { ...channel, permission_overwrites } }),
-    [updateData, channel]
-  );
+  const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
+    updateData({ channel_data: { ...channel, ...newData } });
+
+  const setOverwrites = (permission_overwrites: PermissionOverwriteData[]) =>
+    updateChannel({ permission_overwrites });
 
   const addOverwrite = () => {
     setOverwrites([...overwrites, { type: 0, allow: "0", deny: "0" }]);
@@ -4154,9 +4089,6 @@ function ChannelDataInput({
       overwrites.map((o, j) => (j === i ? { ...o, ...newData } : o))
     );
 
-  const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
-    updateData({ channel_data: { ...channel, ...newData } });
-
   // Changing the type only hides the inputs that don't apply to it. Without
   // also dropping their values, a topic entered while the type was "Text"
   // would still be sent for a voice channel, which Discord rejects.
@@ -4175,16 +4107,8 @@ function ChannelDataInput({
     updateData({ channel_data: channelData });
   };
 
-  const hasAdvanced =
-    channelTypeSupportsRateLimitPerUser(type) ||
-    channelTypeSupportsVoice(type) ||
-    type !== 4;
-
-  const overwriteErrors = errorIndexes.size;
-  const info = channelTypeInfo[type];
-
   const summary = [
-    info?.label ?? "Channel",
+    typeLabel(channelTypeOptions, type) ?? "Channel",
     channel?.name,
     overwrites.length > 0 && plural(overwrites.length, "overwrite"),
   ]
@@ -4192,224 +4116,198 @@ function ChannelDataInput({
     .join(" · ");
 
   return (
-    <ChannelEditorShell
-      triggerLabel="Configure channel"
+    <ChannelDialog
       title="Configure channel"
-      description="A channel must have one of the available types and a name. All other fields are optional."
+      description={
+        edit
+          ? "Settings you leave empty keep their current value."
+          : "A channel needs a type and a name. Everything else is optional."
+      }
       summary={summary}
       errorCount={countErrors(errors, "channel_data")}
-      form={
-        <>
-          <MessageCollapsibleSection
-            title="General"
-            className="space-y-4"
-            animate={false}
-          >
-            <div className="flex gap-3">
-              <div className={cn("flex-none", "w-56")}>
-                <BaseInput
-                  type="select"
-                  field="channel_data.type"
-                  title="Type"
-                  description="The kind of channel."
-                  value={type.toString()}
-                  options={Object.entries(channelTypeInfo).map(
-                    ([value, { label }]) => ({ value, label })
-                  )}
-                  updateValue={(v) => updateType(parseInt(v) || 0)}
-                  errors={errors}
-                />
-              </div>
-              <BaseInput
-                type="text"
-                field="channel_data.name"
-                title="Name"
-                description="The name for the channel."
-                value={channel?.name || ""}
-                updateValue={(v) => updateChannel({ name: v || undefined })}
-                errors={errors}
-                placeholders
-              />
-            </div>
+    >
+      <MessageCollapsibleSection
+        title="General"
+        className="space-y-4"
+        animate={false}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-none sm:w-56">
+            <BaseInput
+              type="select"
+              field="channel_data.type"
+              title="Type"
+              value={type.toString()}
+              options={channelTypeOptions}
+              updateValue={(v) => updateType(parseInt(v) || 0)}
+              errors={errors}
+            />
+          </div>
+          <BaseInput
+            type="text"
+            field="channel_data.name"
+            title="Name"
+            value={channel?.name || ""}
+            updateValue={(v) => updateChannel({ name: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </div>
 
-            {channelTypeSupportsTopic(type) && (
-              <div className="flex gap-3">
-                <BaseInput
-                  type="text"
-                  field="channel_data.topic"
-                  title="Topic"
-                  description="The topic for the channel."
-                  value={channel?.topic || ""}
-                  updateValue={(v) => updateChannel({ topic: v || undefined })}
-                  errors={errors}
-                  placeholders
-                />
-                {channelTypeSupportsNSFW(type) && (
-                  <InlineSwitch
-                    title="NSFW"
-                    description="Age-restricted."
-                    value={channel?.nsfw || false}
-                    onChange={(v) => updateChannel({ nsfw: v })}
-                  />
-                )}
-              </div>
+        {channelTypeSupportsTopic(type) && (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <BaseInput
+              type="text"
+              field="channel_data.topic"
+              title="Topic"
+              description="The topic for the channel."
+              value={channel?.topic || ""}
+              updateValue={(v) => updateChannel({ topic: v || undefined })}
+              errors={errors}
+              placeholders
+            />
+            {channelTypeSupportsNSFW(type) && (
+              <BaseCheckbox
+                field="channel_data.nsfw"
+                title="NSFW"
+                description="Age-restricted."
+                value={channel?.nsfw || false}
+                updateValue={(v) => updateChannel({ nsfw: v })}
+                errors={errors}
+              />
             )}
-          </MessageCollapsibleSection>
+          </div>
+        )}
+      </MessageCollapsibleSection>
 
-          {hasAdvanced && (
-            <MessageCollapsibleSection
-              title="Placement and limits"
-              className="space-y-4"
-              animate={false}
-            >
-              {type !== 4 && (
-                <BaseInput
-                  type="text"
-                  field="channel_data.parent"
-                  title="Category"
-                  description={
-                    edit
-                      ? "The category to move the channel to. Leave empty to keep its current category."
-                      : "The category that the channel will be created in. Leave empty for no category."
-                  }
-                  value={channel?.parent || ""}
-                  updateValue={(v) => updateChannel({ parent: v || undefined })}
-                  errors={errors}
-                  placeholders
-                />
-              )}
-
-              <BaseInput
-                type="text"
-                field="channel_data.position"
-                title="Position"
-                description="The position for the channel."
-                placeholder="e.g. 0"
-                help={
-                  <>
-                    <div>
-                      Where the channel sits in the channel list, counting from
-                      0 at the top.
-                    </div>
-                    <div>
-                      Channels are sorted inside their category, and text and
-                      voice channels are sorted separately. 0 is the first
-                      channel of its category, 1 the second, and so on.
-                    </div>
-                    <div>
-                      Enter a whole number like 0 or 3, or a single placeholder
-                      that gives a number. Text isn&apos;t allowed.
-                    </div>
-                  </>
-                }
-                value={channel?.position?.toString() || ""}
-                updateValue={(v) => updateChannel({ position: v || undefined })}
-                errors={errors}
-                placeholders
-              />
-
-              {channelTypeSupportsRateLimitPerUser(type) && (
-                <BaseInput
-                  type="text"
-                  field="channel_data.rate_limit_per_user"
-                  title="Slowmode"
-                  description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
-                  value={channel?.rate_limit_per_user || ""}
-                  updateValue={(v) =>
-                    updateChannel({ rate_limit_per_user: v || undefined })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-              )}
-
-              {channelTypeSupportsVoice(type) && (
-                <div className="flex gap-3">
-                  <BaseInput
-                    type="text"
-                    field="channel_data.bitrate"
-                    title="Bitrate"
-                    description="The bitrate for the channel."
-                    value={channel?.bitrate || ""}
-                    updateValue={(v) =>
-                      updateChannel({ bitrate: v || undefined })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                  <BaseInput
-                    type="text"
-                    field="channel_data.user_limit"
-                    title="User limit"
-                    description="The user limit for the channel."
-                    value={channel?.user_limit?.toString() || ""}
-                    updateValue={(v) =>
-                      updateChannel({ user_limit: v || undefined })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                </div>
-              )}
-            </MessageCollapsibleSection>
-          )}
-
-          {children}
-
-          <MessageCollapsibleSection
-            title="Permission overwrites"
-            defaultOpen={false}
-            className="space-y-4"
-            animate={false}
-            count={
-              <span className="inline-flex items-center gap-1">
-                {overwrites.length}
-                {overwriteErrors > 0 && (
-                  <CircleAlertIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
-                )}
-              </span>
+      <MessageCollapsibleSection
+        title="Placement and limits"
+        className="space-y-4"
+        animate={false}
+      >
+        {type !== 4 && (
+          <BaseInput
+            type="text"
+            field="channel_data.parent"
+            title="Category"
+            description={
+              edit
+                ? "The category to move the channel to. Leave empty to keep its current category."
+                : "The category to create the channel in. Leave empty for no category."
             }
-          >
-            {overwrites.length === 0 && (
-              <div className="text-sm text-muted-foreground">
-                No overwrites, the channel uses the permissions of its category.
-              </div>
+            value={channel?.parent || ""}
+            updateValue={(v) => updateChannel({ parent: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        )}
+
+        <BaseInput
+          type="text"
+          field="channel_data.position"
+          title="Position"
+          description="Where the channel sits in its category, from 0 at the top. Text and voice channels are counted separately."
+          placeholder="e.g. 0"
+          value={channel?.position?.toString() || ""}
+          updateValue={(v) => updateChannel({ position: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+
+        {channelTypeSupportsRateLimitPerUser(type) && (
+          <BaseInput
+            type="text"
+            field="channel_data.rate_limit_per_user"
+            title="Slowmode"
+            description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+            value={channel?.rate_limit_per_user || ""}
+            updateValue={(v) =>
+              updateChannel({ rate_limit_per_user: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+        )}
+
+        {channelTypeSupportsVoice(type) && (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <BaseInput
+              type="text"
+              field="channel_data.bitrate"
+              title="Bitrate"
+              description="The bitrate for the channel."
+              value={channel?.bitrate || ""}
+              updateValue={(v) => updateChannel({ bitrate: v || undefined })}
+              errors={errors}
+              placeholders
+            />
+            <BaseInput
+              type="text"
+              field="channel_data.user_limit"
+              title="User limit"
+              description="The user limit for the channel."
+              value={channel?.user_limit?.toString() || ""}
+              updateValue={(v) => updateChannel({ user_limit: v || undefined })}
+              errors={errors}
+              placeholders
+            />
+          </div>
+        )}
+      </MessageCollapsibleSection>
+
+      {children}
+
+      <MessageCollapsibleSection
+        title="Permission overwrites"
+        defaultOpen={false}
+        className="space-y-4"
+        animate={false}
+        count={
+          <span className="inline-flex items-center gap-1">
+            {overwrites.length}
+            {errorIndexes.size > 0 && (
+              <CircleAlertIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
             )}
+          </span>
+        }
+      >
+        {edit && (
+          <div className="text-sm text-muted-foreground">
+            Leave empty to keep the channel&apos;s overwrites. The ones you add
+            replace all of them.
+          </div>
+        )}
 
-            {overwrites.map((overwrite, i) => (
-              <OverwriteCard
-                key={i}
-                index={i}
-                overwrite={overwrite}
-                // Previews show every overwrite, their cards can't be opened
-                // one by one.
-                open={readOnly || openIndex === i}
-                hasError={errorIndexes.has(i)}
-                onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-                onRemove={() => removeOverwrite(i)}
-                onChange={(d) => updateOverwrite(i, d)}
-                errors={errors}
-              />
-            ))}
+        {overwrites.map((overwrite, i) => (
+          <OverwriteCard
+            key={i}
+            index={i}
+            overwrite={overwrite}
+            open={openIndex === i}
+            hasError={errorIndexes.has(i)}
+            onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            onRemove={() => removeOverwrite(i)}
+            onChange={(d) => updateOverwrite(i, d)}
+            errors={errors}
+          />
+        ))}
 
-            <EditOnly>
-              <div className="space-x-3">
-                <Button onClick={addOverwrite}>Add overwrite</Button>
-                {overwrites.length > 0 && (
-                  <ConfirmDialog
-                    title="Are you sure that you want to clear the overwrites?"
-                    description="This removes all permission overwrites of the channel."
-                    onConfirm={clearOverwrites}
-                  >
-                    <Button variant="outline">Clear overwrites</Button>
-                  </ConfirmDialog>
-                )}
-              </div>
-            </EditOnly>
-          </MessageCollapsibleSection>
-        </>
-      }
-    />
+        <EditOnly>
+          <div className="space-x-3">
+            <Button onClick={addOverwrite}>Add overwrite</Button>
+            {overwrites.length > 0 && (
+              <ConfirmDialog
+                title="Are you sure that you want to clear the overwrites?"
+                description="This removes all permission overwrites of the channel."
+                onConfirm={clearOverwrites}
+              >
+                <Button variant="outline">Clear overwrites</Button>
+              </ConfirmDialog>
+            )}
+          </div>
+        </EditOnly>
+      </MessageCollapsibleSection>
+    </ChannelDialog>
   );
 }
 
@@ -4476,7 +4374,7 @@ function ChannelEditDataInput(props: InputProps) {
         className="space-y-4"
         animate={false}
       >
-        <div className="flex space-x-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           {threadEditSettings.map(({ field, title, description }) => (
             <BaseKeepSelect
               key={field}
@@ -4524,103 +4422,95 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
   const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
     updateData({ channel_data: { ...channel, ...newData } });
 
+  // A thread started from a message takes its type from the message's channel.
   const summary = [
-    (threadTypeInfo[data.message_target ? 11 : type] ?? threadTypeInfo[11])
-      .label,
+    data.message_target
+      ? "Thread from a message"
+      : typeLabel(threadTypeOptions, type) ?? "Thread",
     channel?.name,
   ]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <ChannelEditorShell
-      triggerLabel="Configure thread"
+    <ChannelDialog
       title="Configure thread"
-      description="A thread must have a name and can be associated with a message or be independent."
+      description="A thread needs a name. It can start from a message or on its own."
       summary={summary}
       errorCount={countErrors(errors, "channel_data", "message_target")}
-      form={
-        <>
-          <MessageCollapsibleSection
-            title="General"
-            className="space-y-4"
-            animate={false}
-          >
-            <div className="flex gap-3">
-              {!data.message_target && (
-                <div className="flex-none w-56">
-                  <BaseInput
-                    type="select"
-                    field="channel_data.type"
-                    title="Type"
-                    description="The kind of thread."
-                    value={type.toString()}
-                    options={Object.entries(threadTypeInfo).map(
-                      ([value, { label }]) => ({ value, label })
-                    )}
-                    updateValue={(v) =>
-                      updateChannel({ type: parseInt(v) || undefined })
-                    }
-                    errors={errors}
-                  />
-                </div>
-              )}
+    >
+      <MessageCollapsibleSection
+        title="General"
+        className="space-y-4"
+        animate={false}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {!data.message_target && (
+            <div className="flex-none sm:w-56">
               <BaseInput
-                type="text"
-                field="channel_data.name"
-                title="Name"
-                description="The name for the thread."
-                value={channel?.name || ""}
-                updateValue={(v) => updateChannel({ name: v || undefined })}
+                type="select"
+                field="channel_data.type"
+                title="Type"
+                value={type.toString()}
+                options={threadTypeOptions}
+                updateValue={(v) =>
+                  updateChannel({ type: parseInt(v) || undefined })
+                }
                 errors={errors}
-                placeholders
               />
             </div>
+          )}
+          <BaseInput
+            type="text"
+            field="channel_data.name"
+            title="Name"
+            value={channel?.name || ""}
+            updateValue={(v) => updateChannel({ name: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </div>
 
-            <div className="flex gap-3">
-              <BaseInput
-                type="text"
-                field="channel_data.parent"
-                title="Parent channel"
-                description="The parent channel that the thread will be created in."
-                value={channel?.parent || ""}
-                updateValue={(v) => updateChannel({ parent: v || undefined })}
-                errors={errors}
-                placeholders
-              />
-              {/* Only private threads can be invitable. */}
-              {type === 12 && !data.message_target && (
-                <InlineSwitch
-                  title="Invitable"
-                  description="Others can add."
-                  value={channel?.invitable ?? true}
-                  onChange={(v) => updateChannel({ invitable: v })}
-                />
-              )}
-            </div>
-          </MessageCollapsibleSection>
+        <BaseInput
+          type="text"
+          field="channel_data.parent"
+          title="Parent channel"
+          description="The channel to create the thread in."
+          value={channel?.parent || ""}
+          updateValue={(v) => updateChannel({ parent: v || undefined })}
+          errors={errors}
+          placeholders
+        />
 
-          <MessageCollapsibleSection
-            title="Starter message"
-            className="space-y-4"
-            animate={false}
-          >
-            <BaseInput
-              type="text"
-              field="message_target"
-              title="Message target"
-              description="The message to start the thread from. Leave blank to create an independent thread."
-              value={data.message_target || ""}
-              updateValue={(v) =>
-                updateData({ message_target: v || undefined })
-              }
-              errors={errors}
-              placeholders
-            />
-          </MessageCollapsibleSection>
-        </>
-      }
-    />
+        {type === 12 && !data.message_target && (
+          <BaseCheckbox
+            field="channel_data.invitable"
+            title="Invitable"
+            description="Members who aren't moderators can add others to the thread."
+            value={channel?.invitable ?? true}
+            updateValue={(v) => updateChannel({ invitable: v })}
+            errors={errors}
+          />
+        )}
+      </MessageCollapsibleSection>
+
+      <MessageCollapsibleSection
+        title="Starter message"
+        className="space-y-4"
+        animate={false}
+      >
+        <BaseInput
+          type="text"
+          field="message_target"
+          title="Message target"
+          description="The message to start the thread from. Leave empty to create a thread on its own."
+          value={data.message_target || ""}
+          updateValue={(v) => updateData({ message_target: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      </MessageCollapsibleSection>
+    </ChannelDialog>
   );
 }
 
@@ -5682,7 +5572,6 @@ function BaseInput({
   disablePlaceholderBrackets,
   clearable,
   imageUpload,
-  help,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -5700,8 +5589,6 @@ function BaseInput({
   clearable?: boolean;
   // Shows a button that uploads an image as an asset and puts in its URL.
   imageUpload?: boolean;
-  // A longer explanation, shown in a tooltip of a ? beside the title.
-  help?: ReactNode;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -5808,34 +5695,7 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      {title && (
-        <div className="flex items-center gap-1.5 font-medium text-foreground">
-          {title}
-          {help && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label={`About ${title}`}
-                >
-                  <HelpCircleIcon className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              {/* Outside the dialog, so its scrolling doesn't cut it off. */}
-              <TooltipPortal>
-                <TooltipContent
-                  side="top"
-                  collisionPadding={16}
-                  className="max-w-xs font-normal space-y-2"
-                >
-                  {help}
-                </TooltipContent>
-              </TooltipPortal>
-            </Tooltip>
-          )}
-        </div>
-      )}
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
