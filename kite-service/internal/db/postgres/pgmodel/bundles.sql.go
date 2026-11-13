@@ -471,7 +471,12 @@ func (q *Queries) GetCreatorStats(ctx context.Context, userIds []string) ([]GetC
 	var items []GetCreatorStatsRow
 	for rows.Next() {
 		var i GetCreatorStatsRow
-		if err := rows.Scan(&i.UserID, &i.FirstListedAt, &i.InstallerCount, &i.StarCount); err != nil {
+		if err := rows.Scan(
+			&i.UserID,
+			&i.FirstListedAt,
+			&i.InstallerCount,
+			&i.StarCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
