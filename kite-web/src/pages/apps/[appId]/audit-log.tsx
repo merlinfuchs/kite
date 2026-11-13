@@ -1,3 +1,4 @@
+import AppEmptyPlaceholder from "@/components/app/AppEmptyPlaceholder";
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,11 +28,12 @@ import {
 } from "@/lib/collaborators";
 import { useAppCollaborators, useAppRole } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import { discordEventType } from "@/lib/flow/eventTypes";
 import { AppAuditLogEntry } from "@/lib/types/wire.gen";
 import { abbreviateName, formatDateTime } from "@/lib/utils";
 import { ArrowLeftIcon, BotIcon, HistoryIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 const breadcrumbs = [
   {
@@ -88,8 +90,8 @@ export default function AppAuditLogPage() {
       <Separator className="my-6" />
 
       {role !== undefined && !canView ? (
-        <EmptyState
-          icon={<LockIcon className="size-8" />}
+        <AppEmptyPlaceholder
+          icon={LockIcon}
           title="No access"
           description="Only admins and the owner of the app can see its audit log."
         />
@@ -143,19 +145,20 @@ export default function AppAuditLogPage() {
               </CardContent>
             </Card>
           ) : entries.length === 0 ? (
-            filtered ? (
-              <EmptyState
-                icon={<HistoryIcon className="size-8" />}
-                title="No matching changes"
-                description="Nothing in the last 90 days matches these filters."
-              />
-            ) : (
-              <EmptyState
-                icon={<HistoryIcon className="size-8" />}
-                title="Nothing here yet"
-                description="Changes collaborators make to the app show up here."
-              />
-            )
+            <AppEmptyPlaceholder
+              icon={HistoryIcon}
+              {...(filtered
+                ? {
+                    title: "No matching changes",
+                    description:
+                      "Nothing in the last 90 days matches these filters.",
+                  }
+                : {
+                    title: "No changes yet",
+                    description:
+                      "Changes collaborators make to the app show up here.",
+                  })}
+            />
           ) : (
             <Card>
               <CardContent className="p-0 divide-y">
@@ -201,6 +204,11 @@ function AuditLogRow({
   appId: string;
 }) {
   const date = new Date(entry.created_at);
+  // Event listeners without a description are named by their event type.
+  const name =
+    entry.target_type === "event_listener"
+      ? discordEventType(entry.target_name)?.label ?? entry.target_name
+      : entry.target_name;
   const page = targetPages[entry.target_type];
   const deleted = entry.action.endsWith(".delete");
   const href =
@@ -223,16 +231,16 @@ function AuditLogRow({
           <span className="text-muted-foreground">
             {auditActionLabel(entry.action)}
           </span>{" "}
-          {entry.target_name &&
+          {name &&
             (href ? (
               <Link
                 href={href}
                 className="font-medium text-primary hover:underline"
               >
-                {entry.target_name}
+                {name}
               </Link>
             ) : (
-              <span className="font-medium">{entry.target_name}</span>
+              <span className="font-medium">{name}</span>
             ))}
           {entry.via_api_token && (
             <Badge variant="outline" className="ml-2 font-normal gap-1">
@@ -255,24 +263,6 @@ function AuditLogRow({
         </TooltipTrigger>
         <TooltipContent>{date.toLocaleString()}</TooltipContent>
       </Tooltip>
-    </div>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex flex-col items-center text-center py-16 gap-2 text-muted-foreground">
-      {icon}
-      <div className="font-semibold text-foreground">{title}</div>
-      <div className="text-sm">{description}</div>
     </div>
   );
 }

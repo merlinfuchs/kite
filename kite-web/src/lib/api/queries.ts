@@ -725,13 +725,12 @@ export function useAppAuditLogQuery(
 
 // The invites of the current user to other apps. Polled so the account menu
 // shows new ones without a reload.
-export function useUserInvitesQuery(enabled = true) {
+export function useUserInvitesQuery() {
   return useQuery({
     queryKey: ["users", "@me", "invites"],
     queryFn: () =>
       apiRequest<UserCollaboratorInviteListResponse>(`/v1/users/@me/invites`),
     refetchInterval: 1000 * 60,
-    enabled,
   });
 }
 

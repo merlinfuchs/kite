@@ -46,8 +46,8 @@ export default function AppSettingsPage() {
         </div>
       </div>
       <Separator className="my-8" />
-      {isDeveloper ? (
-        <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6">
+        {isDeveloper ? (
           <Alert>
             <LockIcon className="h-4 w-4" />
             <AlertTitle>You&apos;re a developer of this app</AlertTitle>
@@ -57,19 +57,17 @@ export default function AppSettingsPage() {
               app&apos;s settings.
             </AlertDescription>
           </Alert>
-          <AppSettingsCollaborators />
-          <AppSettingsDelete />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          <AppSettingsControls />
-          <AppSettingsAppearance />
-          <AppSettingsPresence />
-          <AppSettingsCredentials />
-          <AppSettingsCollaborators />
-          <AppSettingsDelete />
-        </div>
-      )}
+        ) : (
+          <>
+            <AppSettingsControls />
+            <AppSettingsAppearance />
+            <AppSettingsPresence />
+            <AppSettingsCredentials />
+          </>
+        )}
+        <AppSettingsCollaborators />
+        <AppSettingsDelete />
+      </div>
     </AppLayout>
   );
 }

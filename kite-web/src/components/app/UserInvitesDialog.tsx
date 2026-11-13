@@ -18,7 +18,7 @@ import {
   collaboratorRoleLabel,
   collaboratorRoles,
 } from "@/lib/collaborators";
-import { abbreviateName, cn, formatDateTime } from "@/lib/utils";
+import { abbreviateName, formatDateTime } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -161,16 +161,13 @@ export default function UserInvitesDialog({
 }
 
 // InvitesDot marks the account menu while the user has pending invites.
-export function InvitesDot({ className }: { className?: string }) {
+export function InvitesDot() {
   const invites = useUserInvites();
   if (!invites?.length) return null;
 
   return (
     <span
-      className={cn(
-        "absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background",
-        className
-      )}
+      className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background"
       aria-label={`${invites.length} pending invites`}
     />
   );
