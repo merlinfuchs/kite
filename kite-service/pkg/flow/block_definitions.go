@@ -52,14 +52,13 @@ type blockField struct {
 	Options []string `json:"options"`
 }
 
-// blockRequest is how a block runs: a request to the API of an integration
-// for kind "request", or the handler in nodeHandlers for kind "custom".
+// blockRequest is how a block runs: a request to an operation of an
+// integration for kind "request", see operations.go, or the handler in
+// nodeHandlers for kind "custom".
 type blockRequest struct {
 	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
 	Operation   string `json:"operation"`
-	Method      string `json:"method"`
-	Path        string `json:"path"`
 	// Values Kite adds to the request, which aren't settings.
 	Inject []blockRequestInject `json:"inject"`
 }
@@ -274,13 +273,13 @@ func BlockIntegrations(nodeType FlowNodeType) []string {
 var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
-	integration, ok := integrations[block.Run.Integration]
+	op, ok := operations[block.Run.Integration][block.Run.Operation]
 	if block.Run.Kind != "request" || !ok {
-		return fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration)
+		return fmt.Errorf("unsupported block run: %s %s %s", block.Run.Kind, block.Run.Integration, block.Run.Operation)
 	}
 
-	pathParams := make(map[string]string)
-	query := url.Values{}
+	pathParams := make(map[string]thing.Thing)
+	query := make(map[string]thing.Thing)
 	body := make(map[string]any)
 	hasBody := false
 
@@ -327,18 +326,9 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 		switch field.In {
 		case "path":
-			pathParams[field.Target], err = apiPathSegment(field.Name, fmt.Sprint(v))
-			if err != nil {
-				return settingErr(err)
-			}
+			pathParams[field.Target] = paramThing(v)
 		case "query":
-			if list, ok := v.([]string); ok {
-				for _, item := range list {
-					query.Add(field.Target, item)
-				}
-			} else {
-				query.Set(field.Target, fmt.Sprint(v))
-			}
+			query[field.Target] = paramThing(v)
 		case "body":
 			body[field.Target] = v
 		}
@@ -355,15 +345,13 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		hasBody = true
 	}
 
-	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
-		return pathParams[m[1:len(m)-1]]
-	})
-	if len(query) > 0 {
-		path += "?" + query.Encode()
+	path, err := operationPath(op, pathParams, query, nil)
+	if err != nil {
+		return err
 	}
 
 	var reqBody []byte
-	if hasBody && block.Run.Method != http.MethodGet {
+	if hasBody && op.Method != http.MethodGet {
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
@@ -380,18 +368,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 	}
 
-	var resBody []byte
-	var err error
-	if integration.Auth.Type == "discord_bot" {
-		resBody, err = ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-			Method: block.Run.Method,
-			Path:   path,
-			Body:   reqBody,
-			Reason: reason,
-		})
-	} else {
-		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody, secrets...)
-	}
+	resBody, err := ctx.sendOperation(op, path, reqBody, reason, secrets...)
 	if err != nil {
 		return err
 	}
@@ -405,6 +382,19 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	}
 
 	return n.ExecuteChildren(ctx)
+}
+
+// paramThing is a field's value, after its type converted it, as a path or
+// query parameter for operationPath.
+func paramThing(v any) thing.Thing {
+	if list, ok := v.([]string); ok {
+		items := make([]thing.Thing, len(list))
+		for i, item := range list {
+			items[i] = thing.NewString(item)
+		}
+		return thing.NewArray(items)
+	}
+	return thing.NewString(fmt.Sprint(v))
 }
 
 func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {
@@ -724,22 +714,30 @@ func integrationCredential(ctx *FlowContext, integration Integration) (string, e
 // needs.
 func (n *CompiledFlowNode) checkIntegrations(ctx *FlowContext) error {
 	for _, id := range blockDefinitions[n.Type].Requires {
-		integration, ok := integrations[id]
-		if !ok || integration.Availability == AvailabilityAlways {
-			continue
+		if err := ctx.checkIntegration(id); err != nil {
+			return err
 		}
+	}
+	return nil
+}
 
-		var choice null.Bool
-		if ctx.Integration != nil {
-			var err error
-			choice, err = ctx.Integration.Choice(ctx, id)
-			if err != nil {
-				return err
-			}
+// checkIntegration fails if the app can't use the integration id.
+func (ctx *FlowContext) checkIntegration(id string) error {
+	integration, ok := integrations[id]
+	if !ok || integration.Availability == AvailabilityAlways {
+		return nil
+	}
+
+	var choice null.Bool
+	if ctx.Integration != nil {
+		var err error
+		choice, err = ctx.Integration.Choice(ctx, id)
+		if err != nil {
+			return err
 		}
-		if !integration.Enabled(choice) {
-			return notEnabledError(integration)
-		}
+	}
+	if !integration.Enabled(choice) {
+		return notEnabledError(integration)
 	}
 	return nil
 }

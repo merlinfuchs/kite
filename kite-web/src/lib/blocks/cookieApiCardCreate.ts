@@ -8,19 +8,15 @@ export const cookieApiCardCreate: BlockDefinition = {
   description: "Generate an image like a welcome card with Cookie API",
   icon: "id-card",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "cookie_api",
     operation: "create_card",
-    method: "POST",
-    path: "/api/cards/card-builder/build",
   },
   fields: [
     {
       name: "card_data",
-      in: "body",
       type: "json_object",
       label: "Card",
       description:

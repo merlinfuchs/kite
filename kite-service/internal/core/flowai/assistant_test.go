@@ -230,11 +230,19 @@ func TestCheckVariables(t *testing.T) {
 		{"op": "add_node", "data": map[string]any{"variable_id": "v1"}},
 		{"op": "add_node", "data": map[string]any{"variable_id": "made_up"}},
 		{"op": "remove_node", "id": "a"},
+		{"op": "add_node", "data": map[string]any{"javascript_data": map[string]any{"variables": []any{
+			map[string]any{"name": "a", "variable_id": "v1"},
+			map[string]any{"name": "b", "variable_id": "made_up"},
+		}}}},
 	}}
 	res.checkVariables([]*model.Variable{{ID: "v1"}})
 
 	assert.Equal(t, "v1", res.Edits[0]["data"].(map[string]any)["variable_id"])
 	assert.NotContains(t, res.Edits[1]["data"], "variable_id")
+	assert.Equal(t, []any{
+		map[string]any{"name": "a", "variable_id": "v1"},
+		map[string]any{"name": "b"},
+	}, res.Edits[3]["data"].(map[string]any)["javascript_data"].(map[string]any)["variables"])
 }
 
 func TestParseOutputWithCode(t *testing.T) {

@@ -23,16 +23,22 @@ func TestAddUsed(t *testing.T) {
 	unused := &model.Message{ID: "unused"}
 	clicks := &model.Variable{ID: "clicks"}
 
+	xp := &model.Variable{ID: "xp"}
+
+	code := &flow.JavaScriptData{Variables: []flow.JavaScriptVariable{{Name: "xp", VariableID: "xp"}, {Name: "gone", VariableID: "deleted"}}}
 	cmd := &model.Command{ID: "cmd", FlowSource: flow.FlowData{Nodes: []flow.FlowNode{
 		{ID: "send", Data: flow.FlowNodeData{MessageTemplateID: "panel"}},
 		{ID: "gone", Data: flow.FlowNodeData{MessageTemplateID: "deleted", VariableID: "deleted"}},
+		{ID: "code", Data: flow.FlowNodeData{JavaScriptData: code}},
 	}}}
 
 	items := bundle.ExportItems{Commands: []*model.Command{cmd}}
-	addUsed(&items, []*model.Message{panel, reply, unused}, []*model.Variable{clicks})
+	addUsed(&items, []*model.Message{panel, reply, unused}, []*model.Variable{clicks, xp})
 
 	assert.Equal(t, []*model.Message{panel, reply}, items.Messages)
-	assert.Equal(t, []*model.Variable{clicks}, items.Variables)
+	assert.Equal(t, []*model.Variable{xp, clicks}, items.Variables)
+	// The code keeps the name of a variable that's gone, to pick another one.
+	assert.Equal(t, []flow.JavaScriptVariable{{Name: "xp", VariableID: "xp"}, {Name: "gone"}}, code.Variables)
 	// Blocks can't keep ones the app doesn't have anymore.
 	assert.Equal(t, "", cmd.FlowSource.Nodes[1].Data.MessageTemplateID)
 	assert.Equal(t, "", cmd.FlowSource.Nodes[1].Data.VariableID)

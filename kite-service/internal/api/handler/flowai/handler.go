@@ -207,6 +207,15 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		UserID:       c.Session.UserID,
 		PromptID:     prompt.ID,
 	})
+	var refused *flowai.ErrRefused
+	if errors.As(err, &refused) {
+		// A refused prompt is kept as an answer without edits, so asking
+		// again uses up the answers. A refused repair uses up its round.
+		if err := h.promptStore.RefuseAssistantPrompt(ctx, c.App.ID, prompt.ID, refused.Chance, isRepair, time.Now().UTC()); err != nil {
+			slog.Error("Failed to record refused assistant prompt", slog.String("app_id", c.App.ID), slog.Any("error", err))
+		}
+		return nil, handler.ErrForbidden("flow_ai_refused", "Flow AI can't help with this. Kite doesn't allow bots that nuke or raid servers, spam members, or steal accounts or data.")
+	}
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
 	edited := isRepair || err != nil || len(res.Edits) > 0 || res.Code != ""

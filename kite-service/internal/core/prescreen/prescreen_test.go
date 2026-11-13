@@ -46,7 +46,7 @@ func fakeOpenAI(t *testing.T, output string) (*openai.Client, *[]string) {
 		text, _ := json.Marshal(output)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{
-			"id": "resp_1", "object": "response", "created_at": 0, "status": "completed", "model": "gpt-5-mini",
+			"id": "resp_1", "object": "response", "created_at": 0, "status": "completed", "model": "gpt-6-luna",
 			"output": [{"type": "message", "id": "msg_1", "status": "completed", "role": "assistant",
 				"content": [{"type": "output_text", "text": %s, "annotations": []}]}],
 			"usage": {"input_tokens": 1000, "output_tokens": 200, "total_tokens": 1200}
@@ -71,7 +71,7 @@ func TestRejectsObviousOnes(t *testing.T) {
 		{"id": "a", "type": "entry_command", "position": {"x": 1, "y": 2}, "data": {}},
 		{"id": "b", "type": "action_channel_create", "position": {"x": 1, "y": 9}, "data": {"channel_data": {"name": "logs", "position": 3}}}
 	]}}]}`)}
-	p := New(client, "gpt-5-mini", s, nil)
+	p := New(client, "gpt-6-luna", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
 		t.Fatal(err)
@@ -96,7 +96,7 @@ func TestLeavesOtherRejectionsToAdmins(t *testing.T) {
 	client, _ := fakeOpenAI(t, `{"summary": "Low effort.", "concerns": [{"severity": "medium", "text": "No replies."}],
 		"rating": 20, "reject_reason": "none", "creator_message": ""}`)
 	s := &fakeStore{review: pendingReview(`{}`)}
-	p := New(client, "gpt-5-mini", s, nil)
+	p := New(client, "gpt-6-luna", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestSkipsTooBigOnes(t *testing.T) {
 	client, inputs := fakeOpenAI(t, `{}`)
 	big := fmt.Sprintf(`{"messages": [{"data": {"content": %q}}]}`, strings.Repeat("a", maxContentSize))
 	s := &fakeStore{review: pendingReview(big)}
-	p := New(client, "gpt-5-mini", s, nil)
+	p := New(client, "gpt-6-luna", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
 		t.Fatal(err)
@@ -129,7 +129,7 @@ func TestDoesntRejectReopenedOnes(t *testing.T) {
 	review := pendingReview(`{}`)
 	review.Review.Prescreen.Verdict = model.BundleReviewPrescreenVerdictReject
 	s := &fakeStore{review: review}
-	p := New(client, "gpt-5-mini", s, nil)
+	p := New(client, "gpt-6-luna", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
 		t.Fatal(err)

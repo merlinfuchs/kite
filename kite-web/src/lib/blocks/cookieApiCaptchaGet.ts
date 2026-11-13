@@ -8,23 +8,17 @@ export const cookieApiCaptchaGet: BlockDefinition = {
   description: "Check if a captcha from Cookie API was solved",
   icon: "shield-question",
   category: "Cookie API",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "cookie_api",
     operation: "get_captcha",
-    method: "GET",
-    path: "/api/security/captcha/get-captcha",
   },
   fields: [
     {
       name: "captcha_id",
-      in: "query",
-      type: "string",
       label: "Captcha ID",
       description: "ID of the captcha, from the Create captcha block.",
-      required: true,
     },
   ],
   result: {

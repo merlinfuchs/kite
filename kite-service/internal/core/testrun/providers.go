@@ -478,21 +478,14 @@ func (p *testVariableProvider) UpdateVariable(ctx context.Context, id string, sc
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
 			return thing.Null, err
 		}
-		if errors.Is(err, provider.ErrNotFound) && operation == provider.VariableOperationDecrement {
-			newValue = thing.NewInt(0).Sub(value)
-		}
-		if err == nil {
-			switch operation {
-			case provider.VariableOperationAppend:
-				newValue = current.Append(value)
-			case provider.VariableOperationPrepend:
-				newValue = value.Append(current)
-			case provider.VariableOperationIncrement:
-				newValue = current.Add(value)
-			case provider.VariableOperationDecrement:
-				newValue = current.Sub(value)
-			}
-		}
+		newValue = operation.Apply(current, err == nil, value)
+	}
+
+	// Like the database, see encodeVariableValue.
+	if data, err := json.Marshal(newValue); err != nil {
+		return thing.Null, err
+	} else if len(data) > provider.MaxVariableValueSize {
+		return thing.Null, provider.ErrVariableValueTooLarge
 	}
 
 	p.s.setVariable(id, scope, newValue, false)

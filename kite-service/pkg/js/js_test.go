@@ -3,11 +3,14 @@ package js
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -42,8 +45,14 @@ func TestRun(t *testing.T) {
 		{"regex", `return "<@123> and <@456>".match(/\d+/g)`, nil, `["123","456"]`},
 		{"random differs", `return Math.random() !== Math.random()`, nil, `true`},
 		{"date", `return new Date(0).toISOString()`, nil, `"1970-01-01T00:00:00.000Z"`},
-		{"no globals", `return [typeof std, typeof os, typeof kite, typeof require, typeof fetch, typeof setTimeout, typeof process, typeof Deno]`, nil,
-			`["undefined","undefined","undefined","undefined","undefined","undefined","undefined","undefined"]`},
+		{"await", "const x = await 1\nreturn x + await Promise.resolve(2)", nil, `3`},
+		{"promise all", `return await Promise.all([1, Promise.resolve(2), (async () => 3)()])`, nil, `[1,2,3]`},
+		{"async helper", "async function double(n) {\n  await null\n  return n * 2\n}\nreturn [await double(1), await double(2)]", nil, `[2,4]`},
+		{"microtask", `const seen = []; queueMicrotask(() => seen.push(1)); await null; return seen`, nil, `[1]`},
+		{"escaped wrapper", `}), (function () { return 1`, nil, `1`},
+		{"unhandled rejection", `Promise.reject(new Error("ignored")); (async () => { throw 1 })(); return 1`, nil, `1`},
+		{"no globals", `return [typeof std, typeof os, typeof kite, typeof require, typeof setTimeout, typeof process, typeof Deno]`, nil,
+			`["undefined","undefined","undefined","undefined","undefined","undefined","undefined"]`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -65,7 +74,15 @@ func TestRunErrors(t *testing.T) {
 		{"null property", "\n\nreturn null.x", "TypeError: cannot read property 'x' of null"},
 		{"syntax", "return {", "SyntaxError: expecting ';' (line 2)"},
 		{"throw string", `throw "nope"`, "nope"},
-		{"promise", `return (async () => 1)()`, "TypeError: the code returned a Promise, async code isn't supported"},
+		{"rejected", "\nreturn Promise.reject(new Error('nope'))", "Error: nope (line 2)"},
+		{"rejected helper", "async function f() {\n  await null\n  throw new TypeError('bad')\n}\nreturn await f()", "TypeError: bad (line 3)"},
+		{"null property after await", "const x = 1\nawait null\n\nreturn null.x", "TypeError: cannot read property 'x' of null"},
+		{"error after await", "await null\n\nreturn missing()", "ReferenceError: missing is not defined (line 3)"},
+		{"slow rejection", `return Promise.reject({toString() { while (true) {} }})`, "the code ran longer than 25 ms"},
+		{"never finishes", `await new Promise(() => {})`, "the code waited for something that never finished"},
+		{"spin in microtask", `queueMicrotask(() => { while (true) {} }); return 1`, "the code ran longer than 25 ms"},
+		{"endless microtasks", `const f = () => queueMicrotask(f); f(); return 1`, "the code ran longer than 25 ms"},
+		{"caught spin", `const spin = async () => { await null; while (true) {} }; try { await spin() } catch {} return 1`, "the code ran longer than 25 ms"},
 		{"bigint", `return 1n`, "TypeError: BigInt are forbidden in JSON.stringify"},
 		{"cyclic", `const a = {}; a.a = a; return a`, "TypeError: circular reference"},
 		{"spin", `while (true) {}`, "the code ran longer than 25 ms"},
@@ -260,4 +277,168 @@ func TestOneMutableGlobal(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, mutable)
+}
+
+func TestRunMicrotaskError(t *testing.T) {
+	var logs []string
+	res, err := Run(context.Background(), Options{
+		Code: `queueMicrotask(() => { throw new Error("x") }); await null; return 1`,
+		Log:  func(level LogLevel, message string) { logs = append(logs, string(level)+" "+message) },
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "1", string(res))
+	assert.Equal(t, []string{"error Error: x"}, logs)
+}
+
+var testHost = map[string]HostFunc{
+	// Answers with what fetch sent.
+	"http.request": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		body, _ := json.Marshal(string(arg))
+		return json.RawMessage(`{"status":201,"status_text":"Created","headers":{"content-type":"application/json"},"body":` + string(body) + `}`), nil
+	},
+	"discord.not_found": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return nil, &CallError{Err: errors.New("Unknown Channel (404)"), Status: 404, Code: 10003}
+	},
+	"discord.echo": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { return arg, nil },
+	"discord.get_thing": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return json.RawMessage(`{"thing":true}`), nil
+	},
+	"discord.sleep": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		var ms int
+		json.Unmarshal(arg, &ms)
+		select {
+		case <-time.After(time.Duration(ms) * time.Millisecond):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		return arg, nil
+	},
+	"discord.fail": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return nil, errors.New("Missing Permissions")
+	},
+	"discord.nothing": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { return nil, nil },
+	"discord.panic":   func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) { panic("boom") },
+	"cookie_api.make_card": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		return json.RawMessage(`"card"`), nil
+	},
+}
+
+func hostFrom(funcs map[string]HostFunc) func(string) HostFunc {
+	return func(name string) HostFunc { return funcs[name] }
+}
+
+func runHost(t *testing.T, code string, opts ...func(*Options)) (string, error) {
+	t.Helper()
+	o := Options{Code: code, Host: hostFrom(testHost), timeout: testTimeout}
+	for _, f := range opts {
+		f(&o)
+	}
+	res, err := Run(context.Background(), o)
+	return string(res), err
+}
+
+func TestHostCalls(t *testing.T) {
+	tests := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"echo", `return await discord.echo({a: 1})`, `{"a":1}`},
+		{"camel case", `return [await discord.getThing(), await cookieApi.makeCard()]`, `[{"thing":true},"card"]`},
+		{"then", `return (await discord.echo(1)) + await discord.echo(2).then((n) => n * 10)`, `21`},
+		{"caught", `try { await discord.fail() } catch (e) { return e.message }`, `"discord.fail: Missing Permissions"`},
+		{"status and code", `try { await discord.notFound() } catch (e) { return [e instanceof Error, e.message, e.status, e.code] }`, `[true,"discord.notFound: Unknown Channel (404)",404,10003]`},
+		{"no status", `try { await discord.fail() } catch (e) { return ["status" in e, "code" in e] }`, `[false,false]`},
+		{"unknown", `try { await discord.nope() } catch (e) { return e.message }`, `"discord.nope isn't available"`},
+		{"panic", `try { await discord.panic() } catch (e) { return e.message }`, `"discord.panic: the call failed"`},
+		{"no result", `return await discord.nothing()`, `null`},
+		{"snake case", `try { await discord.get_thing() } catch (e) { return e.message }`, `"discord.get_thing isn't available"`},
+		{"not calls", `return [typeof discord.then, typeof discord.toJSON, typeof discord.toString, JSON.stringify(discord), String(await discord === discord)]`, `["undefined","undefined","undefined","{}","true"]`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := runHost(t, tt.code)
+			require.NoError(t, err)
+			assert.JSONEq(t, tt.want, res)
+		})
+	}
+
+	_, err := runHost(t, "await discord.fail()")
+	assert.EqualError(t, err, "Error: discord.fail: Missing Permissions")
+	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
+	assert.EqualError(t, err, "Error: the code made more than 20 calls")
+}
+
+func TestFetch(t *testing.T) {
+	res, err := runHost(t, `
+const res = await fetch("https://example.com", {method: "post", headers: {Authorization: "Bearer {{secrets.TOKEN}}"}, body: "hi"})
+return [res.ok, res.status, res.statusText, res.headers.get("Content-Type"), res.headers.get("nope"), await res.json()]`)
+	require.NoError(t, err)
+	assert.JSONEq(t, `[true,201,"Created","application/json",null,{"url":"https://example.com","method":"POST","headers":{"Authorization":"Bearer {{secrets.TOKEN}}"},"body":"hi"}]`, res)
+
+	res, err = runHost(t, `return await (await fetch("https://example.com", {headers: [["A", 1]]})).json()`)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"url":"https://example.com","headers":{"A":"1"}}`, res)
+
+	_, err = runHost(t, `await fetch("https://example.com", {method: "POST", body: {a: 1}})`)
+	assert.EqualError(t, err, "TypeError: fetch: the body must be text, like JSON.stringify(data)")
+}
+
+func TestHostCallsDontUseTime(t *testing.T) {
+	// Waiting 60 ms is more than the 25 ms the code can run.
+	res, err := runHost(t, `return await discord.sleep(60)`, func(o *Options) { o.timeout = Timeout })
+	require.NoError(t, err)
+	assert.Equal(t, "60", res)
+
+	// The calls of Promise.all run at the same time.
+	start := time.Now()
+	res, err = runHost(t, `return await Promise.all([discord.sleep(150), discord.sleep(150), discord.sleep(150)])`)
+	require.NoError(t, err)
+	assert.Equal(t, "[150,150,150]", res)
+	assert.Less(t, time.Since(start), 400*time.Millisecond)
+
+	// The time the code runs adds up across the calls it waits for.
+	_, err = runHost(t, `
+const spin = (ms) => { const end = Date.now() + ms; while (Date.now() < end) {} };
+for (let i = 0; i < 4; i++) { spin(30); await discord.echo(i) }`, func(o *Options) { o.timeout = 100 * time.Millisecond })
+	assert.Equal(t, errTimeout, err)
+
+	_, err = runHost(t, `await discord.sleep(1000)`, func(o *Options) { o.wallTime = 100 * time.Millisecond })
+	assert.Equal(t, errWallTime, err)
+}
+
+func TestUnawaitedHostCallsFinish(t *testing.T) {
+	var done atomic.Bool
+	host := map[string]HostFunc{"discord.send": func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		time.Sleep(50 * time.Millisecond)
+		done.Store(true)
+		return nil, nil
+	}}
+	res, err := runHost(t, `discord.send(); return 1`, func(o *Options) { o.Host = hostFrom(host) })
+	require.NoError(t, err)
+	assert.Equal(t, "1", res)
+	assert.True(t, done.Load())
+}
+
+// Runs that wait for calls give up their slot, so more of them than there
+// are slots wait at the same time.
+func TestWaitingRunsGiveUpSlots(t *testing.T) {
+	n := 3*cap(slots) + 1
+	start := time.Now()
+	var wg sync.WaitGroup
+	errs := make(chan error, n)
+	for range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := runHost(t, `return await discord.sleep(150)`)
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		assert.NoError(t, err)
+	}
+	assert.Less(t, time.Since(start), 500*time.Millisecond)
 }

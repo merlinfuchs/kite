@@ -239,6 +239,16 @@ export interface StateGuildProfile {
   nick: string;
   avatar_url: string;
   banner_url: string;
+  name_style?: NameStyle;
+}
+/**
+ * NameStyle is the font, effect and colors of the bot's name in a server, by
+ * the names of provider.NameStyleFonts and provider.NameStyleEffects.
+ */
+export interface NameStyle {
+  font: string;
+  effect: string;
+  colors: number /* int */[];
 }
 export type StateGuildProfileGetResponse = StateGuildProfile;
 /**
@@ -289,7 +299,7 @@ export type StateGuildLeaveResponse = Empty;
 /**
  * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
  * field that isn't set stays as it is, and an empty one resets to the bot's
- * own profile.
+ * own profile. Reset resets all of them, the other fields are ignored then.
  */
 export interface StateGuildProfileUpdateRequest {
   nick?: string;
@@ -299,6 +309,8 @@ export interface StateGuildProfileUpdateRequest {
    */
   avatar?: string;
   banner?: string;
+  name_style?: NameStyle;
+  reset?: boolean;
 }
 export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {
@@ -468,13 +480,21 @@ export interface Bundle {
    */
   version_notes: BundleVersionNotes[];
   /**
-   * InstallCount is how many apps added it.
+   * InstallCount is how many apps added it, not counting its owner's.
    */
   install_count: number /* int */;
+  /**
+   * ActiveInstallCount is how many of them ran a flow in the last 30 days.
+   */
+  active_install_count: number /* int */;
   /**
    * StarCount is how many users starred it.
    */
   star_count: number /* int */;
+  /**
+   * StaffPick is whether Kite picked it.
+   */
+  staff_pick: boolean;
   /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
@@ -494,6 +514,11 @@ export interface BundleOwner {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  /**
+   * Badges are the badges of the user, only set in the list of all
+   * templates.
+   */
+  badges?: UserBadge[];
 }
 /**
  * BundleListing is how a bundle is shown on its page and in the marketplace.
@@ -532,10 +557,14 @@ export interface UserBundle {
    */
   item_count: number /* int */;
   /**
-   * InstallCount is how many apps added it, also ones not from the
-   * marketplace.
+   * InstallCount is how many apps of other users added it, also ones not
+   * from the marketplace.
    */
   install_count: number /* int */;
+  /**
+   * ActiveInstallCount is how many of them ran a flow in the last 30 days.
+   */
+  active_install_count: number /* int */;
   /**
    * ListedVersion is the version apps install from the marketplace, null if
    * it isn't listed.
@@ -806,6 +835,10 @@ export interface BundleRemoveRequest {
   reason: string;
 }
 export interface BundleRemoveResponse {
+}
+export interface BundleStaffPickResponse {
+}
+export interface BundleStaffPickDeleteResponse {
 }
 
 //////////
@@ -1686,10 +1719,57 @@ export interface User {
    * other users.
    */
   is_admin: boolean;
+  /**
+   * Badges are the badges of the current user, empty for other users.
+   */
+  badges?: UserBadge[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: user_badge.go
+
+/**
+ * UserBadge is a badge on a user's creator page and in the dashboard.
+ */
+export interface UserBadge {
+  /**
+   * Kind is staff, contributor, early_supporter, subscriber,
+   * early_creator or creator.
+   */
+  kind: string;
+  /**
+   * Plan is the title of the plan of a subscriber.
+   */
+  plan?: string;
+  /**
+   * Milestone is how many other users at least added the templates of a
+   * creator, missing if fewer than the lowest milestone.
+   */
+  milestone?: number /* int */;
+}
+/**
+ * UserBadgeGrant is a badge an admin gave a user, for the admins.
+ */
+export interface UserBadgeGrant {
+  user_id: string;
+  kind: string;
+  user?: User;
+  created_at: string /* RFC3339 */;
+}
+export type UserBadgeGrantListResponse = (UserBadgeGrant | undefined)[];
+/**
+ * UserBadgeGrantCreateRequest gives the user with the Discord ID a badge.
+ */
+export interface UserBadgeGrantCreateRequest {
+  discord_id: string;
+  kind: string;
+}
+export type UserBadgeGrantCreateResponse = UserBadgeGrant;
+export interface UserBadgeGrantDeleteResponse {
+}
 
 //////////
 // source: user_ban.go

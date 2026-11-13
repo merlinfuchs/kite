@@ -32,6 +32,11 @@ const (
 	// MaxErrorLength caps the message of an error, which ends up in the
 	// logs of the app.
 	MaxErrorLength = 1000
+	// MaxCalls caps the calls of Options.Host a run can make.
+	MaxCalls = 20
+	// MaxWallTime caps how long a run takes in all, with the time it waits
+	// for calls, which doesn't count against Timeout.
+	MaxWallTime = 10 * time.Second
 )
 
 const (
@@ -54,6 +59,14 @@ var (
 // slots caps the scripts running at once to half the cores, so a burst of
 // scripts can't delay the gateways and everything else. Scripts past it wait.
 var slots = make(chan struct{}, max(1, runtime.GOMAXPROCS(0)/2))
+
+// liveRuns caps the runs that have an instance, also the ones that wait for
+// calls without a slot. An instance holds 1.5 MB of memory, up to 16 MB.
+var liveRuns = make(chan struct{}, 128)
+
+// callGrace is how long Run waits for calls to return after they were
+// canceled, before it gives up on them.
+const callGrace = 5 * time.Second
 
 func getEngine() (*engine, error) {
 	engineOnce.Do(func() {
@@ -95,10 +108,37 @@ type Options struct {
 	// MaxLogEntries entries and MaxLogLength in total.
 	Log func(level LogLevel, message string)
 
+	// Host returns the call the code makes by a name like
+	// discord.create_message, or nil if there's none. The code calls it as
+	// discord.createMessage(arg), which returns a promise, and it runs in the
+	// background while the code waits. Every call has returned when Run does.
+	Host func(name string) HostFunc
+
 	// timeout replaces Timeout in tests, which can't rely on getting a busy
-	// CI machine's CPU for 25 ms.
-	timeout time.Duration
+	// CI machine's CPU for 25 ms. wallTime replaces MaxWallTime.
+	timeout  time.Duration
+	wallTime time.Duration
 }
+
+// HostFunc is a call the code can make. arg is the JSON of the code's
+// argument. Its error message is what the code's promise is rejected with. It
+// has to return soon once ctx is done.
+type HostFunc func(ctx context.Context, arg json.RawMessage) (json.RawMessage, error)
+
+// CallError is an error of a HostFunc from the service it called, whose
+// status and code the code can check, like e.status === 404. They become
+// properties of the Error, and are left out when they're 0.
+type CallError struct {
+	Err error
+	// The HTTP status of the response.
+	Status int
+	// The service's own code for the error, like 10003 for Discord's Unknown
+	// Channel.
+	Code int
+}
+
+func (e *CallError) Error() string { return e.Err.Error() }
+func (e *CallError) Unwrap() error { return e.Err }
 
 // Error is an error of the script, like one it threw or running out of
 // time, with a message for the user.
@@ -116,12 +156,14 @@ func (e *Error) Error() string {
 }
 
 var (
-	errTimeout = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
-	errMemory  = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
+	errTimeout  = &Error{Message: fmt.Sprintf("the code ran longer than %d ms", Timeout.Milliseconds())}
+	errPending  = &Error{Message: "the code waited for something that never finished"}
+	errWallTime = &Error{Message: fmt.Sprintf("the code took longer than %d seconds", int(MaxWallTime.Seconds()))}
+	errMemory   = &Error{Message: fmt.Sprintf("the code used more than %d MB of memory", MemoryLimit>>20)}
 )
 
-// Run runs opts.Code as the body of a function with the parameter input, and
-// returns the JSON of what it returns.
+// Run runs opts.Code as the body of an async function with the parameter
+// input, and returns the JSON of what it returns once the promise settles.
 func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	if n := utf8.RuneCountInString(opts.Code); n > MaxCodeLength {
 		return nil, &Error{Message: fmt.Sprintf("the code is %d characters, more than the limit of %d", n, MaxCodeLength)}
@@ -140,14 +182,46 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 
 	select {
-	case slots <- struct{}{}:
+	case liveRuns <- struct{}{}:
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	defer func() { <-slots }()
+	defer func() { <-liveRuns }()
+
+	// The run gives up its slot while it waits for calls.
+	held := false
+	acquire := func(ctx context.Context) error {
+		select {
+		case slots <- struct{}{}:
+			held = true
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	release := func() {
+		if held {
+			<-slots
+			held = false
+		}
+	}
+	defer release()
+	if err := acquire(ctx); err != nil {
+		return nil, err
+	}
+
+	wallTime := MaxWallTime
+	if opts.wallTime > 0 {
+		wallTime = opts.wallTime
+	}
+	hostCtx, cancel := context.WithTimeout(ctx, wallTime)
+	defer cancel()
 
 	logged, entries := 0, 0
 	st := &runState{
+		host:    opts.Host,
+		hostCtx: hostCtx,
+		results: make(chan callResult, MaxCalls),
 		log: func(level LogLevel, message string) {
 			if opts.Log == nil || entries >= MaxLogEntries || logged >= MaxLogLength {
 				return
@@ -168,22 +242,62 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	}
 	defer inst.close(context.Background())
 
-	timeout := Timeout
+	budget := Timeout
 	if opts.timeout > 0 {
-		timeout = opts.timeout
+		budget = opts.timeout
 	}
-	out, ok, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, timeout)
+	out, status, err := inst.run(stateCtx, []byte(codeHead+opts.Code+codeTail), input, &budget)
+	for err == nil && status == runPending && st.inflight > 0 {
+		release()
+		select {
+		case r := <-st.results:
+			st.inflight--
+			if acquire(hostCtx) != nil {
+				err = errWallTime
+			} else {
+				out, status, err = inst.resolve(stateCtx, r, &budget)
+			}
+		case <-hostCtx.Done():
+			err = errWallTime
+		}
+	}
+	release()
+	// Calls the code didn't wait for, like a message it sent without await,
+	// still finish, within the wall time. After it they're canceled, and Run
+	// gives up on them after callGrace.
+	done := hostCtx.Done()
+	var giveUp <-chan time.Time
+	for st.inflight > 0 {
+		select {
+		case <-st.results:
+			st.inflight--
+		case <-done:
+			done = nil
+			giveUp = time.After(callGrace)
+		case <-giveUp:
+			slog.Error("Script calls didn't return after they were canceled", slog.Int("calls", st.inflight))
+			st.inflight = 0
+		}
+	}
+
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if err == errTimeout {
+		if err == errTimeout || err == errWallTime {
 			return nil, err
 		}
 		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
 	}
-	if !ok {
-		return nil, scriptError(string(out))
+	switch status {
+	case runError:
+		return nil, scriptError(string(out), opts.Code)
+	case runPending:
+		// No timers or host calls can settle it yet.
+		return nil, errPending
+	case runResult:
+	default:
+		return nil, fmt.Errorf("the code stopped unexpectedly: status %d", status)
 	}
 	if len(out) > MaxResultLength {
 		return nil, &Error{Message: fmt.Sprintf("the result is %d KB, more than the limit of %d KB", len(out)>>10, MaxResultLength>>10)}
@@ -191,18 +305,18 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	return out, nil
 }
 
-// The code runs as the body of a function, which starts on its first line so
-// line numbers match.
+// The code runs as the body of an async function, so it can use await. The
+// function starts on its first line so line numbers match.
 const (
-	codeHead = "(function (input) {"
+	codeHead = "(async function (input) {"
 	codeTail = "\n})"
 )
 
 var codeLineRe = regexp.MustCompile(`code\.js:(\d+):(\d+)`)
 
 // scriptError turns an error from kite.c, the message, a null byte and the
-// stack, into an Error.
-func scriptError(out string) *Error {
+// stack, into an Error. code is the code the error is from.
+func scriptError(out string, code string) *Error {
 	message, stack, _ := strings.Cut(out, "\x00")
 	if len(message) > MaxErrorLength {
 		message = truncate(message, MaxErrorLength-len(cutOff)) + cutOff
@@ -215,10 +329,13 @@ func scriptError(out string) *Error {
 	}
 	e := &Error{Message: message}
 	if m := codeLineRe.FindStringSubmatch(stack); m != nil {
+		line, _ := strconv.Atoi(m[1])
 		// QuickJS gives some errors, like reading a property of null, the
-		// position of the function, which is codeHead.
-		if m[1] != "1" || m[2] != "1" {
-			e.Line, _ = strconv.Atoi(m[1])
+		// last position it knows of. That's the start of codeHead, or after
+		// an await the statement it resumed at, which would be a wrong line.
+		lines := strings.Split(codeHead+code+codeTail, "\n")
+		if (m[1] != "1" || m[2] != "1") && line <= len(lines) && !strings.Contains(lines[line-1], "await") {
+			e.Line = line
 		}
 	}
 	return e

@@ -91,6 +91,44 @@ func TestRecordTriggerStripsInteraction(t *testing.T) {
 	assert.Equal(t, "spam", cmd.Options[0].String())
 }
 
+func TestRecordTriggerRoundTripsComponents(t *testing.T) {
+	components := []discord.ComponentInteraction{
+		&discord.ButtonInteraction{CustomID: "button"},
+		&discord.StringSelectInteraction{CustomID: "string", Values: []string{"a", "b"}},
+		&discord.UserSelectInteraction{CustomID: "user", Values: []discord.UserID{10}},
+		&discord.RoleSelectInteraction{CustomID: "role", Values: []discord.RoleID{20}},
+		&discord.MentionableSelectInteraction{CustomID: "mentionable", Values: []discord.Snowflake{30}},
+		&discord.ChannelSelectInteraction{CustomID: "channel", Values: []discord.ChannelID{40}},
+	}
+
+	for _, component := range components {
+		state := NewFlowContextState()
+		state.recordTrigger(&TestContextData{interaction: &discord.InteractionEvent{
+			ID:     1,
+			Member: &discord.Member{User: discord.User{ID: 3}},
+			Data:   component,
+		}})
+
+		res := roundTrip(t, *state)
+		require.Len(t, res.Triggers, 1)
+		assert.Equal(t, component, res.Triggers[0].Interaction.Data)
+	}
+}
+
+func TestResumeTriggerRoundTripsComponent(t *testing.T) {
+	component := &discord.UserSelectInteraction{CustomID: "user", Values: []discord.UserID{10}}
+	state := NewFlowContextState()
+	state.ResumeTrigger = newFlowTrigger(&TestContextData{interaction: &discord.InteractionEvent{
+		ID:     1,
+		Member: &discord.Member{User: discord.User{ID: 3}},
+		Data:   component,
+	}})
+
+	res := roundTrip(t, *state)
+	require.NotNil(t, res.ResumeTrigger)
+	assert.Equal(t, component, res.ResumeTrigger.Interaction.Data)
+}
+
 func TestRecordTriggerRoundTripsEvent(t *testing.T) {
 	state := NewFlowContextState()
 	state.recordTrigger(&eventData{event: &gateway.MessageCreateEvent{

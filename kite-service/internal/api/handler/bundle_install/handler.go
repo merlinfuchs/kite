@@ -620,7 +620,7 @@ func usedByOthers(all store.BundleInstallContents, installID string) map[string]
 			if id := node.Data.MessageTemplateID; id != "" {
 				used[id] = true
 			}
-			if id := node.Data.VariableID; id != "" {
+			for _, id := range node.Data.VariableIDs() {
 				used[id] = true
 			}
 		}

@@ -8,7 +8,6 @@ export const discordRoleDelete: BlockDefinition = {
   description: "Delete a role from the server",
   icon: "shield-x",
   category: "Roles",
-  credits: 1,
   permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   strict_settings: true,
@@ -16,8 +15,6 @@ export const discordRoleDelete: BlockDefinition = {
     kind: "request",
     integration: "discord",
     operation: "delete_guild_role",
-    method: "DELETE",
-    path: "/guilds/{guild_id}/roles/{role_id}",
   },
-  fields: [guildField, { ...roleTargetField, required: true }],
+  fields: [guildField, roleTargetField],
 };

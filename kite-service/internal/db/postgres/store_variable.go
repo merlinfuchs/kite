@@ -84,8 +84,11 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 	return v, nil
 }
 
+// CreateVariable returns store.ErrAlreadyExists if the app has a variable
+// with the name.
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
-	return c.createVariableWithTx(ctx, nil, variable)
+	v, err := c.createVariableWithTx(ctx, nil, variable)
+	return v, uniqueViolation(err)
 }
 
 func (c *Client) createVariableWithTx(ctx context.Context, tx pgx.Tx, variable *model.Variable) (*model.Variable, error) {
@@ -133,7 +136,7 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, err
+		return nil, uniqueViolation(err)
 	}
 
 	return rowToVariable(row), nil
@@ -275,13 +278,13 @@ func (c *Client) VariableValue(ctx context.Context, appID string, variableID str
 }
 
 func (c *Client) SetVariableValue(ctx context.Context, appID string, value model.VariableValue) error {
-	_, err := c.setVariableValueWithTx(ctx, nil, appID, value)
+	_, err := c.writeVariableValueWithTx(ctx, nil, appID, value)
 	return err
 }
 
 func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
-	if operation == provider.VariableOperationOverwrite {
-		return c.setVariableValueWithTx(ctx, nil, appID, value)
+	if operation.IsOverwrite() {
+		return c.writeVariableValueWithTx(ctx, nil, appID, value)
 	}
 
 	tx, err := c.DB.Begin(ctx)
@@ -291,27 +294,40 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	defer tx.Rollback(ctx)
 
 	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			// Current transaction is rolled back, we set the value outside of the transaction
-			value.Data = firstVariableValue(operation, value.Data)
-			return c.setVariableValueWithTx(ctx, nil, appID, value)
+	if errors.Is(err, store.ErrNotFound) {
+		// There's no row to lock yet, so the first value is inserted. If
+		// another run inserted one in the meantime, the insert waits for it
+		// and locks it instead, and this change is made to it. Otherwise each
+		// would store its first value and only the last change would count.
+		first := value
+		first.Data = operation.Apply(thing.Null, false, value.Data)
+		data, err := encodeVariableValue(first.Data)
+		if err != nil {
+			return nil, err
 		}
+		row, err := c.Q.WithTx(tx).InsertOrLockVariableValue(ctx, pgmodel.InsertOrLockVariableValueParams(variableValueParams(appID, first, data)))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to insert variable value: %w", err)
+		}
+		v, err := rowToVariableValue(row.VariableValue)
+		if err != nil {
+			return nil, err
+		}
+		if row.Inserted {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, fmt.Errorf("failed to commit transaction: %w", err)
+			}
+			return &v, nil
+		}
+		currentValue = &v
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
 	}
 
-	switch operation {
-	case provider.VariableOperationAppend:
-		value.Data = currentValue.Data.Append(value.Data)
-	case provider.VariableOperationPrepend:
-		value.Data = value.Data.Append(currentValue.Data)
-	case provider.VariableOperationIncrement:
-		value.Data = currentValue.Data.Add(value.Data)
-	case provider.VariableOperationDecrement:
-		value.Data = currentValue.Data.Sub(value.Data)
-	}
-
-	newValue, err := c.setVariableValueWithTx(ctx, tx, appID, value)
+	value.Data = operation.Apply(currentValue.Data, true, value.Data)
+	newValue, err := c.writeVariableValueWithTx(ctx, tx, appID, value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set variable value: %w", err)
 	}
@@ -379,29 +395,22 @@ func (c *Client) variableValueWithTx(ctx context.Context, tx pgx.Tx, appID strin
 	return &v, nil
 }
 
-func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
+// writeVariableValueWithTx stores the value. It returns store.ErrNotFound
+// if the variable isn't the app's.
+func (c *Client) writeVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID string, value model.VariableValue) (*model.VariableValue, error) {
 	q := c.Q
 	if tx != nil {
 		q = c.Q.WithTx(tx)
 	}
 
-	data, err := json.Marshal(value.Data)
+	data, err := encodeVariableValue(value.Data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+		return nil, err
 	}
-
-	row, err := q.SetVariableValue(ctx, pgmodel.SetVariableValueParams{
-		VariableID: value.VariableID,
-		AppID:      appID,
-		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
-		Value:      data,
-		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
-		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, store.ErrNotFound
-		}
+	row, err := q.SetVariableValue(ctx, variableValueParams(appID, value, data))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, store.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -409,8 +418,31 @@ func (c *Client) setVariableValueWithTx(ctx context.Context, tx pgx.Tx, appID st
 	if err != nil {
 		return nil, err
 	}
-
 	return &v, nil
+}
+
+func variableValueParams(appID string, value model.VariableValue, data []byte) pgmodel.SetVariableValueParams {
+	return pgmodel.SetVariableValueParams{
+		VariableID: value.VariableID,
+		AppID:      appID,
+		Scope:      pgtype.Text{String: value.Scope.String, Valid: value.Scope.Valid},
+		Value:      data,
+		CreatedAt:  pgtype.Timestamp{Time: value.CreatedAt, Valid: true},
+		UpdatedAt:  pgtype.Timestamp{Time: value.UpdatedAt, Valid: true},
+	}
+}
+
+// encodeVariableValue is the JSON a value is stored as, which can be up to
+// provider.MaxVariableValueSize.
+func encodeVariableValue(v thing.Thing) ([]byte, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal variable value: %w", err)
+	}
+	if len(data) > provider.MaxVariableValueSize {
+		return nil, provider.ErrVariableValueTooLarge
+	}
+	return data, nil
 }
 
 func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) {
@@ -428,14 +460,4 @@ func rowToVariableValue(row pgmodel.VariableValue) (model.VariableValue, error) 
 		CreatedAt:  row.CreatedAt.Time,
 		UpdatedAt:  row.UpdatedAt.Time,
 	}, nil
-}
-
-// firstVariableValue is the value an operation stores when the variable has no
-// value yet. A missing value counts as 0 for decrement, so taking 50 from it
-// stores -50 instead of 50. The other operations store the value as it is.
-func firstVariableValue(operation model.VariableValueOperation, data thing.Thing) thing.Thing {
-	if operation == provider.VariableOperationDecrement {
-		return thing.NewInt(0).Sub(data)
-	}
-	return data
 }

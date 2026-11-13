@@ -39,6 +39,16 @@ export function placeholderReferences(template: string, root: string) {
 
 // Whether every placeholder that references a secret is just the secret, like
 // {{secrets.TOKEN}}, and not an expression that could use a part of it.
+// onlySecretPlaceholders reports whether every placeholder of text is just a
+// secret, for code, where the service fills in nothing else. See
+// flowSecrets.Fill in the service.
+export function onlySecretPlaceholders(text: string) {
+  for (const [, placeholder] of text.matchAll(placeholderRe)) {
+    if (!plainSecretRe.test(placeholder)) return false;
+  }
+  return true;
+}
+
 export function onlyPlainSecrets(template: string) {
   for (const [, placeholder] of template.matchAll(placeholderRe)) {
     if (secretMentionRe.test(placeholder) && !plainSecretRe.test(placeholder)) {

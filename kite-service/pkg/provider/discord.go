@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -91,6 +93,118 @@ type ServerProfileData struct {
 	Avatar option.NullableString `json:"avatar,omitempty"`
 	Banner option.NullableString `json:"banner,omitempty"`
 	Bio    option.NullableString `json:"bio,omitempty"`
+	// NameStyle changes the style of the bot's name, and an empty one removes
+	// it. Discord ignores its fields unless all three are sent, so it's sent
+	// as all of them by MarshalJSON.
+	NameStyle *NameStyle `json:"-"`
+}
+
+func (d ServerProfileData) MarshalJSON() ([]byte, error) {
+	type fields ServerProfileData
+	body := struct {
+		fields
+		FontID   option.NullableInt `json:"display_name_font_id,omitempty"`
+		EffectID option.NullableInt `json:"display_name_effect_id,omitempty"`
+		Colors   *[]int             `json:"display_name_colors,omitempty"`
+	}{fields: fields(d)}
+
+	if style := d.NameStyle; style != nil {
+		if style.FontID == 0 {
+			body.FontID, body.EffectID, body.Colors = option.NullInt, option.NullInt, new([]int)
+		} else {
+			body.FontID = option.NewNullableInt(style.FontID)
+			body.EffectID = option.NewNullableInt(style.EffectID)
+			body.Colors = &style.Colors
+		}
+	}
+	return json.Marshal(body)
+}
+
+// NameStyle is the font, effect and colors of a name, which Discord shows in
+// the profile. Servers only show the font, and the role color instead of the
+// colors.
+type NameStyle struct {
+	FontID   int   `json:"font_id"`
+	EffectID int   `json:"effect_id"`
+	Colors   []int `json:"colors"`
+}
+
+// NewNameStyle returns the style with the font and effect of the names Kite
+// uses for them.
+func NewNameStyle(font, effect string, colors []int) (*NameStyle, error) {
+	fontID, ok := NameStyleFonts[font]
+	if !ok {
+		return nil, fmt.Errorf("unknown name font %q", font)
+	}
+	effectID, ok := NameStyleEffects[effect]
+	if !ok {
+		return nil, fmt.Errorf("unknown name effect %q", effect)
+	}
+	if len(colors) == 0 || len(colors) > MaxNameStyleColors {
+		return nil, fmt.Errorf("a name style needs 1 to %d colors", MaxNameStyleColors)
+	}
+	for _, color := range colors {
+		if color < 0 || color > 0xFFFFFF {
+			return nil, fmt.Errorf("name color %d isn't a color", color)
+		}
+	}
+	return &NameStyle{FontID: fontID, EffectID: effectID, Colors: colors}, nil
+}
+
+// Names returns the names Kite uses for the font and effect, and false for
+// ones Kite doesn't offer.
+func (s NameStyle) Names() (font string, effect string, ok bool) {
+	for name, id := range NameStyleFonts {
+		if id == s.FontID {
+			font = name
+		}
+	}
+	for name, id := range NameStyleEffects {
+		if id == s.EffectID {
+			effect = name
+		}
+	}
+	return font, effect, font != "" && effect != ""
+}
+
+// StyledMember is a member as Discord sends it, with the style of its name,
+// which arikawa doesn't know.
+type StyledMember struct {
+	discord.Member
+	NameStyle *NameStyle `json:"display_name_styles"`
+}
+
+// MaxNameStyleColors is how many colors Discord takes for a name style.
+const MaxNameStyleColors = 5
+
+// NameStyleFonts are the fonts of name styles by the name Kite uses for them,
+// which is the one Discord shows. Discord still takes some it no longer
+// offers, which Kite leaves out.
+var NameStyleFonts = map[string]int{
+	"default":     11,
+	"sakura":      3,
+	"jellybean":   4,
+	"modern":      6,
+	"medieval":    7,
+	"8bit":        8,
+	"vampyre":     10,
+	"tempo":       12,
+	"monkey_bars": 13,
+	"mainframe":   14,
+	"headbang":    15,
+	"journal":     16,
+}
+
+// NameStyleEffects are the effects of name styles by the name Kite uses for
+// them.
+var NameStyleEffects = map[string]int{
+	"solid":    1,
+	"gradient": 2,
+	"neon":     3,
+	"toon":     4,
+	"pop":      5,
+	"prism":    7,
+	"gummy":    8,
 }
 
 // CreatePollData is the poll object of a create message request. arikawa

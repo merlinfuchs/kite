@@ -190,6 +190,47 @@ func (q *Queries) GetSubscriptionsByAppID(ctx context.Context, appID string) ([]
 	return items, nil
 }
 
+const getSubscriptionsByUserIDs = `-- name: GetSubscriptionsByUserIDs :many
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE user_id = ANY($1::text[]) ORDER BY created_at DESC
+`
+
+func (q *Queries) GetSubscriptionsByUserIDs(ctx context.Context, userIds []string) ([]Subscription, error) {
+	rows, err := q.db.Query(ctx, getSubscriptionsByUserIDs, userIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Subscription
+	for rows.Next() {
+		var i Subscription
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.Source,
+			&i.Status,
+			&i.StatusFormatted,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.RenewsAt,
+			&i.TrialEndsAt,
+			&i.EndsAt,
+			&i.UserID,
+			&i.LemonsqueezySubscriptionID,
+			&i.LemonsqueezyCustomerID,
+			&i.LemonsqueezyOrderID,
+			&i.LemonsqueezyProductID,
+			&i.LemonsqueezyVariantID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertLemonSqueezySubscription = `-- name: UpsertLemonSqueezySubscription :one
 INSERT INTO subscriptions (
     id,

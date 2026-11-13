@@ -9,14 +9,11 @@ export const discordMessagePublish: BlockDefinition = {
   icon: "megaphone",
   category: "Messages",
   permissions: ["MANAGE_MESSAGES"],
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "crosspost_message",
-    method: "POST",
-    path: "/channels/{channel_id}/messages/{message_id}/crosspost",
   },
   fields: [channelTargetField, messageTargetField],
   result: {

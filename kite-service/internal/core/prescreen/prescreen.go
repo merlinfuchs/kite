@@ -30,9 +30,9 @@ import (
 var instructionsTemplate string
 
 // maxContentSize is the most content it screens, without positions, about 30k
-// tokens or a cent with gpt-5-mini. The biggest template in the marketplace has
-// half of it. Bigger ones go to the admins unscreened instead of being cut, so
-// nothing in them goes unread.
+// tokens or a third of a cent with gpt-6-luna. The biggest template in the
+// marketplace has half of it. Bigger ones go to the admins unscreened instead
+// of being cut, so nothing in them goes unread.
 const maxContentSize = 100_000
 
 // pollInterval is how often it looks for reviews to screen.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -39,9 +40,40 @@ type StateUserGetResponse = StateUser
 // StateGuildProfile is the bot's profile in a server. Fields are empty where
 // it uses its own profile. Discord doesn't return the About Me.
 type StateGuildProfile struct {
-	Nick      string `json:"nick"`
-	AvatarURL string `json:"avatar_url"`
-	BannerURL string `json:"banner_url"`
+	Nick      string     `json:"nick"`
+	AvatarURL string     `json:"avatar_url"`
+	BannerURL string     `json:"banner_url"`
+	NameStyle *NameStyle `json:"name_style"`
+}
+
+// NameStyle is the font, effect and colors of the bot's name in a server, by
+// the names of provider.NameStyleFonts and provider.NameStyleEffects.
+type NameStyle struct {
+	Font   string `json:"font"`
+	Effect string `json:"effect"`
+	Colors []int  `json:"colors"`
+}
+
+func (s NameStyle) Validate() error {
+	_, err := s.ToProvider()
+	return err
+}
+
+func (s NameStyle) ToProvider() (*provider.NameStyle, error) {
+	return provider.NewNameStyle(s.Font, s.Effect, s.Colors)
+}
+
+// NameStyleToWire returns nil for styles with a font or effect Kite doesn't
+// offer, like the ones Discord no longer offers.
+func NameStyleToWire(style *provider.NameStyle) *NameStyle {
+	if style == nil {
+		return nil
+	}
+	font, effect, ok := style.Names()
+	if !ok {
+		return nil
+	}
+	return &NameStyle{Font: font, Effect: effect, Colors: style.Colors}
 }
 
 type StateGuildProfileGetResponse = StateGuildProfile
@@ -114,13 +146,15 @@ type StateGuildLeaveResponse = Empty
 
 // StateGuildProfileUpdateRequest changes the bot's profile in a server. A
 // field that isn't set stays as it is, and an empty one resets to the bot's
-// own profile.
+// own profile. Reset resets all of them, the other fields are ignored then.
 type StateGuildProfileUpdateRequest struct {
 	Nick *string `json:"nick,omitempty"`
 	Bio  *string `json:"bio,omitempty"`
 	// Avatar and Banner are data URIs of the image.
-	Avatar *string `json:"avatar,omitempty"`
-	Banner *string `json:"banner,omitempty"`
+	Avatar    *string    `json:"avatar,omitempty"`
+	Banner    *string    `json:"banner,omitempty"`
+	NameStyle *NameStyle `json:"name_style,omitempty"`
+	Reset     bool       `json:"reset,omitempty"`
 }
 
 var profileImageRegex = regexp.MustCompile(`^data:image/(png|jpeg|gif|webp);base64,`)
@@ -131,6 +165,7 @@ func (req StateGuildProfileUpdateRequest) Validate() error {
 		validation.Field(&req.Bio, validation.RuneLength(0, 190)),
 		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
 		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
+		validation.Field(&req.NameStyle),
 	)
 }
 

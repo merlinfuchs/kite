@@ -17,17 +17,19 @@ type HTTPResponseValue struct {
 	Headers    map[string]string `json:"headers"`
 }
 
-func NewHTTPResponseValue(v *http.Response) (HTTPResponseValue, error) {
+// NewHTTPResponseValue reads the response. A body of more than maxBody bytes
+// is cut off, or an error if its Content-Length says so.
+func NewHTTPResponseValue(v *http.Response, maxBody int) (HTTPResponseValue, error) {
 	headers := make(map[string]string, len(v.Header))
 	for k, v := range v.Header {
 		headers[k] = strings.Join(v, ",")
 	}
 
-	if v.ContentLength > MaxBodySize {
-		return HTTPResponseValue{}, fmt.Errorf("body size exceeds max body size of %d bytes", MaxBodySize)
+	if v.ContentLength > int64(maxBody) {
+		return HTTPResponseValue{}, fmt.Errorf("body size exceeds max body size of %d bytes", maxBody)
 	}
 
-	limitedBody := io.LimitReader(v.Body, MaxBodySize)
+	limitedBody := io.LimitReader(v.Body, int64(maxBody))
 	body, err := io.ReadAll(limitedBody)
 	if err != nil {
 		return HTTPResponseValue{}, err

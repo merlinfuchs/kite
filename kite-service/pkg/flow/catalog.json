@@ -4865,7 +4865,7 @@
     },
     "action_server_profile_edit": {
       "title": "Edit server profile",
-      "description": "Change the bot's nickname, avatar, banner or bio in a server",
+      "description": "Change the bot's nickname, avatar, banner, bio, or name style in a server",
       "contexts": [
         "command",
         "component_button",
@@ -4925,8 +4925,62 @@
                 "description": "About me of the bot in the server. Empty resets it to the bot's own.",
                 "x-templated": true
               },
+              "name_style": {
+                "description": "Font, effect and colors of the bot's name. Reset profile removes it.",
+                "type": "object",
+                "properties": {
+                  "font": {
+                    "type": "string",
+                    "enum": [
+                      "default",
+                      "sakura",
+                      "jellybean",
+                      "modern",
+                      "medieval",
+                      "8bit",
+                      "vampyre",
+                      "tempo",
+                      "monkey_bars",
+                      "mainframe",
+                      "headbang",
+                      "journal"
+                    ],
+                    "description": "Font of the name, shown in servers and in the bot's profile."
+                  },
+                  "effect": {
+                    "type": "string",
+                    "enum": [
+                      "solid",
+                      "gradient",
+                      "neon",
+                      "toon",
+                      "pop",
+                      "prism",
+                      "gummy"
+                    ],
+                    "description": "Effect of the name in the bot's profile. Solid, neon, toon and pop use one color, gradient two, gummy four and prism five."
+                  },
+                  "colors": {
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Hex color like #5865F2, or a number like 5793266.",
+                      "x-templated": true
+                    },
+                    "description": "Colors of the name in the bot's profile. Servers show the role color instead."
+                  }
+                },
+                "required": [
+                  "font",
+                  "effect",
+                  "colors"
+                ],
+                "additionalProperties": false
+              },
               "reset": {
-                "description": "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields.",
+                "description": "Reset the nickname, avatar, banner, about me and name style to the bot's own. Can't be combined with the other fields.",
                 "type": "boolean"
               }
             },
@@ -5005,7 +5059,7 @@
               "increment",
               "decrement"
             ],
-            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number."
+            "description": "How the value is combined with the stored one. increment and decrement add or subtract a number. append and prepend add text to the end or start, or the value as one item to a stored list."
           },
           "variable_value": {
             "type": "string",
@@ -5878,7 +5932,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 4000,
-                "description": "JavaScript that runs as the body of a function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. There's no async, network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
+                "description": "JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. A failed request throws an Error with status, like 404, and Discord's error code as code. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit. Up to 20 calls per run. fetch(url, {method, headers, body}) sends a request to any URL for 3 credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It can't change anything in Discord, and has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like \"dddd HH:mm\" in a time zone like \"Europe/Berlin\". It can run for 25 ms and use 8 MB of memory. Up to 4000 characters."
               },
               "inputs": {
                 "description": "Values the code gets from the flow.",
@@ -5901,6 +5955,32 @@
                   },
                   "required": [
                     "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "variables": {
+                "description": "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), append({name, scope, value}) and prepend, which add an item to a list or text, increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit.",
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 32,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name the code uses for the variable, like variables.get({name: \"xp\", scope: input.user.id})."
+                    },
+                    "variable_id": {
+                      "type": "string",
+                      "description": "ID of an existing stored variable.",
+                      "x-user-picked": true
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "variable_id"
                   ],
                   "additionalProperties": false
                 }

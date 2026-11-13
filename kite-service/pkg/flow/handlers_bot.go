@@ -10,6 +10,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
@@ -201,10 +202,11 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 
 	if profile.Reset {
 		err = ctx.Discord.EditServerProfile(ctx, guildID, provider.ServerProfileData{
-			Nick:   option.NullString,
-			Avatar: option.NullString,
-			Banner: option.NullString,
-			Bio:    option.NullString,
+			Nick:      option.NullString,
+			Avatar:    option.NullString,
+			Banner:    option.NullString,
+			Bio:       option.NullString,
+			NameStyle: &provider.NameStyle{},
 		})
 		if err != nil {
 			return err
@@ -218,6 +220,12 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 	if data.Bio, err = evalProfileText(ctx, profile.Bio); err != nil {
 		return err
+	}
+	// Before the images, so a wrong color fails without downloading them.
+	if profile.NameStyle != nil {
+		if data.NameStyle, err = evalNameStyle(ctx, profile.NameStyle); err != nil {
+			return err
+		}
 	}
 	if data.Avatar, err = evalProfileImage(ctx, profile.AvatarURL); err != nil {
 		return err
@@ -248,6 +256,27 @@ func evalProfileText(ctx *FlowContext, tmpl *string) (option.NullableString, err
 		return option.NullString, nil
 	}
 	return option.NewNullableString(value.String()), nil
+}
+
+func evalNameStyle(ctx *FlowContext, data *NameStyleData) (*provider.NameStyle, error) {
+	if len(data.Colors) > provider.MaxNameStyleColors {
+		return nil, fmt.Errorf("a name style needs 1 to %d colors", provider.MaxNameStyleColors)
+	}
+
+	colors := make([]int, len(data.Colors))
+	for i, tmpl := range data.Colors {
+		value, err := ctx.EvalTemplate(tmpl)
+		if err != nil {
+			return nil, err
+		}
+		color, err := message.ParseColor(strings.TrimSpace(value.String()))
+		if err != nil {
+			return nil, err
+		}
+		colors[i] = int(color)
+	}
+
+	return provider.NewNameStyle(data.Font, data.Effect, colors)
 }
 
 // Discord's limit for avatars and banners.

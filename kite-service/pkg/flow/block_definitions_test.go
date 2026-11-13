@@ -429,3 +429,9 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 	require.NoError(t, json.Unmarshal(p.req.Body, &body))
 	assert.WithinDuration(t, time.Now().Add(time.Minute), body.Until.Time(), 5*time.Second)
 }
+
+func TestOperationPolicies(t *testing.T) {
+	assert.True(t, operations["discord"]["ban_user_from_guild"].Policy.Destructive)
+	assert.Equal(t, "channel", operations["discord"]["create_message"].Policy.Target)
+	assert.Zero(t, operations["discord"]["get_channel"].Credits)
+}

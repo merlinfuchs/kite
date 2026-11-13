@@ -67,6 +67,16 @@ func uniqueViolation(err error) error {
 	return err
 }
 
+// foreignKeyViolation turns a violated foreign key, a row that refers to one
+// that was deleted, into store.ErrNotFound.
+func foreignKeyViolation(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		return store.ErrNotFound
+	}
+	return err
+}
+
 // PoolStats is how busy the connection pool is. A rising EmptyAcquireCount
 // means queries waited for a free connection.
 type PoolStats struct {

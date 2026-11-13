@@ -24,12 +24,25 @@ import {
   aiPromptLimits,
   getAiModelTier,
 } from "@/lib/flow/aiModels";
-import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
+import {
+  blockIntegrations,
+  blockOperation,
+  getBlockDefinition,
+} from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
-import { javascriptMaxInputs } from "@/lib/blocks/javascriptRun";
+import {
+  colorsForEffect,
+  defaultNameStyleColors,
+  nameStyleEffects,
+  nameStyleFonts,
+} from "@/lib/nameStyle";
+import {
+  javascriptMaxInputs,
+  javascriptMaxVariables,
+} from "@/lib/blocks/javascriptRun";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import { variableListSorts } from "@/lib/blocks/variableList";
 import {
@@ -1849,8 +1862,7 @@ function BlockFieldInput({
   // Edits keep what's left out, so they need "No" besides leaving it empty.
   if (
     field.type === "boolean" &&
-    definition?.run.kind === "request" &&
-    definition.run.method === "PATCH"
+    blockOperation(definition)?.method === "PATCH"
   ) {
     return (
       <BaseKeepSelect
@@ -2571,9 +2583,11 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
 
 function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
   const inputs = data.javascript_data?.inputs || [];
-  const inputNames = inputs
-    .filter((input) => input.name)
-    .map((input) => `input.${input.name}`);
+  const inputNames = inputs.flatMap((input) =>
+    input.name ? [input.name] : []
+  );
+  const codeVariables = data.javascript_data?.variables || [];
+  const appVariables = useFlowVariables();
 
   function update(patch: Partial<NonNullable<typeof data.javascript_data>>) {
     updateData({ javascript_data: { ...data.javascript_data, ...patch } });
@@ -2583,6 +2597,19 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
     update({
       inputs: inputs.map((input, j) =>
         i === j ? { name, value: value || undefined } : input
+      ),
+    });
+  }
+
+  function updateVariable(i: number, name: string, variableId: string) {
+    // Named after the variable until the user names it.
+    const variable = appVariables?.find((v) => v?.id === variableId);
+    if (!name && variable) {
+      name = variable.name.replace(/[^A-Za-z0-9_]/g, "_").replace(/^\d/, "_$&");
+    }
+    update({
+      variables: codeVariables.map((v, j) =>
+        i === j ? { name, variable_id: variableId || undefined } : v
       ),
     });
   }
@@ -2598,9 +2625,15 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
         error={errors["javascript_data.code"]}
         hint={
           inputNames.length > 0
-            ? `The inputs are ${inputNames.join(", ")}.`
+            ? `The inputs are ${inputNames
+                .map((name) => `input.${name}`)
+                .join(", ")}.`
             : undefined
         }
+        names={{
+          inputs: inputNames,
+          variables: codeVariables.flatMap((v) => (v.name ? [v.name] : [])),
+        }}
       />
       <div>
         <div className="font-medium text-foreground mb-1">Inputs</div>
@@ -2654,6 +2687,83 @@ function JavaScriptDataInput({ data, updateData, errors }: InputProps) {
                 >
                   <PlusIcon className="h-5 w-5" />
                 </Button>
+              </div>
+            </EditOnly>
+          )}
+        </div>
+      </div>
+      <div>
+        <div className="font-medium text-foreground mb-1">Stored variables</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          Variables the code can read and change by name, like{" "}
+          {'variables.get({ name: "xp", scope: input.user.id })'}.
+        </div>
+        <div className="flex flex-col gap-3">
+          {codeVariables.map((v, i) => (
+            <div className="flex gap-2" key={i}>
+              <div className="grid grid-cols-2 gap-2 flex-auto">
+                <BaseInput
+                  field={`javascript_data.variables.${i}.name`}
+                  placeholder="Name"
+                  value={v.name || ""}
+                  updateValue={(name) =>
+                    updateVariable(i, name, v.variable_id || "")
+                  }
+                  errors={errors}
+                />
+                <BaseInput
+                  type="select"
+                  field={`javascript_data.variables.${i}.variable_id`}
+                  placeholder="Variable"
+                  options={appVariables?.map((av) => ({
+                    value: av!.id,
+                    label: av!.name,
+                  }))}
+                  value={v.variable_id || ""}
+                  updateValue={(id) => updateVariable(i, v.name, id)}
+                  errors={errors}
+                />
+              </div>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    update({
+                      variables: codeVariables.filter((_, j) => i !== j),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
+            </div>
+          ))}
+          {codeVariables.length < javascriptMaxVariables && (
+            <EditOnly>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    update({ variables: [...codeVariables, { name: "" }] })
+                  }
+                >
+                  <PlusIcon className="h-5 w-5" />
+                </Button>
+                <VariableCreateDialog
+                  onVariableCreated={(id) =>
+                    update({
+                      variables: [
+                        ...codeVariables,
+                        { name: "", variable_id: id },
+                      ],
+                    })
+                  }
+                >
+                  <Button variant="outline">New variable</Button>
+                </VariableCreateDialog>
               </div>
             </EditOnly>
           )}
@@ -4627,13 +4737,14 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
     });
 
   const reset = !!data.server_profile_data?.reset;
+  const nameStyle = data.server_profile_data?.name_style;
 
   return (
     <>
       <BaseCheckbox
         field="server_profile_data.reset"
         title="Reset profile"
-        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        description="Reset the nickname, avatar, banner, about me and name style to the bot's own."
         value={reset}
         updateValue={(v) =>
           updateData({ server_profile_data: v ? { reset: true } : {} })
@@ -4681,6 +4792,78 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
+          <BaseInput
+            type="select"
+            field="server_profile_data.name_style.font"
+            title="Name font"
+            description="Shows in servers and in the bot's profile."
+            options={[
+              { value: "keep", label: "Keep current" },
+              ...nameStyleFonts,
+            ]}
+            value={nameStyle?.font || "keep"}
+            updateValue={(font) =>
+              updateField({
+                name_style:
+                  font === "keep"
+                    ? undefined
+                    : {
+                        effect: "solid",
+                        colors: [defaultNameStyleColors[0].toString()],
+                        ...nameStyle,
+                        font,
+                      },
+              })
+            }
+            errors={errors}
+          />
+          {nameStyle && (
+            <>
+              <BaseInput
+                type="select"
+                field="server_profile_data.name_style.effect"
+                title="Name effect"
+                description="Shows in the bot's profile with the colors below. Servers show the role color instead."
+                options={[...nameStyleEffects]}
+                value={nameStyle.effect || ""}
+                updateValue={(effect) =>
+                  updateField({
+                    name_style: {
+                      ...nameStyle,
+                      effect,
+                      colors: colorsForEffect(effect, nameStyle.colors, (i) =>
+                        defaultNameStyleColors[i].toString()
+                      ),
+                    },
+                  })
+                }
+                errors={errors}
+              />
+              {nameStyle.colors.map((color, i) => (
+                <BaseColorInput
+                  key={i}
+                  field={`server_profile_data.name_style.colors.${i}`}
+                  title={
+                    nameStyle.colors.length > 1
+                      ? `Name color ${i + 1}`
+                      : "Name color"
+                  }
+                  value={color}
+                  updateValue={(v) =>
+                    updateField({
+                      name_style: {
+                        ...nameStyle,
+                        colors: nameStyle.colors.map((c, j) =>
+                          j === i ? v : c
+                        ),
+                      },
+                    })
+                  }
+                  errors={errors}
+                />
+              ))}
+            </>
+          )}
         </>
       )}
     </>

@@ -16,9 +16,11 @@ type User struct {
 	DiscordAvatar   null.String `json:"discord_avatar"`
 	// IsAdmin is whether the current user can review bundles, false for
 	// other users.
-	IsAdmin   bool      `json:"is_admin"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	IsAdmin bool `json:"is_admin"`
+	// Badges are the badges of the current user, empty for other users.
+	Badges    []UserBadge `json:"badges,omitempty"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
 }
 
 type UserGetResponse = User

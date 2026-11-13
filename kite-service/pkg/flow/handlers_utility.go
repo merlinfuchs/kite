@@ -1,6 +1,8 @@
 package flow
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +11,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/js"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -167,6 +171,100 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// javaScriptHost has the operations the code of a Run JavaScript block can
+// call: the reads, GET operations, of the integrations the app can use, and
+// the handler operations of Kite's own features. Each costs the credits of
+// its operation. The calls run at the same time, so they take turns with ctx.
+type javaScriptHost struct {
+	ctx *FlowContext
+	mu  sync.Mutex
+	// The block's stored variables, see operationCall.
+	variables map[string]string
+}
+
+// callContext is a copy of the flow's context that's canceled with the call.
+// Calls only read it, and count and charge through charge.
+func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
+	h.mu.Lock()
+	c := *h.ctx
+	h.mu.Unlock()
+	c.Context = callCtx
+	return &c
+}
+
+// charge counts a call of op against the flow's operations and charges its
+// credits. Unlike for a block, a call over the limit isn't billed, as code
+// can catch the error and keep calling.
+func (h *javaScriptHost) charge(op operation) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if err := h.ctx.increaseOperations(); err != nil {
+		return err
+	}
+	if err := h.ctx.ensureCredits(op.Credits); err != nil {
+		return err
+	}
+	return h.ctx.increaseCredits(op.Credits)
+}
+
+func (h *javaScriptHost) lookup(name string) js.HostFunc {
+	integration, id, _ := strings.Cut(name, ".")
+	op, ok := operations[integration][id]
+	if !ok || !op.Policy.Code {
+		return nil
+	}
+	if op.Kind == "handler" {
+		handler := operationHandlers[name]
+		if handler == nil {
+			return nil
+		}
+		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+			res, err := handler(operationCall{
+				ctx:       h.callContext(callCtx),
+				arg:       arg,
+				charge:    func() error { return h.charge(op) },
+				variables: h.variables,
+			})
+			if err != nil {
+				return nil, err
+			}
+			// Without escaping <, > and &, which code doesn't need.
+			var b bytes.Buffer
+			enc := json.NewEncoder(&b)
+			enc.SetEscapeHTML(false)
+			err = enc.Encode(res)
+			return b.Bytes(), err
+		}
+	}
+
+	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+		path, body, err := operationRequest(op, arg)
+		if err != nil {
+			return nil, err
+		}
+
+		c := h.callContext(callCtx)
+		if err := c.checkIntegration(op.Integration); err != nil {
+			return nil, err
+		}
+		if c.Test != nil && op.Integration != "discord" {
+			return nil, errors.New("test runs don't send requests outside of Discord")
+		}
+		if err := h.charge(op); err != nil {
+			return nil, err
+		}
+
+		res, err := c.sendOperation(op, path, body, "")
+		if err != nil {
+			return nil, callError(err)
+		}
+		if len(bytes.TrimSpace(res)) == 0 {
+			return json.RawMessage("null"), nil
+		}
+		return res, nil
+	}
+}
+
 func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 	data := n.Data.JavaScriptData
 	if data == nil {
@@ -198,9 +296,14 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
+	host := &javaScriptHost{ctx: ctx, variables: make(map[string]string, len(data.Variables))}
+	for _, v := range data.Variables {
+		host.variables[v.Name] = v.VariableID
+	}
 	res, runErr := js.Run(ctx, js.Options{
 		Code:  data.Code,
 		Input: input,
+		Host:  host.lookup,
 		Log: func(level js.LogLevel, message string) {
 			if n := len(logs); n > 0 && logs[n-1].level == level {
 				logs[n-1].lines = append(logs[n-1].lines, message)
@@ -286,4 +389,29 @@ func executeActionLog(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, logMessage.String())
 	return n.ExecuteChildren(ctx)
+}
+
+// callError is err of a request from code, with the status and code of the
+// response the code can check.
+func callError(err error) error {
+	var discordErr *httputil.HTTPError
+	var integrationErr *integrationError
+	switch {
+	case errors.As(err, &discordErr):
+		msg := discordErr.Message
+		if msg == "" {
+			msg = "Discord returned an error"
+		}
+		if len(discordErr.Errors) > 0 {
+			msg += ": " + string(discordErr.Errors)
+		}
+		return &js.CallError{
+			Err:    fmt.Errorf("%s (%d)", msg, discordErr.Status),
+			Status: discordErr.Status,
+			Code:   int(discordErr.Code),
+		}
+	case errors.As(err, &integrationErr):
+		return &js.CallError{Err: integrationErr, Status: integrationErr.Status}
+	}
+	return err
 }

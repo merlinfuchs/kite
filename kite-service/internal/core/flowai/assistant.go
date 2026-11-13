@@ -13,6 +13,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/responses"
@@ -39,6 +40,9 @@ type Config struct {
 	// FormatEdits, the default, or FormatCode, which writes the whole flow as
 	// code for the editor's applyFlowCode.
 	Format string
+	// Decisions checks chats before the model sees them, see ErrRefused. If
+	// nil, chats aren't checked.
+	Decisions provider.DecisionProvider
 }
 
 const (
@@ -146,6 +150,10 @@ func (e *ErrResponse) Error() string {
 // can't be used, it returns an error along with a response that only has the
 // usage.
 func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error) {
+	if err := a.screen(ctx, req); err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 
@@ -322,12 +330,26 @@ func (r *Response) checkVariables(variables []*model.Variable) {
 		return ""
 	})
 	for _, edit := range r.Edits {
-		data, _ := edit["data"].(map[string]any)
-		id, ok := data["variable_id"].(string)
-		if !ok || ids[id] {
-			continue
+		dropVariableIDs(edit["data"], ids)
+	}
+}
+
+// dropVariableIDs removes the variable_id settings of v the app doesn't
+// have, at any depth like those of a Run JavaScript block's variables, the
+// same as the code branch of checkVariables.
+func dropVariableIDs(v any, ids map[string]bool) {
+	switch v := v.(type) {
+	case map[string]any:
+		if id, ok := v["variable_id"].(string); ok && !ids[id] {
+			delete(v, "variable_id")
 		}
-		delete(data, "variable_id")
+		for _, item := range v {
+			dropVariableIDs(item, ids)
+		}
+	case []any:
+		for _, item := range v {
+			dropVariableIDs(item, ids)
+		}
 	}
 }
 

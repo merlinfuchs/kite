@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 // HandleOpenBundleReportList lists the reports waiting for a decision, oldest
@@ -84,4 +85,29 @@ func (h *BundleReviewHandler) HandleBundleRemove(c *handler.Context, req wire.Bu
 		h.notifier.BundleRemoved(b, req.Reason)
 	}
 	return &wire.BundleRemoveResponse{}, nil
+}
+
+func (h *BundleReviewHandler) HandleBundleStaffPick(c *handler.Context) (*wire.BundleStaffPickResponse, error) {
+	if err := h.setStaffPick(c, null.TimeFrom(time.Now().UTC())); err != nil {
+		return nil, err
+	}
+	return &wire.BundleStaffPickResponse{}, nil
+}
+
+func (h *BundleReviewHandler) HandleBundleStaffPickDelete(c *handler.Context) (*wire.BundleStaffPickDeleteResponse, error) {
+	if err := h.setStaffPick(c, null.Time{}); err != nil {
+		return nil, err
+	}
+	return &wire.BundleStaffPickDeleteResponse{}, nil
+}
+
+func (h *BundleReviewHandler) setStaffPick(c *handler.Context, at null.Time) error {
+	err := h.bundleStore.SetBundleStaffPick(c.Context(), c.Param("bundleID"), at)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return handler.ErrNotFound("unknown_bundle", "the template doesn't exist, is official or was taken down")
+		}
+		return fmt.Errorf("failed to set staff pick: %w", err)
+	}
+	return nil
 }

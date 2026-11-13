@@ -227,6 +227,29 @@ describe("MCP server", () => {
     expect(byName.edit_flow.annotations?.destructiveHint).toBe(true);
   });
 
+  it("describes what the code of Run JavaScript can call", async () => {
+    const { call } = await connect(["kite:read"]);
+    const search = JSON.parse(
+      (await call("search_code_calls", { query: "guild member" })).text
+    );
+    expect(search.map((c: { name: string }) => c.name)).toContain(
+      "discord.getGuildMember"
+    );
+
+    const res = JSON.parse(
+      (
+        await call("get_code_calls", {
+          names: ["variables.increment", "nope.x"],
+        })
+      ).text
+    );
+    expect(res.calls[0].name).toBe("variables.increment");
+    expect(res.calls[0].credits).toBe(1);
+    expect(res.calls[0].signature).toContain("increment(arg: {");
+    expect(res.calls[0].signature).toContain("by?: number;");
+    expect(res.unknown_calls).toEqual(["nope.x"]);
+  });
+
   it("has no tools that change apps for read only tokens", async () => {
     const { client } = await connect(["kite:read"]);
     expect(client.getInstructions()).toContain("can only read");

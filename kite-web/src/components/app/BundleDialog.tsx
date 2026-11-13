@@ -34,6 +34,7 @@ import { referencedParameters } from "@/lib/flow/parameters";
 import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
 import { formatParameterValue, parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
+import { nodeVariableIds } from "@/lib/flow/variableIds";
 import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
 import {
   BundleItemPicker,
@@ -350,7 +351,7 @@ function bundleWarnings(
       "Files attached to message templates aren't part of the template. Apps that add it get the messages without them."
     );
   }
-  if (flows.some((f) => f.nodes.some((n) => n.data?.variable_id))) {
+  if (flows.some((f) => f.nodes.some((n) => nodeVariableIds(n.data).length))) {
     res.push(
       "The values of stored variables aren't part of the template. They start empty in apps that add it."
     );

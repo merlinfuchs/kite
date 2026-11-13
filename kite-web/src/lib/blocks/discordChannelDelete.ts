@@ -8,15 +8,12 @@ export const discordChannelDelete: BlockDefinition = {
   description: "Delete a channel or thread ",
   icon: "folder-x",
   category: "Channels",
-  credits: 1,
   permissions: ["MANAGE_CHANNELS"],
   audit_log_reason: true,
   run: {
     kind: "request",
     integration: "discord",
     operation: "delete_channel",
-    method: "DELETE",
-    path: "/channels/{channel_id}",
   },
   fields: [channelTargetField],
 };

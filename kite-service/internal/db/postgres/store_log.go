@@ -57,7 +57,7 @@ func (c *Client) CreateLogEntry(ctx context.Context, entry model.LogEntry) error
 			Valid: true,
 		},
 	})
-	return err
+	return foreignKeyViolation(err)
 }
 
 func (c *Client) LogEntriesByApp(ctx context.Context, appID string, beforeID int64, limit int) ([]*model.LogEntry, error) {

@@ -18,7 +18,7 @@ Situations that bring people here, from Google Search Console queries and OpenPa
 - Leaving another bot maker, mostly BotGhost. /alternatives/botghost is the most visited comparison page.
 - Asking ChatGPT how to make a bot. ChatGPT is the third biggest referrer after Google and Discord, with 1,916 sessions.
 Main alternatives:
-- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked.
+- Other no-code bot makers. BotGhost by far the most, from searches like "botghost alternative", then BotWiz and Bot Designer for Discord. Also inventor.bot (formerly inventor.gg), SCNX, FromFlow, and VibeBot. Each has a comparison page under /alternatives, with its limits and the date they were checked. /alternatives itself is a roundup of the best free Discord bot makers, with Kite first and a note that we make it.
 - Writing a bot in code and hosting it yourself. Some searches for free hosting ask for Python, like "free discord bot hosting python".
 Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 servers, and you can replace Kite's status with your own for free. Kite is open source under AGPL-3.0. Don't claim it's the only or first bot maker to do anything.
 
@@ -29,13 +29,13 @@ Features (feature | what it means for the user | free or paid):
 - Scheduled tasks | run a flow on a schedule | free, every 5 minutes at most, every minute on Kite Premium
 - Webhooks | start a flow from another website or service | free
 - Message templates | design embeds, buttons, and select menus and see them as Discord shows them | free
-- Stored variables | keep points, counts, and settings per member or server | free
+- Stored variables | keep points, counts, and settings per member or server, up to 64 KB per value | free
 - Marketplace templates | add a ready-made bot, like moderation or giveaways, then change it | free
 - Share and list your own templates | anyone with the link can add it, and listed ones show in the Marketplace | free
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free
-- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms | free, 10 credits a run
+- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from Discord, ER:LC, and Cookie API, use stored variables, and send requests to other websites | free, 10 credits a run, plus 1 for each read from ER:LC or Cookie API, 1 for each change or list of a stored variable, and 3 for each request to another website
 - Integrations: ER:LC, Roblox, and Cookie API | ready blocks for ER:LC private servers, Roblox users and groups, and Cookie API | free, ER:LC needs your server key
 - Collaborators | others edit the same bot with you | free, 3 including you, more on paid plans
 - MCP server at https://kite.onl/api/mcp | build and change the bot from Claude, ChatGPT, Codex, Cursor, or VS Code | free
@@ -43,7 +43,7 @@ Features (feature | what it means for the user | free or paid):
 - Rotating status and the Set status block | up to 10 statuses that change every minute | Kite Plus and up
 - Animated avatar and banner | GIF or animated WebP profile | Kite Plus and up
 - Play audio in voice channels | upload a sound and the bot plays it | Kite Plus and up
-- Profile per server | another nickname, avatar, banner, and About Me in each server | Kite Premium and up
+- Profile per server | another nickname, avatar, banner, About Me, and name style in each server. The name style is a font, an effect, and colors. Servers show the font. The profile also shows the effect and colors | Kite Premium and up
 - Send message as | one message with another name and avatar, like the user who ran the command | Kite Premium and up
 - Priority support | Kite Premium and up
 
@@ -84,7 +84,7 @@ Stats (number | what it counts | source | date checked):
 - 79,314 | users | same endpoint | 2026-11-02
 - 198,504 | commands and event listeners | same endpoint | 2026-11-02
 - 23,098,351 | flow runs last month | same endpoint | 2026-11-02
-- 108 | Marketplace templates, 19 by Kite and 89 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-05
+- 160 | Marketplace templates, 19 by Kite and 141 from the community | GET https://api.kite.onl/v1/bundles | 2026-11-13
 - 334 | GitHub stars | github.com/merlinfuchs/kite | 2026-11-02
 - 2024 | year Kite started | first commit 2024-01-10 | 2026-11-02
 - Most added templates: Moderation 482, Ask AI 432, Server Info 260, Welcomer 257, Giveaways 235 | install_count from /v1/bundles | 2026-11-02
@@ -96,6 +96,7 @@ Exact names of things users see:
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
 - Integrations: Discord, ER:LC, Roblox, Cookie API.
+- Badges: Template creator (listed, then 10, 100 or 1,000 users), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
 - Plans: Basic, Plus, Premium, and Ultimate. Basic is the free plan.
 - The plan page in the dashboard is titled Plans, and its sidebar link says Upgrade, or Plan on a paid plan. There's no Premium page.
 - Pages: /pricing, /marketplace, /alternatives, /guides, /tools, /refund. Docs at docs.kite.onl. The dashboard is kite.onl/apps.

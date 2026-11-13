@@ -117,3 +117,30 @@ func TestVariableValueSetScope(t *testing.T) {
 	require.Len(t, s.values, 2)
 	assert.False(t, s.values[1].Scope.Valid)
 }
+
+// takenNameStore has a variable with every name.
+type takenNameStore struct {
+	// Methods the tests don't use panic.
+	store.VariableStore
+}
+
+func (takenNameStore) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
+	return nil, store.ErrAlreadyExists
+}
+
+func (takenNameStore) UpdateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
+	return nil, store.ErrAlreadyExists
+}
+
+func TestVariableNameTaken(t *testing.T) {
+	h := NewVariableHandler(takenNameStore{}, &memoryValueStore{})
+	variable := &model.Variable{ID: "var"}
+
+	code, res := request(t, nil, http.MethodPost, "/variables", `{"name":"xp","scoped":false}`, handler.TypedWithBody(h.HandleVariableCreate))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "duplicate_name", errorCode(res))
+
+	code, res = request(t, variable, http.MethodPatch, "/variables/var", `{"name":"xp","scoped":false}`, handler.TypedWithBody(h.HandleVariableUpdate))
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "duplicate_name", errorCode(res))
+}

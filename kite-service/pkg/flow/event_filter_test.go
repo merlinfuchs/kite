@@ -266,16 +266,21 @@ func TestEventFilterTargetsFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = append(data, '\n')
+	checkGeneratedFile(t, eventFilterTargetsFile, append(data, '\n'))
+}
 
+// checkGeneratedFile fails if the file at path isn't data, or writes it with
+// -update.
+func checkGeneratedFile(t *testing.T, path string, data []byte) {
+	t.Helper()
 	if *update {
-		if err := os.WriteFile(eventFilterTargetsFile, data, 0o644); err != nil {
+		if err := os.WriteFile(path, data, 0o644); err != nil {
 			t.Fatal(err)
 		}
 		return
 	}
-	current, err := os.ReadFile(eventFilterTargetsFile)
+	current, err := os.ReadFile(path)
 	if err != nil || string(current) != string(data) {
-		t.Fatalf("%s is out of date, run `go test ./pkg/flow -update`", eventFilterTargetsFile)
+		t.Fatalf("%s is out of date, run `go test ./pkg/flow -update`", path)
 	}
 }

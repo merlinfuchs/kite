@@ -1,10 +1,14 @@
 import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { templated, variableIdSchema } from "../flow/dataSchema";
+import { onlySecretPlaceholders } from "../flow/templateSecrets";
+import { httpRequest } from "./httpRequest";
 import { BlockDefinition } from "./types";
 
 // Match MaxCodeLength and MaxInputs in kite-service/pkg/js/js.go.
 const maxCodeLength = 4000;
 export const javascriptMaxInputs = 20;
+// MaxJavaScriptVariables in kite-service/pkg/flow/data.go.
+export const javascriptMaxVariables = 10;
 
 // parameterKeyPattern, which blocks can't import as parameters.ts imports
 // them, and ParameterKeyPattern in kite-service/pkg/flow/params.go.
@@ -22,18 +26,21 @@ export const javascriptRun: BlockDefinition = {
   fields: [
     {
       name: "javascript_data",
+      secrets: "code",
       schema: z
         .object({
           code: z
             .string()
             .min(1)
             .max(maxCodeLength)
-            .refine((code) => !/\{\{[^{}]+\}\}/.test(code), {
+            // Secrets are the only placeholders code can have, which fetch
+            // fills in when it sends the request.
+            .refine(onlySecretPlaceholders, {
               message:
                 "Placeholders don't work in code. Add an input and read it as input.name instead.",
             })
             .describe(
-              `JavaScript that runs as the body of a function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in. There's no async, network, timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
+              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can read from Discord with the GET endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, like await discord.getChannel({channel_id: input.channel}), which returns Discord's JSON. A failed request throws an Error with status, like 404, and Discord's error code as code. Also erlc.getServer() and cookieApi.getCaptcha and getMinecraftUser. Reads from Discord are free, others cost 1 credit. Up to 20 calls per run. fetch(url, {method, headers, body}) sends a request to any URL for ${httpRequest.credits} credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It can't change anything in Discord, and has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
             ),
           inputs: z
             .array(
@@ -70,6 +77,40 @@ export const javascriptRun: BlockDefinition = {
             })
             .optional()
             .describe("Values the code gets from the flow."),
+          variables: z
+            .array(
+              z.object({
+                name: z
+                  .string()
+                  .regex(inputNamePattern, {
+                    message:
+                      "Start with a letter or _ and use letters, digits and _",
+                  })
+                  .max(32)
+                  .describe(
+                    'Name the code uses for the variable, like variables.get({name: "xp", scope: input.user.id}).'
+                  ),
+                variable_id: variableIdSchema,
+              })
+            )
+            .max(javascriptMaxVariables)
+            .superRefine((variables, ctx) => {
+              const names = new Set<string>();
+              variables.forEach((v, i) => {
+                if (names.has(v.name)) {
+                  ctx.addIssue({
+                    code: "custom",
+                    message: `Another variable is named ${v.name} already`,
+                    path: [i, "name"],
+                  });
+                }
+                names.add(v.name);
+              });
+            })
+            .optional()
+            .describe(
+              "Stored variables the code can use by name: variables.get({name, scope}), set({name, scope, value}), append({name, scope, value}) and prepend, which add an item to a list or text, increment({name, scope, by}), delete({name, scope}) and list({name, scope_prefix, sort, limit, skip}). scope is required for scoped variables. get is free, the others cost 1 credit."
+            ),
         })
         .describe("The code to run and the values it gets."),
     },
