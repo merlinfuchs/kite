@@ -4,13 +4,15 @@ sidebar_position: 1
 
 # Custom command
 
-Custom slash commands are the primary way for users to interact with your bot. Members can invoke one by typing `/` into the Discord chat.
+Custom commands are the primary way for users to interact with your bot. Once you create your first command, users will be able to use it by typing `/` into the Discord chat.
 
-## Context menu commands
+## User and Message commands
 
-You can also create a User or Message context menu command. In Discord, members open the menu on a user or message and choose your command. In the flow, use `interaction.command.target_user` for the selected user or `interaction.command.target_message` for the selected message. The message's author is available as `interaction.command.target_message.author`.
+Pick User command or Message command as the type when you create a command. Members find these in the Apps menu when they right-click a user or message, or long-press one on mobile. Their name can have capital letters and spaces, like `Report message`, and they have no description or arguments.
 
-If a button or modal resumes the flow, the original target is available at `origin.interaction.command.target_user` or `origin.interaction.command.target_message`.
+In the flow, `interaction.command.target_user` is the user the command was used on, and `interaction.command.target_message` is the message. The message's author is `interaction.command.target_message.author`. In a [sub-flow](sub-flows.md) after a button or modal, use `origin.interaction.command.target_user` or `origin.interaction.command.target_message`.
+
+Discord allows up to 15 User commands and 15 Message commands per app. A User command can have the same name as a slash command.
 
 ## Sub-commands
 

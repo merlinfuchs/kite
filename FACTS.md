@@ -24,7 +24,7 @@ Why pick this one: The free plan keeps your own bot online 24/7 on up to 100 ser
 
 Features (feature | what it means for the user | free or paid):
 - Visual flow editor | build a command by connecting blocks, and see every step | free
-- Slash and context menu commands, buttons, select menus, and modals | members use the bot like any other Discord bot | free
+- Slash commands, User and Message commands, buttons, select menus, and modals | members use the bot like any other Discord bot | free
 - Event listeners for messages, new members, reactions, boosts, and more | the bot reacts without a command | free
 - Scheduled tasks | run a flow on a schedule | free, every 5 minutes at most, every minute on Kite Premium
 - Webhooks | start a flow from another website or service | free
@@ -93,6 +93,7 @@ Main page action: "Get started for free", to /apps. Marketplace pages lead with 
 
 Exact names of things users see:
 - Dashboard sidebar: Dashboard, Upgrade (Plan on a paid plan), Settings, Logs, Servers, Emojis, Commands, Event listeners, Scheduled tasks, Webhooks, Message templates, Marketplace, Your templates, Stored variables, Secrets, Integrations.
+- Command types: Slash command, User command, and Message command. User and Message commands show in the Apps menu when someone right-clicks a user or message. Discord calls them context menu commands.
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
 - Integrations: Discord, ER:LC, Roblox, Cookie API.
