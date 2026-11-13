@@ -12,8 +12,9 @@ type MessageStore interface {
 	CountMessagesByApp(ctx context.Context, appID string) (int, error)
 	Message(ctx context.Context, appID string, id string) (*model.Message, error)
 	CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
-	UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
-	DeleteMessage(ctx context.Context, id string) error
+	UpdateMessage(ctx context.Context, variable *model.Message, change ItemChange) (*model.Message, error)
+	// DeleteMessage keeps the message's content in its version history.
+	DeleteMessage(ctx context.Context, id string, userID string) error
 }
 
 type MessageInstanceStore interface {

@@ -1,4 +1,4 @@
-import { ApiOperation } from "../integrations/api";
+import { ApiOperation, operationLabel } from "../integrations/api";
 import api from "../integrations/discord/api.json";
 
 // The Discord API endpoints the Discord API Request block can call, generated
@@ -12,11 +12,7 @@ export function getDiscordApiOperation(id: string | undefined) {
   return id ? operationsById.get(id) : undefined;
 }
 
-// create_message -> Create message
-export function discordApiOperationLabel(id: string) {
-  const words = id.replaceAll("_", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
+export const discordApiOperationLabel = operationLabel;
 
 // The spec's names differ from the ones in Discord's docs, e.g. Modify Guild is
 // update_guild.

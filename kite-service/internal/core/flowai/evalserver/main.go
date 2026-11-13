@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -21,15 +22,20 @@ import (
 
 func main() {
 	addr := flag.String("addr", "localhost:4455", "address to listen on")
-	modelName := flag.String("model", "gpt-5-mini", "model")
-	effort := flag.String("effort", "low", "reasoning effort")
+	modelName := flag.String("model", "gpt-6-luna", "model")
+	effort := flag.String("effort", "medium", "reasoning effort")
+	format := flag.String("format", flowai.FormatEdits, "how the model changes the flow: edits or code")
 	flag.Parse()
 
 	opts := []option.RequestOption{option.WithAPIKey(os.Getenv("OPENAI_API_KEY"))}
 	prefix := ""
 	if key := os.Getenv("OPENROUTER_API_KEY"); key != "" {
 		opts = []option.RequestOption{option.WithAPIKey(key), option.WithBaseURL("https://openrouter.ai/api/v1")}
-		prefix = "openai/"
+		// Models of other providers are given with theirs, like
+		// anthropic/claude-haiku-5.5.
+		if !strings.Contains(*modelName, "/") {
+			prefix = "openai/"
+		}
 	}
 	client := openai.NewClient(opts...)
 
@@ -37,6 +43,7 @@ func main() {
 		Model:           prefix + *modelName,
 		ReasoningEffort: *effort,
 		MaxOutputTokens: 16000,
+		Format:          *format,
 	})
 
 	// The editor's wire types, plus the tokens used and how long it took.
@@ -49,6 +56,13 @@ func main() {
 				Name   string `json:"name"`
 				Scoped bool   `json:"scoped"`
 			} `json:"variables"`
+			Templates []struct {
+				ID          string `json:"id"`
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				Category    string `json:"category"`
+				Added       bool   `json:"added"`
+			} `json:"templates"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			fail(w, err)
@@ -59,12 +73,18 @@ func main() {
 		for i, v := range req.Variables {
 			variables[i] = &model.Variable{ID: v.ID, Name: v.Name, Scoped: v.Scoped}
 		}
+		// The eval only has Kite's templates.
+		templates := make([]flowai.Template, len(req.Templates))
+		for i, t := range req.Templates {
+			templates[i] = flowai.Template{ID: t.ID, Name: t.Name, Description: t.Description, Category: t.Category, Official: true, Added: t.Added}
+		}
 		start := time.Now()
 		res, err := assistant.Respond(r.Context(), flowai.Request{
 			Flow:      req.Flow,
 			Messages:  req.AssistantMessages(),
 			Issues:    req.Issues,
 			Variables: variables,
+			Templates: templates,
 			UserID:    "eval",
 		})
 		if err != nil {
@@ -79,14 +99,16 @@ func main() {
 				PromptID:    "eval",
 				Message:     res.Message,
 				BuildPrompt: res.BuildPrompt,
+				TemplateID:  res.TemplateID,
 				Fields:      wire.FlowAIFieldsToWire(res.Fields),
 				Edits:       res.Edits,
+				Code:        res.Code,
 			},
 			Eval: evalInfo{Model: *modelName, Tokens: res.Usage, MS: time.Since(start).Milliseconds()},
 		})
 	})
 
-	log.Printf("Serving the flow AI with %s on %s", *modelName, *addr)
+	log.Printf("Serving the flow AI with %s writing %s on %s", *modelName, *format, *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 

@@ -15,6 +15,6 @@ Ask a question, like `What is this ticket about?`, and set the input to what the
 
 The AI also says how confident it is, from 0 to 1. With a **Min Confidence** like `0.8`, the **Else** branch runs instead when the AI is less confident than that. Without one, the AI always picks an option. The block returns the name of the option it picked, also when it wasn't confident enough.
 
-The question, input and options can have up to 8,000 characters together, after placeholders are filled in. The block costs [1 credit](../../credit-system.md#cost-breakdown). If the AI can't be reached, the flow fails, which you can catch with a [Handle Errors](./control_error_handler.md) block.
+The question, input and options can be up to 8,000 bytes together, after placeholders are filled in. That's 8,000 characters of English text, and fewer in other scripts or with emoji, which take up to 4 bytes each. The block costs [1 credit](../../credit-system.md#cost-breakdown). If the AI can't be reached, the flow fails, which you can catch with a [Handle Errors](./control_error_handler.md) block.
 
 <NodeInfoExplorer type="control_condition_ai_choice" />

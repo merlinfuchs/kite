@@ -176,6 +176,12 @@ func TestOnlyPlainSecrets(t *testing.T) {
 // branch compares it with value in mode and logs "met", and an else branch
 // that logs "else".
 func executeConditionWithSecrets(t *testing.T, base string, mode ComparsionMode, value string, secrets *secretTestProvider) ([]string, error) {
+	return executeConditionItemWithSecrets(t, base, FlowNodeData{ConditionItemMode: mode, ConditionItemValue: value}, secrets)
+}
+
+// executeConditionItemWithSecrets is executeConditionWithSecrets with all
+// of the branch's settings.
+func executeConditionItemWithSecrets(t *testing.T, base string, itemData FlowNodeData, secrets *secretTestProvider) ([]string, error) {
 	logs := &recordingLogProvider{}
 
 	logNode := func(id string, message string) *CompiledFlowNode {
@@ -185,7 +191,7 @@ func executeConditionWithSecrets(t *testing.T, base string, mode ComparsionMode,
 	item := &CompiledFlowNode{
 		ID:       "2",
 		Type:     FlowNodeTypeControlConditionItemCompare,
-		Data:     FlowNodeData{ConditionItemMode: mode, ConditionItemValue: value},
+		Data:     itemData,
 		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
 		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{logNode("3", "met")}},
 	}
@@ -220,9 +226,23 @@ func TestConditionComparesSecrets(t *testing.T) {
 // With modes other than equality, a sender could guess the secret a character
 // at a time.
 func TestConditionComparesSecretsOnlyForEquality(t *testing.T) {
-	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan} {
+	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan, ComparsionModeOneOf, ComparsionModeNotOneOf, ComparsionModeContainsAny} {
 		secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
 		_, err := executeConditionWithSecrets(t, "s", mode, "{{secrets.TOKEN}}", secrets)
+		assert.Error(t, err, mode)
+		assert.Empty(t, secrets.asked, mode)
+	}
+}
+
+// Ignoring case would let a token with the wrong case through.
+func TestConditionComparesSecretsNotIgnoringCase(t *testing.T) {
+	for _, mode := range []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual} {
+		secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+		_, err := executeConditionItemWithSecrets(t, "S3CR3T", FlowNodeData{
+			ConditionItemMode:       mode,
+			ConditionItemValue:      "{{secrets.TOKEN}}",
+			ConditionItemIgnoreCase: true,
+		}, secrets)
 		assert.Error(t, err, mode)
 		assert.Empty(t, secrets.asked, mode)
 	}

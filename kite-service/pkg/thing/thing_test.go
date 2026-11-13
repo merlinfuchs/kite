@@ -277,10 +277,57 @@ func TestEquals(t *testing.T) {
 	other := NewString("tokem")
 	assert.False(t, a.Equals(&other))
 
-	empty, null := NewString(""), Null
-	assert.True(t, empty.Equals(&empty))
-	assert.False(t, empty.Equals(&null))
+	// Text typed into a condition matches yes or no values and numbers.
+	for _, tc := range []struct {
+		a, b Thing
+		want bool
+	}{
+		{NewString(""), Null, false},
+		{NewBool(true), NewString("true"), true},
+		{NewBool(false), NewString("false"), true},
+		{NewBool(true), NewString("false"), false},
+		{NewBool(true), NewString(" True "), true},
+		{NewBool(true), NewString("yes"), true},
+		{NewBool(true), NewString("1"), true},
+		{NewBool(false), NewString("No"), true},
+		{NewBool(false), NewString("0"), true},
+		{NewBool(true), NewString("2"), false},
+		{NewBool(true), NewString("y"), false},
+		{NewInt(1), NewString("1"), true},
+		{NewInt(1), NewString(" 1.0 "), true},
+		{NewInt(1), NewString("one"), false},
+		{NewFloat(2.5), NewString("2.5"), true},
+		{NewAny(5), NewString("5"), true},
+		{NewAny(5.0), NewString("5"), true},
+		{NewInt(1), NewFloat(1.0), true},
+		{NewInt(1234567890123456789), NewInt(1234567890123456788), false},
+		{NewInt(1234567890123456789), NewString("1234567890123456788"), false},
+		{NewBool(true), NewInt(1), false},
+		{NewDiscordUser(discord.User{ID: 5}), NewString("<@5>"), false},
+	} {
+		assert.Equal(t, tc.want, tc.a.Equals(&tc.b), "%v == %v", tc.a.Value, tc.b.Value)
+		assert.Equal(t, tc.want, tc.b.Equals(&tc.a), "%v == %v", tc.b.Value, tc.a.Value)
+	}
+}
 
-	one, oneString := NewInt(1), NewString("1")
-	assert.False(t, one.Equals(&oneString))
+func TestAppendAndPrepend(t *testing.T) {
+	assert.Equal(t, "ab", NewString("a").Append(NewString("b")).String())
+	assert.Equal(t, "ba", NewString("a").Prepend(NewString("b")).String())
+	assert.Equal(t, "12", NewInt(1).Append(NewInt(2)).String())
+
+	list := NewArray([]Thing{NewInt(1)})
+	assert.Equal(t, []any{int64(1), "x"}, list.Append(NewString("x")).JSONValue())
+	assert.Equal(t, []any{"x", int64(1)}, list.Prepend(NewString("x")).JSONValue())
+	// A list is added as one item.
+	assert.Len(t, list.Append(list).Array(), 2)
+	// The list itself isn't changed.
+	assert.Len(t, list.Array(), 1)
+
+	// Nothing adds nothing.
+	assert.Len(t, list.Append(Null).Array(), 1)
+	assert.Len(t, list.Append(NewString("")).Array(), 1)
+	// Objects and lists can't be joined to text, they start a list.
+	obj := NewObject(map[string]Thing{"id": NewInt(1)})
+	assert.Equal(t, []any{"a", map[string]any{"id": int64(1)}}, NewString("a").Append(obj).JSONValue())
+	assert.Equal(t, []any{map[string]any{"id": int64(1)}}, Null.Append(obj).JSONValue())
 }

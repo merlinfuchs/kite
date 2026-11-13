@@ -167,6 +167,29 @@ func (m *MessageData) EachComponent(fn func(c *ComponentData) error) error {
 	return nil
 }
 
+// FillColors fills in the colors of embeds and accent colors of containers that
+// have placeholders, with eval evaluating their template. A template that is
+// empty, like the color of a role without one, leaves the color out.
+func (m *MessageData) FillColors(eval func(template string) (string, error)) error {
+	for i := range m.Embeds {
+		if _, err := m.Embeds[i].Color.fill(eval); err != nil {
+			return err
+		}
+	}
+
+	return m.EachComponent(func(c *ComponentData) error {
+		if c.AccentColor == nil {
+			return nil
+		}
+		// An accent color of 0 is black, so no color has to be nil.
+		ok, err := c.AccentColor.fill(eval)
+		if !ok {
+			c.AccentColor = nil
+		}
+		return err
+	})
+}
+
 func (c *ComponentData) walk(fn func(c *ComponentData) error) error {
 	if err := fn(c); err != nil {
 		return err
@@ -228,7 +251,7 @@ type EmbedData struct {
 	// TimestampNow sets the timestamp to the time the message is sent,
 	// instead of Timestamp.
 	TimestampNow bool                `json:"timestamp_now,omitempty"`
-	Color        Color               `json:"color,omitempty"`
+	Color        Color               `json:"color,omitzero"`
 	Footer       *EmbedFooterData    `json:"footer,omitempty"`
 	Image        *EmbedImageData     `json:"image,omitempty"`
 	Thumbnail    *EmbedThumbnailData `json:"thumbnail,omitempty"`

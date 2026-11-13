@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -13,37 +14,53 @@ import (
 )
 
 type recordingAIProvider struct {
-	opts provider.CreateResponseOpts
+	opts         provider.CreateResponseOpts
+	text         string
+	outputTokens int
+	err          error
 }
 
-func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
+func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
 	p.opts = opts
-	return "ok", nil
+	text := p.text
+	if text == "" {
+		text = "ok"
+	}
+	return provider.AIResponse{Text: text, OutputTokens: p.outputTokens}, p.err
 }
 
-func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) provider.CreateResponseOpts {
+func newAITestContext(t *testing.T, ai *recordingAIProvider, maxCredits int) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
-	ai := &recordingAIProvider{}
 	c := NewContext(
 		ctx,
 		5*time.Second,
 		&TestContextData{},
 		FlowProviders{AI: ai, Log: &provider.MockLogProvider{}},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: maxCredits},
 		eval.NewContext(eval.Env{}),
 		nil,
 	)
-	defer c.Cancel()
+	t.Cleanup(c.Cancel)
+	return c
+}
 
+func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
+	c := newAITestContext(t, ai, maxCredits)
 	node := &CompiledFlowNode{
 		ID:   "0",
 		Type: nodeType,
 		Data: FlowNodeData{AIChatCompletionData: &data},
 	}
-	require.NoError(t, node.Execute(c))
-	return ai.opts
+	err := node.Execute(c)
+	return c, err
+}
+
+func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) (provider.CreateResponseOpts, error) {
+	ai := &recordingAIProvider{}
+	_, err := runAINode(t, nodeType, data, ai, 1000)
+	return ai.opts, err
 }
 
 func TestAINodeRunsResolvedTier(t *testing.T) {
@@ -53,17 +70,19 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 		want      aiModelTier
 		wantMax   int
 	}{
-		{"", "", aiModelTiers[AIModelSmall], aiMaxOutputTokens},
+		{"", "", aiModelTiers[AIModelSmall], aiDefaultOutputTokens},
 		{"gpt-4.1", "100", aiModelTiers[AIModelLarge], 100},
+		{AIModelSmall, "800", aiModelTiers[AIModelSmall], 800},
 		{AIModelMedium, "5000", aiModelTiers[AIModelMedium], aiMaxOutputTokens},
 	}
 
 	for _, tc := range cases {
-		opts := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+		opts, err := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
 			Model:               tc.model,
 			Prompt:              "hi",
 			MaxCompletionTokens: tc.maxTokens,
 		})
+		require.NoError(t, err)
 		assert.Equal(t, tc.want.Model, opts.Model, tc.model)
 		assert.Equal(t, tc.want.ReasoningEffort, opts.ReasoningEffort, tc.model)
 		assert.Equal(t, tc.wantMax, opts.MaxOutputTokens, tc.model)
@@ -71,10 +90,112 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 	}
 }
 
+func TestAINodeRejectsInvalidMaxTokens(t *testing.T) {
+	for _, maxTokens := range []string{"abc", "0", "-5", "1.5"} {
+		opts, err := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+			Prompt:              "hi",
+			MaxCompletionTokens: maxTokens,
+		})
+		assert.ErrorContains(t, err, "max answer length must be a whole number", maxTokens)
+		assert.Empty(t, opts.Model, maxTokens)
+	}
+}
+
 func TestAIWebSearchNodeCapsSearches(t *testing.T) {
-	opts := executeAINode(t, FlowNodeTypeActionAISearchWeb, AIChatCompletionData{Prompt: "hi"})
+	opts, err := executeAINode(t, FlowNodeTypeActionAISearchWeb, AIChatCompletionData{Prompt: "hi"})
+	require.NoError(t, err)
 	assert.Equal(t, []provider.AIToolType{provider.AIToolTypeWebSearch}, opts.Tools)
 	assert.Equal(t, aiMaxWebSearches, opts.MaxToolCalls)
+}
+
+func TestAINodeCapsInput(t *testing.T) {
+	cases := []struct {
+		model string
+		limit string
+	}{
+		{AIModelSmall, "64000"},
+		{AIModelMedium, "64000"},
+		{AIModelLarge, "8000"},
+	}
+
+	for _, nodeType := range []FlowNodeType{FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb} {
+		for _, tc := range cases {
+			// Half the limit in characters, but é is 2 bytes.
+			opts, err := executeAINode(t, nodeType, AIChatCompletionData{
+				Model:        tc.model,
+				Prompt:       "hi",
+				SystemPrompt: strings.Repeat("é", aiModelTiers[tc.model].MaxInputLength/2),
+			})
+			assert.ErrorContains(t, err, "more than the limit of "+tc.limit, nodeType, tc.model)
+			assert.Empty(t, opts.Model, nodeType, tc.model)
+		}
+	}
+}
+
+func TestAINodeChargesSteps(t *testing.T) {
+	cases := []struct {
+		name         string
+		nodeType     FlowNodeType
+		model        string
+		promptLength int
+		maxTokens    string
+		outputTokens int
+		want         int
+	}{
+		{"one step", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 8000, "", 500, 5},
+		{"input steps", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 8001, "", 0, 10},
+		{"most input", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 64000, "", 0, 40},
+		{"short answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 400, 20},
+		{"long answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 501, 40},
+		{"reported past the max", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "", 900, 20},
+		{"search steps at chat credits", FlowNodeTypeActionAISearchWeb, AIModelMedium, 16000, "1000", 1000, 140},
+	}
+
+	for _, tc := range cases {
+		ai := &recordingAIProvider{outputTokens: tc.outputTokens}
+		c, err := runAINode(t, tc.nodeType, AIChatCompletionData{
+			Model:               tc.model,
+			Prompt:              strings.Repeat("a", tc.promptLength),
+			MaxCompletionTokens: tc.maxTokens,
+		}, ai, 1000)
+		require.NoError(t, err, tc.name)
+		assert.Equal(t, tc.want, c.CreditsUsed(), tc.name)
+	}
+}
+
+func TestAINodeChargesIncompleteResponse(t *testing.T) {
+	ai := &recordingAIProvider{outputTokens: 1000, err: errors.New("response incomplete")}
+	c, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+		Model:               AIModelMedium,
+		Prompt:              "hi",
+		MaxCompletionTokens: "1000",
+	}, ai, 1000)
+	assert.ErrorContains(t, err, "response incomplete")
+	assert.Equal(t, 40, c.CreditsUsed())
+}
+
+func TestAINodeFailsBeforeCallPastCreditsLimit(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		promptLength int
+		maxTokens    string
+		maxCredits   int
+	}{
+		{"input", 16000, "", 30},
+		{"output", 10, "1000", 30},
+		{"input and output", 8001, "1000", 50},
+	} {
+		ai := &recordingAIProvider{}
+		c, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+			Model:               AIModelMedium,
+			Prompt:              strings.Repeat("a", tc.promptLength),
+			MaxCompletionTokens: tc.maxTokens,
+		}, ai, tc.maxCredits)
+		assert.ErrorContains(t, err, "credits limit exceeded", tc.name)
+		assert.Empty(t, ai.opts.Model, tc.name)
+		// Only the block's credits, which every block that starts uses.
+		assert.Equal(t, 20, c.CreditsUsed(), tc.name)
+	}
 }
 
 type fakeDecisionProvider struct {
@@ -243,7 +364,8 @@ func TestAICheckRejectsInvalidThresholds(t *testing.T) {
 
 func TestAIDecisionCapsInput(t *testing.T) {
 	node := aiCheckNode("", "")
-	node.Data.AIDecisionData.Input = strings.Repeat("é", aiDecisionMaxInputLength)
+	// Half the limit in characters, but é is 2 bytes.
+	node.Data.AIDecisionData.Input = strings.Repeat("é", aiDecisionMaxInputLength/2)
 	_, decisions, _, err := executeDecisionNode(t, node, provider.Decision{})
 	assert.ErrorContains(t, err, "more than the limit of 8000")
 	assert.Nil(t, decisions.opts)
@@ -276,4 +398,108 @@ func TestAIScoreCountsLevelsFromOne(t *testing.T) {
 	node.Data.AIDecisionData.Levels = []string{"Only"}
 	_, _, _, err = executeDecisionNode(t, node, provider.Decision{})
 	assert.ErrorContains(t, err, "needs 2 to 10 levels, has 1")
+}
+
+func runTranslateNode(t *testing.T, data AITranslateData, ai *recordingAIProvider) (*FlowContext, error) {
+	c := newAITestContext(t, ai, 1000)
+	node := &CompiledFlowNode{
+		ID:   "translate",
+		Type: FlowNodeTypeActionAITranslate,
+		Data: FlowNodeData{AITranslateData: &data},
+	}
+	return c, node.Execute(c)
+}
+
+func TestAITranslate(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hello"}`}
+	c, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	require.NoError(t, err)
+
+	small := aiModelTiers[AIModelSmall]
+	assert.Equal(t, small.Model, ai.opts.Model)
+	assert.Equal(t, small.ReasoningEffort, ai.opts.ReasoningEffort)
+	assert.Equal(t, "Translate into English:\n\nHola", ai.opts.Prompt)
+	assert.Contains(t, ai.opts.SystemPrompt, "into English.")
+	assert.Same(t, aiTranslateSchema, ai.opts.JSONSchema)
+
+	result := c.GetNodeResult("translate").Object()
+	assert.Equal(t, "Hello", result["text"].String())
+	assert.Equal(t, "es", result["source_language"].String())
+	assert.Equal(t, 1, c.CreditsUsed())
+}
+
+func TestAITranslateLanguageFromPlaceholder(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"en","text":"Olá"}`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'pt-BR' }}"}, ai)
+	require.NoError(t, err)
+	assert.Contains(t, ai.opts.SystemPrompt, "into Portuguese (Brazil).")
+
+	// Codes in placeholders are often in other cases.
+	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'zh-tw' }}"}, ai)
+	require.NoError(t, err)
+	assert.Contains(t, ai.opts.SystemPrompt, "into Chinese (Traditional).")
+
+	ai = &recordingAIProvider{}
+	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'Klingon' }}"}, ai)
+	assert.ErrorContains(t, err, `unsupported language "Klingon"`)
+	assert.Empty(t, ai.opts.Model)
+}
+
+// The editor offers the languages of the catalog.
+func TestAITranslateLanguagesMatchCatalog(t *testing.T) {
+	data := loadCatalog(t)["action_ai_translate"].Properties["ai_translate_data"]
+	language := data.Properties["language"].AnyOf[0]
+
+	var codes []any
+	for code := range aiTranslateLanguages {
+		codes = append(codes, code)
+	}
+	assert.ElementsMatch(t, codes, language.Enum)
+}
+
+func TestAITranslateChargesPerThousandCharacters(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want int
+	}{
+		{strings.Repeat("a", 1000), 1},
+		{strings.Repeat("a", 1001), 2},
+		// Characters, not bytes.
+		{strings.Repeat("日", 1000), 1},
+		{strings.Repeat("a", aiTranslateMaxLength), 4},
+	} {
+		ai := &recordingAIProvider{text: `{"source_language":"other","text":"x"}`}
+		c, err := runTranslateNode(t, AITranslateData{Text: tc.text, Language: "en"}, ai)
+		require.NoError(t, err)
+		assert.Equal(t, tc.want, c.CreditsUsed(), len(tc.text))
+	}
+}
+
+func TestAITranslateRejectsBadInput(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want string
+	}{
+		{" ", "text is empty"},
+		{strings.Repeat("a", aiTranslateMaxLength+1), "more than the limit of 4000"},
+	} {
+		ai := &recordingAIProvider{}
+		_, err := runTranslateNode(t, AITranslateData{Text: tc.text, Language: "en"}, ai)
+		assert.ErrorContains(t, err, tc.want)
+		assert.Empty(t, ai.opts.Model)
+	}
+}
+
+func TestAITranslateBoundsOutputByLength(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hello"}`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	require.NoError(t, err)
+	assert.Equal(t, 4*aiTranslateOutputTokensPerChar+aiTranslateOutputTokensExtra, ai.opts.MaxOutputTokens)
+}
+
+// A translation cut off at the token limit isn't valid JSON.
+func TestAITranslateFailsOnInvalidAnswer(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hel`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	assert.ErrorContains(t, err, "failed to read translation")
 }

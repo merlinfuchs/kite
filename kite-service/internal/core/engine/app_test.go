@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -206,7 +207,8 @@ func TestResumeFlowTargetUnknownOwner(t *testing.T) {
 // Links are stored on the resume point when the flow suspends, so attribution
 // of logs and usage has to survive the round trip rather than be rebuilt.
 func TestEntityLinksFromResumePoint(t *testing.T) {
-	links := entityLinksFromResumePoint(&model.ResumePoint{
+	app := NewApp("app-1", Env{})
+	links := app.entityLinksFromResumePoint(&model.ResumePoint{
 		MessageID:         null.NewString("msg-1", true),
 		MessageInstanceID: null.NewInt(7, true),
 		FlowSourceID:      null.NewString("src-1", true),
@@ -219,11 +221,38 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 	}
 }
 
+// Webhook and scheduled listeners are event listeners, so the source has to be
+// found again from the listener when a flow resumes.
+func TestEntityLinksFromResumePointKeepsEventSource(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	id, listener := testListener("lst-hook", model.EventSourceWebhook, model.EventListenerTypeWebhook)
+	app.AddEventListener(id, listener)
+
+	links := app.entityLinksFromResumePoint(&model.ResumePoint{
+		EventListenerID: null.NewString("lst-hook", true),
+	})
+	if got := links.usageRecordType(); got != model.UsageRecordTypeWebhookFlowExecution {
+		t.Errorf("got %s, want webhook usage", got)
+	}
+}
+
 func TestEntityLinksUsageRecordType(t *testing.T) {
 	for links, want := range map[entityLinks]model.UsageRecordType{
 		{CommandID: null.NewString("cmd-1", true)}:       model.UsageRecordTypeCommandFlowExecution,
 		{EventListenerID: null.NewString("lis-1", true)}: model.UsageRecordTypeEventListenerFlowExecution,
 		{MessageID: null.NewString("msg-1", true)}:       model.UsageRecordTypeMessageFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-2", true),
+			EventSource:     model.EventSourceWebhook,
+		}: model.UsageRecordTypeWebhookFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-3", true),
+			EventSource:     model.EventSourceSchedule,
+		}: model.UsageRecordTypeScheduleFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-4", true),
+			EventSource:     model.EventSourceDiscord,
+		}: model.UsageRecordTypeEventListenerFlowExecution,
 	} {
 		if got := links.usageRecordType(); got != want {
 			t.Errorf("%+v: got %s, want %s", links, got, want)
@@ -248,10 +277,13 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 		want  []string
 	}{
 		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
-		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
-		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"server message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, []string{"update"}},
+		{"server message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, []string{"delete"}},
+		// Listeners get the derived events above instead.
+		{"raw server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, nil},
+		{"raw server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, nil},
 		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
-		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message edit", &guildevent.MessageEdit{}, nil},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
 	}
 
@@ -285,6 +317,9 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		{"direct message", &gateway.MessageCreateEvent{}, false},
 		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+		// Already sent to the plugin as Discord's event.
+		{"derived message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, false},
+		{"derived message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, false},
 	}
 
 	for _, tt := range tests {

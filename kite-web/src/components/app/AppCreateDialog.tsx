@@ -33,9 +33,11 @@ import {
 } from "@/lib/discord/token";
 import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
+import AppTokenConsent from "./AppTokenConsent";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { loginUrl } from "@/lib/api/client";
+import { App } from "@/lib/types/wire.gen";
 
 interface FormFields {
   discord_token: string;
@@ -55,7 +57,14 @@ interface WrongToken {
   applicationId?: string;
 }
 
-export default function AppCreateDialog({ children }: { children: ReactNode }) {
+export default function AppCreateDialog({
+  children,
+  onCreated,
+}: {
+  children: ReactNode;
+  // Instead of opening the new app.
+  onCreated?: (app: App) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [skippedGuide, setSkippedGuide] = useState(false);
@@ -159,12 +168,16 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
 
           if (res.success) {
             track("app_created", { skipped_guide: skippedGuide });
-            toast.success("App created!");
+            toast.success("App created.");
             onOpenChange(false);
-            router.push({
-              pathname: "/apps/[appId]",
-              query: { appId: res.data.id },
-            });
+            if (onCreated) {
+              onCreated(res.data);
+            } else {
+              router.push({
+                pathname: "/apps/[appId]",
+                query: { appId: res.data.id },
+              });
+            }
           } else if (
             res.error.code === "invalid_discord_token" ||
             res.error.code === "app_exists"
@@ -192,7 +205,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
         <DialogHeader>
           <DialogTitle>
             <div className="flex items-center space-x-2">
-              <div>Create App</div>
+              <div>Create app</div>
               <a
                 href={env.NEXT_PUBLIC_DOCS_LINK + "/guides/getting-started"}
                 target="_blank"
@@ -302,7 +315,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                 name="discord_token"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bot Token</FormLabel>
+                    <FormLabel>Bot token</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
@@ -349,6 +362,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                   </Button>
                 </div>
               )}
+              <AppTokenConsent action="creating the app" />
               <DialogFooter className="gap-2 sm:space-x-0">
                 <Button
                   type="button"

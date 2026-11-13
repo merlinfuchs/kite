@@ -11,6 +11,8 @@ export default function HomeLayout({
   description?: string;
   noindex?: boolean;
   jsonLd?: object[];
+  image?: string;
+  embedButtons?: { label: string; path: string }[];
 }) {
   return (
     <BaseLayout {...props}>

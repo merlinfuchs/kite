@@ -18,9 +18,7 @@ const parts: Record<string, string> = {
 const partFields: BlockField[] = Object.entries(parts).map(
   ([target, what]) => ({
     name: `include_${target.replace(/\B([A-Z])/g, "_$1").toLowerCase()}`,
-    in: "query",
     target,
-    type: "boolean",
     label: target.replace(/\B([A-Z])/g, " $1"),
     description: `Whether to include ${what}.`,
   })
@@ -32,18 +30,16 @@ const player = z
 
 export const erlcServerGet: BlockDefinition = {
   type: "action_erlc_server_get",
+  id_prefix: "erlc",
   title: "Get ER:LC server",
   description: "Get the status of your ER:LC private server",
   icon: "siren",
   category: "ER:LC",
-  credits: 1,
   strict_settings: true,
   run: {
     kind: "request",
     integration: "erlc",
     operation: "get_server",
-    method: "GET",
-    path: "/v2/server",
   },
   fields: partFields,
   result: {
@@ -89,9 +85,9 @@ export const erlcServerGet: BlockDefinition = {
           .describe("Players in the server, if included"),
         Staff: z
           .object({
-            Admins: z.record(z.string()),
-            Mods: z.record(z.string()),
-            Helpers: z.record(z.string()),
+            Admins: z.record(z.string(), z.string()),
+            Mods: z.record(z.string(), z.string()),
+            Helpers: z.record(z.string(), z.string()),
           })
           .optional()
           .describe(

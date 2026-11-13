@@ -8,7 +8,13 @@ Plugins add ready-made features to your app without building any flows. They wor
 
 You can find them under `Plugins` in the sidebar. Right now there are two plugins: [Counting](#counting) and [Starboard](#starboard).
 
-## Setting Up a Plugin
+:::info
+
+Plugins are being replaced by templates. Counting and Starboard are now templates you can add from `Marketplace` and change like your own flows, and only apps that already use a plugin still see them. Templates use credits like any other flow.
+
+:::
+
+## Setting up a plugin
 
 1. Click on `Configure` on the plugin
 2. Choose which of the plugin's commands and event listeners you want to use. All of them are selected by default.

@@ -12,11 +12,12 @@ const PlaceholderInput = forwardRef<
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    readOnly?: boolean;
     // Applied to the input and its highlight layer, so both keep the same
     // padding and the highlights stay lined up with the text.
     className?: string;
   }
->(({ value, onChange, placeholder, className }, ref) => {
+>(({ value, onChange, placeholder, readOnly, className }, ref) => {
   const renderRef = useRef<HTMLDivElement>(null);
 
   const syncScroll = useCallback((e: any) => {
@@ -52,6 +53,7 @@ const PlaceholderInput = forwardRef<
         className={cn("bg-transparent absolute inset-0 z-10", className)}
         ref={ref}
         placeholder={placeholder}
+        readOnly={readOnly}
       />
       <div
         ref={renderRef}

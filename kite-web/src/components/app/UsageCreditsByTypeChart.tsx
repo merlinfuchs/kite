@@ -17,28 +17,29 @@ import { useMemo } from "react";
 
 const chartConfig = {
   credits_used: {
-    label: "Credits Used",
+    label: "Credits used",
   },
   command_flow_execution: {
     label: "Commands",
     color: "hsl(var(--chart-3))",
   },
   event_listener_flow_execution: {
-    label: "Events",
+    label: "Event listeners",
     color: "hsl(var(--chart-4))",
   },
   message_flow_execution: {
     label: "Messages",
     color: "hsl(var(--chart-5))",
   },
+  webhook_flow_execution: {
+    label: "Webhooks",
+    color: "hsl(var(--chart-6))",
+  },
+  schedule_flow_execution: {
+    label: "Scheduled tasks",
+    color: "hsl(var(--chart-7))",
+  },
 } satisfies ChartConfig;
-
-const typeNames: Record<string, string> = {
-  credits_used: "Credits Used",
-  command_flow_execution: "Commands",
-  event_listener_flow_execution: "Events",
-  message_flow_execution: "Messages",
-};
 
 export default function UsageCreditsByTypeChart() {
   const creditsByType = useUsageCreditsByType();
@@ -56,7 +57,7 @@ export default function UsageCreditsByTypeChart() {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Usage by Type</CardDescription>
+        <CardDescription>Usage by type</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mt-4 h-[150px] sm:h-[200px]">
@@ -81,7 +82,10 @@ export default function UsageCreditsByTypeChart() {
                         dominantBaseline={props.dominantBaseline}
                         fill="hsla(var(--foreground))"
                       >
-                        {typeNames[payload.type]}
+                        {
+                          chartConfig[payload.type as keyof typeof chartConfig]
+                            ?.label
+                        }
                       </text>
                     );
                   }}

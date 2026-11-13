@@ -62,7 +62,7 @@ export default function AppSecretDialog({
       onSuccess(res: Awaited<ReturnType<typeof createMutation.mutateAsync>>) {
         if (res.success) {
           if (!secret) track("secret_created");
-          toast.success(secret ? "Secret updated!" : "Secret created!");
+          toast.success(secret ? "Secret updated." : "Secret created.");
           setOpen(false);
           form.reset({ name: secret ? res.data.name : "", value: "" });
         } else if (res.error.code === "validation_failed") {
@@ -97,7 +97,7 @@ export default function AppSecretDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{secret ? "Edit Secret" : "Create Secret"}</DialogTitle>
+          <DialogTitle>{secret ? "Edit secret" : "Create secret"}</DialogTitle>
           <DialogDescription>
             Use it in API request blocks as{" "}
             <code>{`{{secrets.${form.watch("name") || "NAME"}}}`}</code>. The

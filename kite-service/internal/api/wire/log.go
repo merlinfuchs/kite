@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -14,7 +15,21 @@ type LogEntry struct {
 	CommandID       null.String `json:"command_id"`
 	EventListenerID null.String `json:"event_listener_id"`
 	MessageID       null.String `json:"message_id"`
-	CreatedAt       time.Time   `json:"created_at"`
+	// The block a flow error happened in.
+	NodeID    null.String      `json:"node_id"`
+	NodeType  null.String      `json:"node_type"`
+	ErrorCode null.String      `json:"error_code"`
+	Details   *LogEntryDetails `json:"details,omitempty"`
+	CreatedAt time.Time        `json:"created_at"`
+}
+
+type LogEntryDetails struct {
+	DiscordStatus int    `json:"discord_status,omitempty"`
+	DiscordCode   int    `json:"discord_code,omitempty"`
+	Integration   string `json:"integration,omitempty"`
+	HTTPStatus    int    `json:"http_status,omitempty"`
+	// The setting of the block that was invalid.
+	Field string `json:"field,omitempty"`
 }
 
 type LogEntryListResponse = []*LogEntry
@@ -41,7 +56,25 @@ func LogEntryToWire(entry *model.LogEntry) *LogEntry {
 		CommandID:       entry.CommandID,
 		EventListenerID: entry.EventListenerID,
 		MessageID:       entry.MessageID,
+		NodeID:          entry.NodeID,
+		NodeType:        entry.NodeType,
+		ErrorCode:       entry.ErrorCode,
+		Details:         logEntryDetailsToWire(entry.Details),
 		CreatedAt:       entry.CreatedAt,
+	}
+}
+
+func logEntryDetailsToWire(details *flow.ErrorDetails) *LogEntryDetails {
+	if details == nil {
+		return nil
+	}
+
+	return &LogEntryDetails{
+		DiscordStatus: details.DiscordStatus,
+		DiscordCode:   details.DiscordCode,
+		Integration:   details.Integration,
+		HTTPStatus:    details.HTTPStatus,
+		Field:         details.Field,
 	}
 }
 

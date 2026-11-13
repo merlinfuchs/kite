@@ -26,6 +26,7 @@ describe("discord component embed", () => {
     description:
       "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.",
     url: "https://kite.onl/",
+    imageUrl: "https://kite.onl/og.png",
   });
 
   it("stays within Discord's size limit", () => {

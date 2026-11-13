@@ -9,44 +9,44 @@ import {
 } from "@/components/landing/copy";
 
 const content: ComparisonPageContent = {
-  title: "Free SCNX Alternative",
+  title: "Free SCNX alternative",
   description:
-    "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and no branding.",
+    "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and a free custom status.",
   competitor: "SCNX",
   lastChecked: "October 2026",
-  heading: "A Free SCNX Alternative",
+  heading: "A free SCNX alternative",
   intro:
     "Kite and SCNX both give you your own Discord bot without code. SCNX is built around ready-made modules, while in Kite you build your own commands from blocks. On Kite's free plan, one bot can join up to 100 servers and you never need to watch an ad to keep it online.",
   chooseKite: [
     "Your bot should work on more than one server",
     "You need more than 10 custom commands without paying",
-    "You don't want to watch an ad every week to keep your bot online",
-    "You want no branding on your bot without paying",
+    "You don't want to watch ads to keep your bot online",
+    "You want to remove all branding from your bot without paying",
   ],
   chooseCompetitor: [
-    "You want dozens of ready-made modules like leveling, economy and social media notifications",
+    "You want dozens of ready-made modules, like social media notifications",
     "You'd rather turn on modules than build commands",
     "You want a ticket and modmail support bot and are fine with paying",
   ],
   rows: [
     {
       feature: "Servers per bot",
-      kite: "100 free, more with Premium",
-      competitor: "1, the server it was made for",
+      kite: "100 free, more on paid plans",
+      competitor: "1, extra servers cost extra on paid plans",
     },
     {
       feature: "Custom commands (free)",
-      kite: "25",
+      kite: "15",
       competitor: "10 triggers",
     },
     {
       feature: "Keeping your bot online (free)",
       kite: "Always online",
-      competitor: "Watch an ad every 7 days",
+      competitor: "Watch an ad every 7 to 14 days",
     },
     {
       feature: "Branding on your bot (free)",
-      kite: "None",
+      kite: 'Default "Powered by Kite.onl" status, free to change',
       competitor: '"Powered by scnx.xyz" in embeds',
     },
     {
@@ -56,7 +56,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "A few templates and plugins",
+      kite: "100+ templates, including leveling and economy",
       competitor: "Many",
     },
     {
@@ -67,19 +67,19 @@ const content: ComparisonPageContent = {
   ],
   reasons: [
     {
-      title: "One Bot for Many Servers",
+      title: "One bot for many servers",
       description:
-        "An SCNX bot only works on the server it was made for. A Kite bot can join up to 100 servers on the free plan.",
+        "An SCNX bot only works on the server it was made for, even on paid plans, where each extra server costs extra. A Kite bot can join up to 100 servers on the free plan.",
     },
     {
-      title: "No Ad Check-Ins",
+      title: "No ad check-ins",
       description:
-        "To keep a free SCNX bot online, you watch a short ad every 7 days. Kite keeps your bot online without any check-ins.",
+        "To keep a free SCNX bot online, you watch a short ad that adds 7 days, for at most 14 days ahead. Kite keeps your bot online without any check-ins.",
     },
     {
-      title: "No Branding",
+      title: "Remove branding for free",
       description:
-        "SCNX adds \"Powered by scnx.xyz\" to your bot's embeds, and removing all SCNX branding needs the Professional plan. Kite doesn't add any branding to your bot.",
+        'SCNX adds "Powered by scnx.xyz" to your bot\'s embeds, and removing all SCNX branding needs the Professional plan. Kite only shows "Powered by Kite.onl" as your bot\'s status until you set your own, which is free.',
     },
     aiBuilderPoint,
     openSourcePoint,

@@ -115,3 +115,18 @@ func (c *Client) DeleteObject(ctx context.Context, bucket string, name string) e
 
 	return nil
 }
+
+func (c *Client) ListObjects(ctx context.Context, bucket string) ([]model.ObjectInfo, error) {
+	var objects []model.ObjectInfo
+	for object := range c.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Recursive: true}) {
+		if object.Err != nil {
+			return nil, fmt.Errorf("failed to list objects of bucket %s: %w", bucket, object.Err)
+		}
+		objects = append(objects, model.ObjectInfo{
+			Name:         object.Key,
+			Size:         object.Size,
+			LastModified: object.LastModified,
+		})
+	}
+	return objects, nil
+}

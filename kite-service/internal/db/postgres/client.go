@@ -66,3 +66,42 @@ func uniqueViolation(err error) error {
 	}
 	return err
 }
+
+// foreignKeyViolation turns a violated foreign key, a row that refers to one
+// that was deleted, into store.ErrNotFound.
+func foreignKeyViolation(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		return store.ErrNotFound
+	}
+	return err
+}
+
+// PoolStats is how busy the connection pool is. A rising EmptyAcquireCount
+// means queries waited for a free connection.
+type PoolStats struct {
+	MaxConns              int32 `json:"max_conns"`
+	TotalConns            int32 `json:"total_conns"`
+	AcquiredConns         int32 `json:"acquired_conns"`
+	IdleConns             int32 `json:"idle_conns"`
+	AcquireCount          int64 `json:"acquire_count"`
+	AcquireNanosTotal     int64 `json:"acquire_nanos_total"`
+	EmptyAcquireCount     int64 `json:"empty_acquire_count"`
+	EmptyAcquireWaitNanos int64 `json:"empty_acquire_wait_nanos"`
+	CanceledAcquireCount  int64 `json:"canceled_acquire_count"`
+}
+
+func (c *Client) PoolStats() PoolStats {
+	s := c.DB.Stat()
+	return PoolStats{
+		MaxConns:              s.MaxConns(),
+		TotalConns:            s.TotalConns(),
+		AcquiredConns:         s.AcquiredConns(),
+		IdleConns:             s.IdleConns(),
+		AcquireCount:          s.AcquireCount(),
+		AcquireNanosTotal:     s.AcquireDuration().Nanoseconds(),
+		EmptyAcquireCount:     s.EmptyAcquireCount(),
+		EmptyAcquireWaitNanos: s.EmptyAcquireWaitTime().Nanoseconds(),
+		CanceledAcquireCount:  s.CanceledAcquireCount(),
+	}
+}

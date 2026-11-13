@@ -38,6 +38,13 @@ UPDATE assistant_prompts SET
     updated_at = @updated_at
 WHERE id = @id AND app_id = @app_id;
 
+-- name: RefuseAssistantPrompt :exec
+UPDATE assistant_prompts SET
+    edited = edited AND @edited,
+    refusal_chance = @refusal_chance,
+    updated_at = @updated_at
+WHERE id = @id AND app_id = @app_id;
+
 -- name: DeleteAssistantPrompt :exec
 DELETE FROM assistant_prompts WHERE id = @id AND app_id = @app_id;
 

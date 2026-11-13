@@ -10,14 +10,14 @@ import Link from "next/link";
 
 const useCases = [
   {
-    title: "Moderation Bot",
+    title: "Moderation bot",
     description: "Ban, kick and mute members with commands that you control.",
     icon: ShieldIcon,
     color: "bg-red-500/15 text-red-600 dark:text-red-400",
     href: "/discord-moderation-bot",
   },
   {
-    title: "Welcome Bot",
+    title: "Welcome bot",
     description:
       "Greet new members, give them a role and send them your rules.",
     icon: UserPlusIcon,
@@ -25,7 +25,7 @@ const useCases = [
     href: "/discord-welcome-bot",
   },
   {
-    title: "AI Chatbot",
+    title: "AI chatbot",
     description:
       "Answer questions with an /ask command and its own personality.",
     icon: SparklesIcon,
@@ -33,7 +33,7 @@ const useCases = [
     href: "/ai-discord-bot",
   },
   {
-    title: "Anything Else",
+    title: "Anything else",
     description: "Build your own commands and events, hosted 24/7 for free.",
     icon: ServerIcon,
     color: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
@@ -45,10 +45,7 @@ export default function HomeUseCasesSection() {
   return (
     <section id="use-cases" className="container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold">
-        What Will You{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Build?
-        </span>
+        Bots people build with Kite
       </h2>
       <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
         Start from a template for the most common bots, or build something
@@ -88,12 +85,12 @@ export default function HomeUseCasesSection() {
         <div>
           <div className="font-semibold">Coming from another bot maker?</div>
           <div className="text-muted-foreground">
-            See how Kite compares to BotGhost, inventor.bot, BotWiz and Bot
+            See how Kite compares to BotGhost, inventor.bot, BotWiz, and Bot
             Designer for Discord.
           </div>
         </div>
         <Button asChild variant="outline" className="flex-none">
-          <Link href="/alternatives">Compare Bot Makers</Link>
+          <Link href="/alternatives">Compare bot makers</Link>
         </Button>
       </div>
     </section>

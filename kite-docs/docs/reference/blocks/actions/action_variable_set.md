@@ -19,7 +19,9 @@ The `Set stored variable` block is used to store a value in a variable that can 
 >
 > `Value` The value that's changed.
 
+`Append` and `Prepend` add the value to the end or the start of text. If the variable holds a list, they add it to the list as one item. An empty value adds nothing. The `Increment`, `Decrement`, `Append` and `Prepend` of runs at the same time don't overwrite each other.
+
 ### Output
-If you want to use your variable, you will use a `Get Variable` block.
+If you want to use your variable, you will use a `Get stored variable` block.
 
 <NodeInfoExplorer type="action_variable_set" />

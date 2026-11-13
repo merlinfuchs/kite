@@ -6,14 +6,14 @@ import { erlcStatusFlow } from "@/components/landing/flows";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
-  title: "Make a Free ER:LC Discord Bot",
+  title: "Make a free ER:LC Discord bot",
   description:
     "Make your own ER:LC Discord bot for free with Kite. Show your private server's status and players, run in-game commands from Discord and log game events, without writing code.",
-  heading: "Make Your Own ER:LC Discord Bot",
+  heading: "Make your own ER:LC Discord bot",
   intro:
     "Connect your Emergency Response: Liberty County private server to a Discord bot with your own name and avatar. Start with the ER:LC template, then build the commands your community needs. You don't need to write code.",
   secondaryAction: {
-    label: "Read the Guide",
+    label: "Read the guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/erlc`,
   },
   showcase: {
@@ -23,8 +23,9 @@ const content: LandingPageContent = {
   },
   sections: [
     {
-      heading: "Start With the ER:LC Template",
-      body: "Enable ER:LC with your server key and import the template. Your bot gets three slash commands.",
+      heading: "Start with the ER:LC template",
+      body: "Enable ER:LC with your server key and add the template. Your bot gets three slash commands.",
+      link: { label: "View the template", href: "/marketplace/erlc" },
       points: [
         {
           title: "/status",
@@ -43,15 +44,15 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "Build the Bot Your Server Needs",
+      heading: "Build the bot your server needs",
       points: [
         {
-          title: "Staff Commands",
+          title: "Staff commands",
           description:
             "Kick players, send hints or run any other in-game command from Discord, only for your staff.",
         },
         {
-          title: "Live Server Info",
+          title: "Live server info",
           description:
             "Count the police online, show the queue or list the staff in the server.",
         },
@@ -61,19 +62,19 @@ const content: LandingPageContent = {
             "Post join logs, kill logs, command logs and mod calls to your staff channels.",
         },
         {
-          title: "In-Game Commands",
+          title: "In-game commands",
           description:
             "React to emergency calls and to chat messages starting with ; in the game, through ER:LC's event webhooks.",
         },
         {
-          title: "Your Own Branding",
+          title: "Your server's name and avatar",
           description:
-            "Give the bot your server's name and avatar, and send replies as embeds in your colors.",
+            "Give the bot your server's name and avatar, and send replies as embeds in your colors. You can replace Kite's default status with your own for free.",
         },
         {
-          title: "Let AI Build It",
+          title: "Let AI build it",
           description:
-            "Describe the command you want, like a /police command that lists the officers on duty, and Kite's AI builds it.",
+            "Describe the command you want, like a /police command that lists the officers on duty, and Flow AI builds it.",
         },
       ],
     },

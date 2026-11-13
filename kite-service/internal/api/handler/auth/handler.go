@@ -23,11 +23,12 @@ type AuthHandlerConfig struct {
 type AuthHandler struct {
 	config         AuthHandlerConfig
 	userStore      store.UserStore
+	appStore       store.AppStore
 	sessionManager *session.SessionManager
 	oauth2Config   *oauth2.Config
 }
 
-func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, sessionManager *session.SessionManager) *AuthHandler {
+func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, appStore store.AppStore, sessionManager *session.SessionManager) *AuthHandler {
 	conf := &oauth2.Config{
 		RedirectURL:  fmt.Sprintf("%s/v1/auth/login/callback", config.APIPublicBaseURL),
 		ClientID:     config.DiscordClientID,
@@ -39,6 +40,7 @@ func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, session
 	return &AuthHandler{
 		config:         config,
 		userStore:      userStore,
+		appStore:       appStore,
 		sessionManager: sessionManager,
 		oauth2Config:   conf,
 	}

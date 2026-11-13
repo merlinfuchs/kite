@@ -113,6 +113,35 @@ export const welcomeFlow = column([
   },
 ]);
 
+export const levelingFlow = column([
+  {
+    type: "entry_event",
+    data: {
+      event_type: "message_create",
+      description: "Give members XP for chatting",
+    },
+  },
+  {
+    type: "action_variable_set",
+    data: {
+      custom_label: "Add 15 to 25 XP",
+      variable_id: "xp",
+      variable_operation: "increment",
+      variable_value: "{{15 + now().UnixMilli() % 11}}",
+    },
+  },
+  {
+    type: "action_message_create",
+    data: {
+      custom_label: "Level-up message",
+      channel_target: "123456789012345678",
+      message_data: {
+        content: "🎉 {{event.user.mention}} reached level 3!",
+      },
+    },
+  },
+]);
+
 export const askAiFlow = column([
   {
     type: "entry_command",
@@ -147,6 +176,53 @@ export const erlcStatusFlow = column([
       message_data: {
         content:
           "{{ result('1').CurrentPlayers }} players are in the server. Join with {{ result('1').JoinKey }}!",
+      },
+    },
+  },
+]);
+
+export const robloxRankFlow = column([
+  {
+    type: "entry_command",
+    data: { name: "setrank", description: "Rank a member in the group" },
+  },
+  {
+    type: "action_bloxlink_user_get",
+    data: { user_target: "{{arg('user')}}" },
+  },
+  {
+    type: "action_roblox_group_member_role_edit",
+    data: {
+      roblox_group_id: "4199740",
+      roblox_user_target: "{{ result('1') }}",
+      roblox_group_role: "{{arg('role')}}",
+    },
+  },
+  {
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content:
+          "Changed the role of {{ result('1').name }} to {{ result('2').role }}.",
+      },
+    },
+  },
+]);
+
+export const cookieApiTranscriptFlow = column([
+  {
+    type: "entry_command",
+    data: { name: "close", description: "Close this ticket" },
+  },
+  {
+    type: "action_cookie_api_transcript_create",
+    data: { transcript_title: "Ticket {{channel.name}}" },
+  },
+  {
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content: "Transcript saved: {{ result('1').url }}",
       },
     },
   },

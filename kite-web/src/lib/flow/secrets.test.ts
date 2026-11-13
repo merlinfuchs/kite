@@ -35,6 +35,17 @@ describe("getReferencedSecretNames", () => {
           position: { x: 0, y: 0 },
           data: { condition_item_value: "{{secrets.TOKEN}}" },
         },
+        {
+          id: "5",
+          type: "action_javascript_run",
+          position: { x: 0, y: 0 },
+          data: {
+            javascript_data: {
+              code: 'await fetch("https://x.com/{{secrets.CODE}}")',
+              inputs: [{ name: "a", value: "{{secrets.INPUT}}" }],
+            },
+          },
+        },
       ],
       edges: [],
     };
@@ -42,6 +53,7 @@ describe("getReferencedSecretNames", () => {
       "API_KEY",
       "OTHER",
       "TOKEN",
+      "CODE",
     ]);
   });
 });
@@ -55,6 +67,9 @@ describe("comparison condition with secrets", () => {
       ["not_equal", true],
       ["starts_with", false],
       ["contains", false],
+      ["one_of", false],
+      ["not_one_of", false],
+      ["contains_any", false],
     ] as const) {
       const result = schema.safeParse({
         condition_item_mode: mode,
@@ -84,5 +99,22 @@ describe("comparison condition with secrets", () => {
       });
       expect(result.success, value).toBe(valid);
     }
+  });
+
+  it("doesn't allow secrets with ignore case", () => {
+    const result = schema.safeParse({
+      condition_item_mode: "equal",
+      condition_item_value: "{{secrets.TOKEN}}",
+      condition_item_ignore_case: true,
+    });
+    expect(result.success).toBe(false);
+
+    expect(
+      schema.safeParse({
+        condition_item_mode: "equal",
+        condition_item_value: "gtg",
+        condition_item_ignore_case: true,
+      }).success
+    ).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -23,13 +24,20 @@ var (
 	secretMentionRe = regexp.MustCompile(`(?:^|[^.\w])secrets\b`)
 )
 
-// secretNames are the secrets the templates reference. Only placeholders are
-// searched, as text like secrets.txt in a URL doesn't reference a secret.
+// secretNames are the secrets the templates reference.
 func secretNames(templates []string) []string {
+	return placeholderReferences(templates, secretReferenceRe)
+}
+
+// placeholderReferences are the names the placeholders of the templates use
+// after a root like secrets or params, in the order they're first used. Only
+// placeholders are searched, as text like secrets.txt in a URL doesn't
+// reference anything.
+func placeholderReferences(templates []string, re *regexp.Regexp) []string {
 	var names []string
 	for _, template := range templates {
 		for _, p := range placeholderRe.FindAllStringSubmatch(template, -1) {
-			for _, m := range secretReferenceRe.FindAllStringSubmatch(p[1], -1) {
+			for _, m := range re.FindAllStringSubmatch(p[1], -1) {
 				if !slices.Contains(names, m[1]) {
 					names = append(names, m[1])
 				}
@@ -116,6 +124,30 @@ func (s *flowSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.Thi
 	return res, nil
 }
 
+// EvalJSONTemplate is like FlowContext.EvalJSONTemplate, but placeholders
+// always become text, as they did when the whole document was one template.
+func (s *flowSecrets) EvalJSONTemplate(ctx *FlowContext, raw json.RawMessage) ([]byte, error) {
+	res, err := evalJSONTemplate(raw, true, func(template string) (any, error) {
+		// A string that's a single placeholder would lose the spaces around
+		// it, so they are added back.
+		trimmed := strings.TrimSpace(template)
+		start := strings.Index(template, trimmed)
+		res, err := eval.EvalTemplate(ctx, trimmed, s.evalCtx)
+		if err != nil {
+			return nil, err
+		}
+		text := ""
+		if !res.IsNil() {
+			text = fmt.Sprintf("%v", res)
+		}
+		return template[:start] + text + template[start+len(trimmed):], nil
+	})
+	if err != nil {
+		return nil, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
+	}
+	return res, nil
+}
+
 // EvalTemplateRaw is like FlowContext.EvalTemplateRaw, for a setting that
 // has to be exactly the secret, like a signing key.
 func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.Thing, error) {
@@ -126,6 +158,23 @@ func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.
 		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
 	}
 	return res, nil
+}
+
+// Fill replaces each placeholder of value that's just a secret, like
+// {{secrets.TOKEN}}, with its value, for text that isn't a template, like
+// the values of a request from code. Other placeholders stay as they are.
+func (s *flowSecrets) Fill(value string) string {
+	return placeholderRe.ReplaceAllStringFunc(value, func(m string) string {
+		inner := placeholderRe.FindStringSubmatch(m)[1]
+		if !plainSecretRe.MatchString(inner) {
+			return m
+		}
+		name := strings.TrimPrefix(strings.TrimSpace(inner), "secrets.")
+		if v, ok := s.values[name]; ok {
+			return v
+		}
+		return m
+	})
 }
 
 // Redact removes the values of the secrets from an error, which can contain

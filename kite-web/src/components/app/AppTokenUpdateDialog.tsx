@@ -17,6 +17,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { track } from "@/lib/analytics";
+import AppTokenConsent from "./AppTokenConsent";
 
 export default function AppTokenUpdateDialog({
   app,
@@ -53,7 +54,11 @@ export default function AppTokenUpdateDialog({
         onSuccess(res) {
           if (res.success) {
             track("token_updated", { from });
-            toast.success("Token updated! Your bot is starting again.");
+            toast.success(
+              app.no_credits
+                ? "Token updated. Your bot is starting again, and its commands and events run once it has credits."
+                : "Token updated. Your bot is starting again."
+            );
             onOpenChange(false);
           } else {
             setError(res.error.message);
@@ -72,10 +77,10 @@ export default function AppTokenUpdateDialog({
       <DialogContent>
         <form onSubmit={onSubmit} className="space-y-5">
           <DialogHeader>
-            <DialogTitle>Update Token</DialogTitle>
+            <DialogTitle>Update token</DialogTitle>
             <DialogDescription>
               Open your bot in the Discord Developer Portal, click on{" "}
-              <strong>Reset Token</strong> under <strong>Bot</strong> and copy
+              <strong>Reset token</strong> under <strong>Bot</strong> and copy
               the new token.
             </DialogDescription>
           </DialogHeader>
@@ -90,7 +95,7 @@ export default function AppTokenUpdateDialog({
             </a>
           </Button>
           <div className="space-y-2">
-            <Label htmlFor="discord-token">Bot Token</Label>
+            <Label htmlFor="discord-token">Bot token</Label>
             <Input
               id="discord-token"
               type="password"
@@ -100,6 +105,7 @@ export default function AppTokenUpdateDialog({
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
+          <AppTokenConsent action="updating the token" />
           <DialogFooter>
             <LoadingButton type="submit" loading={updateMutation.isPending}>
               Update token

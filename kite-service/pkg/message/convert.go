@@ -158,7 +158,7 @@ func (m *EmbedData) ToEmbed(sentAt time.Time) discord.Embed {
 		Description: m.Description,
 		URL:         m.URL,
 		Timestamp:   timestamp,
-		Color:       discord.Color(m.Color),
+		Color:       discord.Color(m.Color.Value),
 		Footer:      m.Footer.ToEmbedFooter(),
 		Image:       m.Image.ToEmbedImage(),
 		Thumbnail:   m.Thumbnail.ToEmbedThumbnail(),
@@ -317,8 +317,9 @@ func (c *ComponentData) ToComponent(opts ConvertOptions) discord.Component {
 		}
 	case ComponentTypeContainer:
 		var accentColor *discord.Color
-		if c.AccentColor != nil {
-			color := discord.Color(*c.AccentColor)
+		// A color that is still a placeholder is left out.
+		if c.AccentColor != nil && c.AccentColor.Template == "" {
+			color := discord.Color(c.AccentColor.Value)
 			accentColor = &color
 		}
 		return &discord.ContainerComponent{

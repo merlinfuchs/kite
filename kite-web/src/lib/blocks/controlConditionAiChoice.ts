@@ -8,12 +8,14 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionAiChoice: BlockDefinition = {
   type: "control_condition_ai_choice",
+  id_prefix: "choice",
   title: "AI Choice",
   description: "Let AI pick one of several options and run its actions.",
   icon: "split",
-  category: "AI",
+  category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_ai_choice"],
+  continues_from: "control_condition_item_ai_choice",
   component: "condition",
   credits: 1,
   strict_settings: true,

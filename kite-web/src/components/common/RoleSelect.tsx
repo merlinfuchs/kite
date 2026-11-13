@@ -6,10 +6,12 @@ export default function RoleSelect({
   guildId,
   value,
   onChange,
+  emptyText = "No role found.",
 }: {
   guildId: string | null;
   value: string | null;
   onChange: (value: string | null) => void;
+  emptyText?: string;
 }) {
   const allRoles = useAppStateGuildRoles(guildId);
   // Everyone and roles of integrations can't be given to members.
@@ -28,7 +30,7 @@ export default function RoleSelect({
       onChange={onChange}
       placeholder="Select role..."
       searchPlaceholder="Search role..."
-      emptyText="No role found."
+      emptyText={emptyText}
     />
   );
 }

@@ -4,10 +4,11 @@ import { BlockDefinition } from "./types";
 
 export const httpRequest: BlockDefinition = {
   type: "action_http_request",
+  id_prefix: "http",
   title: "Send API Request",
   description: "Send an API request to an external server",
   icon: "webhook",
-  category: "API Requests",
+  category: "API requests",
   credits: 3,
   fields: [
     {
@@ -29,7 +30,7 @@ export const httpRequest: BlockDefinition = {
             .optional()
             .describe("Headers to send with the request."),
           body_json: z
-            .record(z.unknown())
+            .record(z.string(), z.unknown())
             .optional()
             .describe(
               "JSON body of the request. Placeholders in its string values are evaluated."

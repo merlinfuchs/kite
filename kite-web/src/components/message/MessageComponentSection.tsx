@@ -70,14 +70,14 @@ export default function MessageComponentSection({
             }
             disabled={childIds.length >= slotLimit("section", "components")}
           >
-            Add Text
+            Add text
           </Button>
           <Button
             size="sm"
             variant="destructive"
             onClick={() => removeChildren(id, "components")}
           >
-            Clear Texts
+            Clear texts
           </Button>
         </div>
 

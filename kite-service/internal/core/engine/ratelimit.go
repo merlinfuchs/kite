@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"golang.org/x/time/rate"
 )
 
@@ -22,6 +23,16 @@ var gatewayCommandRateLimit = BlockRateLimit{
 	Key:   "gateway_command",
 	Every: 10 * time.Second,
 	Burst: 5,
+}
+
+// serverProfileRateLimit is per server, like Discord's limit on the endpoint,
+// so a flow in a loop fails fast instead of waiting on Discord's.
+func serverProfileRateLimit(guildID discord.GuildID) BlockRateLimit {
+	return BlockRateLimit{
+		Key:   "server_profile:" + guildID.String(),
+		Every: 12 * time.Second,
+		Burst: 5,
+	}
 }
 
 // BlockRateLimiter tracks block rate limits across flow executions.

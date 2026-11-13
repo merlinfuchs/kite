@@ -10,8 +10,8 @@ import MessagePlaceholderExplorer from "./MessagePlaceholderExplorer";
 type Props = BaseInputProps & {
   validation?: ValidationTarget;
   placeholders?: boolean;
-  // Adds an emoji picker to a text input, "native" without custom emojis for
-  // fields that Discord shows as plain text.
+  // Adds an emoji picker, "native" without custom emojis for fields that
+  // Discord shows as plain text.
   emojis?: boolean | "native";
 };
 
@@ -26,45 +26,54 @@ export default function MessageInput(props: Props) {
 
   const insertText = useCallback(
     (text: string) => {
-      // TODO?: This is pretty hacky, we should think about baking placeholder support into the BaseInput component
       const element = containerRef.current?.querySelector<
         HTMLInputElement | HTMLTextAreaElement
       >("input, textarea");
-
       insertAtCursor(element, text, (value) => props.onChange(value as never));
     },
     [props]
   );
 
   const onPlaceholderSelect = useCallback(
-    (placeholder: string) => insertText(`{{${placeholder}}}`),
+    (placeholder: string, raw?: boolean) =>
+      insertText(raw ? placeholder : `{{${placeholder}}}`),
     [insertText]
   );
 
-  const isText = props.type === "text" || props.type === "textarea";
-  const showEmojis = !!emojis && isText;
+  const hasInput = ["text", "url", "email", "textarea"].includes(props.type);
+  const showPlaceholders = !!placeholders && hasInput;
+  const showEmojis =
+    !!emojis && (props.type === "text" || props.type === "textarea");
 
-  // Keeps the text clear of the icons in the top right of the input.
+  // Keeps the text clear of the buttons in the corner of the input.
   const iconPadding =
-    placeholders && showEmojis
+    showPlaceholders && showEmojis
       ? "[&_input]:pr-16 [&_textarea]:pr-16"
-      : placeholders || showEmojis
-      ? "[&_input]:pr-9 [&_textarea]:pr-9"
+      : showPlaceholders || showEmojis
+      ? "[&_input]:pr-10 [&_textarea]:pr-10"
       : undefined;
 
-  return (
-    <div className={cn("relative w-full", iconPadding)} ref={containerRef}>
-      <BaseInput {...(inputProps as BaseInputProps)} error={issue} />
-      {placeholders && (
-        <MessagePlaceholderExplorer onSelect={onPlaceholderSelect} />
-      )}
+  const actions = (showPlaceholders || showEmojis) && (
+    <>
       {showEmojis && (
         <EmojiInsertButton
           onSelect={insertText}
           nativeOnly={emojis === "native"}
-          className={placeholders ? "top-10 right-9" : "top-10 right-1.5"}
         />
       )}
+      {showPlaceholders && (
+        <MessagePlaceholderExplorer onSelect={onPlaceholderSelect} />
+      )}
+    </>
+  );
+
+  return (
+    <div className={cn("w-full", iconPadding)} ref={containerRef}>
+      <BaseInput
+        {...(inputProps as BaseInputProps)}
+        {...(hasInput && { actions })}
+        error={issue}
+      />
     </div>
   );
 }

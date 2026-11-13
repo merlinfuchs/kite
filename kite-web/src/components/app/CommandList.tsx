@@ -1,15 +1,32 @@
 import { Button } from "../ui/button";
 import CommandListEntry from "./CommandListEntry";
-import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
+import AppEmptyPlaceholder, {
+  AppEmptyTemplatesLink,
+} from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
+import { SquareSlashIcon } from "lucide-react";
+import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function CommandList() {
   const commands = useCommands();
+  const limit = usePlanLimit("max_commands", commands?.length);
+
+  const commandActions = (
+    <PlanLimitGate limit={limit} noun="commands" from="commands">
+      <CommandCreateDialog>
+        <Button>Create command</Button>
+      </CommandCreateDialog>
+      <FlowImportDialog kind="command">
+        <Button variant="outline">Import command</Button>
+      </FlowImportDialog>
+    </PlanLimitGate>
+  );
 
   return (
     <AutoAnimate className="flex flex-col md:flex-1 space-y-5">
@@ -21,26 +38,41 @@ export default function CommandList() {
         </>
       ) : (
         <>
-          <CommandDeployStatus />
+          {commands.length === 0 && <CommandDeployStatus />}
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
-              title="There are no commands"
-              description="You can start now by creating the first command!"
+              icon={SquareSlashIcon}
+              title="No commands yet"
+              description="Commands are what your users type in Discord, like /ban or /help. Create one and build what it does in the flow editor."
+              action={<ListActions>{commandActions}</ListActions>}
+              footer={<AppEmptyTemplatesLink />}
             />
           ) : (
-            commands.map((command, i) => (
-              <CommandListEntry command={command!} key={i} />
-            ))
+            <SearchableList
+              items={commands}
+              // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
+              fields={(command) => [
+                "/" + command.name.split(" ").join(" /"),
+                command.description,
+              ]}
+              renderItem={(command) => (
+                <CommandListEntry command={command} key={command.id} />
+              )}
+              placeholder="Search commands"
+              actions={commandActions}
+              // The deploy status and the limit read as one group.
+              status={
+                <div className="space-y-2">
+                  <CommandDeployStatus />
+                  <PlanLimitCount
+                    limit={limit}
+                    noun="commands"
+                    from="commands"
+                  />
+                </div>
+              }
+            />
           )}
-
-          <div className="flex gap-5 flex-col md:flex-row">
-            <CommandCreateDialog>
-              <Button>Create command</Button>
-            </CommandCreateDialog>
-            <FlowImportDialog kind="command">
-              <Button variant="outline">Import command</Button>
-            </FlowImportDialog>
-          </div>
         </>
       )}
     </AutoAnimate>

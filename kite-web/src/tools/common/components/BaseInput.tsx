@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./DatePicker";
 import { CircleAlertIcon } from "lucide-react";
 import ImageUploadButton from "./ImageUploadButton";
+import { ReactNode } from "react";
 
 export type BaseInputProps = {
   label: string;
@@ -28,6 +29,9 @@ export type BaseInputProps = {
       maxLength?: number;
       placeholder?: string;
       imageUpload?: boolean;
+      // Buttons in the top right corner of the input, like the placeholder
+      // explorer. The input needs right padding to keep its text clear of them.
+      actions?: ReactNode;
     }
   | {
       type: "select";
@@ -79,24 +83,30 @@ export default function BaseInput(props: BaseInputProps) {
       <div>
         {type === "text" || type === "url" || type === "email" ? (
           <div className="flex space-x-2">
-            <Input
-              type={type}
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              maxLength={props.maxLength}
-              placeholder={props.placeholder}
-            />
+            <div className="relative w-full">
+              <Input
+                type={type}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                maxLength={props.maxLength}
+                placeholder={props.placeholder}
+              />
+              {props.actions && <InputActions>{props.actions}</InputActions>}
+            </div>
             {props.imageUpload && (
               <ImageUploadButton onImageUploaded={onChange} />
             )}
           </div>
         ) : type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            minRows={3}
-            maxRows={15}
-          />
+          <div className="relative">
+            <Textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              minRows={3}
+              maxRows={15}
+            />
+            {props.actions && <InputActions>{props.actions}</InputActions>}
+          </div>
         ) : type === "select" ? (
           <Select value={value} onValueChange={onChange}>
             <SelectTrigger>
@@ -131,6 +141,14 @@ export default function BaseInput(props: BaseInputProps) {
           <div>{error}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+function InputActions({ children }: { children: ReactNode }) {
+  return (
+    <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-2">
+      {children}
     </div>
   );
 }

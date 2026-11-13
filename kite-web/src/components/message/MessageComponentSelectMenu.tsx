@@ -96,7 +96,7 @@ export default function MessageComponentSelectMenu({
           label="Type"
           value={type.type.toString()}
           options={typeOptions}
-          placeholder="Select Menu"
+          placeholder="Select menu"
           onChange={setType}
         />
         <div className="flex space-x-3">
@@ -127,7 +127,7 @@ export default function MessageComponentSelectMenu({
         <div className="flex space-x-3">
           <MessageInput
             type="select"
-            label="Min Selections"
+            label="Min selections"
             value={(data.min_values ?? 1).toString()}
             options={minValueOptions}
             placeholder="1"
@@ -138,7 +138,7 @@ export default function MessageComponentSelectMenu({
           />
           <MessageInput
             type="select"
-            label="Max Selections"
+            label="Max selections"
             value={(data.max_values ?? 1).toString()}
             options={maxValueOptions}
             placeholder="1"
@@ -190,14 +190,14 @@ export default function MessageComponentSelectMenu({
                   optionIds.length >= slotLimit("selectMenu", "options")
                 }
               >
-                Add Option
+                Add option
               </Button>
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => removeChildren(id, "options")}
               >
-                Clear Options
+                Clear options
               </Button>
             </div>
           </MessageCollapsibleSection>
@@ -267,7 +267,7 @@ const MessageComponentSelectOption = memo(
   }
 );
 
-function ChannelTypesInput({
+export function ChannelTypesInput({
   values,
   onChange,
 }: {
@@ -280,7 +280,7 @@ function ChannelTypesInput({
 
   return (
     <div className="space-y-2">
-      <div className="text-sm font-medium">Channel Types</div>
+      <div className="text-sm font-medium">Channel types</div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-full flex items-center">

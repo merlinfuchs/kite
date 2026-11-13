@@ -6,8 +6,6 @@ import (
 )
 
 func (h *BillingHandler) HandleFeaturesGet(c *handler.Context) (*wire.FeaturesGetResponse, error) {
-	features := h.planManager.AppFeatures(c.Context(), c.App.ID)
-
-	res := wire.Features(features)
+	res := wire.Features(c.Features)
 	return &res, nil
 }
