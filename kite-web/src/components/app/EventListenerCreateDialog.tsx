@@ -180,7 +180,7 @@ export default function EventListenerCreateDialog({
         name="type"
         rules={{ required: "Pick an event." }}
         render={({ field }) => (
-          <FormItem className="flex-1 min-h-0 flex flex-col">
+          <FormItem className="flex-1 min-h-64 flex flex-col">
             <DiscordEventPicker value={field.value} onChange={field.onChange} />
             <FormMessage />
           </FormItem>
@@ -192,7 +192,7 @@ export default function EventListenerCreateDialog({
         name="cron"
         rules={{ required: "Pick or enter a schedule." }}
         render={({ field }) => (
-          <FormItem className="flex-1 min-h-0 flex flex-col">
+          <FormItem className="flex-1 min-h-64 flex flex-col">
             <SchedulePicker value={field.value} onChange={field.onChange} />
             <FormMessage />
           </FormItem>
@@ -242,21 +242,31 @@ export default function EventListenerCreateDialog({
           <Form {...form}>
             <form
               id={formId}
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex-1 min-h-0 flex flex-col p-4"
+              onSubmit={
+                // Enter in the search or cron input goes to the next step.
+                mobileStep === "pick"
+                  ? (e) => {
+                      e.preventDefault();
+                      handleNext();
+                    }
+                  : form.handleSubmit(onSubmit)
+              }
+              className="flex-1 min-h-0 flex flex-col p-4 overflow-y-auto"
             >
-              {mobileStep === "pick" ? (
+              {/* Stays mounted on the describe step, so Back keeps the
+                  search, category and custom schedule. */}
+              {pickField && (
                 <div
-                  key="pick"
-                  className="flex-1 min-h-0 flex flex-col animate-in fade-in duration-200"
+                  className={cn(
+                    "flex-1 min-h-64 flex flex-col animate-in fade-in duration-200",
+                    mobileStep !== "pick" && "hidden"
+                  )}
                 >
                   {picker}
                 </div>
-              ) : (
-                <div
-                  key="describe"
-                  className="flex-1 min-h-0 overflow-y-auto space-y-5 p-1 animate-in fade-in slide-in-from-right-4 duration-200"
-                >
+              )}
+              {mobileStep === "describe" && (
+                <div className="space-y-5 p-1 animate-in fade-in slide-in-from-right-4 duration-200">
                   {source === "discord" && selectedEvent && (
                     <div className="space-y-2">
                       <OptionCard
@@ -341,7 +351,7 @@ export default function EventListenerCreateDialog({
           <form
             id={formId}
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex-1 min-h-0 flex flex-col gap-4 px-6 py-4"
+            className="flex-1 min-h-0 flex flex-col gap-4 px-6 py-4 overflow-y-auto"
           >
             {picker}
             {descriptionField}
@@ -454,9 +464,16 @@ function DiscordEventPicker({
   value: string;
   onChange: (value: string) => void;
 }) {
+  // Searching shows all categories again and picking a category clears the
+  // search, so a search never misses events of another category.
   const [search, setSearch] = useState("");
   // Undefined shows all categories.
   const [activeCategory, setActiveCategory] = useState<string>();
+
+  function pickCategory(category?: string) {
+    setActiveCategory(category);
+    setSearch("");
+  }
 
   const categories = useMemo(() => {
     const res: { name: string; types: typeof discordEventTypes }[] = [];
@@ -483,12 +500,12 @@ function DiscordEventPicker({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-3">
-      <div className="flex-none flex gap-1 overflow-x-auto no-scrollbar p-0.5">
+      <div className="flex-none flex sm:flex-wrap gap-1 overflow-x-auto no-scrollbar p-0.5">
         <CategoryPill
           icon={LayersIcon}
           label="All"
           active={!activeCategory}
-          onClick={() => setActiveCategory(undefined)}
+          onClick={() => pickCategory(undefined)}
         />
         {eventCategories.map((category) => (
           <CategoryPill
@@ -496,7 +513,7 @@ function DiscordEventPicker({
             icon={eventCategoryIcons[category] ?? TagIcon}
             label={category}
             active={activeCategory === category}
-            onClick={() => setActiveCategory(category)}
+            onClick={() => pickCategory(category)}
           />
         ))}
       </div>
@@ -508,7 +525,10 @@ function DiscordEventPicker({
           placeholder="Search events"
           aria-label="Search events"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setActiveCategory(undefined);
+          }}
           className="pl-9"
         />
       </div>
@@ -551,7 +571,8 @@ function DiscordEventPicker({
   );
 }
 
-// CategoryPill looks like the category chips of the template list.
+// CategoryPill is a smaller version of the category chips of the template
+// list, so all categories fit in one row on desktop.
 function CategoryPill({
   icon: Icon,
   label,
@@ -568,11 +589,11 @@ function CategoryPill({
       type="button"
       size="sm"
       variant={active ? "secondary" : "ghost"}
-      className="rounded-full flex-none gap-1.5"
+      className="h-8 rounded-full flex-none gap-1.5 px-2.5 text-xs"
       onClick={onClick}
       aria-pressed={active}
     >
-      <Icon className="size-4" />
+      <Icon className="size-3.5" />
       {label}
     </Button>
   );
