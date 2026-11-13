@@ -216,9 +216,12 @@ func commandGroups(keys []Key) [][]int {
 // ResolveCommandNames picks names for added commands that don't conflict
 // with the app's commands, see resolveCommandNames, in their order.
 func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, keys ...Key) ([]string, error) {
-	existing, err := m.takenCommands(ctx, appID, "")
+	taken, deployed, err := m.takenCommands(ctx, appID, "")
 	if err != nil {
 		return nil, err
 	}
-	return resolveCommandNames(existing, keys)
+	if err := checkCommandLimits(deployed, keys); err != nil {
+		return nil, err
+	}
+	return resolveCommandNames(taken, keys)
 }

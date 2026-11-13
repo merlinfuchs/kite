@@ -264,33 +264,41 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 	if err := checkCommandNames(nil, keys); err != nil {
 		return nil, err
 	}
+	if err := checkCommandLimits(nil, keys); err != nil {
+		return nil, err
+	}
 
 	return res, nil
 }
 
 // takenCommands returns the commands whose names new commands can't use: all
-// of the app's, also disabled ones, and the ones its plugins add. The command
+// of the app's, also disabled ones, and the ones its plugins add. deployed are
+// the ones of them Discord has, which count towards its limits. The command
 // with the ID replacedCommandID is left out, because it's being replaced.
-func (m *CommandManager) takenCommands(ctx context.Context, appID string, replacedCommandID string) ([]Key, error) {
+func (m *CommandManager) takenCommands(ctx context.Context, appID string, replacedCommandID string) (taken []Key, deployed []Key, err error) {
 	commands, err := m.commandStore.CommandsByApp(ctx, appID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get commands by app: %w", err)
+		return nil, nil, fmt.Errorf("failed to get commands by app: %w", err)
 	}
 	pluginCommands, err := m.pluginCommands(ctx, appID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	res := make([]Key, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
-		if command.ID != replacedCommandID {
-			res = append(res, ModelKey(command))
+		if command.ID == replacedCommandID {
+			continue
+		}
+		taken = append(taken, ModelKey(command))
+		if command.Enabled {
+			deployed = append(deployed, ModelKey(command))
 		}
 	}
 	for _, command := range pluginCommands {
-		res = append(res, NewKey(command.Type, command.Name))
+		taken = append(taken, NewKey(command.Type, command.Name))
+		deployed = append(deployed, NewKey(command.Type, command.Name))
 	}
-	return res, nil
+	return taken, deployed, nil
 }
 
 // pluginCommands returns the commands the app's plugins add.
@@ -318,14 +326,8 @@ func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]ap
 }
 
 // checkCommandNames reports whether the added commands conflict with the
-// existing ones or each other in a way Discord rejects, or are more context
-// menu commands than Discord allows.
+// existing ones or each other in a way Discord rejects.
 func checkCommandNames(existing []Key, added []Key) error {
-	counts := make(map[discord.CommandType]int)
-	for _, key := range existing {
-		counts[key.Type]++
-	}
-
 	for i, key := range added {
 		if key.Name == "" {
 			return &DeployError{Message: "A command has no name."}
@@ -335,7 +337,18 @@ func checkCommandNames(existing []Key, added []Key) error {
 				return err
 			}
 		}
+	}
+	return nil
+}
 
+// checkCommandLimits reports whether the added commands, with the ones
+// Discord already has, are more User or Message commands than it allows.
+func checkCommandLimits(deployed []Key, added []Key) error {
+	counts := make(map[discord.CommandType]int)
+	for _, key := range deployed {
+		counts[key.Type]++
+	}
+	for _, key := range added {
 		counts[key.Type]++
 		if !key.isSlash() && counts[key.Type] > maxContextMenuCommands {
 			return key.deployError(fmt.Sprintf(
@@ -387,14 +400,18 @@ func commandNameConflict(a, b Key) *DeployError {
 }
 
 // CheckCommandNames reports whether these commands conflict with each other
-// or the other commands of the app. The command with the ID
-// replacedCommandID is left out, because it's being replaced.
+// or the other commands of the app, or are more than Discord allows. The
+// command with the ID replacedCommandID is left out, because it's being
+// replaced.
 func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, keys ...Key) error {
-	existing, err := m.takenCommands(ctx, appID, replacedCommandID)
+	taken, deployed, err := m.takenCommands(ctx, appID, replacedCommandID)
 	if err != nil {
 		return err
 	}
-	return checkCommandNames(existing, keys)
+	if err := checkCommandNames(taken, keys); err != nil {
+		return err
+	}
+	return checkCommandLimits(deployed, keys)
 }
 
 // mergeCommands merges the subcommands of the same root command into one

@@ -61,7 +61,7 @@ func slashKeys(names ...string) []Key {
 	return res
 }
 
-func TestCheckCommandNamesOfContextMenuCommands(t *testing.T) {
+func TestCheckContextMenuCommands(t *testing.T) {
 	user := func(name string) Key { return NewKey(discord.UserCommand, name) }
 	message := func(name string) Key { return NewKey(discord.MessageCommand, name) }
 
@@ -89,6 +89,9 @@ func TestCheckCommandNamesOfContextMenuCommands(t *testing.T) {
 
 	for _, test := range tests {
 		err := checkCommandNames(test.existing, test.added)
+		if err == nil {
+			err = checkCommandLimits(test.existing, test.added)
+		}
 		if test.message == "" {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
