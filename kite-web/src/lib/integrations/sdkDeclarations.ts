@@ -38,8 +38,9 @@ export function codeTypeDeclarations(ops: CodeOperation[], all = true) {
 // Declarations of everything code can use besides JavaScript itself, which
 // the docs offer as kite.d.ts for editors.
 export function codeDeclarations() {
+  const calls = codeOperations();
   const namespaces = new Map<string, CodeOperation[]>();
-  for (const op of codeOperations()) {
+  for (const op of calls) {
     namespaces.set(op.namespace, [...(namespaces.get(op.namespace) ?? []), op]);
   }
 
@@ -61,7 +62,7 @@ export function codeDeclarations() {
 
   // The types of Discord's API, like discord.MessageResponse, in a namespace
   // that shares the name of the calls.
-  const types = codeTypeDeclarations(codeOperations());
+  const types = codeTypeDeclarations(calls);
   parts.push(
     "",
     "/** The objects of Discord's API that its calls take and return. */",

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
-	"net/http"
 	"slices"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -73,6 +72,8 @@ type operationPolicy struct {
 	Target string `json:"target"`
 	// It deletes, removes or bans.
 	Destructive bool `json:"destructive"`
+	// Code can pass the audit log reason of the call as "reason".
+	Reason bool `json:"reason"`
 }
 
 // operations are the operations by integration and ID.
@@ -118,8 +119,8 @@ func (ctx *FlowContext) sendOperation(op operation, path string, body []byte, re
 
 // operationRequest builds the path, body and audit log reason of a call of op
 // from code with arg, a JSON object with its path and query parameters by
-// name, its body under "body" and for Discord writes the reason under
-// "reason", like {"channel_id": "1", "body": {"content": "Hi"}}. See
+// name, its body under "body" and the audit log reason under "reason" if its
+// policy allows one, like {"channel_id": "1", "body": {"content": "Hi"}}. See
 // TestOperationParamsAreNotReserved.
 func operationRequest(op operation, arg json.RawMessage) (path string, body []byte, reason api.AuditLogReason, err error) {
 	params := map[string]json.RawMessage{}
@@ -149,7 +150,7 @@ func operationRequest(op operation, arg json.RawMessage) (path string, body []by
 		body = v
 		delete(params, "body")
 	}
-	if v, ok := params["reason"]; ok && op.Integration == "discord" && op.Method != http.MethodGet {
+	if v, ok := params["reason"]; ok && op.Policy.Reason {
 		var s string
 		if err := json.Unmarshal(v, &s); err != nil {
 			return "", nil, "", fmt.Errorf("the reason must be text")

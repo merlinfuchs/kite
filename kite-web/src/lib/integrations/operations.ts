@@ -24,6 +24,9 @@ export interface OperationPolicy {
   // It deletes, removes or bans, judged by its method and path. Calls whose
   // body decides it, like an ER:LC command, aren't marked.
   destructive: boolean;
+  // Code can pass the reason for the server's audit log as reason: the
+  // Discord calls that change something.
+  reason: boolean;
 }
 
 // A request to an integration's API, from its api.json.
@@ -72,6 +75,7 @@ export function operationPolicy(
       op.method === "DELETE" ||
       (op.method === "PUT" && op.path.includes("/bans/")) ||
       (op.method === "POST" && /bulk-(delete|ban)|\/prune/.test(op.path)),
+    reason: discord && op.method !== "GET",
   };
 }
 
@@ -109,7 +113,12 @@ export function allOperations(): Operation[] {
           ...op,
           params: toJsonSchema(params),
           result: toJsonSchema(result),
-          policy: { code: true, target: "none", destructive: !!destructive },
+          policy: {
+            code: true,
+            target: "none",
+            destructive: !!destructive,
+            reason: false,
+          },
         })
       )
   );

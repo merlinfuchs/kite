@@ -253,8 +253,8 @@ function operationTypes(op) {
     .map(([, r]) => {
       const schema = r.content?.["application/json"]?.schema;
       if (!schema) return "null";
-      // The spec makes some lists nullable, but a response with a body
-      // always has one.
+      // The spec makes some results nullable, like lists, but a response
+      // with a body always has one.
       const types = splitUnion(tsType(schema)).filter((t) => t !== "null");
       return types.length ? union(types) : "null";
     });

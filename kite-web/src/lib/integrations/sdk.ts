@@ -90,8 +90,7 @@ function codeOperation(op: Operation): CodeOperation {
             },
           ]
         : []),
-      // operationRequest in kite-service/pkg/flow/operations.go.
-      ...(op.integration === "discord" && op.method !== "GET"
+      ...(op.policy.reason
         ? [
             {
               name: "reason",
@@ -128,15 +127,13 @@ function paramType(p: ApiParam) {
 // scalars are reliable there, objects and lists of objects are any.
 function bodyType(params: ApiParam[] | undefined) {
   if (!params?.length) return "any";
-  const fields = params.map((p) => {
-    const type =
-      p.type === "snowflake" || p.type === "boolean" || p.enum
-        ? paramType(p)
-        : p.type === "integer" || p.type === "number"
-        ? "number"
-        : "any";
-    return `${p.name}${p.required ? "" : "?"}: ${type}`;
-  });
+  const reliable = ["snowflake", "boolean", "integer", "number"];
+  const fields = params.map(
+    (p) =>
+      `${p.name}${p.required ? "" : "?"}: ${
+        p.enum || reliable.includes(p.type) ? paramType(p) : "any"
+      }`
+  );
   return `{ ${fields.join("; ")} }`;
 }
 
