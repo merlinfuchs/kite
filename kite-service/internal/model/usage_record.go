@@ -12,6 +12,8 @@ const (
 	UsageRecordTypeCommandFlowExecution       UsageRecordType = "command_flow_execution"
 	UsageRecordTypeEventListenerFlowExecution UsageRecordType = "event_listener_flow_execution"
 	UsageRecordTypeMessageFlowExecution       UsageRecordType = "message_flow_execution"
+	UsageRecordTypeWebhookFlowExecution       UsageRecordType = "webhook_flow_execution"
+	UsageRecordTypeScheduleFlowExecution      UsageRecordType = "schedule_flow_execution"
 )
 
 type UsageRecord struct {
