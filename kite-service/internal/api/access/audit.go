@@ -1,9 +1,9 @@
 package access
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -172,20 +172,19 @@ func auditEntry(c *handler.Context, route auditRoute) *model.AppAuditLogEntry {
 	}
 
 	// The response has the new item, like the one that was created.
-	if resp := responseFields(c.Response()); resp != nil {
-		if id, ok := resp["id"].(string); ok && entry.TargetID == "" {
-			entry.TargetID = id
+	if resp, ok := readAuditResponse(c.Response()); ok {
+		if entry.TargetID == "" {
+			entry.TargetID = resp.ID
 		}
-		if name, ok := resp["name"].(string); ok && name != "" {
-			entry.TargetName = name
-		} else if typ, ok := resp["type"].(string); ok && route.TargetType == "event_listener" {
-			desc, _ := resp["description"].(string)
-			entry.TargetName = eventListenerName(desc, typ)
+		if resp.Name != "" {
+			entry.TargetName = resp.Name
+		} else if resp.Type != "" && route.TargetType == "event_listener" {
+			entry.TargetName = eventListenerName(resp.Description, resp.Type)
 		}
 		// Enabling and disabling are clearer than "updated enabled".
-		if enabled, ok := resp["enabled"].(bool); ok && strings.HasSuffix(route.Action, ".enabled_update") {
+		if resp.Enabled != nil && strings.HasSuffix(route.Action, ".enabled_update") {
 			base := strings.TrimSuffix(route.Action, ".enabled_update")
-			if enabled {
+			if *resp.Enabled {
 				entry.Action = base + ".enable"
 			} else {
 				entry.Action = base + ".disable"
@@ -224,23 +223,48 @@ func eventListenerName(description string, typ string) string {
 	return typ
 }
 
-// responseFields returns the top-level fields of a response that's a JSON
-// object, or nil.
-func responseFields(resp any) map[string]any {
-	if resp == nil {
-		return nil
+// auditResponse is what the audit log reads of the item in a response.
+type auditResponse struct {
+	ID          string
+	Name        string
+	Type        string
+	Description string
+	Enabled     *bool
+}
+
+// readAuditResponse reads the fields of a response that's a struct by their
+// names, without encoding the whole item, which can have a big flow. Fields
+// of other types are left empty.
+func readAuditResponse(resp any) (auditResponse, bool) {
+	v := reflect.ValueOf(resp)
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return auditResponse{}, false
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return auditResponse{}, false
 	}
 
-	raw, err := json.Marshal(resp)
-	if err != nil {
-		return nil
+	str := func(name string) string {
+		if f := v.FieldByName(name); f.Kind() == reflect.String {
+			return f.String()
+		}
+		return ""
 	}
 
-	var fields map[string]any
-	if err := json.Unmarshal(raw, &fields); err != nil {
-		return nil
+	res := auditResponse{
+		ID:          str("ID"),
+		Name:        str("Name"),
+		Type:        str("Type"),
+		Description: str("Description"),
 	}
-	return fields
+	if f := v.FieldByName("Enabled"); f.Kind() == reflect.Bool {
+		enabled := f.Bool()
+		res.Enabled = &enabled
+	}
+	return res, true
 }
 
 // RequireSettingsAccess only lets roles through that can change the app's

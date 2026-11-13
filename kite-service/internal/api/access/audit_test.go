@@ -1,6 +1,10 @@
 package access
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+)
 
 func TestAuditRouteFor(t *testing.T) {
 	tests := []struct {
@@ -27,5 +31,24 @@ func TestAuditRouteFor(t *testing.T) {
 		if !ok || route.Action != tt.action {
 			t.Errorf("%s: got action %q, want %q", tt.pattern, route.Action, tt.action)
 		}
+	}
+}
+
+func TestReadAuditResponse(t *testing.T) {
+	res, ok := readAuditResponse(&wire.EventListener{ID: "1", Type: "message_create", Enabled: true})
+	if !ok || res.ID != "1" || res.Type != "message_create" || res.Enabled == nil || !*res.Enabled {
+		t.Errorf("got %+v, %v", res, ok)
+	}
+
+	res, ok = readAuditResponse(&wire.App{ID: "2", Name: "Bot"})
+	if !ok || res.ID != "2" || res.Name != "Bot" || res.Description != "" {
+		t.Errorf("got %+v, %v", res, ok)
+	}
+
+	if _, ok := readAuditResponse(&[]*wire.Command{}); ok {
+		t.Error("read a list")
+	}
+	if _, ok := readAuditResponse((*wire.Command)(nil)); ok {
+		t.Error("read nil")
 	}
 }
