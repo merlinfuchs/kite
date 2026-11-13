@@ -1,10 +1,10 @@
 package flow
 
 import (
+	"bytes"
 	"io"
 	"net/url"
 	"slices"
-	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -51,13 +51,11 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	var body io.Reader
 	if data.BodyJSON != nil {
-		// This can potentially break the JSON if an expression returns a string containing double quotes
-		// We should probably escape the expression results or only run the eval engine on the actual JSON values
-		value, err := secrets.EvalTemplate(ctx, string(data.BodyJSON))
+		value, err := secrets.EvalJSONTemplate(ctx, data.BodyJSON)
 		if err != nil {
 			return err
 		}
-		body = strings.NewReader(value.String())
+		body = bytes.NewReader(value)
 	}
 
 	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, body)
