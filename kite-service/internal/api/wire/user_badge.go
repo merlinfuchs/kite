@@ -10,12 +10,13 @@ import (
 // UserBadge is a badge on a user's creator page and in the dashboard.
 type UserBadge struct {
 	// Kind is staff, contributor, early_supporter, subscriber,
-	// early_creator or creator.
+	// early_creator, creator or star.
 	Kind string `json:"kind"`
 	// Plan is the title of the plan of a subscriber.
 	Plan string `json:"plan,omitempty"`
 	// Milestone is how many other users at least added the templates of a
-	// creator, missing if fewer than the lowest milestone.
+	// creator, or how many stars at least they got for a star badge. Missing
+	// if fewer than the lowest milestone.
 	Milestone int `json:"milestone,omitempty"`
 }
 

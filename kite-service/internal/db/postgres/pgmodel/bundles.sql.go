@@ -436,7 +436,16 @@ SELECT
         WHERE owned.owner_user_id = bundles.owner_user_id
             AND owned.removed_at IS NULL
             AND apps.owner_user_id != owned.owner_user_id
-    )::int AS installer_count
+    )::int AS installer_count,
+    (
+        SELECT count(*)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_stars ON bundle_stars.bundle_id = owned.id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND bundle_stars.user_id != owned.owner_user_id
+    )::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 WHERE bundles.owner_user_id = ANY($1::text[]) AND bundles.removed_at IS NULL
@@ -447,11 +456,12 @@ type GetCreatorStatsRow struct {
 	UserID         string
 	FirstListedAt  pgtype.Timestamp
 	InstallerCount int32
+	StarCount      int32
 }
 
 // How long the users have had a bundle listed in the marketplace, by when the
-// oldest of their listed bundles was made, and how many other users added any
-// of them. Users without a listed bundle aren't in it.
+// oldest of their listed bundles was made, how many other users added any of
+// them and how many stars they got. Users without a listed bundle aren't in it.
 func (q *Queries) GetCreatorStats(ctx context.Context, userIds []string) ([]GetCreatorStatsRow, error) {
 	rows, err := q.db.Query(ctx, getCreatorStats, userIds)
 	if err != nil {
@@ -461,7 +471,12 @@ func (q *Queries) GetCreatorStats(ctx context.Context, userIds []string) ([]GetC
 	var items []GetCreatorStatsRow
 	for rows.Next() {
 		var i GetCreatorStatsRow
-		if err := rows.Scan(&i.UserID, &i.FirstListedAt, &i.InstallerCount); err != nil {
+		if err := rows.Scan(
+			&i.UserID,
+			&i.FirstListedAt,
+			&i.InstallerCount,
+			&i.StarCount,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
