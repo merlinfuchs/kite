@@ -162,9 +162,13 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplates are the templates the marketplace shows first, two of
-// Kite's and one a user made, picked again every day. day is the number of
-// days since 1970 in UTC, so everyone sees the same ones.
+// featuredRows is how many rows of featuredPerRow templates are featured.
+const featuredRows = 2;
+const featuredPerRow = 3;
+
+// featuredTemplates are the templates the marketplace shows first, in rows of
+// three with two of Kite's and one a user made each, picked again every day.
+// day is the number of days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
   // A different order of them every day.
   const pick = (pool: Template[], count: number) =>
@@ -181,13 +185,28 @@ export function featuredTemplates(templates: Template[], day: number) {
         t.listed &&
         (t.installs ?? 0) >= minFeaturedInstalls
     ),
-    1
+    featuredRows
   );
   const official = pick(
     templates.filter((t) => t.author.kind === "kite"),
-    3 - community.length
+    featuredRows * featuredPerRow - community.length
   );
-  return [...official.slice(0, 1), ...community, ...official.slice(1)];
+
+  // Every row has a user's template in the middle, while there are any left.
+  const featured: Template[] = [];
+  let next = 0;
+  for (let row = 0; row < featuredRows; row++) {
+    const middle = community[row];
+    const count = featuredPerRow - (middle ? 1 : 0);
+    const own = official.slice(next, next + count);
+    next += count;
+    featured.push(
+      ...own.slice(0, 1),
+      ...(middle ? [middle] : []),
+      ...own.slice(1)
+    );
+  }
+  return featured;
 }
 
 // Users' templates need a few installs to be featured, so the ones nobody
