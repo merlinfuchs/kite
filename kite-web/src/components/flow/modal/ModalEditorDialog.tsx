@@ -108,6 +108,8 @@ import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "../../ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
+import EmojiInsertButton from "@/components/common/EmojiInsertButton";
+import { insertAtCursor } from "@/lib/insertText";
 import FlowPlaceholderExplorer from "../FlowPlaceholderExplorer";
 import ModalJSONDialog from "./ModalJSONDialog";
 import ModalPreview from "./ModalPreview";
@@ -745,6 +747,7 @@ function ComponentCard({
             <TextField
               type="textarea"
               title="Content"
+              emojis
               field={`${componentField(index)}.content`}
               value={component.content || ""}
               onChange={(v) => updateComponent({ content: v || undefined })}
@@ -1319,7 +1322,16 @@ function IconButton({
 }
 
 // The label of an input, styled like the inputs of the message editor.
-function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
+function FieldLabel({
+  title,
+  count,
+  actions,
+}: {
+  title: string;
+  count?: ReactNode;
+  // Buttons on the right, like the placeholder explorer.
+  actions?: ReactNode;
+}) {
   return (
     <div className="flex space-x-2 mb-2 items-center">
       <Label className="text-base text-slate-800 dark:text-slate-200">
@@ -1329,6 +1341,9 @@ function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
         <div className="text-sm italic font-light text-muted-foreground">
           {count}
         </div>
+      )}
+      {actions && (
+        <div className="flex items-center gap-1 !ml-auto">{actions}</div>
       )}
     </div>
   );
@@ -1342,6 +1357,7 @@ function TextField({
   onChange,
   errors,
   limit,
+  emojis = "native",
 }: {
   type?: "text" | "textarea";
   title: string;
@@ -1350,26 +1366,20 @@ function TextField({
   onChange: (value: string) => void;
   errors: Record<string, string>;
   limit?: number;
+  // Discord shows most modal texts as plain text, which can't render custom
+  // emojis.
+  emojis?: true | "native";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Inserts the picked placeholder at the cursor, like BaseInput in
-  // FlowNodeEditor does.
-  const onPlaceholderSelect = useCallback(
-    (p: string) => {
-      const element =
-        type === "textarea" ? textareaRef.current : inputRef.current;
-      if (!element) return;
-
-      const start = element.selectionStart ?? element.value.length;
-      const end = element.selectionEnd ?? element.value.length;
-      onChange(
-        element.value.substring(0, start) +
-          `{{${p}}}` +
-          element.value.substring(end)
-      );
-    },
+  const insertText = useCallback(
+    (text: string) =>
+      insertAtCursor(
+        type === "textarea" ? textareaRef.current : inputRef.current,
+        text,
+        onChange
+      ),
     [type, onChange]
   );
 
@@ -1378,19 +1388,25 @@ function TextField({
       <FieldLabel
         title={title}
         count={limit !== undefined ? `${value.length} / ${limit}` : undefined}
+        actions={
+          <>
+            <EmojiInsertButton
+              onSelect={insertText}
+              nativeOnly={emojis === "native"}
+            />
+            <FlowPlaceholderExplorer onSelect={(p) => insertText(`{{${p}}}`)} />
+          </>
+        }
       />
-      <div className="relative">
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            ref={textareaRef}
-          />
-        ) : (
-          <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
-        )}
-        <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
-      </div>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          ref={textareaRef}
+        />
+      ) : (
+        <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
+      )}
       <FieldError error={errors[field]} />
     </div>
   );

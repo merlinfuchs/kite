@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "./DatePicker";
 import { CircleAlertIcon } from "lucide-react";
 import ImageUploadButton from "./ImageUploadButton";
+import { ReactNode } from "react";
 
 export type BaseInputProps = {
   label: string;
@@ -28,6 +29,8 @@ export type BaseInputProps = {
       maxLength?: number;
       placeholder?: string;
       imageUpload?: boolean;
+      // Buttons on the right of the label, like the placeholder explorer.
+      actions?: ReactNode;
     }
   | {
       type: "select";
@@ -73,6 +76,11 @@ export default function BaseInput(props: BaseInputProps) {
         {isText && props.maxLength && (
           <div className="text-sm italic font-light text-muted-foreground">
             {value.length} / {props.maxLength}
+          </div>
+        )}
+        {isText && props.actions && (
+          <div className="flex items-center gap-1 !ml-auto">
+            {props.actions}
           </div>
         )}
       </div>

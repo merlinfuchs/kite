@@ -21,6 +21,7 @@ import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
+import { insertAtCursor } from "@/lib/insertText";
 import {
   aiAnswerLimits,
   aiModelTiers,
@@ -136,6 +137,7 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
+import EmojiInsertButton from "../common/EmojiInsertButton";
 import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
@@ -1030,6 +1032,7 @@ function CooldownMessageInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ cooldown_message: v || undefined })}
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -1599,6 +1602,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -2108,32 +2112,33 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             />
           ))}
           {request?.query?.map((q) => (
-            <div className="flex gap-2 items-end" key={q.key}>
-              <BaseInput
-                type="text"
-                field={`discord_api_request_data.query.${q.key}`}
-                title={q.key}
-                description="Query parameter"
-                value={q.value}
-                updateValue={(v) => setParam("query", q.key, v)}
-                errors={errors}
-                placeholders
-              />
-              <EditOnly>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() =>
-                    updateRequest({
-                      query: request.query?.filter((v) => v.key !== q.key),
-                    })
-                  }
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </EditOnly>
-            </div>
+            <BaseInput
+              key={q.key}
+              type="text"
+              field={`discord_api_request_data.query.${q.key}`}
+              title={q.key}
+              description="Query parameter"
+              value={q.value}
+              updateValue={(v) => setParam("query", q.key, v)}
+              errors={errors}
+              placeholders
+              beside={
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() =>
+                      updateRequest({
+                        query: request.query?.filter((v) => v.key !== q.key),
+                      })
+                    }
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </EditOnly>
+              }
+            />
           ))}
           {unusedQueryParams.length > 0 && (
             <EditOnly>
@@ -3219,6 +3224,7 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -3332,24 +3338,21 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <div className="flex space-x-2 items-end">
-        <BaseInput
-          type="select"
-          field="message_template_id"
-          title="Message template"
-          description="Select a message template to use for the response."
-          options={messages?.map((m) => ({
-            value: m!.id,
-            label: m!.name,
-          }))}
-          value={data.message_template_id || ""}
-          updateValue={(v) =>
-            updateData({ message_template_id: v || undefined })
-          }
-          errors={errors}
-          clearable
-        />
-        {!readOnly &&
+      <BaseInput
+        type="select"
+        field="message_template_id"
+        title="Message template"
+        description="Select a message template to use for the response."
+        options={messages?.map((m) => ({
+          value: m!.id,
+          label: m!.name,
+        }))}
+        value={data.message_template_id || ""}
+        updateValue={(v) => updateData({ message_template_id: v || undefined })}
+        errors={errors}
+        clearable
+        beside={
+          !readOnly &&
           (data.message_template_id ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -3378,8 +3381,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
                 <PlusIcon className="h-5 w-5" />
               </Button>
             </MessageCreateDialog>
-          ))}
-      </div>
+          ))
+        }
+      />
       {readOnly && template && (
         <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
@@ -3416,6 +3420,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
           }
           errors={errors}
           placeholders
+          emojis
         />
       )}
 
@@ -3692,6 +3697,7 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ question: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       <div>
         <div className="font-medium text-foreground mb-1">Answers</div>
@@ -4196,6 +4202,7 @@ function ChannelDataInput({
             updateValue={(v) => updateChannel({ name: v || undefined })}
             errors={errors}
             placeholders
+            emojis="native"
           />
         </div>
 
@@ -4210,6 +4217,7 @@ function ChannelDataInput({
               updateValue={(v) => updateChannel({ topic: v || undefined })}
               errors={errors}
               placeholders
+              emojis="native"
             />
             {channelTypeSupportsNSFW(type) && (
               <BaseCheckbox
@@ -4527,6 +4535,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             updateValue={(v) => updateChannel({ name: v || undefined })}
             errors={errors}
             placeholders
+            emojis="native"
           />
         </div>
 
@@ -4866,6 +4875,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ activity_name: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       {data.status_data?.activity_type !== 4 && (
         <BaseInput
@@ -5045,6 +5055,7 @@ function RoleDataInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -5702,8 +5713,10 @@ function BaseInput({
   updateValue,
   placeholders,
   disablePlaceholderBrackets,
+  emojis,
   clearable,
   imageUpload,
+  beside,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -5718,9 +5731,14 @@ function BaseInput({
   // "parameters" offers only the flow's parameters.
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
+  // Adds an emoji picker, "native" without custom emojis for fields that
+  // Discord shows as plain text.
+  emojis?: boolean | "native";
   clearable?: boolean;
   // Shows a button that uploads an image as an asset and puts in its URL.
   imageUpload?: boolean;
+  // Buttons next to the input, like one that creates what it selects.
+  beside?: ReactNode;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -5731,33 +5749,54 @@ function BaseInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const onPlaceholderSelect = useCallback(
-    (placeholder: string) => {
-      const value = disablePlaceholderBrackets
-        ? placeholder
-        : `{{${placeholder}}}`;
-
+  const insertText = useCallback(
+    (text: string) => {
       const element =
         type === "textarea" ? textareaRef.current : inputRef.current;
 
-      if (!element) return;
-
-      const start = element.selectionStart ?? 0;
-      const end = element.selectionEnd ?? 0;
-
-      const newValue =
-        element.value.substring(0, start) +
-        value +
-        element.value.substring(end);
-
-      updateValue(newValue);
+      insertAtCursor(element, text, updateValue);
     },
-    [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
+    [inputRef, textareaRef, type, updateValue]
+  );
+
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) =>
+      insertText(
+        disablePlaceholderBrackets ? placeholder : `{{${placeholder}}}`
+      ),
+    [insertText, disablePlaceholderBrackets]
+  );
+
+  const showEmojis = !!emojis && type !== "select" && !readOnly;
+  const actions = (showPlaceholders || showEmojis) && (
+    <div className="flex flex-none items-center gap-1">
+      {showEmojis && (
+        <EmojiInsertButton
+          onSelect={insertText}
+          nativeOnly={emojis === "native"}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
   );
 
   const withUpload = imageUpload && !readOnly;
+  const sideBySide = withUpload || !!beside;
   const control = (
-    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+    <div
+      className={cn(
+        // Without a title the buttons sit beside the input.
+        !title && actions && "flex items-center gap-1",
+        sideBySide ? "flex-auto" : title && "mt-2"
+      )}
+    >
       {type === "textarea" ? (
         <Textarea
           value={value}
@@ -5765,8 +5804,6 @@ function BaseInput({
           ref={textareaRef}
           placeholder={placeholder}
           readOnly={readOnly}
-          // Room for the placeholder explorer in the corner.
-          className={cn(showPlaceholders && "pr-10")}
         />
       ) : type === "select" ? (
         <Select value={value} onValueChange={(v) => update(v)}>
@@ -5814,31 +5851,28 @@ function BaseInput({
           readOnly={readOnly}
         />
       )}
-      {showPlaceholders && (
-        <FlowPlaceholderExplorer
-          onSelect={onPlaceholderSelect}
-          hideBrackets={disablePlaceholderBrackets}
-          field={field}
-          onlyParameters={placeholders === "parameters"}
-        />
-      )}
+      {!title && actions}
     </div>
   );
 
   return (
     <div className="flex-auto">
-      {title && <div className="font-medium text-foreground">{title}</div>}
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
-      {withUpload ? (
+      {title && (
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-medium text-foreground">{title}</div>
+          {actions}
+        </div>
+      )}
+      {sideBySide ? (
         <div className={cn("flex gap-2", title && "mt-2")}>
           {control}
-          <ImageUploadButton onImageUploaded={updateValue} />
+          {withUpload && <ImageUploadButton onImageUploaded={updateValue} />}
+          {beside}
         </div>
       ) : (
         control
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5847,6 +5881,12 @@ function BaseInput({
       )}
     </div>
   );
+}
+
+// Help text of a field, under its input.
+function FieldDescription({ children }: { children?: ReactNode }) {
+  if (!children) return null;
+  return <div className="text-muted-foreground text-sm mt-2">{children}</div>;
 }
 
 function BaseCheckbox({
@@ -5869,12 +5909,10 @@ function BaseCheckbox({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <PreviewInert>
         <Switch checked={value} onCheckedChange={updateValue} />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5925,9 +5963,6 @@ function BaseMultiSelect({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       {searchable ? (
         <Popover modal>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
@@ -5976,6 +6011,7 @@ function BaseMultiSelect({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -6048,15 +6084,13 @@ function BaseColorInput({
   return (
     <div className="flex-auto">
       <div className="font-medium text-foreground">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
       <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       <EditOnly>
         <Button
           variant="link"
@@ -6151,9 +6185,6 @@ function BaseEmojiPicker({
   return (
     <div className="flex-none">
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <div className="flex">
         <PreviewInert>
           <EmojiPicker onEmojiSelect={onChange}>
@@ -6189,6 +6220,7 @@ function BaseEmojiPicker({
           </EditOnly>
         )}
       </div>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
