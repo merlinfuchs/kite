@@ -14,6 +14,10 @@ import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
+  commandTypeOptions,
+  isContextMenuCommand,
+} from "@/lib/flow/commandTypes";
+import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
@@ -618,7 +622,10 @@ function NameInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function DescriptionInput({ data, updateData, errors }: InputProps) {
+function DescriptionInput({ type, data, updateData, errors }: InputProps) {
+  // Only slash commands have a description in Discord.
+  if (type === "entry_command" && isContextMenuCommand(data)) return null;
+
   return (
     <BaseInput
       field="description"
@@ -731,13 +738,10 @@ function CommandTypeInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       field="command_type"
-      title="Command type"
+      title="Type"
+      description="User and Message commands show in the Apps menu when someone right-clicks a user or message."
       type="select"
-      options={[
-        { value: "chat_input", label: "Slash command" },
-        { value: "user", label: "User context menu" },
-        { value: "message", label: "Message context menu" },
-      ]}
+      options={commandTypeOptions}
       value={data.command_type || "chat_input"}
       updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}

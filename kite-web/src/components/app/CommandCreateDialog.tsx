@@ -25,11 +25,8 @@ import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
-import {
-  NewCommandInstall,
-  NewCommandType,
-  newCommandFlow,
-} from "@/lib/flow/newFlows";
+import { CommandAvailability, newCommandFlow } from "@/lib/flow/newFlows";
+import { CommandType, commandTypeOptions } from "@/lib/flow/commandTypes";
 import { track } from "@/lib/analytics";
 import {
   Select,
@@ -42,9 +39,8 @@ import {
 interface FormFields {
   name: string;
   description: string;
-  command_style: "slash" | "contextual";
-  context_target: "user" | "message";
-  install: NewCommandInstall;
+  command_type: CommandType;
+  availability: CommandAvailability;
 }
 
 export default function CommandCreateDialog({
@@ -62,26 +58,22 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
-      command_style: "slash",
-      context_target: "user",
-      install: "guild_install",
+      command_type: "chat_input",
+      availability: "everywhere",
     },
   });
-  const commandStyle = form.watch("command_style");
+  const isSlash = form.watch("command_type") === "chat_input";
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
-
-    const commandType: NewCommandType =
-      data.command_style === "contextual" ? data.context_target : "chat_input";
 
     createMutation.mutate(
       {
         flow_source: newCommandFlow(
           data.name,
-          commandType === "chat_input" ? data.description : "",
-          commandType,
-          data.install
+          data.description,
+          data.command_type,
+          data.availability
         ),
         enabled: true,
       },
@@ -124,36 +116,19 @@ export default function CommandCreateDialog({
         <DialogHeader>
           <DialogTitle>Create command</DialogTitle>
           <DialogDescription>
-            Create a slash command or a contextual command that appears when
-            someone opens the menu on a user or message.
+            Members use slash commands by typing / in the chat. User and Message
+            commands show in the Apps menu when someone right-clicks a user or
+            message.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
               control={form.control}
-              name="name"
+              name="command_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  {commandStyle === "contextual" && (
-                    <FormDescription>
-                      The name shown in the contextual menu.
-                    </FormDescription>
-                  )}
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="command_style"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Command type</FormLabel>
+                  <FormLabel>Type</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -161,39 +136,35 @@ export default function CommandCreateDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="slash">Slash command</SelectItem>
-                      <SelectItem value="contextual">
-                        Contextual command
-                      </SelectItem>
+                      {commandTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {commandStyle === "contextual" ? (
-              <FormField
-                control={form.control}
-                name="context_target"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Context menu target</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="message">Message</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : (
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder={isSlash ? "ping" : "Report message"}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {isSlash && (
               <FormField
                 control={form.control}
                 name="description"
@@ -210,13 +181,10 @@ export default function CommandCreateDialog({
             )}
             <FormField
               control={form.control}
-              name="install"
+              name="availability"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Available for</FormLabel>
-                  <FormDescription>
-                    Choose where this command can be installed.
-                  </FormDescription>
+                  <FormLabel>Where it works</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -224,12 +192,17 @@ export default function CommandCreateDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="guild_install">
-                        Server install
+                      <SelectItem value="everywhere">Everywhere</SelectItem>
+                      <SelectItem value="servers">Only in servers</SelectItem>
+                      <SelectItem value="users">
+                        Only for users who added the bot
                       </SelectItem>
-                      <SelectItem value="user_install">User install</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    Users can add the bot to their account to use its commands
+                    anywhere. Change this later with the Command Contexts block.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

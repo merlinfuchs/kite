@@ -527,11 +527,7 @@ describe("MCP server", () => {
       "entry_command",
       "action_response_create",
     ]);
-    expect(nodes[0].data).toEqual({
-      name: "hello",
-      description: "Says hello",
-      command_type: "chat_input",
-    });
+    expect(nodes[0].data).toEqual({ name: "hello", description: "Says hello" });
     expect(write.body.flow_source.edges).toHaveLength(1);
     expect(res.text).toContain(`"$reply":"${nodes[1].id}"`);
   });

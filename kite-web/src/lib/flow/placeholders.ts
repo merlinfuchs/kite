@@ -272,7 +272,6 @@ function commandPlaceholders(
   contextType: FlowContextType
 ): PlaceholderGroup[] {
   if (contextType !== "command") return [];
-  const entry = nodes.find((n) => n.type === "entry_command");
 
   // Only arguments connected to the entry are registered with Discord.
   const entryIds = new Set(
@@ -282,33 +281,52 @@ function commandPlaceholders(
     edges.filter((e) => entryIds.has(e.target)).map((e) => e.source)
   );
 
-  const placeholders = nodes
-    .filter((n) => n.type === "option_command_argument" && argIds.has(n.id))
-    .map((n) => {
-      const label = `Command Arg '${n.data.name}'`;
-      const value = `arg('${n.data.name}')`;
-      const type = argTypes[n.data.command_argument_type ?? ""];
-      return typedPlaceholder(label, value, type);
-    });
-  if (entry?.data.command_type === "user") {
-    placeholders.push(
-      typedPlaceholder(
-        "Context Target User",
-        "interaction.command.target_user",
-        "user"
-      )
-    );
-  } else if (entry?.data.command_type === "message") {
-    placeholders.push(
-      typedPlaceholder(
-        "Context Target Message",
-        "interaction.command.target_message",
-        "message"
-      )
-    );
-  }
+  return [
+    {
+      label: "Command",
+      placeholders: [
+        ...nodes
+          .filter(
+            (n) => n.type === "option_command_argument" && argIds.has(n.id)
+          )
+          .map((n) => {
+            const label = `Command Arg '${n.data.name}'`;
+            const value = `arg('${n.data.name}')`;
+            const type = argTypes[n.data.command_argument_type ?? ""];
+            return typedPlaceholder(label, value, type);
+          }),
+        ...commandTargetPlaceholders(nodes, "", ""),
+      ],
+    },
+  ];
+}
 
-  return [{ label: "Command", placeholders }];
+// The user or message a User or Message command was used on.
+function commandTargetPlaceholders(
+  nodes: Node<NodeData>[],
+  prefix: string,
+  labelPrefix: string
+): Placeholder[] {
+  const entry = nodes.find((n) => n.type === "entry_command");
+  switch (entry?.data.command_type) {
+    case "user":
+      return [
+        typedPlaceholder(
+          `${labelPrefix}Target User`,
+          `${prefix}interaction.command.target_user`,
+          "user"
+        ),
+      ];
+    case "message":
+      return [
+        typedPlaceholder(
+          `${labelPrefix}Target Message`,
+          `${prefix}interaction.command.target_message`,
+          "message"
+        ),
+      ];
+  }
+  return [];
 }
 
 // What arg() returns for each argument type that isn't a plain value. A
@@ -422,31 +440,9 @@ function resumePlaceholders(
     "Original ",
     getEventType(nodes)
   );
-  if (contextType === "command") {
-    const entry = nodes.find((n) => n.type === "entry_command");
-    if (entry?.data.command_type === "user") {
-      res.push({
-        label: "Original Command",
-        placeholders: [
-          typedPlaceholder(
-            "Context Target User",
-            "origin.interaction.command.target_user",
-            "user"
-          ),
-        ],
-      });
-    } else if (entry?.data.command_type === "message") {
-      res.push({
-        label: "Original Command",
-        placeholders: [
-          typedPlaceholder(
-            "Context Target Message",
-            "origin.interaction.command.target_message",
-            "message"
-          ),
-        ],
-      });
-    }
+  const targets = commandTargetPlaceholders(nodes, "origin.", "Original ");
+  if (contextType === "command" && targets.length > 0) {
+    res.push({ label: "Original Command", placeholders: targets });
   }
   if (depth === 1) return res;
   // Whether previous was a button, select menu or modal isn't tracked here.

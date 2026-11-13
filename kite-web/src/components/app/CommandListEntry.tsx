@@ -7,6 +7,7 @@ import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { App, Command } from "@/lib/types/wire.gen";
 import { formatDateTime } from "@/lib/utils";
+import { commandTypeOf, commandTypeOptions } from "@/lib/flow/commandTypes";
 import {
   AlertCircleIcon,
   CheckIcon,
@@ -15,7 +16,9 @@ import {
   RefreshCwIcon,
   CopyPlusIcon,
   EllipsisIcon,
+  MessageSquareIcon,
   SlashSquareIcon,
+  UserIcon,
   Trash2Icon,
   Share2Icon,
 } from "lucide-react";
@@ -49,11 +52,20 @@ import CommandDuplicateDialog from "./CommandDuplicateDialog";
 import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
 
+const commandTypeIcons = {
+  chat_input: SlashSquareIcon,
+  user: UserIcon,
+  message: MessageSquareIcon,
+};
+
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
 
   const appId = useAppId();
   const app = useApp();
+
+  const commandType = commandTypeOf(command.flow_source);
+  const TypeIcon = commandTypeIcons[commandType];
 
   const deleteMutation = useCommandDeleteMutation(appId, command.id);
   const updateEnabledMutation = useCommandUpdateEnabledMutation(
@@ -97,13 +109,15 @@ export default function CommandListEntry({ command }: { command: Command }) {
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <div className="flex items-center gap-2 min-w-0">
-            <SlashSquareIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <TypeIcon className="h-5 w-5 flex-none text-muted-foreground" />
             <div className="min-w-0 break-words">{command.name}</div>
           </div>
           <BundleInstallBadge bundleInstallId={command.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
-          {command.description}
+          {commandType === "chat_input"
+            ? command.description
+            : commandTypeOptions.find((o) => o.value === commandType)?.label}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">
@@ -182,7 +196,7 @@ function DeployIcon({ app, command }: { app: App; command: Command }) {
     icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
     text = "Goes to Discord once your app runs again.";
   } else if (state === "error") {
-    if (isCommandDeployErrorCause(app, command.name)) {
+    if (isCommandDeployErrorCause(app, command)) {
       icon = <AlertCircleIcon className="h-5 w-5 text-destructive" />;
       text = "Discord rejected this command. See the error above.";
     } else {
