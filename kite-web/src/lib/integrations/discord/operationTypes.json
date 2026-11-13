@@ -1,0 +1,693 @@
+{
+  "action_guild_join_request": {
+    "body": "{ action?: discord.GuildJoinRequestApplicationStatus; rejection_reason?: string | null }",
+    "result": "discord.GuildJoinRequestResponse"
+  },
+  "add_group_dm_user": {
+    "body": "{ access_token?: string | null; nick?: string | null }",
+    "result": "discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse | null"
+  },
+  "add_guild_member": {
+    "body": "discord.BotAddGuildMemberRequest",
+    "result": "discord.GuildMemberResponse | null"
+  },
+  "add_guild_member_role": {
+    "result": "null"
+  },
+  "add_invite_target_user": {
+    "result": "null"
+  },
+  "add_lobby_member": {
+    "body": "{ metadata?: Record<string, string> | null; flags?: 1 | null; additional_name?: string | null }",
+    "result": "discord.LobbyMemberResponse"
+  },
+  "add_my_message_reaction": {
+    "result": "null"
+  },
+  "add_thread_member": {
+    "result": "null"
+  },
+  "applications_get_activity_instance": {
+    "result": "discord.EmbeddedActivityInstance"
+  },
+  "ban_user_from_guild": {
+    "body": "discord.BanUserFromGuildRequest",
+    "result": "null"
+  },
+  "bot_partner_sdk_token": {
+    "body": "{ provisional_user_id?: string | null; external_user_id: string; preferred_global_name?: string | null }",
+    "result": "discord.ProvisionalTokenResponse"
+  },
+  "bot_partner_sdk_unmerge_provisional_account": {
+    "body": "{ external_user_id: string }",
+    "result": "null"
+  },
+  "bulk_add_invite_target_users": {
+    "body": "{ user_ids: string[] }",
+    "result": "null"
+  },
+  "bulk_ban_users_from_guild": {
+    "body": "discord.BulkBanUsersRequest",
+    "result": "discord.BulkBanUsersResponse"
+  },
+  "bulk_delete_messages": {
+    "body": "{ messages: string[] }",
+    "result": "null"
+  },
+  "bulk_remove_invite_target_users": {
+    "body": "{ user_ids: string[] }",
+    "result": "null"
+  },
+  "bulk_update_guild_channels": {
+    "body": "{ id?: string | null; position?: number | null; parent_id?: string | null; lock_permissions?: boolean | null }[]",
+    "result": "null"
+  },
+  "bulk_update_guild_roles": {
+    "body": "discord.UpdateRolePositionsRequest[]",
+    "result": "discord.GuildRoleResponse[]"
+  },
+  "bulk_update_lobby_members": {
+    "body": "discord.BulkLobbyMemberRequest[] | null",
+    "result": "discord.LobbyMemberResponse[]"
+  },
+  "count_guild_scheduled_event_users": {
+    "result": "discord.ScheduledEventUserCountResponse"
+  },
+  "create_auto_moderation_rule": {
+    "body": "discord.DefaultKeywordListUpsertRequest | discord.KeywordUpsertRequest | discord.MLSpamUpsertRequest | discord.MentionSpamUpsertRequest | discord.UserProfileUpsertRequest",
+    "result": "discord.DefaultKeywordRuleResponse | discord.KeywordRuleResponse | discord.MLSpamRuleResponse | discord.MentionSpamRuleResponse | discord.UserProfileRuleResponse"
+  },
+  "create_channel_invite": {
+    "body": "discord.CreateGroupDMInviteRequest | discord.CreateGuildInviteRequest",
+    "result": "discord.FriendInviteResponse | discord.GroupDMInviteResponse | discord.GuildInviteResponse | null"
+  },
+  "create_dm": {
+    "body": "discord.CreatePrivateChannelRequest",
+    "result": "discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse"
+  },
+  "create_followup_message": {
+    "body": "discord.IncomingWebhookRequestPartial | discord.IncomingWebhookUpdateRequestPartial",
+    "result": "discord.MessageResponse | null"
+  },
+  "create_guild_channel": {
+    "body": "discord.CreateGuildChannelRequest",
+    "result": "discord.GuildChannelResponse"
+  },
+  "create_guild_emoji": {
+    "body": "{ name: string; image: string; roles?: (string | null)[] | null }",
+    "result": "discord.EmojiResponse"
+  },
+  "create_guild_role": {
+    "body": "discord.CreateRoleRequest",
+    "result": "discord.GuildRoleResponse"
+  },
+  "create_guild_scheduled_event": {
+    "body": "discord.ExternalScheduledEventCreateRequest | discord.StageScheduledEventCreateRequest | discord.VoiceScheduledEventCreateRequest",
+    "result": "discord.ExternalScheduledEventResponse | discord.StageScheduledEventResponse | discord.VoiceScheduledEventResponse"
+  },
+  "create_guild_scheduled_event_exception": {
+    "body": "discord.GuildScheduledEventExceptionCreateRequest",
+    "result": "discord.GuildScheduledEventExceptionResponse"
+  },
+  "create_guild_soundboard_sound": {
+    "body": "discord.SoundboardCreateRequest",
+    "result": "discord.SoundboardSoundResponse"
+  },
+  "create_guild_template": {
+    "body": "{ name: string; description?: string | null }",
+    "result": "discord.GuildTemplateResponse"
+  },
+  "create_linked_lobby_guild_invite_for_self": {
+    "result": "discord.LobbyGuildInviteResponse"
+  },
+  "create_linked_lobby_guild_invite_for_user": {
+    "result": "discord.LobbyGuildInviteResponse"
+  },
+  "create_lobby": {
+    "body": "{ idle_timeout_seconds?: number | null; members?: discord.LobbyMemberRequest[] | null; metadata?: Record<string, string> | null; flags?: 1 | null; override_event_webhooks_url?: string | null }",
+    "result": "discord.LobbyResponse"
+  },
+  "create_lobby_message": {
+    "body": "discord.SDKMessageRequest",
+    "result": "discord.LobbyMessageResponse"
+  },
+  "create_message": {
+    "body": "discord.MessageCreateRequest",
+    "result": "discord.MessageResponse"
+  },
+  "create_or_join_lobby": {
+    "body": "{ idle_timeout_seconds?: number | null; lobby_metadata?: Record<string, string> | null; member_metadata?: Record<string, string> | null; secret: string; flags?: 1 | null }",
+    "result": "discord.LobbyResponse"
+  },
+  "create_pin": {
+    "result": "null"
+  },
+  "create_stage_instance": {
+    "body": "{ topic: string; channel_id: string; privacy_level?: discord.StageInstancesPrivacyLevels | null; guild_scheduled_event_id?: string | null; send_start_notification?: boolean | null }",
+    "result": "discord.StageInstanceResponse"
+  },
+  "create_thread": {
+    "body": "discord.CreateForumThreadRequest | discord.CreateTextThreadWithoutMessageRequest",
+    "result": "discord.CreatedThreadResponse"
+  },
+  "create_thread_from_message": {
+    "body": "discord.CreateTextThreadWithMessageRequest",
+    "result": "discord.ThreadResponse"
+  },
+  "create_webhook": {
+    "body": "{ name: string; avatar?: string | null }",
+    "result": "discord.GuildIncomingWebhookResponse"
+  },
+  "crosspost_message": {
+    "result": "discord.MessageResponse"
+  },
+  "delete_all_message_reactions": {
+    "result": "null"
+  },
+  "delete_all_message_reactions_by_emoji": {
+    "result": "null"
+  },
+  "delete_auto_moderation_rule": {
+    "result": "null"
+  },
+  "delete_channel": {
+    "result": "discord.GuildChannelResponse | discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse | discord.ThreadResponse"
+  },
+  "delete_channel_permission_overwrite": {
+    "result": "null"
+  },
+  "delete_group_dm_user": {
+    "result": "null"
+  },
+  "delete_guild_emoji": {
+    "result": "null"
+  },
+  "delete_guild_integration": {
+    "result": "null"
+  },
+  "delete_guild_member": {
+    "result": "null"
+  },
+  "delete_guild_member_role": {
+    "result": "null"
+  },
+  "delete_guild_role": {
+    "result": "null"
+  },
+  "delete_guild_scheduled_event": {
+    "result": "null"
+  },
+  "delete_guild_scheduled_event_exception": {
+    "result": "null"
+  },
+  "delete_guild_soundboard_sound": {
+    "result": "null"
+  },
+  "delete_guild_sticker": {
+    "result": "null"
+  },
+  "delete_guild_template": {
+    "result": "discord.GuildTemplateResponse"
+  },
+  "delete_lobby": {
+    "result": "null"
+  },
+  "delete_lobby_member": {
+    "result": "null"
+  },
+  "delete_message": {
+    "result": "null"
+  },
+  "delete_my_message_reaction": {
+    "result": "null"
+  },
+  "delete_pin": {
+    "result": "null"
+  },
+  "delete_stage_instance": {
+    "result": "null"
+  },
+  "delete_thread_member": {
+    "result": "null"
+  },
+  "delete_user_message_reaction": {
+    "result": "null"
+  },
+  "delete_webhook": {
+    "result": "null"
+  },
+  "deprecated_create_pin": {
+    "result": "null"
+  },
+  "deprecated_delete_pin": {
+    "result": "null"
+  },
+  "deprecated_list_pins": {
+    "result": "discord.MessageResponse[]"
+  },
+  "edit_lobby": {
+    "body": "{ idle_timeout_seconds?: number | null; metadata?: Record<string, string> | null; members?: discord.LobbyMemberRequest[] | null; flags?: 1 | null; override_event_webhooks_url?: string | null }",
+    "result": "discord.LobbyResponse"
+  },
+  "edit_lobby_channel_link": {
+    "body": "{ channel_id?: string | null }",
+    "result": "discord.LobbyResponse"
+  },
+  "follow_channel": {
+    "body": "{ webhook_channel_id: string }",
+    "result": "discord.ChannelFollowerResponse"
+  },
+  "get_active_guild_threads": {
+    "result": "discord.ThreadsResponse"
+  },
+  "get_answer_voters": {
+    "result": "discord.PollAnswerDetailsResponse"
+  },
+  "get_application": {
+    "result": "discord.PrivateApplicationResponse"
+  },
+  "get_application_command": {
+    "result": "discord.ApplicationCommandResponse"
+  },
+  "get_application_emoji": {
+    "result": "discord.EmojiResponse"
+  },
+  "get_application_role_connections_metadata": {
+    "result": "discord.ApplicationRoleConnectionsMetadataItemResponse[]"
+  },
+  "get_auto_moderation_rule": {
+    "result": "discord.DefaultKeywordRuleResponse | discord.KeywordRuleResponse | discord.MLSpamRuleResponse | discord.MentionSpamRuleResponse | discord.UserProfileRuleResponse"
+  },
+  "get_bot_gateway": {
+    "result": "discord.GatewayBotResponse"
+  },
+  "get_channel": {
+    "result": "discord.GuildChannelResponse | discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse | discord.ThreadResponse"
+  },
+  "get_entitlement": {
+    "result": "discord.EntitlementResponse"
+  },
+  "get_entitlements": {
+    "result": "discord.EntitlementResponse[]"
+  },
+  "get_gateway": {
+    "result": "discord.GatewayResponse"
+  },
+  "get_guild": {
+    "result": "discord.GuildWithCountsResponse"
+  },
+  "get_guild_application_command": {
+    "result": "discord.ApplicationCommandResponse"
+  },
+  "get_guild_application_command_permissions": {
+    "result": "discord.CommandPermissionsResponse"
+  },
+  "get_guild_ban": {
+    "result": "discord.GuildBanResponse"
+  },
+  "get_guild_emoji": {
+    "result": "discord.EmojiResponse"
+  },
+  "get_guild_join_requests": {
+    "result": "discord.GuildJoinRequestsListResponse"
+  },
+  "get_guild_member": {
+    "result": "discord.GuildMemberResponse"
+  },
+  "get_guild_new_member_welcome": {
+    "result": "discord.GuildHomeSettingsResponse | null"
+  },
+  "get_guild_preview": {
+    "result": "discord.GuildPreviewResponse"
+  },
+  "get_guild_role": {
+    "result": "discord.GuildRoleResponse"
+  },
+  "get_guild_scheduled_event": {
+    "result": "discord.ExternalScheduledEventResponse | discord.StageScheduledEventResponse | discord.VoiceScheduledEventResponse"
+  },
+  "get_guild_soundboard_sound": {
+    "result": "discord.SoundboardSoundResponse"
+  },
+  "get_guild_sticker": {
+    "result": "discord.GuildStickerResponse"
+  },
+  "get_guild_template": {
+    "result": "discord.GuildTemplateResponse"
+  },
+  "get_guild_vanity_url": {
+    "result": "discord.VanityURLResponse"
+  },
+  "get_guild_webhooks": {
+    "result": "(discord.ApplicationIncomingWebhookResponse | discord.ChannelFollowerWebhookResponse | discord.GuildIncomingWebhookResponse)[]"
+  },
+  "get_guild_welcome_screen": {
+    "result": "discord.GuildWelcomeScreenResponse"
+  },
+  "get_guild_widget": {
+    "result": "discord.WidgetResponse"
+  },
+  "get_guild_widget_png": {
+    "result": "null"
+  },
+  "get_guild_widget_settings": {
+    "result": "discord.WidgetSettingsResponse"
+  },
+  "get_guilds_onboarding": {
+    "result": "discord.UserGuildOnboardingResponse"
+  },
+  "get_invite_target_users": {
+    "result": "null"
+  },
+  "get_invite_target_users_job_status": {
+    "result": "discord.TargetUsersJobStatusResponse"
+  },
+  "get_lobby": {
+    "result": "discord.LobbyResponse"
+  },
+  "get_lobby_messages": {
+    "result": "discord.LobbyMessageResponse[]"
+  },
+  "get_message": {
+    "result": "discord.MessageResponse"
+  },
+  "get_my_application": {
+    "result": "discord.PrivateApplicationResponse"
+  },
+  "get_my_oauth2_application": {
+    "result": "discord.PrivateApplicationResponse"
+  },
+  "get_my_oauth2_authorization": {
+    "result": "discord.OAuth2GetAuthorizationResponse"
+  },
+  "get_my_user": {
+    "result": "discord.UserPIIResponse"
+  },
+  "get_openid_connect_userinfo": {
+    "result": "discord.OAuth2GetOpenIDConnectUserInfoResponse"
+  },
+  "get_public_keys": {
+    "result": "discord.OAuth2GetKeys"
+  },
+  "get_self_voice_state": {
+    "result": "discord.VoiceStateResponse"
+  },
+  "get_sku_subscription": {
+    "result": "discord.SubscriptionResponse"
+  },
+  "get_sku_subscriptions": {
+    "result": "discord.SubscriptionResponse[]"
+  },
+  "get_soundboard_default_sounds": {
+    "result": "discord.SoundboardSoundResponse[]"
+  },
+  "get_stage_instance": {
+    "result": "discord.StageInstanceResponse"
+  },
+  "get_sticker": {
+    "result": "discord.GuildStickerResponse | discord.StandardStickerResponse"
+  },
+  "get_sticker_pack": {
+    "result": "discord.StickerPackResponse"
+  },
+  "get_thread_member": {
+    "result": "discord.ThreadMemberResponse"
+  },
+  "get_user": {
+    "result": "discord.UserResponse"
+  },
+  "get_voice_state": {
+    "result": "discord.VoiceStateResponse"
+  },
+  "get_webhook": {
+    "result": "discord.ApplicationIncomingWebhookResponse | discord.ChannelFollowerWebhookResponse | discord.GuildIncomingWebhookResponse"
+  },
+  "guild_role_member_counts": {
+    "result": "Record<string, number>"
+  },
+  "guild_search": {
+    "result": "discord.GuildSearchResponse | discord.SearchIndexNotReadyResponse"
+  },
+  "invite_resolve": {
+    "result": "discord.FriendInviteResponse | discord.GroupDMInviteResponse | discord.GuildInviteResponse"
+  },
+  "invite_revoke": {
+    "result": "discord.FriendInviteResponse | discord.GroupDMInviteResponse | discord.GuildInviteResponse"
+  },
+  "join_thread": {
+    "result": "null"
+  },
+  "leave_guild": {
+    "result": "null"
+  },
+  "leave_lobby": {
+    "result": "null"
+  },
+  "leave_thread": {
+    "result": "null"
+  },
+  "list_application_commands": {
+    "result": "discord.ApplicationCommandResponse[]"
+  },
+  "list_application_emojis": {
+    "result": "discord.ListApplicationEmojisResponse"
+  },
+  "list_auto_moderation_rules": {
+    "result": "(discord.DefaultKeywordRuleResponse | discord.KeywordRuleResponse | discord.MLSpamRuleResponse | discord.MentionSpamRuleResponse | discord.UserProfileRuleResponse | null)[]"
+  },
+  "list_channel_invites": {
+    "result": "(discord.FriendInviteResponse | discord.GroupDMInviteResponse | discord.GuildInviteResponse | null)[]"
+  },
+  "list_channel_webhooks": {
+    "result": "(discord.ApplicationIncomingWebhookResponse | discord.ChannelFollowerWebhookResponse | discord.GuildIncomingWebhookResponse)[]"
+  },
+  "list_guild_application_command_permissions": {
+    "result": "discord.CommandPermissionsResponse[]"
+  },
+  "list_guild_application_commands": {
+    "result": "discord.ApplicationCommandResponse[]"
+  },
+  "list_guild_audit_log_entries": {
+    "result": "discord.GuildAuditLogResponse"
+  },
+  "list_guild_bans": {
+    "result": "discord.GuildBanResponse[]"
+  },
+  "list_guild_channels": {
+    "result": "(discord.GuildChannelResponse | discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse | discord.ThreadResponse)[]"
+  },
+  "list_guild_emojis": {
+    "result": "discord.EmojiResponse[]"
+  },
+  "list_guild_integrations": {
+    "result": "(discord.DiscordIntegrationResponse | discord.ExternalConnectionIntegrationResponse | discord.GuildSubscriptionIntegrationResponse)[]"
+  },
+  "list_guild_invites": {
+    "result": "(discord.FriendInviteResponse | discord.GroupDMInviteResponse | discord.GuildInviteResponse | null)[]"
+  },
+  "list_guild_members": {
+    "result": "discord.GuildMemberResponse[]"
+  },
+  "list_guild_roles": {
+    "result": "discord.GuildRoleResponse[]"
+  },
+  "list_guild_scheduled_event_exception_users": {
+    "result": "discord.ScheduledEventUserResponse[]"
+  },
+  "list_guild_scheduled_event_users": {
+    "result": "discord.ScheduledEventUserResponse[]"
+  },
+  "list_guild_scheduled_events": {
+    "result": "(discord.ExternalScheduledEventResponse | discord.StageScheduledEventResponse | discord.VoiceScheduledEventResponse)[]"
+  },
+  "list_guild_soundboard_sounds": {
+    "result": "discord.ListGuildSoundboardSoundsResponse"
+  },
+  "list_guild_stickers": {
+    "result": "discord.GuildStickerResponse[]"
+  },
+  "list_guild_templates": {
+    "result": "discord.GuildTemplateResponse[]"
+  },
+  "list_guild_voice_regions": {
+    "result": "discord.VoiceRegionResponse[]"
+  },
+  "list_message_reactions_by_emoji": {
+    "result": "discord.UserResponse[]"
+  },
+  "list_messages": {
+    "result": "discord.MessageResponse[]"
+  },
+  "list_my_connections": {
+    "result": "discord.ConnectedAccountResponse[]"
+  },
+  "list_my_guilds": {
+    "result": "discord.MyGuildResponse[]"
+  },
+  "list_my_private_archived_threads": {
+    "result": "discord.ThreadsResponse"
+  },
+  "list_pins": {
+    "result": "discord.PinnedMessagesResponse"
+  },
+  "list_private_archived_threads": {
+    "result": "discord.ThreadsResponse"
+  },
+  "list_public_archived_threads": {
+    "result": "discord.ThreadsResponse"
+  },
+  "list_sticker_packs": {
+    "result": "discord.StickerPackCollectionResponse"
+  },
+  "list_thread_members": {
+    "result": "discord.ThreadMemberResponse[]"
+  },
+  "list_voice_regions": {
+    "result": "discord.VoiceRegionResponse[]"
+  },
+  "partner_sdk_token": {
+    "body": "{ client_id: string; client_secret?: string | null; external_auth_token: string; external_auth_type: discord.ApplicationIdentityProviderAuthType }",
+    "result": "discord.ProvisionalTokenResponse"
+  },
+  "partner_sdk_unmerge_provisional_account": {
+    "body": "{ client_id: string; client_secret?: string | null; external_auth_token: string; external_auth_type: discord.ApplicationIdentityProviderAuthType }",
+    "result": "null"
+  },
+  "poll_expire": {
+    "result": "discord.MessageResponse"
+  },
+  "preview_prune_guild": {
+    "result": "discord.GuildPruneResponse"
+  },
+  "prune_guild": {
+    "body": "discord.PruneGuildRequest",
+    "result": "discord.GuildPruneResponse"
+  },
+  "put_guilds_onboarding": {
+    "body": "discord.UpdateGuildOnboardingRequest",
+    "result": "discord.GuildOnboardingResponse"
+  },
+  "remove_invite_target_user": {
+    "result": "null"
+  },
+  "search_guild_members": {
+    "result": "discord.GuildMemberResponse[]"
+  },
+  "send_soundboard_sound": {
+    "body": "discord.SoundboardSoundSendRequest",
+    "result": "null"
+  },
+  "set_channel_permission_overwrite": {
+    "body": "{ type?: discord.ChannelPermissionOverwrites | null; allow?: number | null; deny?: number | null }",
+    "result": "null"
+  },
+  "sync_guild_template": {
+    "result": "discord.GuildTemplateResponse"
+  },
+  "thread_search": {
+    "result": "discord.ThreadSearchResponse | discord.SearchIndexNotReadyResponse"
+  },
+  "trigger_typing_indicator": {
+    "result": "discord.TypingIndicatorResponse | null"
+  },
+  "unban_user_from_guild": {
+    "body": "discord.UnbanUserFromGuildRequest",
+    "result": "null"
+  },
+  "update_auto_moderation_rule": {
+    "body": "discord.DefaultKeywordListUpsertRequestPartial | discord.KeywordUpsertRequestPartial | discord.MLSpamUpsertRequestPartial | discord.MentionSpamUpsertRequestPartial | discord.UserProfileUpsertRequestPartial",
+    "result": "discord.DefaultKeywordRuleResponse | discord.KeywordRuleResponse | discord.MLSpamRuleResponse | discord.MentionSpamRuleResponse | discord.UserProfileRuleResponse"
+  },
+  "update_channel": {
+    "body": "discord.UpdateDMRequestPartial | discord.UpdateGroupDMRequestPartial | discord.UpdateGuildChannelRequestPartial | discord.UpdateThreadRequestPartial",
+    "result": "discord.GuildChannelResponse | discord.PrivateChannelResponse | discord.PrivateGroupChannelResponse | discord.ThreadResponse"
+  },
+  "update_followup_message": {
+    "body": "discord.IncomingWebhookUpdateRequestPartial",
+    "result": "discord.MessageResponse"
+  },
+  "update_guild": {
+    "body": "discord.GuildPatchRequestPartial",
+    "result": "discord.GuildResponse"
+  },
+  "update_guild_emoji": {
+    "body": "{ name?: string; roles?: (string | null)[] | null }",
+    "result": "discord.EmojiResponse"
+  },
+  "update_guild_incident_actions": {
+    "body": "discord.GuildIncidentActionsRequest",
+    "result": "discord.GuildIncidentsDataResponse"
+  },
+  "update_guild_member": {
+    "body": "{ nick?: string | null; roles?: (string | null)[] | null; mute?: boolean | null; deaf?: boolean | null; channel_id?: string | null; communication_disabled_until?: string | null; flags?: number | null }",
+    "result": "discord.GuildMemberResponse | null"
+  },
+  "update_guild_role": {
+    "body": "discord.UpdateRoleRequestPartial",
+    "result": "discord.GuildRoleResponse"
+  },
+  "update_guild_scheduled_event": {
+    "body": "discord.ExternalScheduledEventPatchRequestPartial | discord.StageScheduledEventPatchRequestPartial | discord.VoiceScheduledEventPatchRequestPartial",
+    "result": "discord.ExternalScheduledEventResponse | discord.StageScheduledEventResponse | discord.VoiceScheduledEventResponse"
+  },
+  "update_guild_scheduled_event_exception": {
+    "body": "discord.GuildScheduledEventExceptionPatchRequestPartial",
+    "result": "discord.GuildScheduledEventExceptionResponse"
+  },
+  "update_guild_soundboard_sound": {
+    "body": "discord.SoundboardPatchRequestPartial",
+    "result": "discord.SoundboardSoundResponse"
+  },
+  "update_guild_sticker": {
+    "body": "{ name?: string; tags?: string; description?: string | null }",
+    "result": "discord.GuildStickerResponse"
+  },
+  "update_guild_template": {
+    "body": "{ name?: string; description?: string | null }",
+    "result": "discord.GuildTemplateResponse"
+  },
+  "update_guild_welcome_screen": {
+    "body": "discord.WelcomeScreenPatchRequestPartial",
+    "result": "discord.GuildWelcomeScreenResponse"
+  },
+  "update_guild_widget_settings": {
+    "body": "{ channel_id?: string | null; enabled?: boolean | null }",
+    "result": "discord.WidgetSettingsResponse"
+  },
+  "update_lobby_message_external_moderation_metadata": {
+    "body": "Record<string, string>",
+    "result": "null"
+  },
+  "update_message": {
+    "body": "discord.MessageEditRequestPartial",
+    "result": "discord.MessageResponse"
+  },
+  "update_original_interaction_response": {
+    "body": "discord.IncomingWebhookUpdateRequestPartial",
+    "result": "discord.MessageResponse"
+  },
+  "update_self_voice_state": {
+    "body": "discord.UpdateSelfVoiceStateRequestPartial",
+    "result": "null"
+  },
+  "update_stage_instance": {
+    "body": "{ topic?: string; privacy_level?: discord.StageInstancesPrivacyLevels }",
+    "result": "discord.StageInstanceResponse"
+  },
+  "update_user_message_external_moderation_metadata": {
+    "body": "Record<string, string>",
+    "result": "null"
+  },
+  "update_voice_channel_status": {
+    "body": "{ status?: string | null }",
+    "result": "null"
+  },
+  "update_voice_state": {
+    "body": "discord.UpdateVoiceStateRequestPartial",
+    "result": "null"
+  },
+  "update_webhook": {
+    "body": "{ name?: string; avatar?: string | null; channel_id?: string | null }",
+    "result": "discord.ApplicationIncomingWebhookResponse | discord.ChannelFollowerWebhookResponse | discord.GuildIncomingWebhookResponse"
+  }
+}
