@@ -5577,7 +5577,7 @@
       },
       {
         "question": "Do I need to give Kite my Roblox password or cookie?",
-        "answer": "No. The template uses an Open Cloud API key, which you create on Roblox's Creator Hub with only the group permissions. Create it on an account that can manage the group's roles, and enable Roblox Open Cloud under Integrations with it."
+        "answer": "No. The template uses an Open Cloud API key with only the group permissions. Create it on the API keys page of an account that can manage the group's roles, not on the group's own page, as keys owned by a group can't change roles. The Roblox ranking guide in Kite's docs shows each step. Then enable Roblox Open Cloud under Integrations with the key."
       },
       {
         "question": "Can it give members several roles?",
