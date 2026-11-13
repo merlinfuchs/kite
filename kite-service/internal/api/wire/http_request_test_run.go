@@ -24,8 +24,6 @@ func (req HTTPRequestTestRequest) Validate() error {
 type HTTPRequestTestResponse struct {
 	Method string `json:"method"`
 	URL    string `json:"url"`
-	// The JSON body that was sent, if any.
-	Body string `json:"body,omitempty"`
 	// Null if no response was received, see Error.
 	Response   *HTTPRequestTestResponseData `json:"response"`
 	DurationMS int64                        `json:"duration_ms"`
@@ -37,5 +35,7 @@ type HTTPRequestTestResponseData struct {
 	Status     string            `json:"status"`
 	StatusCode int               `json:"status_code"`
 	Headers    map[string]string `json:"headers"`
-	Body       string            `json:"body"`
+	// Cut off after 64 KB.
+	Body          string `json:"body"`
+	BodyTruncated bool   `json:"body_truncated"`
 }

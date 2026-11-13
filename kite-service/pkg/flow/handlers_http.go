@@ -32,7 +32,7 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 	if err != nil {
 		return err
 	}
-	req, _, err := buildHTTPRequest(ctx, data, secrets)
+	req, err := buildHTTPRequest(ctx, data, secrets)
 	if err != nil {
 		return err
 	}
@@ -54,45 +54,43 @@ func (data *HTTPRequestData) templates() []string {
 	return templates
 }
 
-// buildHTTPRequest builds the request of a Send API Request block, and
-// returns its body too.
-func buildHTTPRequest(ctx *FlowContext, data *HTTPRequestData, secrets *flowSecrets) (*http.Request, []byte, error) {
+// buildHTTPRequest builds the request of a Send API Request block.
+func buildHTTPRequest(ctx *FlowContext, data *HTTPRequestData, secrets *flowSecrets) (*http.Request, error) {
 	rawURL, err := secrets.EvalTemplate(ctx, data.URL)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	query := url.Values{}
 	for _, kv := range data.Query {
 		value, err := secrets.EvalTemplate(ctx, kv.Value)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		query.Add(kv.Key, value.String())
 	}
 
-	var body []byte
-	var bodyReader io.Reader
+	var body io.Reader
 	if data.BodyJSON != nil {
-		body, err = secrets.EvalJSONTemplate(ctx, data.BodyJSON)
+		value, err := secrets.EvalJSONTemplate(ctx, data.BodyJSON)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		bodyReader = bytes.NewReader(body)
+		body = bytes.NewReader(value)
 	}
 
-	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, bodyReader)
+	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, body)
 	if err != nil {
-		return nil, nil, secrets.Redact(err)
+		return nil, secrets.Redact(err)
 	}
 	for _, kv := range data.Headers {
 		value, err := secrets.EvalTemplate(ctx, kv.Value)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		req.Header.Add(kv.Key, value.String())
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	return req, body, nil
+	return req, nil
 }

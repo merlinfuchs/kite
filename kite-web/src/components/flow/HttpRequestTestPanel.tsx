@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { LoaderCircleIcon, SendIcon } from "lucide-react";
 import { useHTTPRequestTestMutation } from "@/lib/api/mutations";
@@ -13,9 +13,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
-// Long responses are cut off, they would make the dialog slow.
-const maxShownBody = 50_000;
-
 export default function HttpRequestTestPanel({
   data,
 }: {
@@ -24,7 +21,7 @@ export default function HttpRequestTestPanel({
   const appId = useAppId();
   const mutation = useHTTPRequestTestMutation(appId);
 
-  const placeholders = useMemo(() => httpRequestPlaceholders(data), [data]);
+  const placeholders = httpRequestPlaceholders(data);
   const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<HTTPRequestTestResponse | null>(null);
 
@@ -105,10 +102,6 @@ function HttpRequestTestResult({
   result: HTTPRequestTestResponse;
 }) {
   const response = result.response;
-  const body = useMemo(
-    () => (response ? formatResponseBody(response.body) : ""),
-    [response]
-  );
 
   if (!response) {
     return (
@@ -151,17 +144,17 @@ function HttpRequestTestResult({
         </div>
       </details>
 
-      {body ? (
-        <pre className="bg-muted rounded p-3 text-xs overflow-auto max-h-96 whitespace-pre-wrap break-all">
-          {body.length > maxShownBody
-            ? `${body.slice(
-                0,
-                maxShownBody
-              )}\n\n[Cut off after ${maxShownBody.toLocaleString(
-                "en-US"
-              )} characters]`
-            : body}
-        </pre>
+      {response.body ? (
+        <>
+          <pre className="bg-muted rounded p-3 text-xs overflow-auto max-h-96 whitespace-pre-wrap break-all">
+            {formatResponseBody(response.body)}
+          </pre>
+          {response.body_truncated && (
+            <div className="text-sm text-muted-foreground">
+              Only the first 64 KB of the response are shown.
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-sm text-muted-foreground">
           The response has no body.

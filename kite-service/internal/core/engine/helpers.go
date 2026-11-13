@@ -197,7 +197,7 @@ func (s Env) FlowContextWithProviders(
 
 	fCtx := flow.NewContext(
 		ctx,
-		30*time.Second,
+		flow.Timeout,
 		data,
 		providers,
 		flow.FlowContextLimits{

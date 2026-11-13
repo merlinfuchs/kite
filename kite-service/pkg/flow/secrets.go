@@ -103,11 +103,8 @@ func newFlowSecrets(ctx *FlowContext, templates ...string) (*flowSecrets, error)
 	}
 
 	res.values = values
-	res.evalCtx = eval.Context{
-		Env:      maps.Clone(ctx.EvalCtx.Env),
-		Patchers: ctx.EvalCtx.Patchers,
-		Values:   ctx.EvalCtx.Values,
-	}
+	// Only the env is cloned, so the flow's own env doesn't get the secrets.
+	res.evalCtx.Env = maps.Clone(ctx.EvalCtx.Env)
 	if res.evalCtx.Env == nil {
 		res.evalCtx.Env = eval.Env{}
 	}

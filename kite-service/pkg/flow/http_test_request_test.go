@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,10 +32,21 @@ func TestSendTestHTTPRequest(t *testing.T) {
 
 	assert.Equal(t, "POST", res.Method)
 	assert.Equal(t, "https://api.example.com/users/42?key=[secret]", res.URL)
-	assert.JSONEq(t, `{"name":"Jack \"the dev\"","token":"[secret]"}`, res.Body)
 	require.NotNil(t, res.Response)
 	assert.Equal(t, 201, res.Response.StatusCode)
-	assert.JSONEq(t, `{"token":"[secret]"}`, string(res.Response.Body))
+	assert.JSONEq(t, `{"token":"[secret]"}`, res.Response.Body)
+	assert.False(t, res.Response.BodyTruncated)
+}
+
+func TestSendTestHTTPRequestTruncatesBody(t *testing.T) {
+	p := &codeHTTPProvider{status: 200, body: strings.Repeat("a", maxTestHTTPResponseBody+1)}
+	res := SendTestHTTPRequest(context.Background(), HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "GET",
+	}, nil, FlowProviders{HTTP: p})
+	require.NotNil(t, res.Response)
+	assert.Len(t, res.Response.Body, maxTestHTTPResponseBody)
+	assert.True(t, res.Response.BodyTruncated)
 }
 
 func TestSendTestHTTPRequestError(t *testing.T) {

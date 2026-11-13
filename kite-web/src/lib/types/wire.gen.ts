@@ -1401,10 +1401,6 @@ export interface HTTPRequestTestResponse {
   method: string;
   url: string;
   /**
-   * The JSON body that was sent, if any.
-   */
-  body?: string;
-  /**
    * Null if no response was received, see Error.
    */
   response?: HTTPRequestTestResponseData;
@@ -1418,7 +1414,11 @@ export interface HTTPRequestTestResponseData {
   status: string;
   status_code: number /* int */;
   headers: { [key: string]: string};
+  /**
+   * Cut off after 64 KB.
+   */
   body: string;
+  body_truncated: boolean;
 }
 
 //////////

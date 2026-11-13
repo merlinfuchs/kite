@@ -71,16 +71,16 @@ func (h *FlowTestHandler) HandleHTTPRequestTest(c *handler.Context, req wire.HTT
 	out := &wire.HTTPRequestTestResponse{
 		Method:     res.Method,
 		URL:        res.URL,
-		Body:       res.Body,
 		DurationMS: res.Duration.Milliseconds(),
 		Error:      res.Error,
 	}
-	if res.Response != nil {
+	if r := res.Response; r != nil {
 		out.Response = &wire.HTTPRequestTestResponseData{
-			Status:     res.Response.Status,
-			StatusCode: res.Response.StatusCode,
-			Headers:    res.Response.Headers,
-			Body:       string(res.Response.Body),
+			Status:        r.Status,
+			StatusCode:    r.StatusCode,
+			Headers:       r.Headers,
+			Body:          r.Body,
+			BodyTruncated: r.BodyTruncated,
 		}
 	}
 	return out, nil
