@@ -38,7 +38,7 @@ type App struct {
 	// than patched, so renames and type changes can't leave stale entries,
 	// and always replaced rather than mutated in place so readers can take a
 	// reference and drop the lock before dispatching.
-	commandsByName  map[string]*Command
+	commandsByKey   map[commandKey]*Command
 	listenersByType map[model.EventListenerType][]*EventListener
 	scheduled       []*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
@@ -54,7 +54,7 @@ func NewApp(
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
 		pluginInstances: make(map[string]*pluginInstance),
-		commandsByName:  make(map[string]*Command),
+		commandsByKey:   make(map[commandKey]*Command),
 		listenersByType: make(map[model.EventListenerType][]*EventListener),
 	}
 }
@@ -62,11 +62,11 @@ func NewApp(
 // rebuildCommandIndex regenerates the name lookup from a.commands. Callers
 // must hold the write lock.
 func (a *App) rebuildCommandIndex() {
-	index := make(map[string]*Command, len(a.commands))
+	index := make(map[commandKey]*Command, len(a.commands))
 	for _, command := range a.commands {
-		index[command.cmd.Name] = command
+		index[savedCommandKey(command.cmd)] = command
 	}
-	a.commandsByName = index
+	a.commandsByKey = index
 }
 
 // rebuildListenerIndex regenerates the event type lookup of Discord listeners
@@ -269,11 +269,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
-			fullName := getFullCommandName(d)
+			key := interactionCommandKey(d)
 
 			lockStart := time.Now()
 			a.RLock()
-			command := a.commandsByName[fullName]
+			command := a.commandsByKey[key]
 			a.RUnlock()
 
 			lockDiff := time.Since(lockStart)
@@ -729,6 +729,30 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 			)
 		}
 	}()
+}
+
+// commandKey finds the command of an interaction. Commands of different types
+// can have the same name.
+type commandKey struct {
+	typ  discord.CommandType
+	name string
+}
+
+func savedCommandKey(cmd *model.Command) commandKey {
+	return commandKey{typ: cmd.FlowSource.CommandType(), name: cmd.Name}
+}
+
+// interactionCommandKey is the command the interaction is for. The library
+// drops the type Discord sends, but only User and Message commands have a
+// target, and only the target of a Message command is a resolved message.
+func interactionCommandKey(d *discord.CommandInteraction) commandKey {
+	if !d.TargetID.IsValid() {
+		return commandKey{typ: discord.ChatInputCommand, name: getFullCommandName(d)}
+	}
+	if _, ok := d.Resolved.Messages[d.TargetMessageID()]; ok {
+		return commandKey{typ: discord.MessageCommand, name: d.Name}
+	}
+	return commandKey{typ: discord.UserCommand, name: d.Name}
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

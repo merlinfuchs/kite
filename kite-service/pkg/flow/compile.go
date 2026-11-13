@@ -32,8 +32,8 @@ func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
 // keep running.
 func (n *CompiledFlowNode) CheckCommandArguments() error {
 	nodes := n.commandArgumentNodes()
-	if n.Data.CommandType != "" && n.Data.CommandType != CommandTypeChatInput && len(nodes) > 0 {
-		return fmt.Errorf("context menu commands can't have options")
+	if n.CommandType() != discord.ChatInputCommand && len(nodes) > 0 {
+		return fmt.Errorf("only slash commands can have arguments")
 	}
 
 	names := make(map[string]bool)
@@ -296,7 +296,7 @@ func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
-		Type:                     n.commandType(),
+		Type:                     n.CommandType(),
 		Name:                     n.CommandName(),
 		Options:                  n.CommandArguments(),
 		Description:              n.CommandDescription(),
@@ -352,29 +352,20 @@ func (n *CompiledFlowNode) CommandName() string {
 	return n.Data.Name
 }
 
-func (n *CompiledFlowNode) commandType() discord.CommandType {
-	switch n.Data.CommandType {
-	case CommandTypeUser:
-		return discord.UserCommand
-	case CommandTypeMessage:
-		return discord.MessageCommand
-	default:
-		return discord.ChatInputCommand
-	}
+// CommandType is the type of the command in Discord.
+func (n *CompiledFlowNode) CommandType() discord.CommandType {
+	return n.Data.CommandType.Discord()
 }
 
 func (n *CompiledFlowNode) CommandDescription() string {
-	if !n.IsCommandEntry() {
-		return ""
-	}
-	if n.commandType() != discord.ChatInputCommand {
+	if !n.IsCommandEntry() || n.CommandType() != discord.ChatInputCommand {
 		return ""
 	}
 	return n.Data.Description
 }
 
 func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
-	if n.commandType() != discord.ChatInputCommand {
+	if n.CommandType() != discord.ChatInputCommand {
 		return nil
 	}
 	res := make(discord.CommandOptions, 0)

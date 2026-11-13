@@ -53,6 +53,9 @@ type CommandsDeployError struct {
 	Message string `json:"message"`
 	// Command is the name of the root command it's about, if known.
 	Command string `json:"command,omitempty"`
+	// CommandType is "user" or "message" for context menu commands, empty for
+	// slash commands.
+	CommandType string `json:"command_type,omitempty"`
 }
 
 func (e *CommandsDeployError) Error() string {

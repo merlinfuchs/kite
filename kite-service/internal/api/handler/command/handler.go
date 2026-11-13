@@ -64,7 +64,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
+	if err := h.checkCommandNames(c, "", commandKey(cmdFlow)); err != nil {
 		return nil, err
 	}
 
@@ -126,13 +126,13 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 	}
 
 	commands := make([]*model.Command, len(reqs))
-	names := make([]string, len(reqs))
+	keys := make([]command.Key, len(reqs))
 	for i, cmd := range reqs {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
 			return nil, err
 		}
-		names[i] = cmdFlow.CommandName()
+		keys[i] = commandKey(cmdFlow)
 
 		commands[i] = &model.Command{
 			ID:            util.UniqueID(),
@@ -147,7 +147,7 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, keys...)
 	if err != nil {
 		return nil, commandNamesError(err)
 	}
@@ -205,8 +205,8 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Comman
 	}
 
 	// Don't block saving an existing conflict that this change didn't cause.
-	if cmdFlow.CommandName() != command.Name {
-		if err := h.checkCommandNames(c, command.ID, cmdFlow.CommandName()); err != nil {
+	if key := commandKey(cmdFlow); key != savedCommandKey(command) {
+		if err := h.checkCommandNames(c, command.ID, key); err != nil {
 			return nil, err
 		}
 	}
@@ -266,10 +266,18 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 	return cmdFlow, nil
 }
 
+func commandKey(cmdFlow *flow.CompiledFlowNode) command.Key {
+	return command.NewKey(cmdFlow.CommandType(), cmdFlow.CommandName())
+}
+
+func savedCommandKey(cmd *model.Command) command.Key {
+	return command.NewKey(cmd.FlowSource.CommandType(), cmd.Name)
+}
+
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
-func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
-	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...))
+func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, keys ...command.Key) error {
+	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, keys...))
 }
 
 // commandNamesError turns a conflict of command names into an error for the

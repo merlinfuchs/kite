@@ -74,6 +74,16 @@ func (d FlowData) WithCommandName(name string) FlowData {
 	return d
 }
 
+// CommandType is the type in Discord of the flow's command.
+func (d FlowData) CommandType() discord.CommandType {
+	for _, node := range d.Nodes {
+		if node.Type == FlowNodeTypeEntryCommand {
+			return node.Data.CommandType.Discord()
+		}
+	}
+	return discord.ChatInputCommand
+}
+
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),
@@ -884,6 +894,19 @@ const (
 	CommandTypeUser      CommandType = "user"
 	CommandTypeMessage   CommandType = "message"
 )
+
+// Discord is the type of the command in Discord. Commands saved before there
+// were types have none and are slash commands.
+func (t CommandType) Discord() discord.CommandType {
+	switch t {
+	case CommandTypeUser:
+		return discord.UserCommand
+	case CommandTypeMessage:
+		return discord.MessageCommand
+	default:
+		return discord.ChatInputCommand
+	}
+}
 
 type CommandDisabledIntegrationType string
 

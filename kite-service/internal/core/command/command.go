@@ -230,7 +230,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		return nil, err
 	}
 
-	commandNames := make([]string, 0, len(commands))
+	keys := make([]Key, 0, len(commands))
 	res := make([]api.CreateCommandData, 0, len(commands))
 	for _, command := range commands {
 		// Disabled commands aren't run, so they shouldn't show up in Discord.
@@ -240,10 +240,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 
 		node, err := flow.CompileCommand(command.FlowSource)
 		if err != nil {
-			return nil, &DeployError{
-				Message: fmt.Sprintf("The command can't be compiled: %v", err),
-				Command: strings.Split(command.Name, " ")[0],
-			}
+			return nil, modelKey(command).deployError(fmt.Sprintf("The command can't be compiled: %v", err))
 		}
 
 		data := node.CommandData()
@@ -256,15 +253,15 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 			Contexts:                 node.CommandContexts(),
 			IntegrationTypes:         node.CommandIntegrations(),
 		})
-		commandNames = append(commandNames, node.CommandName())
+		keys = append(keys, NewKey(data.Type, node.CommandName()))
 	}
 
 	for _, command := range pluginCommands {
-		commandNames = append(commandNames, command.Name)
+		keys = append(keys, NewKey(command.Type, command.Name))
 		res = append(res, command)
 	}
 
-	if err := checkCommandNames(nil, commandNames); err != nil {
+	if err := checkCommandNames(nil, keys); err != nil {
 		return nil, err
 	}
 
@@ -272,17 +269,28 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 }
 
 // takenCommands returns the commands whose names new commands can't use: all
-// of the app's, also disabled ones, and the ones its plugins add.
-func (m *CommandManager) takenCommands(ctx context.Context, appID string) ([]*model.Command, []api.CreateCommandData, error) {
+// of the app's, also disabled ones, and the ones its plugins add. The command
+// with the ID replacedCommandID is left out, because it's being replaced.
+func (m *CommandManager) takenCommands(ctx context.Context, appID string, replacedCommandID string) ([]Key, error) {
 	commands, err := m.commandStore.CommandsByApp(ctx, appID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get commands by app: %w", err)
+		return nil, fmt.Errorf("failed to get commands by app: %w", err)
 	}
 	pluginCommands, err := m.pluginCommands(ctx, appID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return commands, pluginCommands, nil
+
+	res := make([]Key, 0, len(commands)+len(pluginCommands))
+	for _, command := range commands {
+		if command.ID != replacedCommandID {
+			res = append(res, modelKey(command))
+		}
+	}
+	for _, command := range pluginCommands {
+		res = append(res, NewKey(command.Type, command.Name))
+	}
+	return res, nil
 }
 
 // pluginCommands returns the commands the app's plugins add.
@@ -309,17 +317,31 @@ func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]ap
 	return res, nil
 }
 
-// checkCommandNames reports whether the added names conflict with the
-// existing ones or each other in a way Discord rejects.
-func checkCommandNames(existing []string, added []string) error {
-	for i, name := range added {
-		if name == "" {
+// checkCommandNames reports whether the added commands conflict with the
+// existing ones or each other in a way Discord rejects, or are more context
+// menu commands than Discord allows.
+func checkCommandNames(existing []Key, added []Key) error {
+	counts := make(map[discord.CommandType]int)
+	for _, key := range existing {
+		counts[key.Type]++
+	}
+
+	for i, key := range added {
+		if key.Name == "" {
 			return &DeployError{Message: "A command has no name."}
 		}
 		for _, other := range slices.Concat(existing, added[:i]) {
-			if err := commandNameConflict(name, other); err != nil {
+			if err := commandNameConflict(key, other); err != nil {
 				return err
 			}
+		}
+
+		counts[key.Type]++
+		if !key.isSlash() && counts[key.Type] > maxContextMenuCommands {
+			return key.deployError(fmt.Sprintf(
+				"Discord allows at most %d %s commands.",
+				maxContextMenuCommands, key.typeName(),
+			))
 		}
 	}
 	return nil
@@ -328,13 +350,20 @@ func checkCommandNames(existing []string, added []string) error {
 // commandNameConflict reports whether Discord rejects two commands with these
 // names. Discord only allows subcommands on commands that do nothing
 // themselves.
-func commandNameConflict(aName, bName string) *DeployError {
-	if aName == "" || bName == "" {
+func commandNameConflict(a, b Key) *DeployError {
+	if a.Name == "" || b.Name == "" || a.Type != b.Type {
 		return nil
 	}
 
-	aParts := strings.Split(aName, " ")
-	bParts := strings.Split(bName, " ")
+	if !a.isSlash() {
+		if a.Name == b.Name {
+			return a.deployError(fmt.Sprintf("There is more than one %s command named %q.", a.typeName(), a.Name))
+		}
+		return nil
+	}
+
+	aParts := strings.Split(a.Name, " ")
+	bParts := strings.Split(b.Name, " ")
 
 	shared := 0
 	for shared < len(aParts) && shared < len(bParts) && aParts[shared] == bParts[shared] {
@@ -343,46 +372,29 @@ func commandNameConflict(aName, bName string) *DeployError {
 
 	switch {
 	case shared == len(aParts) && shared == len(bParts):
-		return &DeployError{
-			Message: fmt.Sprintf("There is more than one /%s command.", aName),
-			Command: aParts[0],
-		}
+		return a.deployError(fmt.Sprintf("There is more than one %s command.", a))
 	case shared == len(aParts) || shared == len(bParts):
-		parent, child := aName, bName
+		parent, child := a, b
 		if len(bParts) < len(aParts) {
-			parent, child = bName, aName
+			parent, child = b, a
 		}
-		return &DeployError{
-			Message: fmt.Sprintf(
-				"/%s and /%s can't both exist, because /%s has subcommands.",
-				parent, child, parent,
-			),
-			Command: aParts[0],
-		}
+		return a.deployError(fmt.Sprintf(
+			"%s and %s can't both exist, because %s has subcommands.",
+			parent, child, parent,
+		))
 	}
 	return nil
 }
 
-// CheckCommandNames reports whether commands with these names conflict with
-// each other or the other commands of the app. The command with the ID
+// CheckCommandNames reports whether these commands conflict with each other
+// or the other commands of the app. The command with the ID
 // replacedCommandID is left out, because it's being replaced.
-func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, names ...string) error {
-	commands, pluginCommands, err := m.takenCommands(ctx, appID)
+func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, keys ...Key) error {
+	existing, err := m.takenCommands(ctx, appID, replacedCommandID)
 	if err != nil {
 		return err
 	}
-
-	existing := make([]string, 0, len(commands)+len(pluginCommands))
-	for _, command := range commands {
-		if command.ID != replacedCommandID {
-			existing = append(existing, command.Name)
-		}
-	}
-	for _, command := range pluginCommands {
-		existing = append(existing, command.Name)
-	}
-
-	return checkCommandNames(existing, names)
+	return checkCommandNames(existing, keys)
 }
 
 // mergeCommands merges the subcommands of the same root command into one
@@ -390,20 +402,12 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 // too.
 func mergeCommands(commands []api.CreateCommandData) []api.CreateCommandData {
 	res := make([]api.CreateCommandData, 0, len(commands))
-	type commandKey struct {
-		name string
-		kind discord.CommandType
-	}
-	rootIndexes := make(map[commandKey]int)
+	rootIndexes := make(map[Key]int)
 
 	// Merge root commands
 	for _, command := range commands {
 		// TODO: think about how to handle different configs for root cmd
-		kind := command.Type
-		if kind == 0 {
-			kind = discord.ChatInputCommand
-		}
-		key := commandKey{name: command.Name, kind: kind}
+		key := NewKey(command.Type, command.Name)
 		if i, ok := rootIndexes[key]; ok {
 			res[i].Options = append(res[i].Options, command.Options...)
 		} else {
