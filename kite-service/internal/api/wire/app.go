@@ -41,6 +41,10 @@ type App struct {
 	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
 	// the app used 80% or all of its credits for the month.
 	CreditNoticesEnabled bool `json:"credit_notices_enabled"`
+
+	// UserRole is the role of the current user in the app, only set when
+	// getting a single app.
+	UserRole string `json:"user_role,omitempty"`
 }
 
 type CommandsDeployError struct {

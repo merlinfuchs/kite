@@ -8,6 +8,10 @@ import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
+import { useAppRole } from "@/lib/hooks/api";
+import { canManageSettings } from "@/lib/collaborators";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LockIcon } from "lucide-react";
 
 const breadcrumbs = [
   {
@@ -16,6 +20,11 @@ const breadcrumbs = [
 ];
 
 export default function AppSettingsPage() {
+  const role = useAppRole();
+  // Developers can't change the settings, but see who else works on the app
+  // and can leave it.
+  const isDeveloper = role !== undefined && !canManageSettings(role);
+
   return (
     <AppLayout title="App settings" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end space-y-5 md:space-y-0">
@@ -38,10 +47,24 @@ export default function AppSettingsPage() {
       </div>
       <Separator className="my-8" />
       <div className="grid grid-cols-1 gap-6">
-        <AppSettingsControls />
-        <AppSettingsAppearance />
-        <AppSettingsPresence />
-        <AppSettingsCredentials />
+        {isDeveloper ? (
+          <Alert>
+            <LockIcon className="h-4 w-4" />
+            <AlertTitle>You&apos;re a developer of this app</AlertTitle>
+            <AlertDescription>
+              Developers can edit commands, event listeners, message templates,
+              and everything else. Only admins and the owner can change the
+              app&apos;s settings.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <AppSettingsControls />
+            <AppSettingsAppearance />
+            <AppSettingsPresence />
+            <AppSettingsCredentials />
+          </>
+        )}
         <AppSettingsCollaborators />
         <AppSettingsDelete />
       </div>

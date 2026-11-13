@@ -1,6 +1,13 @@
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQueries,
+  useQuery,
+} from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppAuditLogListResponse,
+  UserCollaboratorInviteListResponse,
   AppCollaboratorInviteListResponse,
   OAuthAuthorizeGetResponse,
   AppCollaboratorListResponse,
@@ -684,6 +691,46 @@ export function useAppCollaboratorInvitesQuery(appId: string) {
         `/v1/apps/${appId}/collaborators/invites`
       ),
     enabled: !!appId,
+  });
+}
+
+export const auditLogPageSize = 50;
+
+// kinds are the part of the actions before the dot, like "command".
+export function useAppAuditLogQuery(
+  appId: string,
+  filter: { userId?: string; kinds?: string[] } = {}
+) {
+  return useInfiniteQuery({
+    queryKey: ["apps", appId, "audit-log", filter],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: `${auditLogPageSize}` });
+      if (pageParam) params.set("before", pageParam);
+      if (filter.userId) params.set("user_id", filter.userId);
+      if (filter.kinds?.length) params.set("kinds", filter.kinds.join(","));
+      return apiRequest<AppAuditLogListResponse>(
+        `/v1/apps/${appId}/audit-log?${params}`
+      );
+    },
+    initialPageParam: "",
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.success || lastPage.data.length < auditLogPageSize) {
+        return undefined;
+      }
+      return lastPage.data[lastPage.data.length - 1]?.id;
+    },
+    enabled: !!appId,
+  });
+}
+
+// The invites of the current user to other apps. Polled so the account menu
+// shows new ones without a reload.
+export function useUserInvitesQuery() {
+  return useQuery({
+    queryKey: ["users", "@me", "invites"],
+    queryFn: () =>
+      apiRequest<UserCollaboratorInviteListResponse>(`/v1/users/@me/invites`),
+    refetchInterval: 1000 * 60,
   });
 }
 

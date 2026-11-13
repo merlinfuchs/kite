@@ -25,7 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAppStateGuilds, useResponseData } from "@/lib/hooks/api";
+import {
+  useAppRole,
+  useAppStateGuilds,
+  useResponseData,
+} from "@/lib/hooks/api";
+import { canManageSettings } from "@/lib/collaborators";
 import { useAppStateStatusQuery } from "@/lib/api/queries";
 import { Guild } from "@/lib/types/wire.gen";
 import { useCallback, useMemo, useState } from "react";
@@ -78,6 +83,7 @@ export const columns: ColumnDef<Guild>[] = [
       const [profileOpen, setProfileOpen] = useState(false);
 
       const leaveMutation = useAppStateGuildLeaveMutation(useAppId());
+      const role = useAppRole();
 
       const handleLeave = useCallback(() => {
         if (confirm("Are you sure you want the app to leave this server?")) {
@@ -92,6 +98,9 @@ export const columns: ColumnDef<Guild>[] = [
           });
         }
       }, [leaveMutation, row.original.id]);
+
+      // Developers can't change the bot's servers.
+      if (!canManageSettings(role)) return null;
 
       return (
         <>

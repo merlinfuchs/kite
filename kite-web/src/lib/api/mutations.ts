@@ -8,6 +8,10 @@ import {
   AppCollaboratorCreateResponse,
   AppCollaboratorDeleteResponse,
   AppCollaboratorInviteDeleteResponse,
+  AppCollaboratorUpdateRequest,
+  AppCollaboratorUpdateResponse,
+  UserCollaboratorInviteAcceptResponse,
+  UserCollaboratorInviteDeclineResponse,
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
@@ -1643,6 +1647,78 @@ export function useAppCollaboratorInviteDeleteMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "collaborators", "invites"],
+      });
+    },
+  });
+}
+
+export function useAppCollaboratorUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      req,
+    }: {
+      userId: string;
+      req: AppCollaboratorUpdateRequest;
+    }) =>
+      apiRequest<AppCollaboratorUpdateResponse>(
+        `/v1/apps/${appId}/collaborators/${userId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(req),
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
+      });
+    },
+  });
+}
+
+export function useUserInviteAcceptMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (appId: string) =>
+      apiRequest<UserCollaboratorInviteAcceptResponse>(
+        `/v1/users/@me/invites/${appId}/accept`,
+        {
+          method: "POST",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["users", "@me", "invites"],
+      });
+      // The app is in the user's list now
+      client.invalidateQueries({
+        queryKey: ["apps"],
+        exact: true,
+      });
+    },
+  });
+}
+
+export function useUserInviteDeclineMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (appId: string) =>
+      apiRequest<UserCollaboratorInviteDeclineResponse>(
+        `/v1/users/@me/invites/${appId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["users", "@me", "invites"],
       });
     },
   });

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useUser } from "@/lib/hooks/api";
 import UserMenu, { UserAvatar } from "./UserMenu";
+import { InvitesDot } from "./UserInvitesDialog";
 
 export default function AppSidebarUserNav() {
   const { isMobile } = useSidebar();
@@ -32,7 +33,10 @@ export default function AppSidebarUserNav() {
                 {user && `@${user.discord_username}`}
               </span>
             </div>
-            <ChevronsUpDown className="ml-auto size-4" />
+            <span className="relative ml-auto">
+              <ChevronsUpDown className="size-4" />
+              <InvitesDot />
+            </span>
           </SidebarMenuButton>
         </UserMenu>
       </SidebarMenuItem>

@@ -99,12 +99,37 @@ type AppStore interface {
 	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
 	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
 	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
-	// ClaimCollaboratorInvites adds the user as a collaborator to every app that
-	// invited their Discord username and deletes the invites.
-	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
+	DeleteExpiredCollaboratorInvites(ctx context.Context, now time.Time) error
+	CollaboratorInvite(ctx context.Context, appID string, discordUsername string) (*model.AppCollaboratorInvite, error)
+	// CollaboratorInvitesByUser returns the pending invites of the user, by
+	// their ID or, for invites from before they used Kite, their username.
+	CollaboratorInvitesByUser(ctx context.Context, userID string, discordUsername string, now time.Time) ([]*model.AppCollaboratorInvite, error)
+	// AcceptCollaboratorInvite deletes the user's invite to the app and adds
+	// them as a collaborator. It returns store.ErrNotFound without an invite.
+	AcceptCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string, now time.Time) (*model.AppCollaborator, error)
+	// DeclineCollaboratorInvite deletes the user's invite to the app. It
+	// returns store.ErrNotFound without an invite.
+	DeclineCollaboratorInvite(ctx context.Context, appID string, userID string, discordUsername string) error
+
+	CreateAppAuditLogEntry(ctx context.Context, entry *model.AppAuditLogEntry) error
+	// AppAuditLogEntries returns the newest entries of the app that match
+	// the filter.
+	AppAuditLogEntries(ctx context.Context, appID string, filter AppAuditLogFilter) ([]*model.AppAuditLogEntry, error)
+	DeleteAppAuditLogEntriesBefore(ctx context.Context, before time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
 	// HasAppFlows reports whether the app has an enabled command or event
 	// listener, or a posted message with flows.
 	HasAppFlows(ctx context.Context, appID string) (bool, error)
+}
+
+type AppAuditLogFilter struct {
+	// BeforeID only returns entries before the one with the ID, unless it's 0.
+	BeforeID int64
+	// UserID only returns entries of the user, unless it's empty.
+	UserID string
+	// Kinds only returns entries whose action starts with one of them, like
+	// "command" for "command.update", unless it's empty.
+	Kinds []string
+	Limit int
 }

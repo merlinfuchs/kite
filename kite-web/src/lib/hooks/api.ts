@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useUserInvitesQuery,
   useAppCollaboratorInvitesQuery,
   useAppCollaboratorsQuery,
   useAppEmojisQuery,
@@ -45,6 +46,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  UserCollaboratorInviteListResponse,
   AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
@@ -402,6 +404,19 @@ export function useAppCollaborators(
   const router = useRouter();
 
   const query = useAppCollaboratorsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+// useAppRole returns the role of the current user in the app: owner, admin or
+// developer.
+export function useAppRole() {
+  return useApp()?.user_role;
+}
+
+export function useUserInvites(
+  callback?: (res: APIResponse<UserCollaboratorInviteListResponse>) => void
+) {
+  const query = useUserInvitesQuery();
   return useResponseData(query, callback);
 }
 

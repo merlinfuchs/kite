@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import logo from "@/assets/logo/orange@1024.png";
 import UserMenu, { UserAvatar } from "./UserMenu";
+import { InvitesDot } from "./UserInvitesDialog";
 
 // AccountPageLayout is the layout of pages outside of an app, like the app
 // list, with the logo and the account menu above a centered column.
@@ -37,7 +38,10 @@ export default function AccountPageLayout({
             >
               <UserAvatar className="size-6 text-xs" />
               <span className="hidden sm:inline">{user?.display_name}</span>
-              <ChevronDownIcon className="size-4 text-muted-foreground" />
+              <span className="relative">
+                <ChevronDownIcon className="size-4 text-muted-foreground" />
+                <InvitesDot />
+              </span>
             </Button>
           </UserMenu>
         )}

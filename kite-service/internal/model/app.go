@@ -268,13 +268,40 @@ type AppCollaboratorRole string
 const (
 	AppCollaboratorRoleOwner AppCollaboratorRole = "owner"
 	AppCollaboratorRoleAdmin AppCollaboratorRole = "admin"
+	// Developers can edit everything of the app but its settings, like its
+	// token, appearance, billing and collaborators.
+	AppCollaboratorRoleDeveloper AppCollaboratorRole = "developer"
 )
 
 func (r AppCollaboratorRole) CanDeleteApp() bool {
 	return r == AppCollaboratorRoleOwner
 }
 
-func (r AppCollaboratorRole) CanManageCollaborators() bool {
+// CanManageSettings is whether the role can change the app's settings.
+func (r AppCollaboratorRole) CanManageSettings() bool {
+	return r == AppCollaboratorRoleOwner || r == AppCollaboratorRoleAdmin
+}
+
+// CanInviteRole is whether the role can invite collaborators with the given
+// role. Only the owner picks admins, admins can only invite developers.
+func (r AppCollaboratorRole) CanInviteRole(role AppCollaboratorRole) bool {
+	switch r {
+	case AppCollaboratorRoleOwner:
+		return role == AppCollaboratorRoleAdmin || role == AppCollaboratorRoleDeveloper
+	case AppCollaboratorRoleAdmin:
+		return role == AppCollaboratorRoleDeveloper
+	}
+	return false
+}
+
+// CanRemoveRole is whether the role can remove other collaborators with the
+// given role. Admins can't remove other admins. Leaving the app is separate.
+func (r AppCollaboratorRole) CanRemoveRole(role AppCollaboratorRole) bool {
+	return r.CanInviteRole(role)
+}
+
+// CanChangeRoles is whether the role can change the role of collaborators.
+func (r AppCollaboratorRole) CanChangeRoles() bool {
 	return r == AppCollaboratorRoleOwner
 }
 
@@ -287,14 +314,39 @@ type AppCollaborator struct {
 	UpdatedAt time.Time
 }
 
-// AppCollaboratorInvite adds the user with a Discord username that no Kite user
-// has as a collaborator when they log in.
+// AppCollaboratorInvite makes the user a collaborator once they accept it.
+// UserID is empty when they were invited by a Discord username that no Kite
+// user has yet, then whoever logs in with it can accept it.
 type AppCollaboratorInvite struct {
 	AppID           string
 	DiscordUsername string
+	UserID          null.String
 	Role            AppCollaboratorRole
+	InvitedByUserID null.String
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
+
+	// Set when listing the invites of a user, only with the app's ID, name,
+	// description and Discord ID.
+	App       *App
+	InvitedBy *User
+}
+
+// AppAuditLogEntry is something a collaborator did in an app.
+type AppAuditLogEntry struct {
+	ID     int64
+	AppID  string
+	UserID null.String
+	// Action is like "command.update", see the API's audit log actions.
+	Action     string
+	TargetType string
+	TargetID   string
+	TargetName string
+	APITokenID null.String
+	CreatedAt  time.Time
+
+	// Set when listing entries, nil once the user deleted their account.
+	User *User
 }
 
 type AppEntity struct {

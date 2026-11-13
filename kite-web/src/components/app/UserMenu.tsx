@@ -4,6 +4,7 @@ import {
   HomeIcon,
   KeyRoundIcon,
   LogOutIcon,
+  MailIcon,
 } from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
@@ -17,15 +18,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/lib/hooks/api";
+import { useUser, useUserInvites } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
+import UserInvitesDialog from "./UserInvitesDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
 // elsewhere, like with the logo, leave out returnHome.
 //
 // Guides that need a token link to ?api-tokens, which opens the API tokens.
+// ?invites opens the invites to other apps.
 export default function UserMenu({
   children,
   className,
@@ -44,6 +47,9 @@ export default function UserMenu({
   const router = useRouter();
   const [tokensOpen, setTokensOpen] = useState(false);
   const tokensLinked = router.query["api-tokens"] !== undefined;
+  const invites = useUserInvites();
+  const [invitesOpen, setInvitesOpen] = useState(false);
+  const invitesLinked = router.query["invites"] !== undefined;
 
   function onTokensOpenChange(open: boolean) {
     setTokensOpen(open);
@@ -55,11 +61,25 @@ export default function UserMenu({
     }
   }
 
+  function onInvitesOpenChange(open: boolean) {
+    setInvitesOpen(open);
+    if (!open && invitesLinked) {
+      const { invites: _, ...query } = router.query;
+      router.replace({ pathname: router.pathname, query }, undefined, {
+        shallow: true,
+      });
+    }
+  }
+
   return (
     <>
       <APITokensDialog
         open={tokensOpen || tokensLinked}
         onOpenChange={onTokensOpenChange}
+      />
+      <UserInvitesDialog
+        open={invitesOpen || invitesLinked}
+        onOpenChange={onInvitesOpenChange}
       />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
@@ -104,6 +124,18 @@ export default function UserMenu({
               </Link>
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={() => setInvitesOpen(true)}
+          >
+            <MailIcon className="size-4" />
+            Invites
+            {!!invites?.length && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
+                {invites.length}
+              </span>
+            )}
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="gap-2 cursor-pointer"
             onClick={() => setTokensOpen(true)}

@@ -65,7 +65,7 @@ export default function AppSettingsDelete() {
             <div className="text-muted-foreground">
               {isOwner
                 ? "Deleting your app will remove it from Kite and delete all associated data."
-                : "You won't be able to manage this app anymore until the owner adds you again."}
+                : "You won't be able to manage this app anymore until you're invited again."}
             </div>
           </div>
           <ConfirmDialog

@@ -35,6 +35,41 @@ type Context struct {
 	Message        *model.Message
 	EventListener  *model.EventListener
 	PluginInstance *model.PluginInstance
+
+	// The response of a typed handler, for the audit log.
+	response any
+	// Set by handlers whose audit log target isn't clear from the route.
+	auditTarget *AuditTarget
+}
+
+// AuditTarget is what an audit log entry is about, like a command.
+type AuditTarget struct {
+	ID   string
+	Name string
+	// Action replaces the action of the route when set, like for a
+	// collaborator who leaves instead of being removed.
+	Action string
+}
+
+// SetAuditTarget sets what the request's audit log entry is about.
+func (c *Context) SetAuditTarget(target AuditTarget) {
+	c.auditTarget = &target
+}
+
+// AuditTarget is the target set by the handler, or nil.
+func (c *Context) AuditTarget() *AuditTarget {
+	return c.auditTarget
+}
+
+// Response is the response of a typed handler once it succeeded, or nil.
+func (c *Context) Response() any {
+	return c.response
+}
+
+// RoutePattern is the pattern of the matched route, like
+// "PATCH /v1/apps/{appID}/commands/{commandID}".
+func (c *Context) RoutePattern() string {
+	return c.r.Pattern
 }
 
 // ItemChange is who made the changes of the request, for the version history

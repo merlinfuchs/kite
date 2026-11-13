@@ -1,4 +1,5 @@
 import { useApp } from "@/lib/hooks/api";
+import { canManageSettings } from "@/lib/collaborators";
 import { formatMonthlyResetDate } from "@/lib/utils";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { OctagonAlertIcon } from "lucide-react";
@@ -21,13 +22,18 @@ export default function AppDisabledPopup() {
   let action: ReactNode = null;
   if (app.token_invalid) {
     title = "Your bot token stopped working";
-    description =
-      "The token was probably reset in the Discord Developer Portal. Update it to start your bot again.";
-    action = (
-      <AppTokenUpdateDialog app={app} from="popup">
-        <Button size="sm">Update token</Button>
-      </AppTokenUpdateDialog>
-    );
+    if (canManageSettings(app.user_role)) {
+      description =
+        "The token was probably reset in the Discord Developer Portal. Update it to start your bot again.";
+      action = (
+        <AppTokenUpdateDialog app={app} from="popup">
+          <Button size="sm">Update token</Button>
+        </AppTokenUpdateDialog>
+      );
+    } else {
+      description =
+        "The token was probably reset in the Discord Developer Portal. Ask an admin or the owner of the app to update it.";
+    }
   } else if (paused) {
     title = "Your app is out of credits";
     description = `Your app used all of its credits for this month, so its commands and events are paused. Anyone who uses it is told why. It runs again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
