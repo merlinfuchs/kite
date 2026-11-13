@@ -20,7 +20,7 @@ import (
 	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
-	editorusage "github.com/kitecloud/kite/kite-service/internal/api/handler/editor_usage"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/editorusage"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
@@ -232,15 +232,6 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
-	editorUsageHandler := editorusage.NewEditorUsageHandler(
-		commandStore,
-		eventListenerStore,
-		editorSessionStore,
-	)
-	appGroup.Get("/editor-usage", handler.Typed(editorUsageHandler.HandleEditorUsageGet))
-	appGroup.Put("/editor-sessions/{sessionID}",
-		handler.TypedWithBody(editorUsageHandler.HandleEditorSessionUpsert),
-	)
 	appGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppGet))
 	appGroup.Put("/",
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
@@ -327,8 +318,12 @@ func (s *APIServer) RegisterRoutes(
 	// Version routes are under the command, event listener and message routes.
 	itemVersionHandler := itemversion.NewItemVersionHandler(itemVersionStore)
 
+	// Editor session routes are under the command and event listener routes.
+	editorUsageHandler := editorusage.NewEditorUsageHandler(editorSessionStore)
+	appGroup.Get("/editor-usage", handler.Typed(editorUsageHandler.HandleEditorUsageGet))
+
 	// Command routes
-	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
+	commandsHandler := commandhandler.NewCommandHandler(commandStore, editorSessionStore, commandManager)
 
 	commandsGroup := appGroup.Group("/commands").AllowAPIToken()
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
@@ -342,13 +337,14 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 	commandGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleCommandVersionList))
 	commandGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleCommandVersionGet))
+	commandGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleCommandEditorSessionUpdate))
 	commandsGroup.Post("/deploy",
 		handler.Typed(commandsHandler.HandleCommandsDeploy),
 		handler.RateLimitByUser(2, time.Minute),
 	)
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, editorSessionStore, webhookRunner)
 
 	eventListenersGroup := appGroup.Group("/event-listeners").AllowAPIToken()
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
@@ -362,6 +358,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
 	eventListenerGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleEventListenerVersionList))
 	eventListenerGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleEventListenerVersionGet))
+	eventListenerGroup.DenyAPIToken().Put("/editor-sessions/{sessionID}", handler.TypedWithBody(editorUsageHandler.HandleEventListenerEditorSessionUpdate))
 	// A new secret breaks the webhook URL wherever it's used.
 	eventListenerGroup.DenyAPIToken().Post("/webhook-secret",
 		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),

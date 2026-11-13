@@ -48,16 +48,8 @@ import {
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
 import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
-import EditorUsageSummary from "./EditorUsageSummary";
-import type { EditorUsageItem } from "@/lib/types/editorUsage";
 
-export default function CommandListEntry({
-  command,
-  editorUsage,
-}: {
-  command: Command;
-  editorUsage?: EditorUsageItem | null;
-}) {
+export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
 
   const appId = useAppId();
@@ -112,7 +104,6 @@ export default function CommandListEntry({
         </CardTitle>
         <CardDescription className="text-sm">
           {command.description}
-          <EditorUsageSummary usage={editorUsage} />
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

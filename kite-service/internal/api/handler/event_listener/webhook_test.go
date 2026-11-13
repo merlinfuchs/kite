@@ -80,7 +80,7 @@ func webhookTestListener() *model.EventListener {
 }
 
 func webhookTestServer(listener *model.EventListener, runner *fakeRunner) http.Handler {
-	return webhookTestMux(NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{listener}}, runner))
+	return webhookTestMux(NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{listener}}, nil, runner))
 }
 
 func webhookTestMux(h *EventListenerHandler) http.Handler {
@@ -176,6 +176,7 @@ func TestWebhookRateLimitIsPerApp(t *testing.T) {
 	runner := &fakeRunner{loadedSecret: "secret"}
 	server := webhookTestMux(NewEventListenerHandler(
 		&fakeListenerStore{listeners: []*model.EventListener{webhookTestListener(), other}},
+		nil,
 		runner,
 	))
 
@@ -231,7 +232,7 @@ func TestWebhookFlowResponse(t *testing.T) {
 
 func TestWebhookFlowResponseTimeout(t *testing.T) {
 	runner := &fakeRunner{loadedSecret: "secret", canRespond: true}
-	h := NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{webhookTestListener()}}, runner)
+	h := NewEventListenerHandler(&fakeListenerStore{listeners: []*model.EventListener{webhookTestListener()}}, nil, runner)
 	h.webhookResponseTimeout = 10 * time.Millisecond
 
 	rec := postWebhook(webhookTestMux(h), "/v1/webhooks/app/listener/secret", "", nil)

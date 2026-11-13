@@ -146,7 +146,7 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		Type:      model.NotificationTypeCreditsWarning,
 		DedupeKey: null.StringFrom(start.Format("2006-01")),
 	}}}
-	m := NewUsageManager(apps, usage, logs, nil, nil, nil, nil, nil, nil, nil, notifications, planManager, notifier)
+	m := NewUsageManager(apps, usage, logs, nil, nil, nil, nil, nil, nil, nil, notifications, nil, planManager, notifier)
 
 	if err := m.updateAppsForCredits(context.Background()); err != nil {
 		t.Fatal(err)

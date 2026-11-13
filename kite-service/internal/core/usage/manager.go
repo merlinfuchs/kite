@@ -33,6 +33,8 @@ const (
 	// is still found and revokes its token.
 	UsedOAuthCodeExpiry = time.Hour
 	NotificationExpiry  = 90 * 24 * time.Hour
+	// The dashboard only shows the last 30 days.
+	EditorSessionExpiry = 90 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -54,6 +56,7 @@ type UsageManager struct {
 	apiTokenStore        store.APITokenStore
 	oauthCodeStore       store.OAuthCodeStore
 	notificationStore    store.NotificationStore
+	editorSessionStore   store.EditorSessionStore
 
 	planManager    *plan.PlanManager
 	creditNotifier CreditNotifier
@@ -81,6 +84,7 @@ func NewUsageManager(
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
 	notificationStore store.NotificationStore,
+	editorSessionStore store.EditorSessionStore,
 	planManager *plan.PlanManager,
 	creditNotifier CreditNotifier,
 ) *UsageManager {
@@ -96,6 +100,7 @@ func NewUsageManager(
 		apiTokenStore:        apiTokenStore,
 		oauthCodeStore:       oauthCodeStore,
 		notificationStore:    notificationStore,
+		editorSessionStore:   editorSessionStore,
 		planManager:          planManager,
 		creditNotifier:       creditNotifier,
 	}
@@ -167,6 +172,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupNotifications(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup notifications",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupEditorSessions(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup editor sessions",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -463,6 +474,14 @@ func (m *UsageManager) cleanupOAuth(ctx context.Context) error {
 
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.apiTokenStore.DeleteExpiredOAuthAPITokens(ctx, now, cleanupBatchSize)
+	})
+}
+
+func (m *UsageManager) cleanupEditorSessions(ctx context.Context) error {
+	createdBefore := time.Now().UTC().Add(-EditorSessionExpiry)
+
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.editorSessionStore.DeleteOldEditorSessions(ctx, createdBefore, cleanupBatchSize)
 	})
 }
 

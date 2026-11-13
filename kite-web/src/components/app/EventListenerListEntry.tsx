@@ -50,15 +50,11 @@ import {
   schedulePresets,
 } from "@/lib/flow/eventTypes";
 import { describeSchedule } from "@/lib/flow/schedule";
-import EditorUsageSummary from "./EditorUsageSummary";
-import type { EditorUsageItem } from "@/lib/types/editorUsage";
 
 export default function EventListenerListEntry({
   listener,
-  editorUsage,
 }: {
   listener: EventListener;
-  editorUsage?: EditorUsageItem | null;
 }) {
   const router = useRouter();
 
@@ -161,7 +157,6 @@ export default function EventListenerListEntry({
         </CardTitle>
         <CardDescription className="text-sm">
           {!isWebhook && listener.description}
-          <EditorUsageSummary usage={editorUsage} />
           {isSchedule && listener.last_run_at && (
             <span className="block">
               Last run {formatDateTime(new Date(listener.last_run_at))}

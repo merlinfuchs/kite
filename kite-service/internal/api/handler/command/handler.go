@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/editorusage"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -15,17 +16,20 @@ import (
 )
 
 type CommandHandler struct {
-	commandStore   store.CommandStore
-	commandManager *command.CommandManager
+	commandStore       store.CommandStore
+	editorSessionStore store.EditorSessionStore
+	commandManager     *command.CommandManager
 }
 
 func NewCommandHandler(
 	commandStore store.CommandStore,
+	editorSessionStore store.EditorSessionStore,
 	commandManager *command.CommandManager,
 ) *CommandHandler {
 	return &CommandHandler{
-		commandStore:   commandStore,
-		commandManager: commandManager,
+		commandStore:       commandStore,
+		editorSessionStore: editorSessionStore,
+		commandManager:     commandManager,
 	}
 }
 
@@ -193,6 +197,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
 
+	editorusage.RecordSave(c, h.editorSessionStore, editorusage.CommandSession(c, req.EditorSession))
 	return wire.CommandToWire(command), nil
 }
 

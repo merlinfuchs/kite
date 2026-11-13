@@ -222,6 +222,19 @@ type Command struct {
 	UpdatedAt       pgtype.Timestamp
 }
 
+type EditorSession struct {
+	ID              string
+	AppID           string
+	UserID          string
+	CommandID       pgtype.Text
+	EventListenerID pgtype.Text
+	ActiveSeconds   int32
+	SaveCount       int32
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	LastSavedAt     pgtype.Timestamp
+}
+
 type Entitlement struct {
 	ID             string
 	Type           string

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/editorusage"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -17,15 +18,17 @@ import (
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
+	editorSessionStore store.EditorSessionStore
 	webhookRunner      WebhookRunner
 	webhookLimiter     *webhookLimiter
 	// How long a webhook request waits for its flow to respond.
 	webhookResponseTimeout time.Duration
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, editorSessionStore store.EditorSessionStore, webhookRunner WebhookRunner) *EventListenerHandler {
 	return &EventListenerHandler{
 		eventListenerStore:     eventListenerStore,
+		editorSessionStore:     editorSessionStore,
 		webhookRunner:          webhookRunner,
 		webhookLimiter:         newWebhookLimiter(),
 		webhookResponseTimeout: webhook.ResponseTimeout,
@@ -173,6 +176,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
 
+	editorusage.RecordSave(c, h.editorSessionStore, editorusage.EventListenerSession(c, req.EditorSession))
 	return wire.EventListenerToWire(eventListener), nil
 }
 
