@@ -11,7 +11,8 @@ import (
 type UserBadgeKind string
 
 const (
-	// UserBadgeStaff is for the Kite team, the admins in the config.
+	// UserBadgeStaff is for the Kite team, including the staff of the Discord
+	// server. Admins give it by hand.
 	UserBadgeStaff UserBadgeKind = "staff"
 	// UserBadgeContributor is for people who helped build Kite. Admins give it
 	// by hand.
@@ -30,7 +31,7 @@ const (
 )
 
 // GrantableUserBadges are the badges admins give by hand.
-var GrantableUserBadges = []UserBadgeKind{UserBadgeContributor}
+var GrantableUserBadges = []UserBadgeKind{UserBadgeStaff, UserBadgeContributor}
 
 type UserBadge struct {
 	Kind UserBadgeKind

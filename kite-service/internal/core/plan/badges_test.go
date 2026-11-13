@@ -17,8 +17,11 @@ func TestUserBadges(t *testing.T) {
 	titles := map[string]string{"premium": "Premium", "plus": "Plus"}
 
 	got := userBadges(
-		[]string{"dev"},
-		[]*model.UserBadgeGrant{{UserID: "dev", Kind: model.UserBadgeContributor}},
+		[]*model.UserBadgeGrant{
+			{UserID: "dev", Kind: model.UserBadgeContributor},
+			{UserID: "dev", Kind: model.UserBadgeStaff},
+			{UserID: "mod", Kind: model.UserBadgeStaff},
+		},
 		[]*model.Subscription{
 			// Newest first, like the store returns them.
 			sub("fan", "plus", model.SubscriptionStatusActive, after),
@@ -46,6 +49,7 @@ func TestUserBadges(t *testing.T) {
 			{Kind: model.UserBadgeEarlySupporter},
 			{Kind: model.UserBadgeSubscriber, Plan: "Plus"},
 		},
+		"mod":  {{Kind: model.UserBadgeStaff}},
 		"gone": {{Kind: model.UserBadgeEarlySupporter}},
 		"new":  {{Kind: model.UserBadgeSubscriber, Plan: "Premium"}},
 		"big":  {{Kind: model.UserBadgeCreator, Milestone: 1000}},
