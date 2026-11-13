@@ -25,7 +25,7 @@ The key only works for your server, so Kite looks members up in the server the c
 Changing roles needs an Open Cloud API key from Roblox. You don't give Kite your password or cookie.
 
 1. Pick the account the key belongs to. It has to be able to change members' roles in the group, and Roblox only lets it give roles below its own highest role. An account with a staff role instead of the owner's limits what the key can do.
-2. Log in with that account on [Roblox's Creator Hub](https://create.roblox.com/dashboard/credentials) and create an API key under _Credentials_. Create it on the account, not on the group's page. Keys owned by a group can't use the Groups API. If Roblox shows "Group API Keys do not support all Open Cloud APIs", you're on the group's page.
+2. Log in with that account and open [API keys](https://create.roblox.com/dashboard/credentials?activeTab=ApiKeysTab) on Roblox's Creator Hub. Create the key there, on the account, not on the group's page. Keys owned by a group can't use the Groups API. If Roblox shows "Group API Keys do not support all Open Cloud APIs", you're on the group's page.
 3. Under _Access Permissions_, select the _groups_ API system and add the _group:read_ and _group:write_ operations.
 4. Don't restrict the key to IP addresses. If Roblox asks for accepted IP addresses, add `0.0.0.0/0`, so Kite can use the key.
 5. In Kite, go to `Integrations`, click on `Enable` next to Roblox Open Cloud and paste the key.
