@@ -282,13 +282,6 @@ func (r AppCollaboratorRole) CanManageSettings() bool {
 	return r == AppCollaboratorRoleOwner || r == AppCollaboratorRoleAdmin
 }
 
-// CanManageCollaborators is whether the role can invite and remove
-// collaborators at all. Which ones it can is up to CanInviteRole and
-// CanRemoveRole.
-func (r AppCollaboratorRole) CanManageCollaborators() bool {
-	return r == AppCollaboratorRoleOwner || r == AppCollaboratorRoleAdmin
-}
-
 // CanInviteRole is whether the role can invite collaborators with the given
 // role. Only the owner picks admins, admins can only invite developers.
 func (r AppCollaboratorRole) CanInviteRole(role AppCollaboratorRole) bool {
@@ -312,11 +305,6 @@ func (r AppCollaboratorRole) CanChangeRoles() bool {
 	return r == AppCollaboratorRoleOwner
 }
 
-// CanViewAuditLog is whether the role can see what collaborators did.
-func (r AppCollaboratorRole) CanViewAuditLog() bool {
-	return r.CanManageSettings()
-}
-
 type AppCollaborator struct {
 	AppID     string
 	UserID    string
@@ -338,7 +326,8 @@ type AppCollaboratorInvite struct {
 	CreatedAt       time.Time
 	ExpiresAt       time.Time
 
-	// Set when listing the invites of a user.
+	// Set when listing the invites of a user, only with the app's ID, name,
+	// description and Discord ID.
 	App       *App
 	InvitedBy *User
 }

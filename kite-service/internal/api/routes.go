@@ -252,15 +252,15 @@ func (s *APIServer) RegisterRoutes(
 	)
 	appGroup.AllowAPIToken().Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
-	appGroup.Post("/collaborators",
+	appSettingsGroup.Post("/collaborators",
 		handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
 	appGroup.Patch("/collaborators/{userID}", handler.TypedWithBody(appHandler.HandleAppCollaboratorUpdate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
 	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
-	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
-	appGroup.Get("/audit-log", handler.Typed(appHandler.HandleAppAuditLogList))
+	appSettingsGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
+	appSettingsGroup.Get("/audit-log", handler.Typed(appHandler.HandleAppAuditLogList))
 
 	// Invites of the current user to other apps.
 	userInvitesGroup := usersGroup.Group("/@me/invites")

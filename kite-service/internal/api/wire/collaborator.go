@@ -28,11 +28,17 @@ type AppCollaboratorListResponse = []*AppCollaborator
 type AppCollaboratorInvite struct {
 	DiscordUsername string `json:"discord_username"`
 	// UserID is set when the invited user already uses Kite.
-	UserID          null.String `json:"user_id"`
-	Role            string      `json:"role"`
-	InvitedByUserID null.String `json:"invited_by_user_id"`
-	CreatedAt       time.Time   `json:"created_at"`
-	ExpiresAt       time.Time   `json:"expires_at"`
+	UserID    null.String `json:"user_id"`
+	Role      string      `json:"role"`
+	CreatedAt time.Time   `json:"created_at"`
+	ExpiresAt time.Time   `json:"expires_at"`
+}
+
+// invitableCollaboratorRoles are the roles collaborators can have, the app
+// has one owner.
+var invitableCollaboratorRoles = []any{
+	string(model.AppCollaboratorRoleAdmin),
+	string(model.AppCollaboratorRoleDeveloper),
 }
 
 type AppCollaboratorCreateRequest struct {
@@ -53,10 +59,7 @@ func (req AppCollaboratorCreateRequest) Validate() error {
 				return errors.New("must be a Discord username or user ID")
 			}),
 		),
-		validation.Field(&req.Role, validation.Required, validation.In(
-			string(model.AppCollaboratorRoleAdmin),
-			string(model.AppCollaboratorRoleDeveloper),
-		)),
+		validation.Field(&req.Role, validation.Required, validation.In(invitableCollaboratorRoles...)),
 	)
 }
 
@@ -72,10 +75,7 @@ type AppCollaboratorUpdateRequest struct {
 
 func (req AppCollaboratorUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Role, validation.Required, validation.In(
-			string(model.AppCollaboratorRoleAdmin),
-			string(model.AppCollaboratorRoleDeveloper),
-		)),
+		validation.Field(&req.Role, validation.Required, validation.In(invitableCollaboratorRoles...)),
 	)
 }
 
@@ -116,7 +116,6 @@ func CollaboratorInviteToWire(invite *model.AppCollaboratorInvite) *AppCollabora
 		DiscordUsername: invite.DiscordUsername,
 		UserID:          invite.UserID,
 		Role:            string(invite.Role),
-		InvitedByUserID: invite.InvitedByUserID,
 		CreatedAt:       invite.CreatedAt,
 		ExpiresAt:       invite.ExpiresAt,
 	}

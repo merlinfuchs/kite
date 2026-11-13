@@ -28,7 +28,6 @@ func TestCollaboratorRolePermissions(t *testing.T) {
 		{"developer can't remove", developer.CanRemoveRole(developer), false},
 
 		{"only the owner changes roles", admin.CanChangeRoles(), false},
-		{"developer can't see the audit log", developer.CanViewAuditLog(), false},
 		{"only the owner deletes the app", admin.CanDeleteApp(), false},
 	}
 

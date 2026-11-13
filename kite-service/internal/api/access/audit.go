@@ -166,9 +166,6 @@ func auditEntry(c *handler.Context, route auditRoute) *model.AppAuditLogEntry {
 		entry.TargetName = c.Variable.Name
 	case c.PluginInstance != nil:
 		entry.TargetName = c.PluginInstance.PluginID
-	case route.TargetType == "app":
-		entry.TargetID = c.App.ID
-		entry.TargetName = c.App.Name
 	}
 
 	// The response has the new item, like the one that was created.
@@ -193,9 +190,6 @@ func auditEntry(c *handler.Context, route auditRoute) *model.AppAuditLogEntry {
 	}
 
 	if target := c.AuditTarget(); target != nil {
-		if target.Type != "" {
-			entry.TargetType = target.Type
-		}
 		if target.ID != "" {
 			entry.TargetID = target.ID
 		}
@@ -207,9 +201,8 @@ func auditEntry(c *handler.Context, route auditRoute) *model.AppAuditLogEntry {
 		}
 	}
 
-	// These are clear without a name: the app is the one of the log, and
-	// who left is who did it.
-	if (entry.TargetType == "app" && entry.Action != "app.update") || entry.Action == "collaborator.leave" {
+	// The app is the one of the log, its name only matters when it changed.
+	if entry.TargetType == "app" && entry.Action != "app.update" {
 		entry.TargetName = ""
 	}
 
@@ -265,15 +258,4 @@ func readAuditResponse(resp any) (auditResponse, bool) {
 		res.Enabled = &enabled
 	}
 	return res, true
-}
-
-// RequireSettingsAccess only lets roles through that can change the app's
-// settings, not developers. It goes after AppAccess.
-func (m *AccessManager) RequireSettingsAccess(next handler.HandlerFunc) handler.HandlerFunc {
-	return func(c *handler.Context) error {
-		if !c.UserAppRole.CanManageSettings() {
-			return handler.ErrForbidden("missing_permissions", "Only admins and the owner of the app can do this")
-		}
-		return next(c)
-	}
 }

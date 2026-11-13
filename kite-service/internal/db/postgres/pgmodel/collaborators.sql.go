@@ -272,7 +272,10 @@ func (q *Queries) GetCollaboratorInvitesByApp(ctx context.Context, arg GetCollab
 }
 
 const getCollaboratorInvitesByUser = `-- name: GetCollaboratorInvitesByUser :many
-SELECT collaborator_invites.app_id, collaborator_invites.discord_username, collaborator_invites.role, collaborator_invites.created_at, collaborator_invites.expires_at, collaborator_invites.user_id, collaborator_invites.invited_by_user_id, apps.id, apps.name, apps.description, apps.enabled, apps.owner_user_id, apps.creator_user_id, apps.discord_token, apps.discord_id, apps.created_at, apps.updated_at, apps.discord_status, apps.disabled_reason, apps.commands_deploy_at, apps.commands_deployed_hash, apps.commands_deploy_error, apps.discord_guild_count, apps.discord_user_install_count, apps.discord_counts_updated_at, apps.discord_verify_key, apps.credits_paused_at, apps.credit_notices_enabled,
+SELECT collaborator_invites.app_id, collaborator_invites.discord_username, collaborator_invites.role, collaborator_invites.created_at, collaborator_invites.expires_at, collaborator_invites.user_id, collaborator_invites.invited_by_user_id,
+    apps.name AS app_name,
+    apps.description AS app_description,
+    apps.discord_id AS app_discord_id,
     inviter.display_name AS inviter_display_name,
     inviter.discord_username AS inviter_discord_username,
     inviter.discord_id AS inviter_discord_id,
@@ -294,7 +297,9 @@ type GetCollaboratorInvitesByUserParams struct {
 
 type GetCollaboratorInvitesByUserRow struct {
 	CollaboratorInvite     CollaboratorInvite
-	App                    App
+	AppName                string
+	AppDescription         pgtype.Text
+	AppDiscordID           string
 	InviterDisplayName     pgtype.Text
 	InviterDiscordUsername pgtype.Text
 	InviterDiscordID       pgtype.Text
@@ -320,27 +325,9 @@ func (q *Queries) GetCollaboratorInvitesByUser(ctx context.Context, arg GetColla
 			&i.CollaboratorInvite.ExpiresAt,
 			&i.CollaboratorInvite.UserID,
 			&i.CollaboratorInvite.InvitedByUserID,
-			&i.App.ID,
-			&i.App.Name,
-			&i.App.Description,
-			&i.App.Enabled,
-			&i.App.OwnerUserID,
-			&i.App.CreatorUserID,
-			&i.App.DiscordToken,
-			&i.App.DiscordID,
-			&i.App.CreatedAt,
-			&i.App.UpdatedAt,
-			&i.App.DiscordStatus,
-			&i.App.DisabledReason,
-			&i.App.CommandsDeployAt,
-			&i.App.CommandsDeployedHash,
-			&i.App.CommandsDeployError,
-			&i.App.DiscordGuildCount,
-			&i.App.DiscordUserInstallCount,
-			&i.App.DiscordCountsUpdatedAt,
-			&i.App.DiscordVerifyKey,
-			&i.App.CreditsPausedAt,
-			&i.App.CreditNoticesEnabled,
+			&i.AppName,
+			&i.AppDescription,
+			&i.AppDiscordID,
 			&i.InviterDisplayName,
 			&i.InviterDiscordUsername,
 			&i.InviterDiscordID,

@@ -48,6 +48,17 @@ func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc 
 	}
 }
 
+// RequireSettingsAccess only lets roles through that can change the app's
+// settings, not developers. It goes after AppAccess.
+func (m *AccessManager) RequireSettingsAccess(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		if !c.UserAppRole.CanManageSettings() {
+			return handler.ErrForbidden("missing_permissions", "Only admins and the owner of the app can do this")
+		}
+		return next(c)
+	}
+}
+
 func (m *AccessManager) CommandAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
 		commanID := c.Param("commandID")

@@ -984,7 +984,6 @@ export interface AppCollaboratorInvite {
    */
   user_id: null | string;
   role: string;
-  invited_by_user_id: null | string;
   created_at: string /* RFC3339 */;
   expires_at: string /* RFC3339 */;
 }

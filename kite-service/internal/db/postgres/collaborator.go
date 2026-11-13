@@ -170,11 +170,12 @@ func (c *Client) CollaboratorInvitesByUser(ctx context.Context, userID string, d
 	invites := make([]*model.AppCollaboratorInvite, len(rows))
 	for i, row := range rows {
 		invite := rowToCollaboratorInvite(row.CollaboratorInvite)
-		app, err := rowToApp(row.App)
-		if err != nil {
-			return nil, err
+		invite.App = &model.App{
+			ID:          row.CollaboratorInvite.AppID,
+			Name:        row.AppName,
+			Description: null.NewString(row.AppDescription.String, row.AppDescription.Valid),
+			DiscordID:   row.AppDiscordID,
 		}
-		invite.App = app
 		if row.CollaboratorInvite.InvitedByUserID.Valid && row.InviterDisplayName.Valid {
 			invite.InvitedBy = &model.User{
 				ID:              row.CollaboratorInvite.InvitedByUserID.String,

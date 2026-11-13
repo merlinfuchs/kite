@@ -44,7 +44,6 @@ type Context struct {
 
 // AuditTarget is what an audit log entry is about, like a command.
 type AuditTarget struct {
-	Type string
 	ID   string
 	Name string
 	// Action replaces the action of the route when set, like for a

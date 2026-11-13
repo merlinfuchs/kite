@@ -59,7 +59,10 @@ WHERE app_id = $1 AND discord_username = $2;
 -- Invites of users that already used Kite are matched by their ID, the others
 -- by the Discord username they were invited with.
 -- name: GetCollaboratorInvitesByUser :many
-SELECT sqlc.embed(collaborator_invites), sqlc.embed(apps),
+SELECT sqlc.embed(collaborator_invites),
+    apps.name AS app_name,
+    apps.description AS app_description,
+    apps.discord_id AS app_discord_id,
     inviter.display_name AS inviter_display_name,
     inviter.discord_username AS inviter_discord_username,
     inviter.discord_id AS inviter_discord_id,

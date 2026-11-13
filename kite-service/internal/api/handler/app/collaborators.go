@@ -47,10 +47,6 @@ const collaboratorInviteTTL = 7 * 24 * time.Hour
 // collaborator once they accept the invite, which they see in their account
 // menu.
 func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.AppCollaboratorCreateRequest) (*wire.AppCollaboratorCreateResponse, error) {
-	if !c.UserAppRole.CanManageCollaborators() {
-		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to invite collaborators to this app")
-	}
-
 	role := model.AppCollaboratorRole(req.Role)
 	if !c.UserAppRole.CanInviteRole(role) {
 		return nil, handler.ErrForbidden("missing_permissions", "Only the owner of the app can invite admins")
@@ -197,11 +193,12 @@ func (h *AppHandler) HandleAppCollaboratorDelete(c *handler.Context) (*wire.AppC
 		return nil, err
 	}
 
-	target := handler.AuditTarget{Name: collaboratorAuditName(collaborator.User)}
 	if leaving {
-		target.Action = "collaborator.leave"
+		// Who left is who did it, so it needs no name.
+		c.SetAuditTarget(handler.AuditTarget{Action: "collaborator.leave"})
+	} else {
+		c.SetAuditTarget(handler.AuditTarget{Name: collaboratorAuditName(collaborator.User)})
 	}
-	c.SetAuditTarget(target)
 
 	return &wire.AppCollaboratorDeleteResponse{}, nil
 }
@@ -221,10 +218,6 @@ func (h *AppHandler) HandleAppCollaboratorInviteList(c *handler.Context) (*wire.
 }
 
 func (h *AppHandler) HandleAppCollaboratorInviteDelete(c *handler.Context) (*wire.AppCollaboratorInviteDeleteResponse, error) {
-	if !c.UserAppRole.CanManageCollaborators() {
-		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to revoke invites of this app")
-	}
-
 	discordUsername := c.Param("discordUsername")
 	invite, err := h.appStore.CollaboratorInvite(c.Context(), c.App.ID, discordUsername)
 	if err != nil {
@@ -254,10 +247,6 @@ const (
 )
 
 func (h *AppHandler) HandleAppAuditLogList(c *handler.Context) (*wire.AppAuditLogListResponse, error) {
-	if !c.UserAppRole.CanViewAuditLog() {
-		return nil, handler.ErrForbidden("missing_permissions", "Only admins and the owner of the app can see its audit log")
-	}
-
 	var beforeID int64
 	if before := c.Query("before"); before != "" {
 		id, err := strconv.ParseInt(before, 10, 64)
