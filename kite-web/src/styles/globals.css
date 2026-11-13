@@ -88,11 +88,15 @@
   }
 }
 
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+[data-vaul-drawer]::-webkit-scrollbar,
+[data-vaul-drawer] *::-webkit-scrollbar {
   display: none;
 }
 
-.no-scrollbar {
+.no-scrollbar,
+[data-vaul-drawer],
+[data-vaul-drawer] * {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

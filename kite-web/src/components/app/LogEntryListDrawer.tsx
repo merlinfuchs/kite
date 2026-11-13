@@ -93,7 +93,7 @@ function LogList({
   }
 
   return (
-    <div className="min-h-0 overflow-y-auto px-3 pb-3">
+    <div className="min-h-0 overflow-y-auto no-scrollbar px-3 pb-3">
       <div className="flex flex-col gap-2">
         {data?.map((entry) => (
           <div

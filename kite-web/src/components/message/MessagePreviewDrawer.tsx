@@ -20,7 +20,7 @@ export default function MessagePreviewDrawer() {
         </Button>
       </DrawerTrigger>
       <DrawerContent>
-        <div className="max-h-[80dvh] overflow-x-hidden overflow-y-auto mt-3">
+        <div className="max-h-[80dvh] overflow-x-hidden overflow-y-auto no-scrollbar mt-3">
           <MessageEditorPreview reducePadding />
         </div>
       </DrawerContent>

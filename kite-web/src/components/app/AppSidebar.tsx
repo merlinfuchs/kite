@@ -171,7 +171,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <Separator className="my-1 bg-sidebar-border" />
 
-          <div className="flex-1 overflow-y-auto px-2 space-y-2 pb-2 pt-1">
+          <div className="flex-1 overflow-y-auto no-scrollbar px-2 space-y-2 pb-2 pt-1">
             <AppSidebarMainNav />
             <AppSidebarStudioNav />
             <AppSidebarExternalNav />
