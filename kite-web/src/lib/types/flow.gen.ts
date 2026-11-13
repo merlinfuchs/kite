@@ -8,11 +8,44 @@ type StringIndexable = Record<string, unknown>;
 export interface FlowData {
   nodes: FlowNode[];
   edges: FlowEdge[];
+  /**
+   * Parameters are the values blocks use as {{params.<key>}}, which are set
+   * next to the flow instead of in each block.
+   */
+  parameters?: FlowParameter[];
+}
+export type FlowParameterType = string;
+export const FlowParameterTypeText: FlowParameterType = "text";
+export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
+export const FlowParameterTypeChannel: FlowParameterType = "channel";
+export const FlowParameterTypeRole: FlowParameterType = "role";
+/**
+ * Yes or no, picked from a menu. The value is true or false.
+ */
+export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
+/**
+ * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+ */
+export interface FlowParameter {
+  key: string;
+  label?: string;
+  description?: string;
+  type: FlowParameterType;
+  required?: boolean;
+  /**
+   * Value is the ID of the channel or role for those types.
+   */
+  value: string;
 }
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+/**
+ * Notes are text the editor puts on the canvas. They aren't blocks:
+ * nothing connects to them, so they never run.
+ */
+export const FlowNodeTypeNote: FlowNodeType = "note";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -22,6 +55,7 @@ export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_c
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -31,6 +65,7 @@ export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
+export const FlowNodeTypeActionMessageForward: FlowNodeType = "action_message_forward";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -52,19 +87,30 @@ export const FlowNodeTypeActionRoleGet: FlowNodeType = "action_role_get";
 export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
+export const FlowNodeTypeActionBloxlinkUserGet: FlowNodeType = "action_bloxlink_user_get";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
+export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
+export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
+export const FlowNodeTypeActionJavaScriptRun: FlowNodeType = "action_javascript_run";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
+export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
+export const FlowNodeTypeActionVariableList: FlowNodeType = "action_variable_list";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
+export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
+export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
+export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -74,13 +120,25 @@ export const FlowNodeTypeControlConditionItemChannel: FlowNodeType = "control_co
 export const FlowNodeTypeControlConditionRole: FlowNodeType = "control_condition_role";
 export const FlowNodeTypeControlConditionItemRole: FlowNodeType = "control_condition_item_role";
 export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlIf: FlowNodeType = "control_if";
 export const FlowNodeTypeControlErrorHandler: FlowNodeType = "control_error_handler";
 export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlFlowEnd: FlowNodeType = "control_flow_end";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
+export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";
+export const FlowNodeTypeControlConditionItemAIChoice: FlowNodeType = "control_condition_item_ai_choice";
+export const FlowNodeTypeControlAICheck: FlowNodeType = "control_ai_check";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
+/**
+ * Roblox group blocks
+ */
+export const FlowNodeTypeActionRobloxGroupMemberGet: FlowNodeType = "action_roblox_group_member_get";
+export const FlowNodeTypeActionRobloxGroupMemberRoleEdit: FlowNodeType = "action_roblox_group_member_role_edit";
+export const FlowNodeTypeActionRobloxGroupJoinRequestRespond: FlowNodeType = "action_roblox_group_join_request_respond";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
  * schedule instead of reacting to Discord events.
@@ -96,6 +154,11 @@ export interface FlowNode {
   type?: FlowNodeType;
   data: FlowNodeData & StringIndexable;
   position: FlowNodePosition;
+  /**
+   * Only notes have a size, other nodes are as large as their content.
+   */
+  width?: number /* float64 */;
+  height?: number /* float64 */;
 }
 export interface FlowNodeData {
   /**
@@ -148,9 +211,15 @@ export interface FlowNodeData {
    * Message & Response Create, Edit, Delete
    */
   message_target?: string;
+  reply_target?: string;
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  /**
+   * Persona Message Create
+   */
+  persona_name?: string;
+  persona_avatar_url?: string;
   /**
    * Message Reaction Create, Delete
    */
@@ -159,6 +228,10 @@ export interface FlowNodeData {
    * Poll Create
    */
   poll_data?: PollData;
+  /**
+   * Message Forward
+   */
+  forward_channel_target?: string;
   /**
    * Modal
    */
@@ -181,19 +254,35 @@ export interface FlowNodeData {
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
   /**
+   * Voice Audio Play
+   */
+  audio_asset_id?: string;
+  audio_leave_after?: boolean;
+  /**
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Server Profile Edit
+   */
+  server_profile_data?: ServerProfileData;
   /**
    * Role Create, Edit, Delete, Get
    */
   role_target?: string;
   role_data?: RoleData;
   /**
-   * Roblox User Get
+   * Roblox User Get, and the user of the Roblox group blocks
    */
   roblox_user_target?: string;
   roblox_lookup_mode?: RobloxLookupType;
+  /**
+   * Roblox Group Member Get, Role Edit, Join Request Respond
+   */
+  roblox_group_id?: string;
+  roblox_group_role?: string;
+  roblox_group_role_mode?: RobloxGroupRoleMode;
+  roblox_join_request_action?: RobloxJoinRequestAction;
   /**
    * Variable Set, Delete
    */
@@ -201,6 +290,13 @@ export interface FlowNodeData {
   variable_scope?: string;
   variable_value?: string;
   variable_operation?: any /* provider.VariableOperation */;
+  /**
+   * Variable List
+   */
+  variable_sort?: any /* provider.VariableListSort */;
+  variable_scope_prefix?: string;
+  variable_limit?: string;
+  variable_skip?: string;
   /**
    * HTTP Request
    */
@@ -210,14 +306,51 @@ export interface FlowNodeData {
    */
   discord_api_request_data?: DiscordAPIRequestData;
   /**
+   * Webhook Verify
+   */
+  webhook_verify_preset?: string;
+  webhook_verify_key?: string;
+  webhook_verify_algorithm?: string;
+  webhook_verify_message?: string;
+  webhook_verify_signature?: string;
+  webhook_verify_signature_encoding?: string;
+  /**
+   * Webhook Response Create
+   */
+  webhook_response_status?: string;
+  webhook_response_content_type?: string;
+  webhook_response_body?: string;
+  /**
    * AI Chat Completion
    */
   ai_chat_completion_data?: AIChatCompletionData;
   /**
+   * AI Choice, Check, Score
+   */
+  ai_decision_data?: AIDecisionData;
+  /**
+   * AI Choice option
+   */
+  ai_choice_name?: string;
+  ai_choice_description?: string;
+  /**
+   * AI Translate
+   */
+  ai_translate_data?: AITranslateData;
+  /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
+  /**
+   * Items of the item and items modes, one per line, or a list placeholder.
+   */
+  random_items?: string;
+  /**
+   * How many different items the items mode picks.
+   */
+  random_count?: string;
   /**
    * Event Entry
    */
@@ -229,6 +362,7 @@ export interface FlowNodeData {
   event_filter_target?: EventFilterTarget;
   event_filter_mode?: ComparsionMode;
   event_filter_value?: string;
+  event_filter_ignore_case?: boolean;
   /**
    * Log
    */
@@ -239,12 +373,25 @@ export interface FlowNodeData {
    */
   expression?: string;
   /**
+   * Run JavaScript
+   */
+  javascript_data?: JavaScriptData;
+  /**
+   * Value Lookup
+   */
+  lookup_value?: string;
+  lookup_mode?: ComparsionMode;
+  lookup_ignore_case?: boolean;
+  lookup_rows?: LookupRow[];
+  lookup_default?: string;
+  /**
    * Condition
    */
   condition_base_value?: string;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
+  condition_item_ignore_case?: boolean;
   /**
    * Loop
    */
@@ -268,6 +415,13 @@ export const ComparsionModeLessThanOrEqual: ComparsionMode = "less_than_or_equal
 export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
+/**
+ * Lists of values, separated by commas in event filters and by lines in
+ * compare conditions
+ */
+export const ComparsionModeOneOf: ComparsionMode = "one_of";
+export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+export const ComparsionModeContainsAny: ComparsionMode = "contains_any";
 /**
  * User condition
  */
@@ -298,9 +452,48 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
+export const EventFilterTypeRoleID: EventFilterTarget = "role_id";
+export const EventFilterTypeEmoji: EventFilterTarget = "emoji";
+export const EventFilterTypeMessageHasAttachment: EventFilterTarget = "message_has_attachment";
+export const EventFilterTypeMessageMentionsBot: EventFilterTarget = "message_mentions_bot";
+export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
+/**
+ * The action of an audit log entry, see auditlog.Action.
+ */
+export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export const EventFilterTypeVoiceStateAction: EventFilterTarget = "voice_state_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
+/**
+ * Several different items, see randomItems.
+ */
+export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+export type RobloxGroupRoleMode = string;
+/**
+ * The member has only this role afterwards.
+ */
+export const RobloxGroupRoleModeSet: RobloxGroupRoleMode = "set";
+export const RobloxGroupRoleModeAdd: RobloxGroupRoleMode = "add";
+export const RobloxGroupRoleModeRemove: RobloxGroupRoleMode = "remove";
+export type RobloxJoinRequestAction = string;
+export const RobloxJoinRequestActionAccept: RobloxJoinRequestAction = "accept";
+export const RobloxJoinRequestActionDecline: RobloxJoinRequestAction = "decline";
+/**
+ * LookupRow is a row of a lookup block's table, mapping a key to the value
+ * the block returns when the key matches.
+ */
+export interface LookupRow {
+  key: string;
+  value: string;
+}
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
@@ -309,7 +502,39 @@ export interface StatusData {
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
+  activity_state?: string;
   activity_url?: string;
+}
+/**
+ * ServerProfileData is the bot's profile in one server. A field that isn't set
+ * stays as it is, and one that's empty resets to the bot's own profile.
+ */
+export interface ServerProfileData {
+  nick?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  bio?: string;
+  /**
+   * NameStyle changes the style of the bot's name, the bot's own has none.
+   */
+  name_style?: NameStyleData;
+  /**
+   * Reset resets the whole profile to the bot's own, the other fields are
+   * ignored then.
+   */
+  reset?: boolean;
+}
+export interface NameStyleData {
+  /**
+   * Font and Effect are keys of provider.NameStyleFonts and
+   * provider.NameStyleEffects.
+   */
+  font: string;
+  effect: string;
+  /**
+   * Colors are hex colors like #5865F2 or numbers, with placeholders.
+   */
+  colors: string[];
 }
 export interface ChannelData {
   name?: string;
@@ -320,11 +545,22 @@ export interface ChannelData {
   bitrate?: string;
   user_limit?: string;
   position?: string;
+  rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
-   * Thread specific
+   * Thread specific, nil for Discord's default, which is invitable
    */
   invitable?: boolean;
+  /**
+   * Thread specific, for editing a thread, nil leaves them as they are
+   */
+  archived?: boolean;
+  locked?: boolean;
+  /**
+   * Forum post specific, names or IDs of the forum's tags separated by
+   * commas
+   */
+  applied_tags?: string;
 }
 export interface PermissionOverwriteData {
   id?: string;
@@ -387,7 +623,7 @@ export interface ModalComponentData {
   max_length?: number /* int */;
   /**
    * MinValues and MaxValues limit how many options can be picked in a
-   * select menu or checkbox group.
+   * select menu or checkbox group, or how many files can be uploaded.
    */
   min_values?: number /* int */;
   max_values?: number /* int */;
@@ -407,6 +643,11 @@ export interface ModalComponentOptionData {
   value?: string;
   description?: string;
   default?: boolean;
+  /**
+   * Emoji is shown next to the label. Only the options of select menus
+   * can have one.
+   */
+  emoji?: EmojiData;
 }
 export const ModalComponentTypeLabel = "label";
 export const ModalComponentTypeTextDisplay = "text_display";
@@ -419,6 +660,7 @@ export const ModalComponentTypeChannelSelect = "channel_select";
 export const ModalComponentTypeRadioGroup = "radio_group";
 export const ModalComponentTypeCheckboxGroup = "checkbox_group";
 export const ModalComponentTypeCheckbox = "checkbox";
+export const ModalComponentTypeFileUpload = "file_upload";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -445,6 +687,69 @@ export interface AIChatCompletionData {
   prompt?: string;
   max_completion_tokens?: string;
 }
+export interface AIDecisionData {
+  question?: string;
+  /**
+   * What the question is about, like a message.
+   */
+  input?: string;
+  /**
+   * Choice: below this confidence, from 0 to 1, the else branch runs.
+   */
+  min_confidence?: string;
+  /**
+   * Check: the probability of yes from which the yes branch runs, and
+   * below which the no branch runs. In between, the unsure branch runs.
+   * An unset one is the other one, and both default to 0.5.
+   */
+  yes_threshold?: string;
+  no_threshold?: string;
+  /**
+   * Score: the levels, lowest first.
+   */
+  levels?: string[];
+}
+export interface JavaScriptData {
+  /**
+   * The body of a function with the parameter input. Placeholders in it
+   * aren't evaluated, they would let anyone who can put text in them run
+   * code. Values go in through inputs.
+   */
+  code?: string;
+  inputs?: JavaScriptInput[];
+  /**
+   * The stored variables the code can use, by the names it uses for them.
+   */
+  variables?: JavaScriptVariable[];
+}
+/**
+ * MaxJavaScriptVariables is how many stored variables a Run JavaScript block
+ * can use.
+ */
+export const MaxJavaScriptVariables = 10;
+/**
+ * JavaScriptVariable is a stored variable the code uses as name, like
+ * variables.get({name: "xp"}). The name stays the same when the variable is
+ * renamed, or gets another ID when a template is added.
+ */
+export interface JavaScriptVariable {
+  name: string;
+  variable_id?: string;
+}
+export interface JavaScriptInput {
+  /**
+   * Property of input in the code.
+   */
+  name: string;
+  value?: string;
+}
+export interface AITranslateData {
+  text?: string;
+  /**
+   * A code of aiTranslateLanguages, or a placeholder that becomes one.
+   */
+  language?: string;
+}
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";
 export const AIModelLarge = "large";
@@ -462,7 +767,27 @@ export interface FlowEdge {
 }
 
 //////////
+// source: hash.go
+
+
+//////////
+// source: integration_limits.go
+
+
+//////////
 // source: modal.go
+
+
+//////////
+// source: operation_handlers.go
+
+
+//////////
+// source: operation_handlers_variables.go
+
+
+//////////
+// source: operations.go
 
 
 //////////

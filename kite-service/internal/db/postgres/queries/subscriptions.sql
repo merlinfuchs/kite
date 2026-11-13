@@ -4,6 +4,9 @@ SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC;
 -- name: GetSubscriptionsByAppID :many
 SELECT subscriptions.* FROM subscriptions LEFT JOIN entitlements ON subscriptions.id = entitlements.subscription_id WHERE entitlements.app_id = $1 ORDER BY subscriptions.created_at DESC;
 
+-- name: GetSubscriptionsByUserIDs :many
+SELECT * FROM subscriptions WHERE user_id = ANY(@user_ids::text[]) ORDER BY created_at DESC;
+
 -- name: GetAllSubscriptions :many
 SELECT * FROM subscriptions ORDER BY created_at DESC;
 
@@ -45,4 +48,6 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
     lemonsqueezy_order_id = EXCLUDED.lemonsqueezy_order_id,
     lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
     lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id
+-- Webhooks can arrive out of order, an older state must not overwrite a newer one
+WHERE subscriptions.updated_at <= EXCLUDED.updated_at
 RETURNING *;

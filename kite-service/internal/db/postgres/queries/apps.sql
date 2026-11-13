@@ -7,8 +7,8 @@ SELECT * FROM apps WHERE id = $1;
 -- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
--- name: GetAppByDiscordID :one
-SELECT * FROM apps WHERE discord_id = $1;
+-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1;
 
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
@@ -31,10 +31,11 @@ INSERT INTO apps (
     creator_user_id,
     discord_token,
     discord_id,
+    discord_verify_key,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: UpdateApp :one
@@ -48,28 +49,57 @@ UPDATE apps SET
     updated_at = $8
 WHERE id = $1 RETURNING *;
 
--- Moves the app to a different Discord app. Name and description are taken
--- from the new Discord app, and the app is started again like on a token
--- update.
--- name: UpdateAppDiscordApp :one
+-- Moves the app to a different Discord app and starts it, like a new token.
+-- What belonged to the old one is cleared, and its commands are deployed.
+-- name: SwitchAppDiscordApp :one
 UPDATE apps SET
     name = $2,
     description = $3,
     discord_id = $4,
     discord_token = $5,
+    discord_verify_key = $6,
     enabled = TRUE,
     disabled_reason = NULL,
-    updated_at = $6
+    discord_guild_count = NULL,
+    discord_user_install_count = NULL,
+    discord_counts_updated_at = NULL,
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = NULL,
+    commands_deploy_error = NULL,
+    updated_at = $7
 WHERE id = $1 RETURNING *;
 
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write
 -- that bumps updated_at, which several polls use as their cursor.
--- name: DisableApp :exec
+-- name: DisableApp :execrows
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
     updated_at = $3
 WHERE id = $1 AND enabled;
+
+-- Stops the apps of a user Kite banned. Apps stopped for other reasons are
+-- left alone, so unbanning doesn't start them.
+-- name: DisableAppsOfOwner :exec
+UPDATE apps SET
+    enabled = FALSE,
+    disabled_reason = @disabled_reason,
+    updated_at = @updated_at
+WHERE owner_user_id = @owner_user_id AND enabled;
+
+-- Starts the apps of the user that are still stopped for the reason, so it
+-- can't undo the user stopping them. A failed commands deploy is tried again,
+-- like when the user starts the app.
+-- name: EnableAppsOfOwnerDisabledWithReason :exec
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE owner_user_id = @owner_user_id AND NOT enabled AND disabled_reason = @disabled_reason;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
@@ -83,6 +113,32 @@ SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1;
 -- name: GetDisabledAppIDsUpdatedSince :many
 SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
 
+-- Pausing and unpausing are idempotent, and bump updated_at so the gateway
+-- picks them up.
+-- name: PauseAppForCredits :execrows
+UPDATE apps SET credits_paused_at = @paused_at, updated_at = @paused_at
+WHERE id = @id AND credits_paused_at IS NULL;
+
+-- A failed commands deploy is tried again, like when the user starts the app.
+-- name: UnpauseAppForCredits :execrows
+UPDATE apps SET
+    credits_paused_at = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE id = @id AND credits_paused_at IS NOT NULL;
+
+-- name: GetCreditsPausedAppIDs :many
+SELECT id FROM apps WHERE credits_paused_at IS NOT NULL;
+
+-- name: UpdateAppCreditNotices :one
+UPDATE apps SET
+    credit_notices_enabled = @credit_notices_enabled,
+    updated_at = @updated_at
+WHERE id = @id RETURNING *;
+
 -- Apps whose gateway intent requirements may have changed.
 --
 -- Deletes are deliberately not covered: a deleted listener or plugin instance
@@ -90,10 +146,26 @@ SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
 -- intents, so missing it means running with more intents than necessary until
 -- the next reconnect -- wasteful, but never dropping events. Additions and
 -- updates, which widen the requirements, are caught reliably.
+--
+-- Flows that play audio need the voice states intent. Only commands, listeners
+-- and sent messages whose flows have the block are reported, so editing other
+-- flows doesn't recompute intents.
+--
+-- Commands are filtered on enabled so the partial commands_enabled_updated_at
+-- index applies. Disabling a command that plays audio isn't noticed, which is
+-- fine for the same reason as removals.
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
+SELECT el.app_id FROM event_listeners el
+WHERE el.updated_at > $1
+    AND (el.source = 'discord' OR el.flow_source::text LIKE '%"action_voice_audio_play"%')
 UNION
-SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1;
+SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
+UNION
+SELECT c.app_id FROM commands c
+WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+UNION
+SELECT m.app_id FROM message_instances mi JOIN messages m ON m.id = mi.message_id
+WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%';
 
 -- Everything the gateway needs to decide which intents to identify with.
 -- Plugin resources come back as "plugin_id:resource_id" so this stays a single
@@ -102,6 +174,9 @@ SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1;
 -- has_message_instances keeps GUILD_MESSAGES on for apps that rely on
 -- MESSAGE_DELETE to clean up message_instances rows. It can be dropped once
 -- that cleanup no longer depends on the gateway.
+--
+-- uses_voice turns GUILD_VOICE_STATES on for apps with flows that play audio,
+-- which needs the bot's own voice state updates to join voice channels.
 -- name: GetAppGatewayRequirements :one
 SELECT
     coalesce(
@@ -120,7 +195,34 @@ SELECT
         SELECT 1 FROM messages m
         JOIN message_instances mi ON mi.message_id = m.id
         WHERE m.app_id = $1
-    ) AS has_message_instances;
+    ) AS has_message_instances,
+    EXISTS (
+        SELECT 1 FROM commands c
+        WHERE c.app_id = $1 AND c.enabled
+            AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+        UNION ALL
+        SELECT 1 FROM event_listeners el
+        WHERE el.app_id = $1 AND el.enabled
+            AND el.flow_source::text LIKE '%"action_voice_audio_play"%'
+        UNION ALL
+        SELECT 1 FROM messages m
+        JOIN message_instances mi ON mi.message_id = m.id
+        WHERE m.app_id = $1
+            AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
+    ) AS uses_voice;
+
+-- name: HasAppFlows :one
+-- Messages only count once they're posted with flows, otherwise they can't run.
+SELECT EXISTS(
+    SELECT 1 FROM commands WHERE commands.app_id = $1 AND commands.enabled
+    UNION ALL
+    SELECT 1 FROM event_listeners WHERE event_listeners.app_id = $1 AND event_listeners.enabled
+    UNION ALL
+    SELECT 1 FROM messages
+    JOIN message_instances ON message_instances.message_id = messages.id
+    WHERE messages.app_id = $1
+        AND message_instances.flow_sources NOT IN ('{}'::JSONB, 'null'::JSONB)
+);
 
 -- name: GetAppEntities :many
 SELECT 
@@ -150,3 +252,51 @@ SELECT
     name
 FROM variables
 WHERE variables.app_id = $1;
+-- Changes to commands and plugins queue a deploy by themselves, see migration
+-- 056. This is for deploying again without a change, like after a new token.
+-- Forcing clears the hash, so the commands are sent even if they look unchanged.
+-- name: QueueAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = CASE WHEN sqlc.arg(force)::BOOLEAN THEN NULL ELSE commands_deployed_hash END
+WHERE id = sqlc.arg(id);
+
+-- Newest changes first, so a user waiting for one isn't stuck behind a backlog.
+-- name: GetAppIDsWithDueCommandsDeploy :many
+SELECT id FROM apps
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+ORDER BY commands_deploy_at DESC
+LIMIT $1;
+
+-- deploy_at is the commands_deploy_at the deploy started from. Every change
+-- sets it to a later time, so if it changed, the commands changed meanwhile and
+-- stay queued, keeping the hash, which may have been cleared to force the next
+-- deploy.
+-- name: FinishAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = CASE WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN NULL ELSE commands_deploy_at END,
+    commands_deployed_hash = CASE
+        WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash)
+        ELSE commands_deployed_hash
+    END,
+    commands_deploy_error = sqlc.narg(error)
+WHERE id = sqlc.arg(id);
+
+-- Tries again in a few minutes, when Discord or the network failed.
+-- name: DelayAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
+    commands_deploy_error = sqlc.arg(error)
+WHERE id = sqlc.arg(id);
+
+-- Doesn't touch updated_at, which the gateway watches for app changes.
+-- name: UpdateAppDiscordCounts :exec
+UPDATE apps SET
+    discord_guild_count = $2,
+    discord_user_install_count = $3,
+    discord_counts_updated_at = now() AT TIME ZONE 'UTC'
+WHERE id = $1;
+
+-- Doesn't touch updated_at either.
+-- name: UpdateAppDiscordVerifyKey :exec
+UPDATE apps SET discord_verify_key = $2 WHERE id = $1;

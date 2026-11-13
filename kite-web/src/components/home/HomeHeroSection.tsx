@@ -12,7 +12,7 @@ export default function HomeHeroSection() {
         <h1 className="text-5xl md:text-6xl font-bold">
           Make{" "}
           <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
-            Discord Bots
+            Discord bots
           </span>{" "}
           with{" "}
           <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
@@ -23,15 +23,15 @@ export default function HomeHeroSection() {
         <p className="text-lg md:text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
           Kite is a free Discord bot maker. Build your own bot with slash
           commands, buttons, events and AI in a visual editor, without writing
-          code. We host it for you 24/7.
+          code. We host it for you 24/7, even on quiet days.
         </p>
 
         <div className="flex flex-col md:flex-row justify-center lg:justify-start gap-4">
           <Button className="md:w-48" asChild>
-            <Link href="/apps">Get Started for Free</Link>
+            <Link href="/apps">Get started for free</Link>
           </Button>
           <Button variant="outline" className="md:w-48" asChild>
-            <a href="#how-it-works">See How It Works</a>
+            <a href="#how-it-works">See how it works</a>
           </Button>
         </div>
 

@@ -19,16 +19,19 @@ import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 
 type ExportProps = {
   title: string;
-  type: "command" | "event_listener" | "message";
+  type: "command" | "event_listener" | "message" | "bundle";
   shareData: Record<string, unknown>;
   // Message templates used by these flows are exported along with them, so
   // they don't have to be recreated in the other app.
   flows: (FlowData | null | undefined)[];
   // Templates that are already part of shareData.
   excludeMessageIds?: string[];
+  // Shown under the title, like what the export contains.
+  note?: ReactNode;
 };
 
 export default function FlowExportDialog({
@@ -46,12 +49,13 @@ export default function FlowExportDialog({
 }
 
 // Separate from the dialog so its state resets every time it's opened.
-function ExportForm({
+export function ExportForm({
   title,
   type,
   shareData: baseShareData,
   flows,
   excludeMessageIds,
+  note,
 }: ExportProps) {
   const [showJson, setShowJson] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -76,7 +80,7 @@ function ExportForm({
   function copy(text: string) {
     navigator.clipboard
       .writeText(text)
-      .then(() => toast.success("Copied to clipboard!"))
+      .then(() => toast.success("Copied to clipboard."))
       .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
   }
 
@@ -87,6 +91,7 @@ function ExportForm({
         onSuccess: (res) => {
           if (res.success) {
             setCode(res.data.code);
+            track("flow_exported", { kind: type, via: "share_code" });
           } else {
             toast.error(
               `Failed to generate share code: ${res.error.message} (${res.error.code})`
@@ -110,6 +115,7 @@ function ExportForm({
             Copy the JSON below and import it into another app.{bundledNote}
           </DialogDescription>
         </DialogHeader>
+        {note}
         <Textarea
           readOnly
           value={json}
@@ -124,7 +130,13 @@ function ExportForm({
             <KeyRoundIcon className="mr-2 h-4 w-4" />
             Use share code
           </Button>
-          <Button onClick={() => copy(json)} disabled={!bundledMessages}>
+          <Button
+            onClick={() => {
+              copy(json);
+              track("flow_exported", { kind: type, via: "json" });
+            }}
+            disabled={!bundledMessages}
+          >
             <CopyIcon className="mr-2 h-4 w-4" />
             Copy JSON
           </Button>
@@ -142,6 +154,7 @@ function ExportForm({
           after 90 days without use.{bundledNote}
         </DialogDescription>
       </DialogHeader>
+      {note}
       <ShareCodePanel>
         <ShareCodeDisplay code={code} />
       </ShareCodePanel>

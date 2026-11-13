@@ -5,20 +5,24 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useMessages } from "@/lib/hooks/api";
 import MessageListEntry from "./MessageListEntry";
 import MessageCreateDialog from "./MessageCreateDialog";
+import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
+import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function MessageList() {
   const messages = useMessages();
+  const limit = usePlanLimit("max_messages", messages?.length);
 
-  const messageCreateButton = (
-    <div className="flex gap-5 flex-col md:flex-row">
+  const messageActions = (
+    <PlanLimitGate limit={limit} noun="message templates" from="messages">
       <MessageCreateDialog>
         <Button>Create message</Button>
       </MessageCreateDialog>
       <FlowImportDialog kind="message">
         <Button variant="outline">Import message</Button>
       </FlowImportDialog>
-    </div>
+    </PlanLimitGate>
   );
 
   return (
@@ -31,17 +35,28 @@ export default function MessageList() {
         </>
       ) : messages.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no message templates"
-          description="You can start now by creating the first message template!"
-          action={messageCreateButton}
+          icon={MailPlusIcon}
+          title="No message templates yet"
+          description="Design a message once and send it from any of your commands and events."
+          action={<ListActions>{messageActions}</ListActions>}
         />
       ) : (
-        <>
-          {messages.map((message, i) => (
-            <MessageListEntry message={message!} key={i} />
-          ))}
-          <div className="flex">{messageCreateButton}</div>
-        </>
+        <SearchableList
+          items={messages}
+          fields={(message) => [message.name, message.description]}
+          renderItem={(message) => (
+            <MessageListEntry message={message} key={message.id} />
+          )}
+          placeholder="Search message templates"
+          actions={messageActions}
+          status={
+            <PlanLimitCount
+              limit={limit}
+              noun="message templates"
+              from="messages"
+            />
+          }
+        />
       )}
     </AutoAnimate>
   );

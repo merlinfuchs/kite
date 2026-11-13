@@ -1,10 +1,13 @@
 package wire
 
 import (
+	"errors"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -20,6 +23,29 @@ type App struct {
 	CreatorUserID  string            `json:"creator_user_id"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+	// TokenInvalid is set when the app was disabled because Discord doesn't
+	// accept its token.
+	TokenInvalid bool `json:"token_invalid"`
+	// NoCredits is set when the app is paused because it used all of its
+	// credits for the month. It stays enabled and connected, but runs no
+	// flows.
+	NoCredits bool `json:"no_credits"`
+
+	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
+	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
+
+	// Discord's approximate counts, null until first fetched.
+	DiscordGuildCount       null.Int `json:"discord_guild_count"`
+	DiscordUserInstallCount null.Int `json:"discord_user_install_count"`
+
+	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
+	// the app used 80% or all of its credits for the month.
+	CreditNoticesEnabled bool `json:"credit_notices_enabled"`
+}
+
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	Command string `json:"command,omitempty"`
 }
 
 type AppDiscordStatus struct {
@@ -38,7 +64,32 @@ type AppDiscordStatusEntry struct {
 	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
+func (e AppDiscordStatusEntry) Validate() error {
+	return validation.ValidateStruct(&e,
+		validation.Field(&e.ActivityName, validation.Length(0, 128)),
+		validation.Field(&e.ActivityState, validation.Length(0, 128)),
+		validation.Field(&e.ActivityURL, validation.When(
+			e.ActivityType == int(discord.StreamingActivity),
+			validation.Required.Error("Streaming needs a Twitch or YouTube URL"),
+			validation.By(func(value interface{}) error {
+				if !flow.IsStreamURL(value.(string)) {
+					return errors.New("Discord only accepts Twitch or YouTube URLs for streaming")
+				}
+				return nil
+			}),
+		)),
+	)
+}
+
 type AppGetResponse = App
+
+// AppSetupGetResponse is how far a new app is through the setup checklist.
+type AppSetupGetResponse struct {
+	Invited bool `json:"invited"`
+	// HasFlow is whether the app has something that can run, like a command.
+	HasFlow bool `json:"has_flow"`
+	RanFlow bool `json:"ran_flow"`
+}
 
 type AppCreateRequest struct {
 	DiscordToken string `json:"discord_token"`
@@ -66,6 +117,17 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
+
+type AppCreditNoticesUpdateRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (req AppCreditNoticesUpdateRequest) Validate() error {
+	return nil
+}
+
+type AppCreditNoticesUpdateResponse = App
+
 type AppStatusUpdateRequest struct {
 	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
 }
@@ -133,6 +195,16 @@ func AppToWire(app *model.App) *App {
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
+		TokenInvalid:   model.HasInvalidToken(app),
+		NoCredits:      model.HasNoCredits(app),
+
+		CommandsDeployPending: app.CommandsDeployAt.Valid,
+		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),
+
+		DiscordGuildCount:       app.DiscordGuildCount,
+		DiscordUserInstallCount: app.DiscordUserInstallCount,
+
+		CreditNoticesEnabled: app.CreditNoticesEnabled,
 	}
 }
 

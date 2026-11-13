@@ -28,12 +28,16 @@ type FlowAIChatRequest struct {
 	// of an earlier prompt. Repairs don't count as new prompts.
 	RepairPromptID string   `json:"repair_prompt_id"`
 	Issues         []string `json:"issues"`
+	// Format is how the flow is written and the AI changes it, "edits" or
+	// "code", as the usage said. Empty is the server's.
+	Format string `json:"format"`
 }
 
 func (req FlowAIChatRequest) Validate() error {
 	err := validation.ValidateStruct(&req,
 		validation.Field(&req.Flow, validation.Required, validation.Length(1, 100_000)),
 		validation.Field(&req.Messages, validation.Required, validation.Length(1, 20)),
+		validation.Field(&req.Format, validation.In(flowai.FormatEdits, flowai.FormatCode)),
 		validation.Field(&req.Issues,
 			validation.When(req.RepairPromptID != "", validation.Required).Else(validation.Empty),
 			validation.Length(0, 50),
@@ -70,11 +74,17 @@ type FlowAIChatResponse struct {
 	// BuildPrompt is a request the user can send to make the change the
 	// message suggests, if any.
 	BuildPrompt string `json:"build_prompt"`
+	// TemplateID is a template of the marketplace the message suggests adding
+	// instead of building what it does, if any.
+	TemplateID string `json:"template_id"`
 	// Fields ask the user for what the AI needs but only they know.
 	Fields []FlowAIField `json:"fields"`
 	// Edits are applied with the editor's applyFlowEdits.
 	Edits []map[string]any `json:"edits"`
-	Usage FlowAIUsage      `json:"usage"`
+	// Code is the whole flow as code, applied with the editor's
+	// applyFlowCode instead of edits, if the AI writes code.
+	Code  string      `json:"code"`
+	Usage FlowAIUsage `json:"usage"`
 }
 
 type FlowAIUsage struct {
@@ -84,6 +94,9 @@ type FlowAIUsage struct {
 	// count as prompts but are limited too.
 	AnswersUsed  int `json:"answers_used"`
 	AnswersLimit int `json:"answers_limit"`
+	// Format is how the editor writes flows for the AI and applies its
+	// changes: "edits" or "code".
+	Format string `json:"format"`
 }
 
 type FlowAIUsageGetResponse = FlowAIUsage

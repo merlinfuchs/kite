@@ -21,8 +21,8 @@ const (
 
 func menuEmbed() discord.Embed {
 	return discord.Embed{
-		Title:       "🪁 Kite Support",
-		Description: "Have a question about Kite? Tap the button below and ask away — your answer is only visible to you.\n\nThe bot reads the [Kite documentation](<https://docs.kite.onl>) to find answers, so it works best for questions about features, setup, and how things work.",
+		Title:       "🪁 Kite support",
+		Description: "Ask a question about Kite with the button below. Only you see the answer.\n\nThe bot answers from the [Kite documentation](<https://docs.kite.onl>), so it works best for questions about features, setup, and how things work.",
 		Color:       0x5865F2,
 	}
 }
@@ -32,7 +32,7 @@ func askModalResponse() api.InteractionResponse {
 		Type: api.ModalResponse,
 		Data: &api.InteractionResponseData{
 			CustomID: option.NewNullableString(customIDAskModal),
-			Title:    option.NewNullableString("Ask Kite Support"),
+			Title:    option.NewNullableString("Ask Kite support"),
 			Components: &discord.TopLevelComponents{
 				&discord.ActionRowComponent{
 					&discord.TextInputComponent{
@@ -122,7 +122,7 @@ func feedbackModalResponse() api.InteractionResponse {
 						Style:       discord.TextInputParagraphStyle,
 						Label:       "Anything to add?",
 						Required:    false,
-						Placeholder: "Optional — extra context, what you expected, etc.",
+						Placeholder: "Optional. Extra context, or what you expected to happen.",
 					},
 				},
 			},

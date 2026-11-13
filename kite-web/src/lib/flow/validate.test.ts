@@ -4,7 +4,7 @@ import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
-import { prepareTemplateFlow, getTemplates } from "./templates";
+import { getTemplates } from "./templateFiles";
 import { validateFlow } from "./validate";
 import { ComponentData } from "../types/message.gen";
 
@@ -36,25 +36,49 @@ function errors(
 }
 
 describe("validateFlow", () => {
+  it("rejects arguments with the same name", () => {
+    const other = node("arg2", "option_command_argument", {
+      name: "user",
+      description: "Other user",
+      command_argument_type: "user",
+    });
+    expect(
+      errors([entry, arg, other], [edge("arg", "entry"), edge("arg2", "entry")])
+    ).toContain("More than one argument is named 'user'.");
+    expect(errors([entry, arg], [edge("arg", "entry")])).toEqual([]);
+  });
+
+  it("rejects descriptions of only spaces", () => {
+    const blank = node("entry", "entry_command", {
+      name: "test",
+      description: "  ",
+    });
+    expect(errors([blank], [])).toEqual([
+      "'Command' setting 'description': Can't be only spaces.",
+    ]);
+  });
+
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
-      const inputs = Object.fromEntries(
-        template.inputs.map((input) => [input.key, "123"])
-      );
       const flows = [
         ...template.commands.map((c) => ({
           context: "command" as const,
-          flow: c.flowSource(inputs),
+          flow: c.flowSource,
         })),
         ...template.eventListeners.map((l) => ({
           context: "event_discord" as const,
-          flow: l.flowSource(inputs),
+          flow: l.flowSource,
         })),
+        ...template.messages.flatMap((m) =>
+          Object.values(m.flowSources).map((flow) => ({
+            context: "component_button" as const,
+            flow,
+          }))
+        ),
       ];
 
       for (const { context, flow } of flows) {
-        const { nodes, edges } = prepareTemplateFlow(flow);
-        expect(validateFlow(nodes, edges, context)).toEqual([]);
+        expect(validateFlow(flow.nodes, flow.edges, context)).toEqual([]);
       }
     }
   });
@@ -94,6 +118,81 @@ describe("validateFlow", () => {
     );
   });
 
+  it("only responds in event listeners after a button", () => {
+    const event = node("entry", "entry_event", {
+      event_type: "message_create",
+      description: "Test",
+    });
+    const message = node("msg", "action_message_create", {
+      channel_target: "1",
+      message_data: {
+        content: "Hi",
+        components: [
+          { type: 1, components: [{ id: 1, type: 2, style: 1, label: "a" }] },
+        ],
+      },
+    });
+    const respond = (id: string) =>
+      node(id, "action_response_create", { message_data: { content: "Hi" } });
+
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { components: [{ custom_id: "a", label: "A", style: 1 }] },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [event, message, modal, respond("reply")],
+        [
+          edge("entry", "msg"),
+          edge("msg", "modal", "component_1"),
+          edge("modal", "reply"),
+        ],
+        "event_discord"
+      )
+    ).toEqual([]);
+    expect(
+      errors(
+        [event, message, respond("reply"), respond("early")],
+        [
+          edge("entry", "msg"),
+          edge("msg", "reply", "component_1"),
+          edge("msg", "early"),
+        ],
+        "event_discord"
+      )
+    ).toEqual([
+      "'Create response message' can only be used after a button or select menu in event listeners.",
+    ]);
+  });
+
+  it("checks that event filters fit the event", () => {
+    const filtered = (eventType: string, target: string) =>
+      errors(
+        [
+          node("entry", "entry_event", {
+            event_type: eventType,
+            description: "Test",
+          }),
+          node("filter", "option_event_filter", {
+            event_filter_target: target,
+            event_filter_mode: "equal",
+            event_filter_value: "1",
+          }),
+        ],
+        [edge("filter", "entry")],
+        "event_discord"
+      );
+
+    expect(filtered("message_create", "channel_id")).toEqual([]);
+    expect(filtered("guild_create", "channel_id")).toEqual([
+      "'Event Filter' can't filter on channel_id for guild_create events, only on guild_id.",
+    ]);
+  });
+
   it("only connects options into the entry", () => {
     expect(
       errors([entry, arg, log("a")], [edge("arg", "a"), edge("a", "entry")])
@@ -124,6 +223,21 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' has no output 'error', only 'default'. To handle errors, put the block after the default output of an error handler block.",
     ]);
+
+    const check = node("if", "control_if", {
+      condition_base_value: "{{true}}",
+    });
+    const missingHandle =
+      "'If' only has the outputs 'yes', 'no', so a block after it needs one of them as its handle. To run the block either way, connect it to each.";
+    expect(
+      errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
+    ).toEqual([missingHandle]);
+    expect(
+      errors(
+        [entry, check, log("a")],
+        [edge("entry", "if"), edge("if", "a", "default")]
+      )
+    ).toEqual([missingHandle]);
   });
 
   it("accepts outputs of message components", () => {
@@ -393,6 +507,18 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("reports a modal input of an unknown type", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [{ type: "slider", custom_id: "level", label: "Level" }],
+      },
+    });
+    expect(errors([entry, modal], [edge("entry", "modal")])).toEqual([
+      "'Show Modal' setting 'modal_data.components.0.type': Invalid discriminator value. Expected 'label' | 'text_display'",
+    ]);
+  });
+
   it("finds modal inputs", () => {
     const modal = node("modal", "suspend_response_modal", {
       modal_data: {
@@ -417,6 +543,41 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Log Message' uses inputs('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
+  });
+
+  it("finds picked users, roles and channels of modal selects", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          {
+            type: "label",
+            label: "User",
+            components: [{ type: "user_select", custom_id: "user" }],
+          },
+          {
+            type: "label",
+            label: "Name",
+            components: [{ type: "text_input", custom_id: "name", style: 1 }],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [
+          entry,
+          modal,
+          log(
+            "a",
+            "{{picked('user').name}} {{len(pickedAll('user'))}} {{picked('name')}}"
+          ),
+        ],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses picked('name'), but no modal before it has a user, role or channel select or a file upload with the identifier 'name'.",
     ]);
   });
 
@@ -511,6 +672,20 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("rejects AI Choice options with the same name", () => {
+    const choice = node("choice", "control_condition_ai_choice", {
+      ai_decision_data: { question: "What is it?", input: "{{event.content}}" },
+    });
+    const option = (id: string) =>
+      node(id, "control_condition_item_ai_choice", { ai_choice_name: "spam" });
+    expect(
+      errors(
+        [entry, choice, option("a"), option("b")],
+        [edge("entry", "choice"), edge("choice", "a"), edge("choice", "b")]
+      )
+    ).toEqual(["'AI Choice' has two options named 'spam'."]);
+  });
+
   it("names every block an orphaned branch can belong to", () => {
     expect(
       errors(
@@ -519,7 +694,7 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Else' can only be connected to the block it belongs to.",
-      "'Else' must belong to exactly one of these blocks: 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
+      "'Else' must belong to exactly one of these blocks: 'AI Choice', 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
     ]);
   });
 
@@ -546,6 +721,24 @@ describe("validateFlow", () => {
     for (const duration of ["", "0", "1.5", "-5", "3601"]) {
       expect(flow(duration)).not.toEqual([]);
     }
+  });
+
+  it("lets the cooldown message show the seconds left", () => {
+    const cooldown = (message: string) =>
+      node("cooldown", "option_command_cooldown", {
+        cooldown_duration_seconds: "30",
+        cooldown_message: message,
+      });
+    const message = "Try again in {{var('cooldown_remaining')}} seconds.";
+    expect(
+      errors([entry, cooldown(message)], [edge("cooldown", "entry")])
+    ).toEqual([]);
+    expect(
+      errors(
+        [entry, cooldown("hi"), log("log", message)],
+        [edge("cooldown", "entry"), edge("entry", "log")]
+      )
+    ).not.toEqual([]);
   });
 
   it("reports block types it doesn't know", () => {

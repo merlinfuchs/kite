@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -7,23 +7,29 @@ import {
 } from "lucide-react";
 import ThemeSwitch from "../common/ThemeSwitch";
 import MessageSendDialog from "./MessageSendDialog";
+import { BundleInstallNavItem } from "../app/BundleInstallBadge";
 
 interface Props {
   hasUnsavedChanges: boolean;
   isSaving: boolean;
+  bundleInstallId?: string | null;
   onSave: (d: {}) => void;
   onExit: () => void;
+  // The save history button.
+  history?: ReactNode;
 }
 
 export default function MessageNav({
   hasUnsavedChanges,
   isSaving,
+  bundleInstallId,
   onSave,
   onExit,
+  history,
 }: Props) {
   const save = useCallback(() => {
-    onSave({});
-  }, [onSave]);
+    if (!isSaving) onSave({});
+  }, [onSave, isSaving]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -43,10 +49,10 @@ export default function MessageNav({
         <button
           className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
           onClick={onExit}
-          aria-label="Back to App"
+          aria-label="Back to app"
         >
           <ArrowLeftIcon className="h-5 w-5" />
-          <div className="hidden sm:block">Back to App</div>
+          <div className="hidden sm:block">Back to app</div>
         </button>
         {isSaving ? (
           <div
@@ -54,7 +60,7 @@ export default function MessageNav({
             onClick={save}
           >
             <RefreshCwIcon className="h-5 w-5 animate-spin" />
-            <div className="hidden sm:block">Saving Changes</div>
+            <div className="hidden sm:block">Saving changes</div>
           </div>
         ) : hasUnsavedChanges ? (
           <button
@@ -62,32 +68,36 @@ export default function MessageNav({
             onClick={save}
           >
             <div className="h-3 w-3 rounded-full bg-foreground/80"></div>
-            <div>Save Changes</div>
+            <div>Save changes</div>
           </button>
         ) : (
           <div className="flex space-x-2 text-foreground/80 items-center">
             <CheckIcon className="h-5 w-5" />
-            <div className="hidden sm:block">No Unsaved Changes</div>
+            <div className="hidden sm:block">No unsaved changes</div>
           </div>
         )}
         {hasUnsavedChanges ? (
           <div className="flex space-x-2 text-foreground/60 items-center">
             <SendIcon className="h-5 w-5" />
-            <div className="hidden sm:block">Send Message</div>
+            <div className="hidden sm:block">Send message</div>
           </div>
         ) : (
           <MessageSendDialog>
             <button
               className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
-              aria-label="Send Message"
+              aria-label="Send message"
             >
               <SendIcon className="h-5 w-5" />
-              <div className="hidden sm:block">Send Message</div>
+              <div className="hidden sm:block">Send message</div>
             </button>
           </MessageSendDialog>
         )}
+        <BundleInstallNavItem bundleInstallId={bundleInstallId} />
       </div>
-      <ThemeSwitch />
+      <div className="flex items-center space-x-4 sm:space-x-6">
+        {history}
+        <ThemeSwitch />
+      </div>
     </div>
   );
 }

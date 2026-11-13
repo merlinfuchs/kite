@@ -2,15 +2,19 @@
 sidebar_position: 4
 ---
 
-# Stored Variables
+# Stored variables
 
-With Stored Variables you can store information across commands, events, and message templates.
+With stored variables you can store information across commands, events, and message templates.
 
 They can be accessed in commands or event listeners using the "Set variable" or "Get variable" blocks.
 
 Variables can be scoped by a key, which can be anything. Common examples are a user ID, channel ID, or server ID. This allows you to store multiple values in the same variable and access them later.
 
-![Example Variable](./img/example-variable.png)
+Blocks that use a scoped variable need a scope. They fail when it's empty, like `{{user.id}}` in an event without a user. Blocks that use a variable that isn't scoped ignore their scope.
+
+Each value can be up to 64 KB, about 60,000 characters of text. A block that would make a value larger fails, and the value stays as it was. For text that grows on every run, like a chat history for an AI block, keep only the latest part, like the last 20 messages.
+
+![Example Variable](./img/example-variable.webp)
 
 ## Viewing and editing values
 

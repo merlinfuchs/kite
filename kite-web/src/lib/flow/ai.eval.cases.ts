@@ -1,15 +1,11 @@
 import { FlowContextType } from "./context";
 import { FlowData, NodeData } from "./dataSchema";
-import {
-  getAITemplate,
-  getModerationTemplate,
-  getWelcomerTemplate,
-  prepareTemplateFlow,
-} from "./templates";
+import { getTemplate } from "./templateFiles";
 
 // What should happen with a prompt: the flow is changed, the user is asked
-// for something that's missing, or the question is answered.
-export type EvalRoute = "build" | "clarify" | "answer";
+// for something that's missing, the question is answered, or a template is
+// suggested instead.
+export type EvalRoute = "build" | "clarify" | "answer" | "template";
 
 export interface EvalCase {
   name: string;
@@ -27,8 +23,13 @@ export interface EvalCase {
   // Settings the entry block must have after building.
   entry?: Record<string, unknown>;
   // For questions: whether the answer should suggest a change, which is then
-  // sent as the next prompt and has to build.
+  // sent as the next prompt and has to build. For suggested templates, like
+  // clicking "Build it here instead".
   thenBuild?: boolean;
+  // The template that should be suggested.
+  template?: string;
+  // The templates the app added already.
+  addedTemplates?: string[];
 }
 
 const channelId = "123456789012345678";
@@ -53,17 +54,9 @@ const schedule = entry("entry_event", {
 });
 const button = entry("entry_component_button", {});
 
-const template = (flow: Parameters<typeof prepareTemplateFlow>[0]) => () =>
-  prepareTemplateFlow(flow);
-const banFlow = template(getModerationTemplate().commands[0].flowSource({}));
-const welcomeFlow = template(
-  getWelcomerTemplate().eventListeners[0].flowSource({ channel_id: channelId })
-);
-const aiFlow = template(
-  getAITemplate().eventListeners[0].flowSource({
-    system_prompt: "You are a friendly assistant.",
-  })
-);
+const banFlow = () => getTemplate("moderation")!.commands[0].flowSource;
+const welcomeFlow = () => getTemplate("welcomer")!.eventListeners[0].flowSource;
+const aiFlow = () => getTemplate("ask-ai")!.eventListeners[0].flowSource;
 
 export const evalCases: EvalCase[] = [
   // Commands
@@ -189,7 +182,34 @@ export const evalCases: EvalCase[] = [
     context: "command",
     flow: command("mod"),
     prompt: "make a full moderation system for my server",
-    route: ["clarify"],
+    route: ["template"],
+    template: "moderation",
+  },
+  {
+    name: "moderation system added",
+    context: "command",
+    flow: command("mod"),
+    prompt: "make a full moderation system for my server",
+    route: ["clarify", "answer"],
+    addedTemplates: ["moderation"],
+  },
+  {
+    name: "giveaway build instead",
+    context: "command",
+    flow: command("giveaway"),
+    prompt: "i want giveaways where people click a button to enter",
+    route: ["template"],
+    template: "giveaway",
+    thenBuild: true,
+    types: ["action_message_create|action_response_create"],
+  },
+  {
+    name: "giveaway without template",
+    context: "command",
+    flow: command("giveaway"),
+    prompt:
+      "build a giveaway here where people click a button to enter, i don't want a template",
+    route: ["build", "clarify"],
   },
   {
     name: "leveling system",
@@ -205,6 +225,15 @@ export const evalCases: EvalCase[] = [
     prompt: "timeout the user from the argument for 10 minutes",
     route: ["build"],
     types: ["option_command_argument", "action_member_timeout"],
+  },
+  {
+    name: "typed duration",
+    context: "command",
+    flow: command("remind"),
+    prompt:
+      "let people type how long to wait, like 2h or 1 day, and what to remind them of, then DM them the reminder after that time",
+    route: ["build"],
+    types: ["option_command_argument", "control_sleep"],
   },
   {
     name: "cat api",
@@ -355,7 +384,7 @@ export const evalCases: EvalCase[] = [
     prompt: `if the user has the role ${roleId}, dont ban them and say you cant`,
     route: ["build"],
     types: [
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_member_ban",
     ],
   },
@@ -368,6 +397,29 @@ export const evalCases: EvalCase[] = [
     types: ["control_error_handler"],
   },
 
+  {
+    name: "if then continue",
+    context: "command",
+    flow: command("roll"),
+    prompt:
+      "roll a random number from 1 to 100. if it's above 50 reply that they won, otherwise that they lost, and in both cases log the number",
+    route: ["build"],
+    types: [
+      "action_random_generate",
+      "control_if|control_condition_compare",
+      "action_log",
+    ],
+  },
+  {
+    name: "ai check then continue",
+    context: "event_discord",
+    flow: event("message_create"),
+    prompt:
+      "use AI to check if the message is spam. if it is delete it, otherwise react with a thumbs up. either way log the message content",
+    route: ["build"],
+    types: ["control_ai_check", "action_message_delete", "action_log"],
+  },
+
   // Bigger builds, with what's needed already given
   {
     name: "complex ticket",
@@ -378,7 +430,7 @@ export const evalCases: EvalCase[] = [
     types: [
       "action_channel_create",
       "action_message_create",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_channel_delete",
     ],
     componentBranch: true,
@@ -391,7 +443,7 @@ export const evalCases: EvalCase[] = [
     route: ["build"],
     types: [
       "option_command_argument",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_private_message_create",
       "action_member_ban",
       "action_message_create",
@@ -406,7 +458,7 @@ export const evalCases: EvalCase[] = [
     route: ["build"],
     types: [
       "action_response_create",
-      "control_condition_role|control_condition_user",
+      "control_condition_role|control_condition_user|control_if",
       "action_member_role_add",
     ],
     componentBranch: true,
@@ -420,7 +472,7 @@ export const evalCases: EvalCase[] = [
     prompt: "When someone says hello, reply hi",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_create",
     ],
   },
@@ -431,7 +483,7 @@ export const evalCases: EvalCase[] = [
     prompt: "Delete messages that contain a discord invite link",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_delete",
     ],
   },
@@ -442,7 +494,7 @@ export const evalCases: EvalCase[] = [
     prompt: `react with 👍 to every message in channel ${channelId}`,
     route: ["build"],
     types: [
-      "control_condition_channel|option_event_filter",
+      "control_condition_channel|control_if|option_event_filter",
       "action_message_reaction_create",
     ],
   },
@@ -484,7 +536,7 @@ export const evalCases: EvalCase[] = [
     prompt: "Wenn jemand 'gute nacht' schreibt, antworte mit 'Schlaf gut!'",
     route: ["build"],
     types: [
-      "control_condition_compare|option_event_filter",
+      "control_condition_compare|control_if|option_event_filter",
       "action_message_create",
     ],
   },
@@ -511,7 +563,7 @@ export const evalCases: EvalCase[] = [
     prompt: `make it only answer in channel ${channelId}`,
     route: ["build"],
     types: [
-      "control_condition_channel|option_event_filter",
+      "control_condition_channel|control_if|option_event_filter",
       "action_ai_chat_completion",
     ],
   },

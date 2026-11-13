@@ -1,0 +1,152 @@
+package eval
+
+import (
+	"context"
+	"fmt"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/expr-lang/expr/ast"
+	"github.com/expr-lang/expr/vm"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// A cached program reads the values of the env it runs with, not the one it
+// was compiled with.
+func TestCachedProgramUsesNewValues(t *testing.T) {
+	for _, name := range []string{"a", "b"} {
+		env := Env{
+			"user": NewUserEnv(discord.User{ID: 1, Username: name}),
+			"n":    len(name),
+			"get":  func(s string) (any, error) { return s + name, nil },
+			"m":    map[string]any{"k": name},
+		}
+		expression := `user.username + get("x") + m.k + string(n)`
+		res, err := Eval(context.Background(), expression, NewContext(env))
+		require.NoError(t, err)
+		assert.Equal(t, name+"x"+name+name+"1", res.String())
+		requireCached(t, expression, env)
+	}
+}
+
+// The same expression compiles again when the types of the env differ, as
+// they decide how fields are read.
+func TestCachedProgramPerEnvTypes(t *testing.T) {
+	expression := `guild?.name ?? "none"`
+
+	env := Env{"guild": &GuildEnv{Name: "Kite"}}
+	res, err := Eval(context.Background(), expression, NewContext(env))
+	require.NoError(t, err)
+	assert.Equal(t, "Kite", res.String())
+	requireCached(t, expression, env)
+
+	env = Env{"guild": map[string]any{"name": "Map"}}
+	res, err = Eval(context.Background(), expression, NewContext(env))
+	require.NoError(t, err)
+	assert.Equal(t, "Map", res.String())
+	requireCached(t, expression, env)
+
+	env = Env{"guild": nil}
+	res, err = Eval(context.Background(), expression, NewContext(env))
+	require.NoError(t, err)
+	assert.Equal(t, "none", res.String())
+	requireCached(t, expression, env)
+
+	res, err = Eval(context.Background(), expression, NewContext(Env{}))
+	require.NoError(t, err)
+	assert.Equal(t, "none", res.String())
+}
+
+func TestProgramKey(t *testing.T) {
+	user := NewUserEnv(discord.User{ID: 1})
+	a := programKey("x", Context{Env: Env{"user": user, "n": 1}})
+	assert.Equal(t, a, programKey("x", Context{Env: Env{"n": 2, "user": NewUserEnv(discord.User{ID: 2})}}))
+	assert.NotEqual(t, a, programKey("y", Context{Env: Env{"user": user, "n": 1}}))
+	assert.NotEqual(t, a, programKey("x", Context{Env: Env{"user": user, "n": "1"}}))
+	assert.NotEqual(t, a, programKey("x", Context{Env: Env{"user": user}}))
+	assert.NotEqual(t, a, programKey("x", Context{Env: Env{"user": user, "n": 1}, Patchers: []ast.Visitor{fieldPatcher{}}}))
+}
+
+// requireCached waits for the buffered Set of ristretto, so the next Eval
+// uses the cached program.
+func requireCached(t *testing.T, expression string, env Env) {
+	t.Helper()
+	programs().Wait()
+	_, ok := programs().Get(programKey(expression, NewContext(env)))
+	require.True(t, ok, "program not cached")
+}
+
+// The cache keeps more programs than fit if ristretto adds the size of its
+// own entries to their cost.
+func TestProgramCacheSize(t *testing.T) {
+	for i := range 1000 {
+		expression := fmt.Sprintf("%d + 1", i)
+		_, err := Eval(context.Background(), expression, NewContext(Env{}))
+		require.NoError(t, err)
+	}
+	for i := range 1000 {
+		requireCached(t, fmt.Sprintf("%d + 1", i), Env{"ctx": proxyContext{}})
+	}
+}
+
+// programCost is at least the memory a program keeps, so the cache can't
+// grow past MaxCost.
+func TestProgramCost(t *testing.T) {
+	for _, unit := range []string{"+xp", "+guild.name", "+user.mention", `+arg("a")`, "+1"} {
+		expression := "1" + strings.Repeat(unit, (MaxExpressionLength-1)/len(unit))
+		env := benchEnv()
+		env["ctx"] = proxyContext{}
+
+		const n = 10
+		kept := make([]*vm.Program, n)
+		before := heapAlloc()
+		for i := range kept {
+			p, err := compileUncached(expression, NewContext(env))
+			require.NoError(t, err, expression)
+			kept[i] = p
+		}
+		size := (int64(heapAlloc()) - int64(before)) / n
+		runtime.KeepAlive(kept)
+
+		assert.GreaterOrEqual(t, programCost(expression), size, "%d characters of %s", len(expression), unit)
+	}
+}
+
+func heapAlloc() uint64 {
+	runtime.GC()
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.HeapAlloc
+}
+
+func benchEnv() Env {
+	return Env{
+		"user":  NewUserEnv(discord.User{ID: 123456789012345678, Username: "kite"}),
+		"guild": &GuildEnv{ID: "1", Name: "Kite"},
+		"xp":    12345,
+		"items": []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+		"arg":   func(name string) (any, error) { return 3, nil },
+	}
+}
+
+func BenchmarkEval(b *testing.B) {
+	for _, c := range []struct{ name, expression string }{
+		{"field", `user.mention`},
+		{"math", `(xp / 100) ** 0.5 * 2 + 1`},
+		{"text", `upper(user.username) + " has " + string(xp) + " XP in " + guild.name`},
+		{"list", `join(map(filter(items, # % 2 == 0), string(# * 10)), ", ")`},
+	} {
+		b.Run(c.name, func(b *testing.B) {
+			env := benchEnv()
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				if _, err := Eval(context.Background(), c.expression, NewContext(env)); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

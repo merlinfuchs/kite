@@ -11,6 +11,7 @@ const durationMessage =
 
 export const discordOptionCommandCooldown: BlockDefinition = {
   type: "option_command_cooldown",
+  id_prefix: "cooldown",
   title: "Command Cooldown",
   description:
     "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",

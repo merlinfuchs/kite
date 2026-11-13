@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
+  id_prefix: "command",
   title: "Command",
   description: "Command entry. Drop different actions and options here!",
   icon: "square-slash",
@@ -32,6 +33,7 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(100)
         .min(1)
+        .regex(/\S/, "Can't be only spaces.")
         .describe("Description of the command shown in Discord."),
     },
     {

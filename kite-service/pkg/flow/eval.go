@@ -39,6 +39,18 @@ func (ctx *FlowContext) EvalTemplate(template string) (thing.Thing, error) {
 	return res, nil
 }
 
+// EvalTemplateRaw evaluates a template that has to match exactly, keeping its
+// spaces and the results of its placeholders as they are.
+func (ctx *FlowContext) EvalTemplateRaw(template string) (thing.Thing, error) {
+	evalCtx := ctx.EvalCtx
+	evalCtx.Raw = true
+	res, err := eval.EvalTemplateKeepSpace(ctx, template, evalCtx)
+	if err != nil {
+		return thing.Null, fmt.Errorf("failed to evaluate template: %w", err)
+	}
+	return res, nil
+}
+
 func (ctx *FlowContext) EvalTemplateKeepSpace(template string) (thing.Thing, error) {
 	res, err := eval.EvalTemplateKeepSpace(ctx, template, ctx.EvalCtx)
 	if err != nil {
@@ -66,6 +78,18 @@ func (ctx *FlowContext) evalKeyValues(pairs []HTTPRequestDataKeyValue) (map[stri
 // can't break its syntax. A value that is a single placeholder keeps the type
 // of its result, so numbers and lists can be filled in too.
 func (ctx *FlowContext) EvalJSONTemplate(raw json.RawMessage) ([]byte, error) {
+	return evalJSONTemplate(raw, false, func(template string) (any, error) {
+		res, err := ctx.EvalTemplateKeepSpace(template)
+		if err != nil {
+			return nil, err
+		}
+		return res.JSONValue(), nil
+	})
+}
+
+// evalJSONTemplate evaluates the strings of a JSON document that contain
+// placeholders with evalString, and its keys too if evalKeys is set.
+func evalJSONTemplate(raw json.RawMessage, evalKeys bool, evalString func(template string) (any, error)) ([]byte, error) {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	// Keeps IDs written as numbers exact.
 	dec.UseNumber()
@@ -75,27 +99,35 @@ func (ctx *FlowContext) EvalJSONTemplate(raw json.RawMessage) ([]byte, error) {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	v, err := ctx.evalJSONValue(v)
+	v, err := evalJSONValue(v, evalKeys, evalString)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(v)
 }
 
-func (ctx *FlowContext) evalJSONValue(v any) (any, error) {
+func evalJSONValue(v any, evalKeys bool, evalString func(template string) (any, error)) (any, error) {
 	switch v := v.(type) {
 	case map[string]any:
+		res := make(map[string]any, len(v))
 		for key, value := range v {
-			res, err := ctx.evalJSONValue(value)
+			if evalKeys {
+				k, err := evalJSONValue(key, false, evalString)
+				if err != nil {
+					return nil, err
+				}
+				key = fmt.Sprint(k)
+			}
+			value, err := evalJSONValue(value, evalKeys, evalString)
 			if err != nil {
 				return nil, err
 			}
-			v[key] = res
+			res[key] = value
 		}
-		return v, nil
+		return res, nil
 	case []any:
 		for i, value := range v {
-			res, err := ctx.evalJSONValue(value)
+			res, err := evalJSONValue(value, evalKeys, evalString)
 			if err != nil {
 				return nil, err
 			}
@@ -108,12 +140,7 @@ func (ctx *FlowContext) evalJSONValue(v any) (any, error) {
 		if !strings.Contains(v, "{{") {
 			return v, nil
 		}
-
-		res, err := ctx.EvalTemplateKeepSpace(v)
-		if err != nil {
-			return nil, err
-		}
-		return res.JSONValue(), nil
+		return evalString(v)
 	default:
 		return v, nil
 	}

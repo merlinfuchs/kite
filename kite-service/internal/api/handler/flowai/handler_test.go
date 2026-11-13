@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 type fakePromptStore struct {
@@ -70,6 +71,16 @@ func (s *fakePromptStore) AddAssistantPromptUsage(ctx context.Context, appID str
 	return nil
 }
 
+func (s *fakePromptStore) RefuseAssistantPrompt(ctx context.Context, appID string, id string, chance float64, edited bool, updatedAt time.Time) error {
+	prompt, err := s.AssistantPrompt(ctx, appID, id)
+	if err != nil {
+		return err
+	}
+	prompt.RefusalChance = chance
+	prompt.Edited = prompt.Edited && edited
+	return nil
+}
+
 func (s *fakePromptStore) CountAssistantPromptsBetween(ctx context.Context, appID string, start time.Time, end time.Time) (model.AssistantPromptCount, error) {
 	var count model.AssistantPromptCount
 	for _, prompt := range s.prompts {
@@ -99,19 +110,43 @@ func (fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID 
 	return []*model.Variable{{ID: "v1", Name: "uses"}}, nil
 }
 
+type fakeBundleStore struct{}
+
+func (fakeBundleStore) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
+	return []*model.Bundle{
+		{ID: "moderation", Listing: &model.BundleListing{Name: "Moderation", Description: "Ban and kick.", Category: "moderation"}},
+		{ID: "popular", OwnerUserID: null.StringFrom("u1"), Listing: &model.BundleListing{Name: "Popular"}},
+		{ID: "mine", OwnerUserID: null.StringFrom("user"), SourceAppID: null.StringFrom("app"), Listing: &model.BundleListing{Name: "Mine"}},
+	}, nil
+}
+
+func (fakeBundleStore) BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error) {
+	return []*model.BundleInstall{{AppID: appID, BundleID: "popular"}}, nil
+}
+
 type fakeAssistant struct {
+	// req is the last request.
+	req flowai.Request
 	err error
 	// answered makes the error come with usage, like when the model answered.
 	answered bool
 	// noEdits makes the answer a question without edits.
 	noEdits bool
 	calls   int
+	// refuse makes it refuse the chat.
+	refuse bool
 }
 
 func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
+func (a *fakeAssistant) Format() string { return flowai.FormatEdits }
+
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
+	a.req = req
+	if a.refuse {
+		return nil, &flowai.ErrRefused{Chance: 0.95}
+	}
 	if a.err != nil {
 		if a.answered {
 			return &flowai.Response{Usage: model.AssistantUsage{InputTokens: 100}}, a.err
@@ -142,7 +177,7 @@ func setup(assistant *fakeAssistant) *testSetup {
 		store:     &fakePromptStore{prompts: map[string]*model.AssistantPrompt{}},
 		assistant: assistant,
 	}
-	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, integrationStore: fakeIntegrationStore{}, choiceStore: fakeIntegrationStore{}, maxRepairs: 2}
+	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, integrationStore: fakeIntegrationStore{}, choiceStore: fakeIntegrationStore{}, bundleStore: fakeBundleStore{}, bundleInstallStore: fakeBundleStore{}, maxRepairs: 2}
 	if assistant != nil {
 		s.handler.assistant = assistant
 	}
@@ -203,6 +238,18 @@ func TestChatCountsPromptsAgainstTheLimit(t *testing.T) {
 	assert.Equal(t, 2, s.assistant.calls)
 	// The refused prompt isn't kept.
 	assert.Len(t, s.store.prompts, 2)
+}
+
+func TestChatSendsTemplates(t *testing.T) {
+	s := setup(&fakeAssistant{})
+
+	code, res := s.chat(t, 2, prompt)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, []flowai.Template{
+		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
+		{ID: "popular", Name: "Popular", Added: true},
+		{ID: "mine", Name: "Mine", Added: true},
+	}, s.assistant.req.Templates)
 }
 
 func TestChatNeedsThePlanToIncludeIt(t *testing.T) {
@@ -343,4 +390,33 @@ func TestUnansweredRepairsDontUseARound(t *testing.T) {
 	code, _ := s.chat(t, 1, repair(promptID))
 	assert.Equal(t, http.StatusServiceUnavailable, code)
 	assert.Equal(t, 1, s.store.prompts[promptID].Rounds)
+}
+
+func TestRefusedPromptsAreKeptAsAnswers(t *testing.T) {
+	s := setup(&fakeAssistant{refuse: true})
+
+	code, res := s.chat(t, 1, prompt)
+	assert.Equal(t, http.StatusForbidden, code)
+	assert.Equal(t, "flow_ai_refused", errCode(res))
+	require.Len(t, s.store.prompts, 1)
+	for _, p := range s.store.prompts {
+		assert.False(t, p.Edited)
+		assert.Equal(t, "Remove a", p.Prompt)
+		assert.Equal(t, 0.95, p.RefusalChance)
+	}
+}
+
+func TestRefusedRepairsUseUpTheirRound(t *testing.T) {
+	s := setup(&fakeAssistant{})
+
+	_, res := s.chat(t, 1, prompt)
+	promptID := res["data"].(map[string]any)["prompt_id"].(string)
+
+	s.assistant.refuse = true
+	code, res := s.chat(t, 1, repair(promptID))
+	assert.Equal(t, http.StatusForbidden, code)
+	assert.Equal(t, "flow_ai_refused", errCode(res))
+	assert.Equal(t, 2, s.store.prompts[promptID].Rounds)
+	assert.True(t, s.store.prompts[promptID].Edited)
+	assert.Equal(t, 0.95, s.store.prompts[promptID].RefusalChance)
 }

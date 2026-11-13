@@ -29,7 +29,7 @@ INSERT INTO variables (
     name,
     scoped,
     app_id,
-    module_id,
+    bundle_install_id,
     created_at,
     updated_at
 ) VALUES (
@@ -43,8 +43,8 @@ UPDATE variables SET
     updated_at = $4
 WHERE id = $1 RETURNING *;
 
--- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1;
+-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id;
 
 -- variable_values has no app_id, so these reach the app through variables.
 
@@ -91,6 +91,29 @@ ON CONFLICT (variable_id, scope) DO UPDATE SET
     updated_at = EXCLUDED.updated_at
 RETURNING *;
 
+-- name: InsertOrLockVariableValue :one
+-- Inserts the first value, or locks and returns the existing one, also when
+-- another transaction inserted it and hasn't committed yet, which it waits
+-- for. inserted says which. A variable from another app returns nothing
+-- (ErrNoRows).
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+)
+SELECT
+    variables.id,
+    sqlc.narg(scope)::text,
+    @value::jsonb,
+    @created_at::timestamp,
+    @updated_at::timestamp
+FROM variables
+WHERE variables.id = @variable_id AND variables.app_id = @app_id
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING sqlc.embed(variable_values), (xmax = 0)::boolean AS inserted;
+
 -- name: DeleteVariableValue :exec
 -- IS NOT DISTINCT FROM so that unscoped values (scope IS NULL) are matched,
 -- same as the get queries above. Plain `= NULL` never matches and made
@@ -122,6 +145,45 @@ WHERE variable_values.variable_id = @variable_id
 ORDER BY variable_values.updated_at DESC, variable_values.id DESC
 LIMIT @row_limit OFFSET @row_offset;
 
+-- name: ListVariableValues :many
+-- Values sort as numbers when they are numbers or text of a number, like
+-- "42". Other values come last when sorting by value. Values over 128 bytes,
+-- like saved messages, can't be a number of at most 30 digits, so
+-- pg_column_size skips them without reading them from TOAST, which was most of
+-- the time on variables with many. starts_with instead of LIKE so % and _ in
+-- the prefix match literally.
+SELECT variable_values.* FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = @variable_id
+  AND variables.app_id = @app_id
+  AND (
+    @scope_prefix::text = ''
+    OR starts_with(coalesce(variable_values.scope, ''), @scope_prefix::text)
+  )
+ORDER BY
+  CASE WHEN @sort::text = 'value_desc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END DESC NULLS LAST,
+  CASE WHEN @sort::text = 'value_asc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END ASC NULLS LAST,
+  CASE WHEN @sort::text = 'updated_desc' THEN variable_values.updated_at END DESC,
+  CASE WHEN @sort::text = 'updated_asc' THEN variable_values.updated_at END ASC,
+  variable_values.id
+LIMIT @row_limit OFFSET @row_offset;
+
 -- name: CountSearchVariableValues :one
 SELECT COUNT(*) FROM variable_values
 JOIN variables ON variables.id = variable_values.variable_id
@@ -131,3 +193,6 @@ WHERE variable_values.variable_id = @variable_id
     @search::text = ''
     OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
   );
+
+-- name: DeleteVariablesByBundleInstall :exec
+DELETE FROM variables WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));

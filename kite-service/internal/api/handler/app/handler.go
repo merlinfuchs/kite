@@ -9,7 +9,6 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -17,12 +16,9 @@ import (
 )
 
 type AppHandler struct {
-	appStore            store.AppStore
-	userStore           store.UserStore
-	commandStore        store.CommandStore
-	pluginInstanceStore store.PluginInstanceStore
-	commandManager      *command.CommandManager
-	maxAppsPerUser      int
+	appStore       store.AppStore
+	userStore      store.UserStore
+	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
 }
@@ -30,20 +26,14 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
-	commandStore store.CommandStore,
-	pluginInstanceStore store.PluginInstanceStore,
-	commandManager *command.CommandManager,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
-		appStore:            appStore,
-		userStore:           userStore,
-		commandStore:        commandStore,
-		pluginInstanceStore: pluginInstanceStore,
-		commandManager:      commandManager,
-		maxAppsPerUser:      maxAppsPerUser,
-		tokenCrypt:          tokenCrypt,
+		appStore:       appStore,
+		userStore:      userStore,
+		maxAppsPerUser: maxAppsPerUser,
+		tokenCrypt:     tokenCrypt,
 	}
 }
 
@@ -53,9 +43,12 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 		return nil, fmt.Errorf("failed to get apps: %w", err)
 	}
 
-	res := make([]*wire.App, len(apps))
-	for i, app := range apps {
-		res[i] = wire.AppToWire(app)
+	res := make([]*wire.App, 0, len(apps))
+	for _, app := range apps {
+		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+			continue
+		}
+		res = append(res, wire.AppToWire(app))
 	}
 
 	return &res, nil
@@ -80,12 +73,10 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
-	// TODO: existingApp, err := h.appStore.AppByDiscordID()
-
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -101,18 +92,22 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	}
 
 	app, err := h.appStore.CreateApp(c.Context(), &model.App{
-		ID:            util.UniqueID(),
-		Name:          appInfo.Name,
-		Description:   appInfo.Description,
-		Enabled:       true,
-		OwnerUserID:   c.Session.UserID,
-		CreatorUserID: c.Session.UserID,
-		DiscordToken:  encryptedToken,
-		DiscordID:     appInfo.ID,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:               util.UniqueID(),
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		Enabled:          true,
+		OwnerUserID:      c.Session.UserID,
+		CreatorUserID:    c.Session.UserID,
+		DiscordToken:     encryptedToken,
+		DiscordID:        appInfo.ID,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. If it's yours, open it from your apps and update its token in the settings. Otherwise ask the person who added it to invite you.")
+		}
 		slog.Error(
 			"Failed to create app",
 			slog.String("discord_id", appInfo.ID),
@@ -125,6 +120,12 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	if req.Enabled && !c.App.Enabled {
+		if err := h.checkOwnerNotBanned(c); err != nil {
+			return nil, err
+		}
+	}
+
 	disabledReason := c.App.DisabledReason
 	if req.Enabled {
 		disabledReason = null.String{}
@@ -142,6 +143,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
+	if req.Enabled && !c.App.Enabled {
+		h.retryFailedCommandsDeploy(c)
 	}
 
 	if req.Name != c.App.Name || req.Description != c.App.Description {
@@ -212,7 +217,21 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 	return wire.AppToWire(app), nil
 }
 
+func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.AppCreditNoticesUpdateRequest) (*wire.AppCreditNoticesUpdateResponse, error) {
+	app, err := h.appStore.UpdateAppCreditNotices(c.Context(), c.App.ID, req.Enabled, time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app credit notices: %w", err)
+	}
+
+	return wire.AppToWire(app), nil
+}
+
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
+	// A new token starts the app.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
@@ -228,7 +247,7 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return h.changeDiscordApp(c, req, appInfo)
+		return h.switchDiscordApp(c, req, appInfo)
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
@@ -237,13 +256,14 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:             c.App.ID,
-		Name:           c.App.Name,
-		Description:    c.App.Description,
-		DiscordToken:   encryptedToken,
-		DiscordStatus:  c.App.DiscordStatus,
+		ID:            c.App.ID,
+		Name:          c.App.Name,
+		Description:   c.App.Description,
+		DiscordToken:  encryptedToken,
+		DiscordStatus: c.App.DiscordStatus,
+		// A new token starts the app and resets why it was stopped.
 		Enabled:        true,
-		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated
+		DisabledReason: null.String{},
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
@@ -255,28 +275,36 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
+	h.retryFailedCommandsDeploy(c)
+
 	return wire.AppToWire(app), nil
 }
 
-// changeDiscordApp moves the app to the Discord app the new token belongs to.
-// Everything stored in Kite stays, but the commands have to be deployed to the
-// new Discord app, and anything tied to the old one (servers, emojis) doesn't
-// carry over.
-func (h *AppHandler) changeDiscordApp(c *handler.Context, req wire.AppTokenUpdateRequest, appInfo *DiscordAppInfo) (*wire.AppTokenUpdateResponse, error) {
+// checkOwnerNotBanned refuses to start an app whose owner Kite banned, which
+// its collaborators could otherwise do.
+func (h *AppHandler) checkOwnerNotBanned(c *handler.Context) error {
+	_, err := h.userStore.UserBan(c.Context(), c.App.OwnerUserID, model.UserBanFeatureKite)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get user ban: %w", err)
+	}
+	return handler.ErrForbidden("app_owner_banned", "Kite banned the owner of this app, so it can't be started")
+}
+
+// switchDiscordApp moves the app to the Discord app the token belongs to. The
+// flows stay, but the old bot's servers, emojis and sent messages don't carry
+// over.
+func (h *AppHandler) switchDiscordApp(c *handler.Context, req wire.AppTokenUpdateRequest, appInfo *DiscordAppInfo) (*wire.AppTokenUpdateResponse, error) {
 	if !c.UserAppRole.CanChangeDiscordApp() {
-		return nil, handler.ErrForbidden("missing_permissions", "Only the owner can switch the app to a different Discord app")
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
 	}
-
 	if !req.ChangeApp {
-		return nil, handler.ErrBadRequest("discord_app_changed", fmt.Sprintf("This token belongs to a different Discord app (%s)", appInfo.Name))
-	}
-
-	existingApp, err := h.appStore.AppByDiscordID(c.Context(), appInfo.ID)
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return nil, fmt.Errorf("failed to get app by discord id: %w", err)
-	}
-	if existingApp != nil {
-		return nil, handler.ErrBadRequest("discord_app_in_use", "This Discord app is already used by another app on Kite")
+		// The dashboard asks the owner to confirm, then sends change_app.
+		err := handler.ErrBadRequest("discord_app_changed", fmt.Sprintf("This token belongs to a different bot, %s. Confirm to move the app to it.", appInfo.Name))
+		err.Data = map[string]string{"name": appInfo.Name}
+		return nil, err
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
@@ -284,50 +312,29 @@ func (h *AppHandler) changeDiscordApp(c *handler.Context, req wire.AppTokenUpdat
 		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
 	}
 
-	oldApp := c.App
-
-	app, err := h.appStore.UpdateAppDiscordApp(c.Context(), store.AppDiscordAppUpdateOpts{
-		ID:           c.App.ID,
-		Name:         appInfo.Name,
-		Description:  appInfo.Description,
-		DiscordID:    appInfo.ID,
-		DiscordToken: encryptedToken,
-		UpdatedAt:    time.Now().UTC(),
+	app, err := h.appStore.SwitchAppDiscordApp(c.Context(), store.AppSwitchOpts{
+		ID:               c.App.ID,
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		DiscordID:        appInfo.ID,
+		DiscordToken:     encryptedToken,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		UpdatedAt:        time.Now().UTC(),
 	})
 	if err != nil {
-		slog.Error(
-			"Failed to change discord app",
-			slog.String("app_id", c.App.ID),
-			slog.String("discord_id", appInfo.ID),
-			slog.String("error", err.Error()),
-		)
-		return nil, fmt.Errorf("failed to change discord app: %w", err)
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite as another app. Delete that app first, or switch to a different bot.")
+		}
+		return nil, fmt.Errorf("failed to switch discord app: %w", err)
 	}
 
-	// The new Discord app has none of the commands yet. Mark them as not
-	// deployed first, so they show up as such if deploying below fails.
-	if err := h.commandStore.ResetCommandsLastDeployedAt(c.Context(), app.ID); err != nil {
-		return nil, fmt.Errorf("failed to reset commands last deployed at: %w", err)
-	}
-	if err := h.pluginInstanceStore.ResetPluginInstancesLastDeployedAt(c.Context(), app.ID); err != nil {
-		return nil, fmt.Errorf("failed to reset plugin instances last deployed at: %w", err)
-	}
-
-	if err := h.commandManager.DeployCommandsForApp(c.Context(), app.ID); err != nil {
-		slog.Warn(
-			"Failed to deploy commands after changing discord app",
-			slog.String("app_id", app.ID),
-			slog.String("error", err.Error()),
-		)
-	}
-
-	// Best effort: the old bot would otherwise keep showing commands that no
-	// longer do anything. Its token may already be reset, which is fine.
-	if err := h.clearDiscordAppCommands(c.Context(), oldApp); err != nil {
+	// The old bot would keep showing commands that do nothing. Its token may
+	// already be reset, which is fine.
+	if err := h.clearDiscordAppCommands(c.Context(), c.App); err != nil {
 		slog.Info(
 			"Failed to clear commands of old discord app",
 			slog.String("app_id", app.ID),
-			slog.String("discord_id", oldApp.DiscordID),
+			slog.String("discord_id", c.App.DiscordID),
 			slog.String("error", err.Error()),
 		)
 	}

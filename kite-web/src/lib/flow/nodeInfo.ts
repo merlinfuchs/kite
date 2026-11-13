@@ -1,5 +1,5 @@
-import { JsonSchema7Type } from "zod-to-json-schema";
-import { toJsonSchema } from "./catalog";
+import { resultJsonSchema, toJsonSchema } from "./catalog";
+import { inlineTypeJsonSchema, JsonSchema } from "./expressionTypes";
 import { getNodeCreditsCost, getNodeValues } from "./nodes";
 
 export type NodeInfo = {
@@ -7,8 +7,8 @@ export type NodeInfo = {
   description: string;
   color: string;
   icon: string;
-  dataSchema: JsonSchema7Type | null;
-  resultSchema: JsonSchema7Type | null;
+  dataSchema: JsonSchema | null;
+  resultSchema: JsonSchema | null;
   dataFields: string[];
   creditsCost: number | null;
 };
@@ -23,8 +23,8 @@ export function getNodeInfo(nodeType: string): NodeInfo {
     color: values.color,
     icon: values.icon,
     dataSchema: values.dataSchema ? toJsonSchema(values.dataSchema) : null,
-    resultSchema: values.resultSchema
-      ? toJsonSchema(values.resultSchema)
+    resultSchema: values.result
+      ? resultJsonSchema(values.result, inlineTypeJsonSchema)
       : null,
     dataFields: values.dataFields,
     creditsCost: getNodeCreditsCost(values, {}) ?? null,

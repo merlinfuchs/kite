@@ -1,4 +1,5 @@
 import { z } from "zod";
+import "../zodConfig";
 import { getUniqueId } from "@/lib/utils";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
@@ -171,7 +172,15 @@ export const embedTimestampSchema = z.optional(z.string());
 
 export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
-export const embedColor = z.optional(z.number().max(16777215));
+// A color with placeholders, like {{arg('color')}}, that flows fill in.
+// Messages sent without a flow leave it out.
+const colorTemplateSchema = z
+  .string()
+  .regex(VARIABLE_RE, "Must be a placeholder like {{arg('color')}}");
+
+export const embedColor = z.optional(
+  z.union([z.number().max(16777215), colorTemplateSchema])
+);
 
 export type EmbedColor = z.infer<typeof embedColor>;
 
@@ -182,6 +191,7 @@ export const embedSchema = z
     description: embedDescriptionSchema,
     url: embedUrlSchema,
     timestamp: embedTimestampSchema,
+    timestamp_now: z.optional(z.boolean()),
     color: embedColor,
     footer: embedFooterSchema,
     author: embedAuthorSchema,
@@ -476,7 +486,9 @@ export const containerSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(17),
   components: z.array(containerChildSchema).min(1),
-  accent_color: z.optional(z.number().int().min(0).max(0xffffff)),
+  accent_color: z.optional(
+    z.union([z.number().int().min(0).max(0xffffff), colorTemplateSchema])
+  ),
   spoiler: z.optional(z.boolean()),
 });
 
@@ -572,6 +584,39 @@ function countComponents(components: unknown[]): {
   return { count, text };
 }
 
+// Discord's limit for the text of all embeds of a message together.
+export const MAX_EMBEDS_TEXT = 6000;
+
+const VARIABLE_RE_GLOBAL = new RegExp(VARIABLE_RE.source, "g");
+
+/**
+ * The length of the text Discord counts towards MAX_EMBEDS_TEXT, without
+ * placeholders. They're only filled in when the message is sent, so this is
+ * the least the message can come to.
+ */
+export function embedsTextLength(
+  embeds: {
+    title?: string;
+    description?: string;
+    footer?: { text?: string };
+    author?: { name?: string };
+    fields?: { name?: string; value?: string }[];
+  }[]
+): number {
+  const len = (s: string | undefined) =>
+    s ? s.replace(VARIABLE_RE_GLOBAL, "").length : 0;
+
+  let total = 0;
+  for (const embed of embeds) {
+    total += len(embed.title) + len(embed.description);
+    total += len(embed.footer?.text) + len(embed.author?.name);
+    for (const field of embed.fields ?? []) {
+      total += len(field.name) + len(field.value);
+    }
+  }
+  return total;
+}
+
 export const messageSchema = z
   .object({
     content: messageContentSchema.default(""),
@@ -630,6 +675,14 @@ export const messageSchema = z
         });
       }
     });
+
+    if (embedsTextLength(data.embeds) > MAX_EMBEDS_TEXT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["embeds"],
+        message: `Text across all embeds can be at most ${MAX_EMBEDS_TEXT} characters`,
+      });
+    }
 
     // this currently doesn't take attachments into account
     if (!data.content && !data.embeds.length && !data.components.length) {

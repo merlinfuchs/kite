@@ -17,8 +17,8 @@ import {
   MailPlusIcon,
   RefreshCwIcon,
   SatelliteDishIcon,
-  SquareSlash,
   SquareSlashIcon,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,10 +41,17 @@ import { useLogEntriesQuery } from "@/lib/api/queries";
 import { useAppEntities, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { LogEntry } from "@/lib/types/wire.gen";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import LogLevelBadge from "./LogLevelBadge";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
+
+const entityKinds: Record<string, { path: string; icon: LucideIcon }> = {
+  command: { path: "commands", icon: SquareSlashIcon },
+  event_listener: { path: "events", icon: SatelliteDishIcon },
+  message: { path: "messages", icon: MailPlusIcon },
+};
 
 // Leaves more room for the message on phones.
 const hiddenOnMobile = (columnId: string) =>
@@ -77,7 +84,7 @@ export const columns: ColumnDef<{
 
     cell: function SourceCell({ row }) {
       const sourceID = row.getValue<string>("source_id");
-
+      const appId = useAppId();
       const entities = useAppEntities();
 
       const entity = useMemo(() => {
@@ -87,19 +94,17 @@ export const columns: ColumnDef<{
 
       if (!entity) return null;
 
+      const kind = entityKinds[entity.type];
+      if (!kind) return null;
+
       return (
-        <div className="flex items-center gap-1.5 text-foreground/80">
-          {entity.type === "command" ? (
-            <SquareSlashIcon className="h-4 w-4" />
-          ) : entity.type === "event_listener" ? (
-            <SatelliteDishIcon className="h-4 w-4" />
-          ) : entity.type === "message" ? (
-            <MailPlusIcon className="h-4 w-4" />
-          ) : (
-            <SquareSlash className="h-4 w-4" />
-          )}
-          <div>{entity?.name ?? sourceID}</div>
-        </div>
+        <Link
+          href={`/apps/${appId}/${kind.path}/${entity.id}`}
+          className="inline-flex items-center gap-1.5 text-foreground/80 hover:text-foreground hover:underline"
+        >
+          <kind.icon className="h-4 w-4 flex-none" />
+          <div>{entity.name}</div>
+        </Link>
       );
     },
   },
@@ -111,9 +116,9 @@ export const columns: ColumnDef<{
 
       let formatted: string;
       if (date.getDay() === new Date().getDay()) {
-        formatted = date.toLocaleTimeString("en-US");
+        formatted = date.toLocaleTimeString();
       } else {
-        formatted = date.toLocaleString("en-US");
+        formatted = date.toLocaleString();
       }
 
       return (

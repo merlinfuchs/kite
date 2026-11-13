@@ -1,6 +1,11 @@
 import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
-import { copyFlowNodes, parseFlowClipboard, pasteFlowNodes } from "./clipboard";
+import {
+  copyFlowNodes,
+  duplicateFlowNodes,
+  parseFlowClipboard,
+  pasteFlowNodes,
+} from "./clipboard";
 import { NodeData } from "./dataSchema";
 
 function node(
@@ -121,5 +126,90 @@ describe("parseFlowClipboard", () => {
     expect(parseFlowClipboard(JSON.stringify(clipboard))).toEqual(clipboard);
     expect(parseFlowClipboard("hello")).toBeNull();
     expect(parseFlowClipboard('{"nodes": []}')).toBeNull();
+  });
+});
+
+describe("duplicateFlowNodes", () => {
+  it("copies the block with the blocks it owns, but not what follows", () => {
+    const nodes = [
+      node("cond", "control_condition_compare", false, {
+        condition_base_value: "a",
+      }),
+      node("item", "control_condition_item_compare"),
+      node("else", "control_condition_item_else"),
+      node("after", "action_log"),
+    ];
+    const edges = [
+      edge("cond", "item", "fixed"),
+      edge("cond", "else", "fixed"),
+      edge("item", "after"),
+    ];
+
+    const [newNodes, newEdges] = duplicateFlowNodes(["cond"], nodes, edges);
+
+    expect(newNodes.map((n) => n.type).sort()).toEqual([
+      "control_condition_compare",
+      "control_condition_item_compare",
+      "control_condition_item_else",
+    ]);
+    expect(newEdges).toHaveLength(2);
+    expect(newNodes[0].data).not.toBe(nodes[0].data);
+    expect(newNodes[0].data).toEqual({ condition_base_value: "a" });
+  });
+
+  it("connects a copied condition item to its condition", () => {
+    const nodes = [
+      node("cond", "control_condition_compare"),
+      node("item", "control_condition_item_compare", false, {
+        condition_item_mode: "equal",
+      }),
+      node("else", "control_condition_item_else"),
+      node("after", "action_log"),
+    ];
+    const edges = [
+      edge("cond", "item", "fixed"),
+      edge("cond", "else", "fixed"),
+      edge("item", "after"),
+    ];
+
+    const [newNodes, newEdges] = duplicateFlowNodes(["item"], nodes, edges);
+
+    expect(newNodes).toHaveLength(1);
+    expect(newNodes[0].type).toBe("control_condition_item_compare");
+    expect(newNodes[0].id).not.toBe("item");
+    expect(newEdges).toHaveLength(1);
+    expect(newEdges[0]).toMatchObject({
+      source: "cond",
+      target: newNodes[0].id,
+      type: "fixed",
+    });
+  });
+
+  it("doesn't connect a copied block that isn't owned", () => {
+    const nodes = [node("a", "action_log"), node("b", "action_log")];
+    const edges = [edge("a", "b")];
+
+    const [newNodes, newEdges] = duplicateFlowNodes(["b"], nodes, edges);
+
+    expect(newNodes).toHaveLength(1);
+    expect(newEdges).toHaveLength(0);
+  });
+
+  it("copies several blocks with the wires between them", () => {
+    const nodes = [
+      node("a", "action_log"),
+      node("b", "action_log"),
+      node("c", "action_log"),
+    ];
+    const edges = [edge("a", "b"), edge("b", "c")];
+
+    const [newNodes, newEdges] = duplicateFlowNodes(["a", "b"], nodes, edges);
+
+    expect(newNodes).toHaveLength(2);
+    expect(newEdges).toHaveLength(1);
+    expect(newEdges[0]).toMatchObject({
+      source: newNodes[0].id,
+      target: newNodes[1].id,
+    });
   });
 });

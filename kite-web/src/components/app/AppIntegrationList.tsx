@@ -34,6 +34,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
+import { track } from "@/lib/analytics";
 
 export default function AppIntegrationList() {
   const states = useAppIntegrations();
@@ -80,6 +81,10 @@ function AppIntegrationEntry({
             toast.error(
               `Failed to update ${integration.name}: ${res.error.message} (${res.error.code})`
             );
+            return;
+          }
+          if (enabled) {
+            track("integration_enabled", { integration: integration.id });
           }
         },
       }
@@ -149,6 +154,13 @@ function AppIntegrationEntry({
               {connectedAt ? "Replace key" : "Enable"}
             </Button>
           </AppIntegrationConnectDialog>
+          {state?.authorize_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={state.authorize_url} target="_blank">
+                Authorize Kite
+              </a>
+            </Button>
+          )}
           {connectedAt && (
             <ConfirmDialog
               title={`Remove ${integration.name}?`}
@@ -163,6 +175,72 @@ function AppIntegrationEntry({
         </CardFooter>
       )}
     </Card>
+  );
+}
+
+// Enables an integration that isn't enabled, by entering its key if it needs
+// one. The link variant is underlined text, for inside other text like on a
+// block.
+export function AppIntegrationEnableButton({
+  integration,
+  variant = "button",
+  label = "Enable",
+}: {
+  integration: Integration;
+  variant?: "button" | "link";
+  label?: string;
+}) {
+  const updateMutation = useAppIntegrationUpdateMutation(
+    useAppId(),
+    integration.id
+  );
+
+  const link = (onClick?: () => void) => (
+    <button
+      type="button"
+      className="underline"
+      onClick={onClick}
+      disabled={updateMutation.isPending}
+    >
+      {label}
+    </button>
+  );
+
+  if (needsCredential(integration)) {
+    return (
+      <AppIntegrationConnectDialog integration={integration} replace={false}>
+        {variant === "link" ? link() : <Button size="sm">{label}</Button>}
+      </AppIntegrationConnectDialog>
+    );
+  }
+
+  function enable() {
+    updateMutation.mutate(
+      { enabled: true },
+      {
+        onSuccess(res) {
+          if (res.success) {
+            track("integration_enabled", { integration: integration.id });
+          } else {
+            toast.error(
+              `Failed to enable ${integration.name}: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }
+
+  if (variant === "link") return link(enable);
+
+  return (
+    <LoadingButton
+      size="sm"
+      onClick={enable}
+      loading={updateMutation.isPending}
+    >
+      {label}
+    </LoadingButton>
   );
 }
 
@@ -191,6 +269,9 @@ function AppIntegrationConnectDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            if (!replace) {
+              track("integration_enabled", { integration: integration.id });
+            }
             toast.success(
               replace
                 ? `${integration.name} key replaced`
@@ -239,6 +320,35 @@ function AppIntegrationConnectDialog({
             )}
           </DialogDescription>
         </DialogHeader>
+        {!replace && integration.data_shared && (
+          <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+            {integration.data_shared}
+            {integration.privacy_url && (
+              <>
+                {" "}
+                <a
+                  href={integration.privacy_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Privacy policy
+                </a>
+              </>
+            )}
+            {integration.terms_url && (
+              <>
+                {" · "}
+                <a
+                  href={integration.terms_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Terms
+                </a>
+              </>
+            )}
+          </div>
+        )}
         <Input
           type="password"
           autoComplete="off"

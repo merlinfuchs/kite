@@ -5,10 +5,11 @@ import { BlockDefinition } from "./types";
 
 export const variableSet: BlockDefinition = {
   type: "action_variable_set",
+  id_prefix: "variable",
   title: "Set stored variable",
   description: "Set the value of a stored variable",
   icon: "variable",
-  category: "Stored Variables",
+  category: "Stored variables",
   credits: 1,
   fields: [
     ...variableSettings,
@@ -17,7 +18,7 @@ export const variableSet: BlockDefinition = {
       schema: z
         .enum(["overwrite", "append", "prepend", "increment", "decrement"])
         .describe(
-          "How the value is combined with the stored one. increment and decrement add or subtract a number."
+          "How the value is combined with the stored one. increment and decrement add or subtract a number. append and prepend add text to the end or start, or the value as one item to a stored list."
         ),
     },
     {

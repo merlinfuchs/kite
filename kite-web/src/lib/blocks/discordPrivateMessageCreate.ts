@@ -4,11 +4,11 @@ import {
   messageTemplateField,
   requireMessage,
 } from "./fields";
-import { nodeActionPrivateMessageCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordPrivateMessageCreate: BlockDefinition = {
   type: "action_private_message_create",
+  id_prefix: "dm",
   title: "Send direct message",
   description: "Bot sends a private message to a user if the user allows it",
   icon: "message-circle-plus",
@@ -25,6 +25,6 @@ export const discordPrivateMessageCreate: BlockDefinition = {
     messageTemplateField,
   ],
   refine: requireMessage,
-  result: { schema: nodeActionPrivateMessageCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

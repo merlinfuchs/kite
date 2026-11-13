@@ -25,6 +25,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { Switch } from "../ui/switch";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -61,7 +62,8 @@ export default function VariableCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
-            toast.success("Variable created!");
+            track("variable_created", { scoped: data.scoped });
+            toast.success("Variable created.");
             setOpen(false);
 
             if (onVariableCreated) {
@@ -86,7 +88,7 @@ export default function VariableCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Variable</DialogTitle>
+          <DialogTitle>Create variable</DialogTitle>
           <DialogDescription>
             Create a new variable of a specific type.
           </DialogDescription>

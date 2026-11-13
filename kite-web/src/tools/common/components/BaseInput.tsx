@@ -50,6 +50,8 @@ export type BaseInputProps = {
       type: "date";
       value: string | undefined;
       onChange: (value: string | undefined) => void;
+      now?: boolean;
+      onNowChange?: (now: boolean) => void;
     }
 );
 
@@ -115,7 +117,12 @@ export default function BaseInput(props: BaseInputProps) {
         ) : type === "color" ? (
           <ColorPicker value={value} onChange={onChange} />
         ) : type === "date" ? (
-          <DatePicker value={value} onChange={onChange} />
+          <DatePicker
+            value={value}
+            onChange={onChange}
+            now={props.now}
+            onNowChange={props.onNowChange}
+          />
         ) : null}
       </div>
       {error && (

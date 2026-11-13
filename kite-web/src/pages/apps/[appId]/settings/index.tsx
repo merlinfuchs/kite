@@ -7,29 +7,37 @@ import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 import { Separator } from "@/components/ui/separator";
+import env from "@/lib/env/client";
 
 const breadcrumbs = [
   {
-    label: "App Settings",
+    label: "App settings",
   },
 ];
 
 export default function AppSettingsPage() {
   return (
-    <AppLayout title="App Settings" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App settings" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end space-y-5 md:space-y-0">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
-            App Settings
+            App settings
           </h1>
           <p className="text-muted-foreground text-sm">
             Configure your app settings here. This is where you can manage your
-            collaborators and other app settings.
+            collaborators and other app settings.{" "}
+            <a
+              href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#settings`}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Learn more
+            </a>
           </p>
         </div>
       </div>
       <Separator className="my-8" />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <AppSettingsControls />
         <AppSettingsAppearance />
         <AppSettingsPresence />

@@ -23,13 +23,18 @@ type Plan struct {
 	MaxEventListeners          int     `json:"feature_max_event_listeners"`
 	MaxScheduledEventListeners int     `json:"feature_max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int     `json:"feature_min_schedule_interval_seconds"`
+	MaxWebhookEventListeners   int     `json:"feature_max_webhook_event_listeners"`
 	MaxAIPromptsPerMonth       int     `json:"feature_max_ai_prompts_per_month"`
 	PrioritySupport            bool    `json:"feature_priority_support"`
 	RotatingStatus             bool    `json:"feature_rotating_status"`
+	AnimatedProfile            bool    `json:"feature_animated_profile"`
+	VoiceAudio                 bool    `json:"feature_voice_audio"`
+	ServerProfiles             bool    `json:"feature_server_profiles"`
+	Personas                   bool    `json:"feature_personas"`
 }
 
-// FetchPlans gets the plans from the Kite API, the same ones the Premium page
-// of the dashboard shows.
+// FetchPlans gets the plans from the Kite API, the same ones the Plans page of
+// the dashboard shows.
 func FetchPlans(ctx context.Context, url string) ([]Plan, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -69,7 +74,7 @@ func FetchPlans(ctx context.Context, url string) ([]Plan, error) {
 
 func FormatPlans(plans []Plan) string {
 	var b strings.Builder
-	b.WriteString("=== Plans\nThe current plans and their limits per app, as shown on the Premium page of each app.\n")
+	b.WriteString("=== Plans\nThe current plans and their limits per app, as shown on the Plans page of each app. Basic is the free plan.\n")
 	for _, p := range plans {
 		price := "free"
 		if p.Price > 0 {
@@ -79,10 +84,15 @@ func FormatPlans(plans []Plan) string {
 		fmt.Fprintf(&b, "- Credits per month: %d\n", p.UsageCreditsPerMonth)
 		fmt.Fprintf(&b, "- Commands: %s, stored variables: %s, message templates: %s, event listeners: %s\n", limit(p.MaxCommands), limit(p.MaxVariables), limit(p.MaxMessages), limit(p.MaxEventListeners))
 		fmt.Fprintf(&b, "- Scheduled event listeners: %s, running at most every %s\n", limit(p.MaxScheduledEventListeners), formatInterval(p.MinScheduleIntervalSeconds))
+		fmt.Fprintf(&b, "- Webhook event listeners: %s\n", limit(p.MaxWebhookEventListeners))
 		fmt.Fprintf(&b, "- Servers: %d\n", p.MaxGuilds)
 		fmt.Fprintf(&b, "- Collaborators, including the owner: %s\n", limit(p.MaxCollaborators))
 		fmt.Fprintf(&b, "- Flow AI prompts per month: %d\n", p.MaxAIPromptsPerMonth)
 		fmt.Fprintf(&b, "- Rotating status and Set status block: %s\n", yesNo(p.RotatingStatus))
+		fmt.Fprintf(&b, "- Animated avatar and banner: %s\n", yesNo(p.AnimatedProfile))
+		fmt.Fprintf(&b, "- Play audio block: %s\n", yesNo(p.VoiceAudio))
+		fmt.Fprintf(&b, "- Profile per server and Edit server profile block: %s\n", yesNo(p.ServerProfiles))
+		fmt.Fprintf(&b, "- Send message as block: %s\n", yesNo(p.Personas))
 		fmt.Fprintf(&b, "- Priority support: %s\n", yesNo(p.PrioritySupport))
 	}
 	return b.String()

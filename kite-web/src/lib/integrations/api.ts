@@ -8,6 +8,8 @@ export interface ApiParam {
   // snowflake, integer, number, boolean, array or string
   type: string;
   required: boolean;
+  // The values the parameter can have, if they're limited.
+  enum?: string[];
 }
 
 export interface ApiOperation {
@@ -15,12 +17,19 @@ export interface ApiOperation {
   id: string;
   method: string;
   path: string;
+  // Credits each request costs, from request blocks and from code.
+  credits: number;
   path_params: ApiParam[];
   query_params: ApiParam[];
   has_body: boolean;
   // Top-level properties of a JSON object body. Missing for bodies that are
   // lists or unions.
   body_params?: ApiParam[];
+  // Discord only: the endpoint acts on the interaction the flow runs with, and
+  // the service fills in {application_id} and {interaction_token} of its path.
+  interaction?: boolean;
+  // Discord only: MCP clients can't call it, only flows.
+  flow_only?: boolean;
 }
 
 export interface IntegrationApi {
@@ -28,4 +37,10 @@ export interface IntegrationApi {
   // that they're written by hand.
   source: string;
   operations: ApiOperation[];
+}
+
+// create_message -> Create message
+export function operationLabel(id: string) {
+  const words = id.replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

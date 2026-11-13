@@ -12,7 +12,7 @@ import {
   useResponseData,
   useUsageCredits,
 } from "@/lib/hooks/api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatNumber } from "@/lib/utils";
 import { CopyIcon } from "lucide-react";
 import { useCallback } from "react";
 import { Badge } from "../ui/badge";
@@ -37,7 +37,7 @@ export default function AppInfoCard() {
       <CardHeader className="flex flex-row items-start bg-muted/50">
         <div className="grid gap-0.5">
           <CardTitle className="text-lg">
-            {app?.name || "Unknown App"}
+            {app?.name || "Unknown app"}
           </CardTitle>
           <CardDescription className="group flex items-center gap-2">
             {app?.id}
@@ -49,7 +49,7 @@ export default function AppInfoCard() {
               onClick={copyAppId}
             >
               <CopyIcon className="h-3 w-3" />
-              <span className="sr-only">Copy App ID</span>
+              <span className="sr-only">Copy app ID</span>
             </Button>
           </CardDescription>
         </div>
@@ -59,28 +59,28 @@ export default function AppInfoCard() {
       </CardHeader>
       <CardContent className="p-6 text-sm">
         <div className="grid gap-3">
-          <div className="font-semibold">App Details</div>
+          <div className="font-semibold">App details</div>
           <ul className="grid gap-3">
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Created At</span>
+              <span className="text-muted-foreground">Created at</span>
               <span>{app ? formatDate(new Date(app.created_at)) : null}</span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Last Updated At</span>
+              <span className="text-muted-foreground">Last updated at</span>
               <span>{app ? formatDate(new Date(app.updated_at)) : null}</span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Owned By</span>
+              <span className="text-muted-foreground">Owned by</span>
               <span>
                 {ownerUser ? ownerUser.display_name : app?.owner_user_id}
               </span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Discord App ID</span>
+              <span className="text-muted-foreground">Discord app ID</span>
               <span>{app?.discord_id}</span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">App Status</span>
+              <span className="text-muted-foreground">App status</span>
               <span>
                 {appStatus === undefined
                   ? "-"
@@ -89,11 +89,25 @@ export default function AppInfoCard() {
                   : "Offline"}
               </span>
             </li>
+            <li
+              className="flex items-center justify-between"
+              title="Approximate count from Discord, updated daily"
+            >
+              <span className="text-muted-foreground">Servers</span>
+              <span>{formatInstallCount(app?.discord_guild_count)}</span>
+            </li>
+            <li
+              className="flex items-center justify-between"
+              title="Approximate count from Discord, updated daily"
+            >
+              <span className="text-muted-foreground">User installs</span>
+              <span>{formatInstallCount(app?.discord_user_install_count)}</span>
+            </li>
           </ul>
         </div>
         <Separator className="my-4" />
         <div className="grid gap-3">
-          <div className="font-semibold">Subscription Plan</div>
+          <div className="font-semibold">Subscription plan</div>
           <div>
             <Badge className="px-3 py-1">{plan?.title ?? "-"}</Badge>
           </div>
@@ -101,4 +115,8 @@ export default function AppInfoCard() {
       </CardContent>
     </Card>
   );
+}
+
+function formatInstallCount(count: number | null | undefined) {
+  return count == null ? "-" : formatNumber(count);
 }

@@ -137,7 +137,7 @@ func (q *Queries) DeleteAssistantPrompt(ctx context.Context, arg DeleteAssistant
 }
 
 const getAssistantPrompt = `-- name: GetAssistantPrompt :one
-SELECT id, app_id, user_id, model, prompt, rounds, edited, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at FROM assistant_prompts WHERE id = $1 AND app_id = $2
+SELECT id, app_id, user_id, model, prompt, rounds, edited, input_tokens, cached_input_tokens, output_tokens, created_at, updated_at, refusal_chance FROM assistant_prompts WHERE id = $1 AND app_id = $2
 `
 
 type GetAssistantPromptParams struct {
@@ -161,8 +161,36 @@ func (q *Queries) GetAssistantPrompt(ctx context.Context, arg GetAssistantPrompt
 		&i.OutputTokens,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RefusalChance,
 	)
 	return i, err
+}
+
+const refuseAssistantPrompt = `-- name: RefuseAssistantPrompt :exec
+UPDATE assistant_prompts SET
+    edited = edited AND $1,
+    refusal_chance = $2,
+    updated_at = $3
+WHERE id = $4 AND app_id = $5
+`
+
+type RefuseAssistantPromptParams struct {
+	Edited        bool
+	RefusalChance pgtype.Float4
+	UpdatedAt     pgtype.Timestamp
+	ID            string
+	AppID         string
+}
+
+func (q *Queries) RefuseAssistantPrompt(ctx context.Context, arg RefuseAssistantPromptParams) error {
+	_, err := q.db.Exec(ctx, refuseAssistantPrompt,
+		arg.Edited,
+		arg.RefusalChance,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.AppID,
+	)
+	return err
 }
 
 const startAssistantPromptRound = `-- name: StartAssistantPromptRound :execrows

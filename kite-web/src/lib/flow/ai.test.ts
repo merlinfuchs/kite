@@ -1,8 +1,8 @@
 import { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowAIChatRequest, FlowAIChatResponse } from "../types/wire.gen";
-import { composeFieldAnswers, runFlowAIPrompt } from "./ai";
-import { testNode } from "./testUtils";
+import { composeFieldAnswers, diffFlow, runFlowAIPrompt } from "./ai";
+import { testEdge, testNode } from "./testUtils";
 
 const entry = testNode("entry", "entry_command", {
   name: "test",
@@ -14,6 +14,7 @@ const usage = {
   prompts_limit: 30,
   answers_used: 1,
   answers_limit: 90,
+  format: "edits",
 };
 const logData = { log_level: "info", log_message: "hi" };
 
@@ -36,8 +37,10 @@ function fakeAPI(
         prompt_id: "p1",
         message: requests.length === 1 ? "Added a log." : "",
         build_prompt: "",
+        template_id: "",
         fields: [],
         edits: typeof round === "function" ? round(req) : round,
+        code: "",
         usage,
       },
     };
@@ -69,6 +72,43 @@ const addLog: Edits = [
 ];
 
 describe("runFlowAIPrompt", () => {
+  it("sends the flow as code and applies code", async () => {
+    const requests: FlowAIChatRequest[] = [];
+    const editor = { flow: { nodes: [entry], edges: [] as Edge[] } };
+    const res = await runFlowAIPrompt({
+      context: "command",
+      messages: [{ role: "user", content: "Add a log" }],
+      getFlow: () => editor.flow,
+      applyFlow: (flow) => (editor.flow = flow),
+      format: "code",
+      send: async (req) => {
+        requests.push(req);
+        return {
+          success: true as const,
+          data: {
+            prompt_id: "p1",
+            message: "Added a log.",
+            build_prompt: "",
+            template_id: "",
+            fields: [],
+            edits: [],
+            code: `entry_command({ $id: "entry", name: "test", description: "Test" }, [
+              action_log({ $id: "log", log_level: "info", log_message: "hi" }),
+            ])`,
+            usage,
+          },
+        };
+      },
+    });
+    expect(requests[0].format).toBe("code");
+    expect(requests[0].flow).toContain('entry_command({ $id: "entry"');
+    expect(res.issues).toEqual([]);
+    expect(res.changedNodeIds).toEqual(["log"]);
+    expect(editor.flow.edges.map((e) => `${e.source}->${e.target}`)).toEqual([
+      "entry->log",
+    ]);
+  });
+
   it("sends the problems with the edits back to be fixed", async () => {
     const api = fakeAPI([
       addLog,
@@ -287,5 +327,51 @@ describe("composeFieldAnswers", () => {
       )
     ).toBe("- Channel: #logs (channel ID 1)\n- Role: Mod");
     expect(composeFieldAnswers([field("Channel")], [""])).toBe("");
+  });
+});
+
+describe("diffFlow", () => {
+  it("finds added, changed and removed blocks", () => {
+    const log = testNode("log", "action_log", logData);
+    const old = testNode("old", "action_log", logData);
+    const before = {
+      nodes: [entry, log, old],
+      edges: [testEdge("entry", "old")],
+    };
+    const changedLog = { ...log, data: { ...logData, log_message: "bye" } };
+    const added = testNode("new", "action_log", logData);
+    const after = {
+      nodes: [entry, changedLog, added],
+      edges: [testEdge("entry", "new")],
+    };
+
+    const changes = diffFlow(before, after)!;
+
+    expect(changes.added.map((n) => n.id)).toEqual(["new"]);
+    expect(changes.changed.map((n) => n.id)).toEqual(["log"]);
+    expect(changes.removed.map((n) => n.id)).toEqual(["old"]);
+  });
+
+  it("leaves out moved and selected blocks", () => {
+    const log = testNode("log", "action_log", logData);
+    const before = { nodes: [entry, log], edges: [testEdge("entry", "log")] };
+    const after = {
+      nodes: [entry, { ...log, position: { x: 50, y: 50 }, selected: true }],
+      edges: [{ ...testEdge("entry", "log"), id: "other", selected: true }],
+    };
+
+    expect(diffFlow(before, after)).toBeUndefined();
+  });
+
+  it("finds changed connections", () => {
+    const log = testNode("log", "action_log", logData);
+    const before = { nodes: [entry, log], edges: [testEdge("entry", "log")] };
+    const after = { nodes: [entry, log], edges: [] };
+
+    expect(diffFlow(before, after)).toEqual({
+      added: [],
+      changed: [],
+      removed: [],
+    });
   });
 });

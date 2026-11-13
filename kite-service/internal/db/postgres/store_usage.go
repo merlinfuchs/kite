@@ -131,3 +131,7 @@ func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 		CreatedAt:       row.CreatedAt.Time,
 	}
 }
+
+func (c *Client) HasAppUsage(ctx context.Context, appID string) (bool, error) {
+	return c.Q.HasAppUsage(ctx, appID)
+}

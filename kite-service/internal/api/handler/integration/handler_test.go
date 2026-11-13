@@ -103,7 +103,8 @@ func (rt *roundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 // newHandler returns a handler whose credential checks get the given status,
-// with test_api as an integration that needs a key.
+// with test_api as an integration that needs a key, and test_lookup as one
+// that's enabled until the app turns it off.
 func newHandler(t *testing.T, s *memoryStore, status int) (*IntegrationHandler, *roundTripper) {
 	t.Cleanup(flow.AddIntegration(flow.Integration{
 		ID:           "test_api",
@@ -112,6 +113,13 @@ func newHandler(t *testing.T, s *memoryStore, status int) (*IntegrationHandler, 
 		Auth:         flow.IntegrationAuth{Type: "header", Name: "Authorization", Label: "API key"},
 		Availability: flow.AvailabilityOptIn,
 		TestPath:     "/check",
+	}))
+	t.Cleanup(flow.AddIntegration(flow.Integration{
+		ID:           "test_lookup",
+		Name:         "Test Lookup",
+		BaseURL:      "https://lookup.example.com",
+		Auth:         flow.IntegrationAuth{Type: "none"},
+		Availability: flow.AvailabilityDefault,
 	}))
 
 	crypt, err := util.NewSymmetricCrypt(strings.Repeat("ab", 32))
@@ -181,6 +189,17 @@ func TestConnectRejectsRefusedCredential(t *testing.T) {
 	assert.Empty(t, s.integrations)
 }
 
+// A rate limit says nothing about the credential, so it isn't saved.
+func TestConnectRateLimited(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusTooManyRequests)
+
+	res := serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "rate_limited", res.error["code"])
+	assert.Empty(t, s.credentials)
+}
+
 func TestConnectIntegrationWithoutCredential(t *testing.T) {
 	h, _ := newHandler(t, newMemoryStore(), http.StatusOK)
 
@@ -196,12 +215,12 @@ func TestUpdateIntegration(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusOK)
 
-	res := serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`)
+	res := serve(t, h, http.MethodPatch, "/integrations/test_lookup", `{"enabled":false}`)
 	require.Equal(t, http.StatusOK, res.code)
-	assert.False(t, s.integrations["roblox"].Enabled)
+	assert.False(t, s.integrations["test_lookup"].Enabled)
 
 	// A body without the value doesn't disable the integration.
-	res = serve(t, h, http.MethodPatch, "/integrations/roblox", `{}`)
+	res = serve(t, h, http.MethodPatch, "/integrations/test_lookup", `{}`)
 	assert.Equal(t, http.StatusBadRequest, res.code)
 
 	res = serve(t, h, http.MethodPatch, "/integrations/discord", `{"enabled":false}`)
@@ -253,7 +272,7 @@ func TestListIntegrations(t *testing.T) {
 	s := newMemoryStore()
 	h, _ := newHandler(t, s, http.StatusOK)
 	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`).code)
-	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPatch, "/integrations/roblox", `{"enabled":false}`).code)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPatch, "/integrations/test_lookup", `{"enabled":false}`).code)
 
 	res := serve(t, h, http.MethodGet, "/integrations", "")
 	require.Equal(t, http.StatusOK, res.code)
@@ -263,5 +282,31 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "test_api": true}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": true, "roblox_open_cloud": false, "bloxlink": false, "cookie_api": false, "erlc": false, "test_api": true, "test_lookup": false}, enabled)
+}
+
+// ER:LC gets Kite's key with every request, and its server owners a link to
+// authorize Kite once the key is entered.
+func TestConnectERLC(t *testing.T) {
+	require.NoError(t, flow.ConfigureIntegration("erlc", "k1te-k3y", "1234"))
+	t.Cleanup(func() { _ = flow.ConfigureIntegration("erlc", "", "") })
+
+	s := newMemoryStore()
+	h, rt := newHandler(t, s, http.StatusOK)
+
+	res := serve(t, h, http.MethodPut, "/integrations/erlc", `{"credential":"Secret-PublicPart"}`)
+	require.Equal(t, http.StatusOK, res.code)
+	assert.Equal(t, "https://api.erlc.gg/v2/server", rt.req.URL.String())
+	assert.Equal(t, "Secret-PublicPart", rt.req.Header.Get("server-key"))
+	assert.Equal(t, "k1te-k3y", rt.req.Header.Get("Authorization"))
+
+	res = serve(t, h, http.MethodGet, "/integrations", "")
+	require.Equal(t, http.StatusOK, res.code)
+	authorizeURLs := map[string]any{}
+	for _, item := range res.data.([]any) {
+		entry := item.(map[string]any)
+		authorizeURLs[entry["integration_id"].(string)] = entry["authorize_url"]
+	}
+	assert.Contains(t, authorizeURLs["erlc"], "/PublicPart/")
+	assert.Nil(t, authorizeURLs["cookie_api"])
 }

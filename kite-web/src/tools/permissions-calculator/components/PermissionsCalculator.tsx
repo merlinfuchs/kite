@@ -167,7 +167,7 @@ export default function PermissionsCalculator() {
 
       <div className="border-t pt-8 space-y-5">
         <div>
-          <h2 className="text-xl font-semibold">Invite Link</h2>
+          <h2 className="text-xl font-semibold">Invite link</h2>
           <p className="text-sm text-muted-foreground">
             Enter the application ID of your bot to get an invite link with
             these permissions. You find it on the General Information page of

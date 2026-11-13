@@ -19,20 +19,30 @@ type AppUpdateOpts struct {
 	UpdatedAt      time.Time
 }
 
-// AppDiscordAppUpdateOpts moves an app to a different Discord app.
-type AppDiscordAppUpdateOpts struct {
-	ID           string
-	Name         string
-	Description  null.String
-	DiscordID    string
-	DiscordToken string
-	UpdatedAt    time.Time
+// AppSwitchOpts moves an app to a different Discord app.
+type AppSwitchOpts struct {
+	ID               string
+	Name             string
+	Description      null.String
+	DiscordID        string
+	DiscordToken     string
+	DiscordVerifyKey null.String
+	UpdatedAt        time.Time
 }
 
 type AppDisableOpts struct {
 	ID             string
 	DisabledReason null.String
 	UpdatedAt      time.Time
+}
+
+type AppCommandsDeployResult struct {
+	ID string
+	// DeployAt is the app's CommandsDeployAt when the deploy started.
+	DeployAt time.Time
+	// DeployedHash is the hash of the commands in Discord, or null if unknown.
+	DeployedHash null.String
+	Error        *model.CommandsDeployError
 }
 
 // AppGatewayRequirementsRow is the stored form of an app's gateway
@@ -43,20 +53,29 @@ type AppGatewayRequirementsRow struct {
 	EventListenerTypes  []model.EventListenerType
 	PluginResources     []string
 	HasMessageInstances bool
+	UsesVoice           bool
 }
 
 type AppStore interface {
 	AppsByUser(ctx context.Context, userID string) ([]*model.App, error)
 	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
-	AppByDiscordID(ctx context.Context, discordID string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
+	// AppDiscordUserInstallCount is null until the gateway first fetched it.
+	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
-	// UpdateAppDiscordApp points the app at a different Discord app and
-	// starts it again.
-	UpdateAppDiscordApp(ctx context.Context, opts AppDiscordAppUpdateOpts) (*model.App, error)
-	DisableApp(ctx context.Context, opts AppDisableOpts) error
+	// SwitchAppDiscordApp moves the app to a different Discord app, starts it
+	// and deploys its commands there. It returns ErrAlreadyExists if another
+	// app uses that Discord app.
+	SwitchAppDiscordApp(ctx context.Context, opts AppSwitchOpts) (*model.App, error)
+	// DisableApp reports whether the app was enabled before.
+	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
+	// PauseAppForCredits and UnpauseAppForCredits report whether the app
+	// wasn't paused or was paused before.
+	PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
@@ -64,6 +83,7 @@ type AppStore interface {
 	// enabled app ID: disabling an app bumps updated_at, so the gateway
 	// manager can shut those connections down without a full table scan.
 	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
 	// AppGatewayRequirements reports what the app actually consumes from the
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)
@@ -71,13 +91,35 @@ type AppStore interface {
 	// listeners or plugin instances changed, and whose intents may therefore
 	// need recomputing. Deletions are not reported; see the query for why.
 	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	// QueueAppCommandsDeploy deploys the app's commands again in a few
+	// seconds. Changes to commands and plugins do so by themselves. Forcing
+	// sends them even if they look unchanged.
+	QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error
+	AppIDsWithDueCommandsDeploy(ctx context.Context, limit int) ([]string, error)
+	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
+	// DelayAppCommandsDeploy tries again in a few minutes.
+	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
+	UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error
+	UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)
-	CountCollaboratorsByApp(ctx context.Context, appID string) (int, error)
 	CreateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error)
 	UpdateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error)
 	DeleteCollaborator(ctx context.Context, appID string, userID string) error
 
+	CollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) ([]*model.AppCollaboratorInvite, error)
+	// CountCollaboratorsAndInvitesByApp counts collaborators and pending invites,
+	// which both take up a seat.
+	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
+	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
+	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
+	// ClaimCollaboratorInvites adds the user as a collaborator to every app that
+	// invited their Discord username and deletes the invites.
+	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
+
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
+	// HasAppFlows reports whether the app has an enabled command or event
+	// listener, or a posted message with flows.
+	HasAppFlows(ctx context.Context, appID string) (bool, error)
 }

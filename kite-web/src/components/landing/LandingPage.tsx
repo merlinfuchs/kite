@@ -3,8 +3,9 @@ import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { faqJsonLd } from "@/lib/seo";
+import { cn } from "@/lib/utils";
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import ShowcaseVisual, { Showcase } from "./ShowcaseVisual";
 
@@ -18,9 +19,40 @@ export interface LandingPageContent {
   sections: {
     heading: string;
     body?: string;
-    points?: { title: string; description: string }[];
+    // A link below the body, like to the template the section is about.
+    link?: { label: string; href: string };
+    // Points with an href link to a page that tells more, like a guide.
+    points?: { title: string; description: string; href?: string }[];
   }[];
   faqs: FAQProps[];
+}
+
+// Titles of steps start with their number, like "1. Create Your Bot".
+const stepTitle = /^\d+\.\s+/;
+
+function CommandList({
+  points,
+}: {
+  points: { title: string; description: string }[];
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-2 shadow-sm">
+      <div className="px-3 pt-2 pb-1 text-xs font-semibold uppercase text-muted-foreground">
+        Your bot
+      </div>
+      {points.map((point, i) => (
+        <div
+          key={point.title}
+          className={cn("rounded-md px-3 py-2", i === 0 && "bg-muted")}
+        >
+          <div className="font-semibold">{point.title}</div>
+          <div className="text-sm text-muted-foreground">
+            {point.description}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // Layout of the pages for a use case, like a moderation bot or bot hosting.
@@ -41,7 +73,7 @@ export default function LandingPage({
           <p className="text-xl text-muted-foreground mt-6">{content.intro}</p>
           <div className="mt-8 flex flex-col md:flex-row justify-center lg:justify-start gap-4">
             <Button className="md:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
+              <Link href="/apps">Get started for free</Link>
             </Button>
             {content.secondaryAction && (
               <Button variant="outline" className="md:w-48" asChild>
@@ -55,32 +87,87 @@ export default function LandingPage({
         <ShowcaseVisual showcase={content.showcase} />
       </section>
 
-      {content.sections.map((section) => (
-        <section key={section.heading} className="container py-12 md:py-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-center">
-            {section.heading}
-          </h2>
-          {section.body && (
-            <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-              {section.body}
-            </p>
-          )}
-          {section.points && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-              {section.points.map((point) => (
-                <Card key={point.title} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-xl">{point.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground">
-                    {point.description}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
+      {content.sections.map((section) => {
+        const points = section.points ?? [];
+        const header = (
+          <>
+            <h2 className="text-3xl md:text-4xl font-bold">
+              {section.heading}
+            </h2>
+            {section.body && (
+              <p className="text-lg text-muted-foreground mt-4 max-w-2xl">
+                {section.body}
+              </p>
+            )}
+            {section.link && (
+              <Link
+                href={section.link.href}
+                className="inline-flex items-center gap-1 mt-4 font-medium text-primary hover:underline"
+              >
+                {section.link.label}
+                <ArrowRightIcon className="w-4 h-4" />
+              </Link>
+            )}
+          </>
+        );
+
+        // The commands a template adds, shown like Discord lists them.
+        if (points.length > 0 && points.every((p) => p.title.startsWith("/"))) {
+          return (
+            <section
+              key={section.heading}
+              className="container py-12 md:py-16 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center"
+            >
+              <div>{header}</div>
+              <CommandList points={points} />
+            </section>
+          );
+        }
+
+        const steps = points.every((p) => stepTitle.test(p.title));
+        const List = steps ? "ol" : "ul";
+        return (
+          <section key={section.heading} className="container py-12 md:py-16">
+            {header}
+            {points.length > 0 && (
+              <List
+                className={cn(
+                  "grid grid-cols-1 gap-x-10 mt-10",
+                  points.length % 3 === 0 ? "md:grid-cols-3" : "md:grid-cols-2"
+                )}
+              >
+                {points.map((point, i) => (
+                  <li key={point.title} className="border-t py-5">
+                    <h3 className="font-semibold text-lg flex items-center gap-3">
+                      {steps && (
+                        <span className="flex-none w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                      )}
+                      {point.href ? (
+                        <Link
+                          href={point.href}
+                          className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                        >
+                          {point.title}
+                          <ArrowRightIcon className="w-4 h-4" />
+                        </Link>
+                      ) : steps ? (
+                        point.title.replace(stepTitle, "")
+                      ) : (
+                        point.title
+                      )}
+                    </h3>
+                    <p className="text-muted-foreground mt-2">
+                      {point.description}
+                    </p>
+                  </li>
+                ))}
+              </List>
+            )}
+          </section>
+        );
+      })}
 
       <HomeFAQSection faqs={content.faqs} />
       <HomeCTASection />

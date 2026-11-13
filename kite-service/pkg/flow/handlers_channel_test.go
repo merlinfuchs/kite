@@ -1,0 +1,312 @@
+package flow
+
+import (
+	"context"
+	"encoding/json"
+	"testing"
+	"time"
+
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+type forumTestProvider struct {
+	provider.MockDiscordProvider
+
+	forum     discord.Channel
+	channelID discord.ChannelID
+	post      api.StartForumThreadData
+}
+
+func (p *forumTestProvider) Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error) {
+	return &p.forum, nil
+}
+
+func (p *forumTestProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
+	p.channelID = channelID
+	p.post = data
+	return &discord.Channel{ID: 9, ParentID: channelID, Name: data.Name}, nil
+}
+
+func newForumTestProvider() *forumTestProvider {
+	return &forumTestProvider{forum: discord.Channel{
+		ID:   3,
+		Type: discord.GuildForum,
+		AvailableTags: []discord.Tag{
+			{ID: 11, Name: "Bug Report"},
+			{ID: 12, Name: "Question"},
+		},
+	}}
+}
+
+// executeForumPost runs the block below an entry, as the block resumes from a
+// component when it's the entry.
+func executeForumPost(t *testing.T, p *forumTestProvider, dataJSON string) (*FlowContext, error) {
+	return executeChannelBlock(t, p, FlowNodeTypeActionForumPostCreate, dataJSON)
+}
+
+func executeChannelBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeType, dataJSON string) (*FlowContext, error) {
+	var data FlowNodeData
+	require.NoError(t, json.Unmarshal([]byte(dataJSON), &data))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&blockTestContextData{},
+		FlowProviders{
+			Discord: p,
+			Log:     &provider.MockLogProvider{},
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxCredits:    1000,
+		},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryEvent,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{
+			{ID: "1", Type: nodeType, Data: data},
+		}},
+	}
+	return c, node.Execute(c)
+}
+
+func TestForumPostCreate(t *testing.T) {
+	p := newForumTestProvider()
+	c, err := executeForumPost(t, p, `{
+		"channel_target": "3",
+		"channel_data": {"name": "Login broken", "applied_tags": "bug report, 12"},
+		"message_data": {"content": "It doesn't work"},
+		"audit_log_reason": "because"
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, discord.ChannelID(3), p.channelID)
+	assert.Equal(t, "Login broken", p.post.Name)
+	assert.Equal(t, []discord.TagID{11, 12}, p.post.AppliedTags)
+	assert.Equal(t, "It doesn't work", p.post.Message.Content)
+	assert.Equal(t, api.AuditLogReason("because"), p.post.AuditLogReason)
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordChannel, result.Type)
+	assert.Equal(t, discord.ChannelID(9), result.DiscordChannel().ID)
+}
+
+func TestForumPostCreateErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		channelData string
+		err         string
+	}{
+		{"no name", `{"name": "  "}`, "post name is required"},
+		{"unknown tag", `{"name": "Hi", "applied_tags": "Bug Report, Feature"}`, `forum has no tag "Feature"`},
+		{"too many tags", `{"name": "Hi", "applied_tags": "a, b, c, d, e, f"}`, "at most 5 tags"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := newForumTestProvider()
+			_, err := executeForumPost(t, p, `{
+				"channel_target": "3",
+				"channel_data": `+tt.channelData+`,
+				"message_data": {"content": "Hello"}
+			}`)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.err)
+			assert.Zero(t, p.channelID, "no post is created")
+		})
+	}
+
+	t.Run("not a forum", func(t *testing.T) {
+		p := newForumTestProvider()
+		p.forum.Type = discord.GuildText
+		_, err := executeForumPost(t, p, `{
+			"channel_target": "3",
+			"channel_data": {"name": "Hi", "applied_tags": "Question"},
+			"message_data": {"content": "Hello"}
+		}`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not a forum or media channel")
+	})
+
+	t.Run("invalid channel", func(t *testing.T) {
+		p := newForumTestProvider()
+		_, err := executeForumPost(t, p, `{
+			"channel_target": "abc",
+			"channel_data": {"name": "Hi"},
+			"message_data": {"content": "Hello"}
+		}`)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid forum channel")
+	})
+}
+
+type threadTestProvider struct {
+	provider.MockDiscordProvider
+
+	thread api.StartThreadData
+}
+
+func (p *threadTestProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
+	p.thread = data
+	return &discord.Channel{ID: 9, ParentID: channelID, Name: data.Name}, nil
+}
+
+func TestThreadCreateInvitable(t *testing.T) {
+	for _, tc := range []struct {
+		channelData string
+		want        string
+	}{
+		{`{"name": "t", "type": 12, "parent": "3", "invitable": false}`, `"invitable":false`},
+		{`{"name": "t", "type": 12, "parent": "3", "invitable": true}`, `"invitable":true`},
+		{`{"name": "t", "type": 12, "parent": "3"}`, ""},
+	} {
+		p := &threadTestProvider{}
+		_, err := executeChannelBlock(t, p, FlowNodeTypeActionThreadCreate, `{"channel_data": `+tc.channelData+`}`)
+		require.NoError(t, err)
+
+		body, err := json.Marshal(p.thread)
+		require.NoError(t, err)
+		if tc.want == "" {
+			assert.NotContains(t, string(body), "invitable")
+		} else {
+			assert.Contains(t, string(body), tc.want)
+		}
+	}
+}
+
+type channelTestProvider struct {
+	provider.MockDiscordProvider
+
+	create   api.CreateChannelData
+	edit     api.ModifyChannelData
+	channels map[discord.ChannelID]*discord.Channel
+}
+
+func (p *channelTestProvider) Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error) {
+	if c, ok := p.channels[channelID]; ok {
+		return c, nil
+	}
+	return nil, provider.ErrNotFound
+}
+
+func (p *channelTestProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
+	p.create = data
+	return &discord.Channel{ID: 7, GuildID: guildID, Name: data.Name}, nil
+}
+
+func (p *channelTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) (*discord.Channel, error) {
+	p.edit = data
+	return &discord.Channel{ID: channelID, Name: data.Name}, nil
+}
+
+func TestChannelEditArchiveLock(t *testing.T) {
+	for _, tc := range []struct {
+		channelData string
+		want        []string
+		notWant     []string
+	}{
+		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, []string{`"name"`}},
+		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
+		{`{"name": "t"}`, nil, []string{"archived", "locked", "applied_tags"}},
+	} {
+		p := &channelTestProvider{}
+		ctx, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
+		require.NoError(t, err)
+		assert.Equal(t, discord.ChannelID(3), ctx.GetNodeState("1").Result.DiscordChannel().ID)
+
+		body, err := json.Marshal(p.edit)
+		require.NoError(t, err)
+		for _, w := range tc.want {
+			assert.Contains(t, string(body), w)
+		}
+		for _, w := range tc.notWant {
+			assert.NotContains(t, string(body), w)
+		}
+	}
+}
+
+func TestChannelAuditLogReason(t *testing.T) {
+	p := &channelTestProvider{}
+	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelCreate, `{"channel_data": {"name": "ticket"}, "audit_log_reason": "opened {{1 + 1}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("opened%202"), p.create.AuditLogReason)
+
+	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": {"name": "closed"}, "audit_log_reason": "closed {{2 + 2}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("closed%204"), p.edit.AuditLogReason)
+
+	tp := &threadTestProvider{}
+	_, err = executeChannelBlock(t, tp, FlowNodeTypeActionThreadCreate, `{"channel_data": {"name": "thread", "parent": "3"}, "audit_log_reason": "started {{3 + 3}}"}`)
+	require.NoError(t, err)
+	assert.Equal(t, api.AuditLogReason("started%206"), tp.thread.AuditLogReason)
+}
+
+func TestChannelEditAppliedTags(t *testing.T) {
+	p := &channelTestProvider{
+		channels: map[discord.ChannelID]*discord.Channel{
+			9: {
+				ID:       9,
+				Type:     discord.GuildPublicThread,
+				ParentID: 3,
+			},
+			3: {
+				ID:   3,
+				Type: discord.GuildForum,
+				AvailableTags: []discord.Tag{
+					{ID: 11, Name: "Bug Report"},
+					{ID: 12, Name: "Resolved"},
+				},
+			},
+			5: {
+				ID:   5,
+				Type: discord.GuildText,
+			},
+			7: {
+				ID:       7,
+				Type:     discord.GuildPublicThread,
+				ParentID: 5,
+			},
+		},
+	}
+
+	_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+		"channel_target": "9",
+		"channel_data": {"archived": true, "locked": true, "applied_tags": "resolved, 11"}
+	}`)
+	require.NoError(t, err)
+	require.NotNil(t, p.edit.AppliedTags)
+	assert.Equal(t, []discord.TagID{12, 11}, *p.edit.AppliedTags)
+
+	// Template evaluating to empty string should leave AppliedTags unset without
+	// failing on a non-post channel.
+	p.edit = api.ModifyChannelData{}
+	_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+		"channel_target": "5",
+		"channel_data": {"name": "general", "applied_tags": "{{''}}"}
+	}`)
+	require.NoError(t, err)
+	assert.Nil(t, p.edit.AppliedTags)
+
+	// Channels and threads that aren't posts have no tags.
+	for _, channel := range []string{"5", "7"} {
+		_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{
+			"channel_target": "`+channel+`",
+			"channel_data": {"applied_tags": "resolved"}
+		}`)
+		require.ErrorContains(t, err, "only forum and media posts have tags, channel "+channel+" isn't one")
+	}
+}

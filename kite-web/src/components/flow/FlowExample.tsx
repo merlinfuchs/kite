@@ -90,7 +90,8 @@ export default function FlowExample({
         zoomOnScroll={false}
         zoomOnPinch={false}
         colorMode={theme === "dark" ? "dark" : "light"}
-        className="!bg-transparent"
+        // React Flow blocks page scrolling over the pane, examples don't need that.
+        className="!bg-transparent [&_.react-flow\_\_pane]:touch-auto"
         proOptions={{
           hideAttribution: true,
         }}

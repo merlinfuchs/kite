@@ -2,6 +2,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryComponentButton: BlockDefinition = {
   type: "entry_component_button",
+  id_prefix: "button",
   title: "Button",
   description:
     "This gets triggered when a user clicks the button. Drop different actions here!",

@@ -52,22 +52,22 @@ INSERT INTO variables (
     name,
     scoped,
     app_id,
-    module_id,
+    bundle_install_id,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, name, scoped, app_id, module_id, created_at, updated_at
+) RETURNING id, name, scoped, app_id, bundle_install_id, created_at, updated_at
 `
 
 type CreateVariableParams struct {
-	ID        string
-	Name      string
-	Scoped    bool
-	AppID     string
-	ModuleID  pgtype.Text
-	CreatedAt pgtype.Timestamp
-	UpdatedAt pgtype.Timestamp
+	ID              string
+	Name            string
+	Scoped          bool
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) (Variable, error) {
@@ -76,7 +76,7 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 		arg.Name,
 		arg.Scoped,
 		arg.AppID,
-		arg.ModuleID,
+		arg.BundleInstallID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -86,7 +86,7 @@ func (q *Queries) CreateVariable(ctx context.Context, arg CreateVariableParams) 
 		&i.Name,
 		&i.Scoped,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -111,13 +111,15 @@ func (q *Queries) DeleteAllVariableValues(ctx context.Context, arg DeleteAllVari
 	return err
 }
 
-const deleteVariable = `-- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1
+const deleteVariable = `-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id
 `
 
-func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteVariable, id)
-	return err
+func (q *Queries) DeleteVariable(ctx context.Context, id string) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, deleteVariable, id)
+	var bundle_install_id pgtype.Text
+	err := row.Scan(&bundle_install_id)
+	return bundle_install_id, err
 }
 
 const deleteVariableValue = `-- name: DeleteVariableValue :exec
@@ -143,8 +145,22 @@ func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableVal
 	return err
 }
 
+const deleteVariablesByBundleInstall = `-- name: DeleteVariablesByBundleInstall :exec
+DELETE FROM variables WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
+`
+
+type DeleteVariablesByBundleInstallParams struct {
+	BundleInstallID pgtype.Text
+	KeepIds         []string
+}
+
+func (q *Queries) DeleteVariablesByBundleInstall(ctx context.Context, arg DeleteVariablesByBundleInstallParams) error {
+	_, err := q.db.Exec(ctx, deleteVariablesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
+	return err
+}
+
 const getVariable = `-- name: GetVariable :one
-SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.bundle_install_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE variables.id = $1
 GROUP BY variables.id
@@ -163,7 +179,7 @@ func (q *Queries) GetVariable(ctx context.Context, id string) (GetVariableRow, e
 		&i.Variable.Name,
 		&i.Variable.Scoped,
 		&i.Variable.AppID,
-		&i.Variable.ModuleID,
+		&i.Variable.BundleInstallID,
 		&i.Variable.CreatedAt,
 		&i.Variable.UpdatedAt,
 		&i.TotalValues,
@@ -172,7 +188,7 @@ func (q *Queries) GetVariable(ctx context.Context, id string) (GetVariableRow, e
 }
 
 const getVariableByName = `-- name: GetVariableByName :one
-SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.bundle_install_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE app_id = $1 AND name = $2
 GROUP BY variables.id
@@ -196,7 +212,7 @@ func (q *Queries) GetVariableByName(ctx context.Context, arg GetVariableByNamePa
 		&i.Variable.Name,
 		&i.Variable.Scoped,
 		&i.Variable.AppID,
-		&i.Variable.ModuleID,
+		&i.Variable.BundleInstallID,
 		&i.Variable.CreatedAt,
 		&i.Variable.UpdatedAt,
 		&i.TotalValues,
@@ -303,7 +319,7 @@ func (q *Queries) GetVariableValues(ctx context.Context, arg GetVariableValuesPa
 }
 
 const getVariablesByApp = `-- name: GetVariablesByApp :many
-SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.module_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
+SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.bundle_install_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id
 WHERE variables.app_id = $1 
 GROUP BY variables.id
@@ -329,7 +345,7 @@ func (q *Queries) GetVariablesByApp(ctx context.Context, appID string) ([]GetVar
 			&i.Variable.Name,
 			&i.Variable.Scoped,
 			&i.Variable.AppID,
-			&i.Variable.ModuleID,
+			&i.Variable.BundleInstallID,
 			&i.Variable.CreatedAt,
 			&i.Variable.UpdatedAt,
 			&i.TotalValues,
@@ -345,7 +361,7 @@ func (q *Queries) GetVariablesByApp(ctx context.Context, appID string) ([]GetVar
 }
 
 const getVariablesByAppWithoutTotals = `-- name: GetVariablesByAppWithoutTotals :many
-SELECT id, name, scoped, app_id, module_id, created_at, updated_at FROM variables WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, scoped, app_id, bundle_install_id, created_at, updated_at FROM variables WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID string) ([]Variable, error) {
@@ -362,7 +378,150 @@ func (q *Queries) GetVariablesByAppWithoutTotals(ctx context.Context, appID stri
 			&i.Name,
 			&i.Scoped,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertOrLockVariableValue = `-- name: InsertOrLockVariableValue :one
+INSERT INTO variable_values (
+    variable_id,
+    scope,
+    value,
+    created_at,
+    updated_at
+)
+SELECT
+    variables.id,
+    $1::text,
+    $2::jsonb,
+    $3::timestamp,
+    $4::timestamp
+FROM variables
+WHERE variables.id = $5 AND variables.app_id = $6
+ON CONFLICT (variable_id, scope) DO UPDATE SET value = variable_values.value
+RETURNING variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at, (xmax = 0)::boolean AS inserted
+`
+
+type InsertOrLockVariableValueParams struct {
+	Scope      pgtype.Text
+	Value      []byte
+	CreatedAt  pgtype.Timestamp
+	UpdatedAt  pgtype.Timestamp
+	VariableID string
+	AppID      string
+}
+
+type InsertOrLockVariableValueRow struct {
+	VariableValue VariableValue
+	Inserted      bool
+}
+
+// Inserts the first value, or locks and returns the existing one, also when
+// another transaction inserted it and hasn't committed yet, which it waits
+// for. inserted says which. A variable from another app returns nothing
+// (ErrNoRows).
+func (q *Queries) InsertOrLockVariableValue(ctx context.Context, arg InsertOrLockVariableValueParams) (InsertOrLockVariableValueRow, error) {
+	row := q.db.QueryRow(ctx, insertOrLockVariableValue,
+		arg.Scope,
+		arg.Value,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.VariableID,
+		arg.AppID,
+	)
+	var i InsertOrLockVariableValueRow
+	err := row.Scan(
+		&i.VariableValue.ID,
+		&i.VariableValue.VariableID,
+		&i.VariableValue.Scope,
+		&i.VariableValue.Value,
+		&i.VariableValue.CreatedAt,
+		&i.VariableValue.UpdatedAt,
+		&i.Inserted,
+	)
+	return i, err
+}
+
+const listVariableValues = `-- name: ListVariableValues :many
+SELECT variable_values.id, variable_values.variable_id, variable_values.scope, variable_values.value, variable_values.created_at, variable_values.updated_at FROM variable_values
+JOIN variables ON variables.id = variable_values.variable_id
+WHERE variable_values.variable_id = $1
+  AND variables.app_id = $2
+  AND (
+    $3::text = ''
+    OR starts_with(coalesce(variable_values.scope, ''), $3::text)
+  )
+ORDER BY
+  CASE WHEN $4::text = 'value_desc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END DESC NULLS LAST,
+  CASE WHEN $4::text = 'value_asc' THEN (
+    CASE
+      WHEN pg_column_size(variable_values.value) > 128 THEN NULL
+      WHEN jsonb_typeof(variable_values.value->'v') = 'number' THEN (variable_values.value->>'v')::numeric
+      WHEN jsonb_typeof(variable_values.value->'v') = 'string'
+        AND variable_values.value->>'v' ~ '^\s*-?[0-9]{1,30}(\.[0-9]{1,30})?\s*$'
+        THEN trim(variable_values.value->>'v')::numeric
+    END
+  ) END ASC NULLS LAST,
+  CASE WHEN $4::text = 'updated_desc' THEN variable_values.updated_at END DESC,
+  CASE WHEN $4::text = 'updated_asc' THEN variable_values.updated_at END ASC,
+  variable_values.id
+LIMIT $6 OFFSET $5
+`
+
+type ListVariableValuesParams struct {
+	VariableID  string
+	AppID       string
+	ScopePrefix string
+	Sort        string
+	RowOffset   int32
+	RowLimit    int32
+}
+
+// Values sort as numbers when they are numbers or text of a number, like
+// "42". Other values come last when sorting by value. Values over 128 bytes,
+// like saved messages, can't be a number of at most 30 digits, so
+// pg_column_size skips them without reading them from TOAST, which was most of
+// the time on variables with many. starts_with instead of LIKE so % and _ in
+// the prefix match literally.
+func (q *Queries) ListVariableValues(ctx context.Context, arg ListVariableValuesParams) ([]VariableValue, error) {
+	rows, err := q.db.Query(ctx, listVariableValues,
+		arg.VariableID,
+		arg.AppID,
+		arg.ScopePrefix,
+		arg.Sort,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VariableValue
+	for rows.Next() {
+		var i VariableValue
+		if err := rows.Scan(
+			&i.ID,
+			&i.VariableID,
+			&i.Scope,
+			&i.Value,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -489,7 +648,7 @@ UPDATE variables SET
     name = $2,
     scoped = $3,
     updated_at = $4
-WHERE id = $1 RETURNING id, name, scoped, app_id, module_id, created_at, updated_at
+WHERE id = $1 RETURNING id, name, scoped, app_id, bundle_install_id, created_at, updated_at
 `
 
 type UpdateVariableParams struct {
@@ -512,7 +671,7 @@ func (q *Queries) UpdateVariable(ctx context.Context, arg UpdateVariableParams) 
 		&i.Name,
 		&i.Scoped,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
