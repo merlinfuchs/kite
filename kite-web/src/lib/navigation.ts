@@ -2,19 +2,34 @@ import type { LinkProps } from "next/link";
 import Router from "next/router";
 import type { MouseEvent } from "react";
 
-// The page the user came from without a page load, like
-// "/marketplace/categories/[category]", or null after one. _app imports this
-// module, so it knows the page before the first route change.
-let previousPathname: string | null = null;
-let leavingPathname: string | null = null;
+// The pathname of the page each history entry was opened from without a page
+// load, like "/marketplace/categories/[category]", by the key Next.js gives
+// the entry. Going back from an entry leads to that page. _app imports this
+// module, so it sees every route change.
+const openedFrom = new Map<string, string>();
+let leaving: { pathname: string; key?: string } | null = null;
+let popping = false;
+
+const historyKey = (): string | undefined => window.history.state?.key;
 
 if (typeof window !== "undefined") {
+  // Going back or forward opens no new entry. Next.js starts the route change
+  // after this, since it awaits first.
+  window.addEventListener("popstate", () => {
+    popping = true;
+  });
   Router.events.on("routeChangeStart", () => {
-    leavingPathname = Router.pathname;
+    leaving = popping ? null : { pathname: Router.pathname, key: historyKey() };
+    popping = false;
   });
   // Only once it's done, since leaving can be cancelled, like in the editor.
+  // Replacing the URL keeps the key of the entry.
   Router.events.on("routeChangeComplete", () => {
-    previousPathname = leavingPathname;
+    const key = historyKey();
+    if (leaving && key && key !== leaving.key) {
+      openedFrom.set(key, leaving.pathname);
+    }
+    leaving = null;
   });
 }
 
@@ -25,8 +40,8 @@ const backTargets: Record<string, string[]> = {
 };
 
 // onBackClick is the onClick of a link back to href, like the list of
-// templates. Coming from that page, it goes back in history instead, so the
-// page keeps its filters and scroll position.
+// templates. When going back leads to that page, it goes back in history
+// instead, so the page keeps its filters and scroll position.
 export function onBackClick(href: LinkProps["href"]) {
   const pathname = typeof href === "string" ? href : href.pathname;
   const targets = pathname ? backTargets[pathname] ?? [pathname] : [];
@@ -34,7 +49,9 @@ export function onBackClick(href: LinkProps["href"]) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
       return;
     }
-    if (!previousPathname || !targets.includes(previousPathname)) return;
+    const key = historyKey();
+    const previous = key && openedFrom.get(key);
+    if (!previous || !targets.includes(previous)) return;
     e.preventDefault();
     Router.back();
   };
