@@ -149,6 +149,7 @@ Update these when the free plan, prices, or the description change. Listings tha
 | --- | --- | --- | --- |
 | AlternativeTo | https://alternativeto.net/software/kite-onl/ | Yes | Edit the listing while logged in |
 | SaaSHub | https://www.saashub.com/kite-onl | Yes | Edit the listing, verified with an @kite.onl email on 2026-11-13 |
+| Startup Stash | Submitted 2026-11-13, waiting for approval | No | Email hello@startupstash.com |
 | Official MCP Registry | `onl.kite/kite` | No | `kite-web/src/lib/mcp/server.json`, then `mcp-publisher publish` with a higher version |
 | Glama | `onl.kite/kite`, imported from the registry | No | Claimed through `kite-web/public/.well-known/glama.json` |
 | LobeHub | `merlinfuchs-kite` | No | `lhm` CLI |
