@@ -183,7 +183,7 @@ export default function HomeFooter() {
             href="https://github.com/merlinfuchs/kite/graphs/contributors?all=1"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
-            Contributors
+            contributors
           </a>
         </h3>
       </section>
