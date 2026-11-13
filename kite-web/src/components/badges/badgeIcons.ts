@@ -118,11 +118,9 @@ export const badgeIcons = {
         : ""
     }`;
   },
-  // Kite's logo on a flat orange seal, the shape of Lucide's badge icons, so
+  // A white star on a flat orange seal, the shape of Lucide's badge icons, so
   // it fits next to the plain icons of template lists.
   staff_pick:
-    () => `<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" fill="#F97316" stroke="#F97316" stroke-width="2" stroke-linejoin="round"/>
-    <g fill="#fff" transform="translate(${12 - 21.5 * 0.3} ${
-      12 - 20 * 0.3
-    }) scale(.3)">${LOGO}</g>`,
+    () => `<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" fill="#F97316" transform="translate(-1.6 -1.6) scale(1.133)"/>
+    <path d="M12.00 6.80L13.47 10.38L17.33 10.67L14.38 13.17L15.29 16.93L12.00 14.90L8.71 16.93L9.62 13.17L6.67 10.67L10.53 10.38Z" fill="#fff" stroke="#fff" stroke-linejoin="round"/>`,
 };
