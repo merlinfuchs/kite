@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-14",
+    title: "Run JavaScript can use AI",
+    description:
+      "The code of a Run JavaScript block can ask AI, check, choose, score, and translate like the AI blocks, for the same credits. Sort a list of messages with AI in one block instead of a loop of blocks.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#ai`,
+  },
+  {
+    date: "2026-11-14",
     title: "Run JavaScript can change things in Discord",
     description:
       "The code of a Run JavaScript block can send messages, give roles, create channels, and make the other changes the Discord API Request block can. Each change costs 1 credit.",

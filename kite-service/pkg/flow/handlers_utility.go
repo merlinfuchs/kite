@@ -197,15 +197,20 @@ func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
 // credits. Unlike for a block, a call over the limit isn't billed, as code
 // can catch the error and keep calling.
 func (h *javaScriptHost) charge(op operation) error {
+	return h.chargeCredits(op, op.Credits)
+}
+
+// chargeCredits is charge with credits instead of op's.
+func (h *javaScriptHost) chargeCredits(op operation, credits int) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if err := h.ctx.increaseOperations(); err != nil {
 		return err
 	}
-	if err := h.ctx.ensureCredits(op.Credits); err != nil {
+	if err := h.ctx.ensureCredits(credits); err != nil {
 		return err
 	}
-	return h.ctx.increaseCredits(op.Credits)
+	return h.ctx.increaseCredits(credits)
 }
 
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
@@ -221,9 +226,20 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 		}
 		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
 			res, err := handler(operationCall{
-				ctx:       h.callContext(callCtx),
-				arg:       arg,
-				charge:    func() error { return h.charge(op) },
+				ctx:           h.callContext(callCtx),
+				arg:           arg,
+				charge:        func() error { return h.charge(op) },
+				chargeCredits: func(credits int) error { return h.chargeCredits(op, credits) },
+				chargeMore: func(credits int) error {
+					h.mu.Lock()
+					defer h.mu.Unlock()
+					return h.ctx.increaseCredits(credits)
+				},
+				ensureCredits: func(credits int) error {
+					h.mu.Lock()
+					defer h.mu.Unlock()
+					return h.ctx.ensureCredits(credits)
+				},
 				variables: h.variables,
 			})
 			if err != nil {

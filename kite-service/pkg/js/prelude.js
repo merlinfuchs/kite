@@ -10,7 +10,7 @@
   // Names objects have anyway, like then, which await looks for, aren't
   // calls.
   const namespaces = {};
-  for (const namespace of ["discord", "erlc", "cookieApi", "http", "variables"]) {
+  for (const namespace of ["discord", "erlc", "cookieApi", "http", "variables", "ai"]) {
     const prefix = namespace + ".";
     globalThis[namespace] = namespaces[namespace] = new Proxy(
       {},

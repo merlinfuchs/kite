@@ -19,6 +19,15 @@ type operationCall struct {
 	// credits. A handler calls it once the argument is valid, before it does
 	// anything, so a wrong argument isn't billed.
 	charge func() error
+	// chargeCredits is charge for operations whose credits depend on the
+	// argument, like the model of ai.ask. It charges credits instead of the
+	// operation's.
+	chargeCredits func(credits int) error
+	// chargeMore charges credits on top, for what's only known after paying
+	// for something, like the length of an AI answer.
+	chargeMore func(credits int) error
+	// ensureCredits fails if credits don't fit the limit, without using them.
+	ensureCredits func(credits int) error
 	// The IDs of the stored variables the block lets the code use, by the
 	// names the code uses.
 	variables map[string]string
@@ -41,6 +50,11 @@ var operationHandlers = map[string]operationHandler{
 	"variables.increment": variableIncrementOperation,
 	"variables.delete":    variableDeleteOperation,
 	"variables.list":      variableListOperation,
+	"ai.ask":              aiAskOperation,
+	"ai.check":            aiCheckOperation,
+	"ai.choose":           aiChooseOperation,
+	"ai.score":            aiScoreOperation,
+	"ai.translate":        aiTranslateOperation,
 }
 
 // decodeOperationArg decodes the argument of a call into v, which has a field

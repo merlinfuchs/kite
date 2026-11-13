@@ -77,14 +77,6 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 		return err
 	}
 
-	length := len(prompt.String()) + len(systemPrompt.String())
-	if length > tier.MaxInputLength {
-		return fmt.Errorf(
-			"prompt and system prompt are %d bytes, more than the limit of %d for this model",
-			length, tier.MaxInputLength,
-		)
-	}
-
 	maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
 	if err != nil {
 		return err
@@ -101,42 +93,103 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 		maxOutputTokens = min(limit, aiMaxOutputTokens)
 	}
 
-	// The input is charged now, the output once the answer is there. The most
-	// the output can cost has to fit the credits limit before Kite pays for
-	// either.
-	inputCredits := tier.extraStepCredits(length, aiInputStepLength)
-	if err := ctx.ensureCredits(inputCredits + tier.extraStepCredits(maxOutputTokens, aiOutputStepTokens)); err != nil {
-		return err
+	ask := aiAsk{
+		tier:            tier,
+		systemPrompt:    systemPrompt.String(),
+		prompt:          prompt.String(),
+		maxOutputTokens: maxOutputTokens,
+		webSearch:       webSearch,
 	}
-	if err := ctx.increaseCredits(inputCredits); err != nil {
+	if err := ask.validate(); err != nil {
 		return err
 	}
 
-	opts := provider.CreateResponseOpts{
-		Model:           tier.Model,
-		ReasoningEffort: tier.ReasoningEffort,
-		Prompt:          prompt.String(),
-		SystemPrompt:    systemPrompt.String(),
-		MaxOutputTokens: maxOutputTokens,
+	// The block's credits, which cover the first step of input and output,
+	// were charged before it ran. The input's other steps are charged now, the
+	// output's once the answer is there. The most the output can cost has to
+	// fit the credits limit before Kite pays for either.
+	if err := ctx.ensureCredits(ask.extraInputCredits() + ask.maxExtraOutputCredits()); err != nil {
+		return err
 	}
-	if webSearch {
+	if err := ctx.increaseCredits(ask.extraInputCredits()); err != nil {
+		return err
+	}
+
+	answer, err := ask.run(ctx, ctx.increaseCredits)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewString(answer))
+	return n.ExecuteChildren(ctx)
+}
+
+// aiAsk is a request of Ask AI or Search the Web, from a block or code.
+type aiAsk struct {
+	tier            aiModelTier
+	systemPrompt    string
+	prompt          string
+	maxOutputTokens int
+	webSearch       bool
+}
+
+func (a aiAsk) validate() error {
+	length := len(a.prompt) + len(a.systemPrompt)
+	if length > a.tier.MaxInputLength {
+		return fmt.Errorf(
+			"prompt and system prompt are %d bytes, more than the limit of %d for this model",
+			length, a.tier.MaxInputLength,
+		)
+	}
+	return nil
+}
+
+// credits are what the first step of input and output cost, the credits of
+// the block.
+func (a aiAsk) credits() int {
+	if a.webSearch {
+		return a.tier.Search
+	}
+	return a.tier.Chat
+}
+
+// extraInputCredits are what the steps of the input after the first cost.
+func (a aiAsk) extraInputCredits() int {
+	return a.tier.extraStepCredits(len(a.prompt)+len(a.systemPrompt), aiInputStepLength)
+}
+
+// maxExtraOutputCredits are what the steps of the longest answer after the
+// first cost.
+func (a aiAsk) maxExtraOutputCredits() int {
+	return a.tier.extraStepCredits(a.maxOutputTokens, aiOutputStepTokens)
+}
+
+// run asks the model and charges the steps of its answer after the first with
+// chargeOutput, also when it fails, as Kite pays for an incomplete answer too.
+func (a aiAsk) run(ctx *FlowContext, chargeOutput func(credits int) error) (string, error) {
+	opts := provider.CreateResponseOpts{
+		Model:           a.tier.Model,
+		ReasoningEffort: a.tier.ReasoningEffort,
+		Prompt:          a.prompt,
+		SystemPrompt:    a.systemPrompt,
+		MaxOutputTokens: a.maxOutputTokens,
+	}
+	if a.webSearch {
 		opts.Tools = []provider.AIToolType{provider.AIToolTypeWebSearch}
 		opts.MaxToolCalls = aiMaxWebSearches
 	}
 
 	response, err := ctx.AI.CreateResponse(ctx, opts)
-	// An incomplete response is billed too. The model can't go past
-	// maxOutputTokens, but the count is capped in case it reports more.
-	outputTokens := min(response.OutputTokens, maxOutputTokens)
-	if creditsErr := ctx.increaseCredits(tier.extraStepCredits(outputTokens, aiOutputStepTokens)); creditsErr != nil {
-		return creditsErr
+	// The model can't go past maxOutputTokens, but the count is capped in case
+	// it reports more.
+	outputTokens := min(response.OutputTokens, a.maxOutputTokens)
+	if creditsErr := chargeOutput(a.tier.extraStepCredits(outputTokens, aiOutputStepTokens)); creditsErr != nil {
+		return "", creditsErr
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	ctx.StoreNodeResult(n, thing.NewString(response.Text))
-	return n.ExecuteChildren(ctx)
+	return response.Text, nil
 }
 
 func aiDecisionData(n *CompiledFlowNode) (*AIDecisionData, error) {
@@ -161,9 +214,16 @@ func decide(ctx *FlowContext, data *AIDecisionData, opts provider.DecideOpts) (p
 		return provider.Decision{}, err
 	}
 
-	opts.Model = aiDecisionModel
 	opts.Question = question.String()
 	opts.Input = input.String()
+	return decideValues(ctx, opts, nil)
+}
+
+// decideValues checks the question, input, options and levels of opts and
+// asks the model. charge is called once they're valid, for calls from code,
+// which are charged then.
+func decideValues(ctx *FlowContext, opts provider.DecideOpts, charge func() error) (provider.Decision, error) {
+	opts.Model = aiDecisionModel
 	if strings.TrimSpace(opts.Question) == "" {
 		return provider.Decision{}, errors.New("question is empty")
 	}
@@ -186,6 +246,11 @@ func decide(ctx *FlowContext, data *AIDecisionData, opts provider.DecideOpts) (p
 		)
 	}
 
+	if charge != nil {
+		if err := charge(); err != nil {
+			return provider.Decision{}, err
+		}
+	}
 	return ctx.Decision.Decide(ctx, opts)
 }
 
@@ -418,25 +483,64 @@ func executeActionAITranslate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	code, ok := aiTranslateLanguageCode(strings.TrimSpace(language.String()))
-	if !ok {
-		return fmt.Errorf("unsupported language %q, use a code like es or pt-BR", strings.TrimSpace(language.String()))
-	}
-	languageName := aiTranslateLanguages[code]
-
-	input := text.String()
-	if strings.TrimSpace(input) == "" {
-		return errors.New("text is empty")
-	}
-	length := utf8.RuneCountInString(input)
-	if length > aiTranslateMaxLength {
-		return fmt.Errorf("text is %d characters, more than the limit of %d", length, aiTranslateMaxLength)
+	t, err := newAITranslation(text.String(), language.String())
+	if err != nil {
+		return err
 	}
 
 	// The block's credit covers the first step.
-	if err := ctx.increaseCredits((length - 1) / aiTranslateStepLength); err != nil {
+	if err := ctx.increaseCredits(t.credits() - 1); err != nil {
 		return err
 	}
+
+	res, err := t.run(ctx)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewObject(map[string]thing.Thing{
+		"text":            thing.NewString(res.Text),
+		"source_language": thing.NewString(res.SourceLanguage),
+	}))
+	return n.ExecuteChildren(ctx)
+}
+
+// aiTranslation is a request of AI Translate, from a block or code.
+type aiTranslation struct {
+	text string
+	// The code of the language, like es.
+	language string
+}
+
+type aiTranslationResult struct {
+	SourceLanguage string `json:"source_language"`
+	Text           string `json:"text"`
+}
+
+func newAITranslation(text string, language string) (aiTranslation, error) {
+	code, ok := aiTranslateLanguageCode(strings.TrimSpace(language))
+	if !ok {
+		return aiTranslation{}, fmt.Errorf("unsupported language %q, use a code like es or pt-BR", strings.TrimSpace(language))
+	}
+	if strings.TrimSpace(text) == "" {
+		return aiTranslation{}, errors.New("text is empty")
+	}
+	length := utf8.RuneCountInString(text)
+	if length > aiTranslateMaxLength {
+		return aiTranslation{}, fmt.Errorf("text is %d characters, more than the limit of %d", length, aiTranslateMaxLength)
+	}
+	return aiTranslation{text: text, language: code}, nil
+}
+
+// credits are 1 for each aiTranslateStepLength characters started.
+func (t aiTranslation) credits() int {
+	return (utf8.RuneCountInString(t.text)-1)/aiTranslateStepLength + 1
+}
+
+func (t aiTranslation) run(ctx *FlowContext) (aiTranslationResult, error) {
+	languageName := aiTranslateLanguages[t.language]
+	input := t.text
+	length := utf8.RuneCountInString(input)
 
 	tier := aiModelTiers[AIModelSmall]
 	response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{
@@ -448,25 +552,17 @@ func executeActionAITranslate(n *CompiledFlowNode, ctx *FlowContext) error {
 		JSONSchema:      aiTranslateSchema,
 	})
 	if err != nil {
-		return err
+		return aiTranslationResult{}, err
 	}
 
 	// Like the answer of a provider without an API key.
 	if response.Text == "" {
-		return errors.New("the AI gave no answer")
+		return aiTranslationResult{}, errors.New("the AI gave no answer")
 	}
 
-	var res struct {
-		SourceLanguage string `json:"source_language"`
-		Text           string `json:"text"`
-	}
+	var res aiTranslationResult
 	if err := json.Unmarshal([]byte(response.Text), &res); err != nil {
-		return fmt.Errorf("failed to read translation: %w", err)
+		return aiTranslationResult{}, fmt.Errorf("failed to read translation: %w", err)
 	}
-
-	ctx.StoreNodeResult(n, thing.NewObject(map[string]thing.Thing{
-		"text":            thing.NewString(res.Text),
-		"source_language": thing.NewString(res.SourceLanguage),
-	}))
-	return n.ExecuteChildren(ctx)
+	return res, nil
 }

@@ -8166,6 +8166,277 @@
         "destructive": false,
         "reason": false
       }
+    },
+    {
+      "kind": "handler",
+      "integration": "ai",
+      "id": "ask",
+      "description": "Ask AI a question or let it respond to a prompt, like the Ask AI block, and get its answer. Costs 5 credits with small, 20 with medium and 100 with large.",
+      "credits": 5,
+      "variable_credits": true,
+      "params": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Message the AI responds to. Up to 64,000 bytes together with the system prompt, or 8,000 with large. Each 8,000 bytes after the first cost the model's credits again."
+          },
+          "system_prompt": {
+            "description": "Instructions for how the AI should behave.",
+            "type": "string"
+          },
+          "model": {
+            "description": "small is fast, medium reasons first, large is the smartest. Defaults to small.",
+            "type": "string",
+            "enum": [
+              "small",
+              "medium",
+              "large"
+            ]
+          },
+          "max_tokens": {
+            "description": "The longest answer in tokens, including reasoning, up to 1,000 and 500 if unset. Answers over 500 tokens cost the model's credits once more.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "string",
+        "description": "The answer."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "ai",
+      "id": "check",
+      "description": "Let AI answer a yes or no question about the input, like the AI Check block. Compare the result with a threshold, like 0.5.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The question about the input."
+          },
+          "input": {
+            "type": "string",
+            "description": "What the question is about, like the text of a message."
+          }
+        },
+        "required": [
+          "question",
+          "input"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "number",
+        "description": "The probability of yes, from 0 to 1."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "ai",
+      "id": "choose",
+      "description": "Let AI pick the option that fits the input best, like the AI Choice block.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The question about the input."
+          },
+          "input": {
+            "type": "string",
+            "description": "What the question is about, like the text of a message."
+          },
+          "options": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The options by name, each with a description of when it fits, or \"\" if the name says enough."
+          }
+        },
+        "required": [
+          "question",
+          "input",
+          "options"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "choice": {
+            "description": "The name of the option, or null if none fits.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "description": "How sure the AI is about the choice, from 0 to 1."
+          }
+        },
+        "required": [
+          "choice",
+          "confidence"
+        ],
+        "additionalProperties": false
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "ai",
+      "id": "score",
+      "description": "Let AI rate the input on a scale of levels, like the AI Score block.",
+      "credits": 1,
+      "params": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "The question about the input."
+          },
+          "input": {
+            "type": "string",
+            "description": "What the question is about, like the text of a message."
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "2 to 10 descriptions of the levels, from the lowest to the highest."
+          }
+        },
+        "required": [
+          "question",
+          "input",
+          "levels"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "number",
+        "description": "The level, from 1."
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
+    },
+    {
+      "kind": "handler",
+      "integration": "ai",
+      "id": "translate",
+      "description": "Let AI translate text to another language, like the AI Translate block. Up to 4,000 characters. Costs 1 credit for each 1,000 characters started.",
+      "credits": 1,
+      "variable_credits": true,
+      "params": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to translate."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "bg",
+              "zh-CN",
+              "zh-TW",
+              "hr",
+              "cs",
+              "da",
+              "nl",
+              "en",
+              "fil",
+              "fi",
+              "fr",
+              "de",
+              "el",
+              "he",
+              "hi",
+              "hu",
+              "id",
+              "it",
+              "ja",
+              "ko",
+              "lt",
+              "ms",
+              "no",
+              "pl",
+              "pt-BR",
+              "pt-PT",
+              "ro",
+              "ru",
+              "es",
+              "sv",
+              "th",
+              "tr",
+              "uk",
+              "vi"
+            ],
+            "description": "The language to translate to, like es or pt-BR."
+          }
+        },
+        "required": [
+          "text",
+          "language"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The translated text."
+          },
+          "source_language": {
+            "type": "string",
+            "description": "The code of the language the text was in, or \"other\"."
+          }
+        },
+        "required": [
+          "text",
+          "source_language"
+        ],
+        "additionalProperties": false
+      },
+      "policy": {
+        "code": true,
+        "target": "none",
+        "destructive": false
+      }
     }
   ]
 }
