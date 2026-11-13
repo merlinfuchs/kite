@@ -15,9 +15,9 @@ export default function AppPage() {
   const features = useAppFeatures();
 
   const entityCounts = useMemo(() => {
-    // Disabled commands and event listeners don't count against the limit.
+    // Disabled commands don't count against the limit next to them.
     return entities?.reduce((acc, entity) => {
-      if (!entity!.enabled) return acc;
+      if (entity!.type === "command" && !entity!.enabled) return acc;
       acc[entity!.type] = (acc[entity!.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

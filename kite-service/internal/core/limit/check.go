@@ -34,7 +34,9 @@ func Check(name string, limit int, counts store.ItemCounts, added store.ItemCoun
 		return fmt.Errorf("maximum number of enabled %s (%d) reached, disable or delete some first", name, limit)
 	}
 
-	if total := limit * TotalFactor; counts.Total+added.Total > total {
+	// Enabling one doesn't add to the total, even if it's over after a
+	// downgrade.
+	if total := limit * TotalFactor; added.Total > 0 && counts.Total+added.Total > total {
 		return fmt.Errorf("maximum number of %s (%d) reached, including disabled ones, delete some first", name, total)
 	}
 

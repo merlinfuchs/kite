@@ -12,8 +12,6 @@ A subscription belongs to one app. If you have several apps, each one needs its 
 
 - More [credits](./credit-system.md) per month
 - More commands, stored variables, message templates, and event listeners
-
-Only enabled commands and event listeners count toward the limit, so you can keep ones you don't need right now disabled instead of deleting them. An app can have up to 3 times its limit of each, enabled or not. Scheduled tasks and webhooks count the same way.
 - More scheduled tasks and webhooks
 - More servers your app can be in
 - More collaborators who can manage the app with you
@@ -25,6 +23,8 @@ Only enabled commands and event listeners count toward the limit, so you can kee
 - The `Send message as` block, which sends messages with another name and avatar
 - Schedules that run as often as once a minute instead of every 5 minutes
 - Priority support
+
+Only enabled commands and event listeners count toward the limit, so you can keep ones you don't need right now disabled instead of deleting them. An app can have up to 3 times its limit of each, enabled or not. Scheduled tasks and webhooks count the same way.
 
 Kite Plus raises the limits and includes the rotating status, the `Set status` block, an animated avatar and banner, and the `Play audio` block. Profiles per server, the `Send message as` block, schedules every minute, and priority support need Kite Premium or Kite Ultimate.
 

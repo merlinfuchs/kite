@@ -21,6 +21,7 @@ func TestCheck(t *testing.T) {
 		{"add disabled over limit", store.ItemCounts{Total: 20, Enabled: 20}, store.ItemCounts{Total: 1}, true},
 		{"enable at limit", store.ItemCounts{Total: 20, Enabled: 15}, store.ItemCounts{Enabled: 1}, false},
 		{"enable under limit at total", store.ItemCounts{Total: 45, Enabled: 14}, store.ItemCounts{Enabled: 1}, true},
+		{"enable over total", store.ItemCounts{Total: 60, Enabled: 10}, store.ItemCounts{Enabled: 1}, true},
 		{"total reached", store.ItemCounts{Total: 45}, store.ItemCounts{Total: 1}, false},
 		{"import over limit", store.ItemCounts{Total: 10, Enabled: 10}, store.ItemCounts{Total: 6, Enabled: 6}, false},
 	}
