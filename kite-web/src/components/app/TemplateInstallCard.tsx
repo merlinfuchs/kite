@@ -8,7 +8,6 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { PermissionFlag } from "@/lib/discord/permissions";
 import {
   useAppStateGuilds,
   useBundleInstalls,
@@ -35,8 +34,8 @@ import { useMissingFlowIntegrations } from "@/lib/integrations/hooks";
 import { Integration } from "@/lib/integrations/types";
 import { AppIntegrationEnableButton } from "./AppIntegrationList";
 import {
-  missingPermissions,
-  permissionLabel,
+  formatMissingPermissions,
+  missingGuildPermissions,
   templatePermissions,
 } from "@/lib/flow/templatePermissions";
 import {
@@ -138,21 +137,10 @@ export function TemplateInstallCard({
     [template, includedKeys]
   );
   // Until a server is picked, every server the bot is in is checked.
-  const missing = useMemo(() => {
-    const checked = (guilds ?? []).filter((g) => !guildId || g?.id === guildId);
-    const permissions = new Set<PermissionFlag>();
-    const guildNames: string[] = [];
-    for (const guild of checked) {
-      const perms = missingPermissions(
-        derived.permissions,
-        guild?.bot_permissions
-      );
-      if (perms.length === 0) continue;
-      perms.forEach((p) => permissions.add(p));
-      guildNames.push(guild!.name);
-    }
-    return { permissions: Array.from(permissions), guildNames };
-  }, [derived.permissions, guilds, guildId]);
+  const missing = useMemo(
+    () => missingGuildPermissions(derived.permissions, guilds, guildId),
+    [derived.permissions, guilds, guildId]
+  );
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -396,15 +384,7 @@ export function TemplateInstallCard({
           <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
           <div>
             <span className="font-semibold">Missing permissions: </span>
-            Your bot needs the{" "}
-            {new Intl.ListFormat("en").format(
-              missing.permissions.map(permissionLabel)
-            )}{" "}
-            {missing.permissions.length === 1 ? "permission" : "permissions"}{" "}
-            {missing.guildNames.length > 3
-              ? `in ${missing.guildNames.length} of your servers`
-              : `in ${new Intl.ListFormat("en").format(missing.guildNames)}`}
-            .
+            {formatMissingPermissions(missing)}
           </div>
         </div>
       )}

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   flowPermissions,
+  formatMissingPermissions,
+  missingGuildPermissions,
   missingPermissions,
+  nodeNeedsRoleHierarchy,
+  nodePermissions,
   templatePermissionFaq,
   templatePermissions,
 } from "./templatePermissions";
@@ -276,6 +280,50 @@ describe("templatePermissions", () => {
         bitset
       );
       expect(missing).toEqual([]);
+    });
+
+    it("collects missing permissions across guilds", () => {
+      const viewBit = permissionBits.find(
+        (p) => p.flag === "VIEW_CHANNEL"
+      )!.bit;
+      const sendBit = permissionBits.find(
+        (p) => p.flag === "SEND_MESSAGES"
+      )!.bit;
+      const bitset = encodePermissionsBitset([viewBit, sendBit]);
+
+      const res = missingGuildPermissions(
+        ["VIEW_CHANNEL", "SEND_MESSAGES", "BAN_MEMBERS"],
+        [
+          { id: "g1", name: "Server One", bot_permissions: bitset },
+          { id: "g2", name: "Server Two", bot_permissions: "8" }, // Administrator
+        ]
+      );
+      expect(res.permissions).toEqual(["BAN_MEMBERS"]);
+      expect(res.guildNames).toEqual(["Server One"]);
+      expect(formatMissingPermissions(res)).toBe(
+        "Your bot needs the Ban Members permission in Server One."
+      );
+      expect(
+        formatMissingPermissions({
+          permissions: ["BAN_MEMBERS", "MANAGE_ROLES"],
+          guildNames: ["S1", "S2", "S3", "S4"],
+        })
+      ).toBe(
+        "Your bot needs the Ban Members and Manage Roles permissions in 4 of your servers."
+      );
+    });
+
+    it("derives node permissions and role hierarchy per node", () => {
+      expect(
+        nodePermissions({
+          id: "1",
+          type: "action_member_ban",
+          data: {},
+          position: { x: 0, y: 0 },
+        })
+      ).toEqual(["BAN_MEMBERS"]);
+      expect(nodeNeedsRoleHierarchy("action_member_ban")).toBe(true);
+      expect(nodeNeedsRoleHierarchy("action_message_create")).toBe(false);
     });
   });
 
