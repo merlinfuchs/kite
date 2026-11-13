@@ -255,7 +255,9 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		addArg(option)
 	}
 
-	var targetUser any
+	// The fields of a missing target, like for a slash command, are empty
+	// instead of failing.
+	var targetUser any = (*UserEnv)(nil)
 	if targetID := data.TargetUserID(); targetID.IsValid() {
 		user, userExists := data.Resolved.Users[targetID]
 		member, memberExists := data.Resolved.Members[targetID]
@@ -270,11 +272,9 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		}
 	}
 
-	var targetMessage *MessageEnv
-	if targetID := data.TargetMessageID(); targetID.IsValid() {
-		if msg, ok := data.Resolved.Messages[targetID]; ok {
-			targetMessage = NewMessageEnv(msg)
-		}
+	targetMessage := &MessageEnv{}
+	if msg, ok := data.Resolved.Messages[data.TargetMessageID()]; ok && msg.ID.IsValid() {
+		targetMessage = NewMessageEnv(msg)
 	}
 
 	return &CommandEnv{

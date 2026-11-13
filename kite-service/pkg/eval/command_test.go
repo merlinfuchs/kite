@@ -98,12 +98,22 @@ func TestCommandInteractionContextTargetsCanBeMissing(t *testing.T) {
 		template string
 	}{
 		{
+			name:     "slash command user",
+			data:     &discord.CommandInteraction{ID: 1, Name: "ping"},
+			template: "{{interaction.command.target_user.id}}",
+		},
+		{
+			name:     "slash command message",
+			data:     &discord.CommandInteraction{ID: 1, Name: "ping"},
+			template: "{{interaction.command.target_message.author.id}}",
+		},
+		{
 			name: "missing user data",
 			data: &discord.CommandInteraction{
 				ID:       1,
 				TargetID: 2,
 			},
-			template: "{{interaction.command.target_user == nil}}",
+			template: "{{interaction.command.target_user.id}}",
 		},
 		{
 			name: "missing message data",
@@ -111,7 +121,7 @@ func TestCommandInteractionContextTargetsCanBeMissing(t *testing.T) {
 				ID:       1,
 				TargetID: 2,
 			},
-			template: "{{interaction.command.target_message == nil}}",
+			template: "{{interaction.command.target_message.content}}",
 		},
 	}
 
@@ -123,8 +133,8 @@ func TestCommandInteractionContextTargetsCanBeMissing(t *testing.T) {
 			if err != nil {
 				t.Fatalf("eval: %v", err)
 			}
-			if got != "true" {
-				t.Fatalf("got %q, want %q", got, "true")
+			if got != "" {
+				t.Fatalf("got %q, want empty", got)
 			}
 		})
 	}
