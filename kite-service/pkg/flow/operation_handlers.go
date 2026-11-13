@@ -21,13 +21,12 @@ type operationCall struct {
 	charge func() error
 	// chargeCredits is charge for operations whose credits depend on the
 	// argument, like the model of ai.ask. It charges credits instead of the
-	// operation's.
-	chargeCredits func(credits int) error
+	// operation's, if credits and reserve fit the limit. reserve is the most
+	// chargeMore can charge later.
+	chargeCredits func(credits int, reserve int) error
 	// chargeMore charges credits on top, for what's only known after paying
 	// for something, like the length of an AI answer.
 	chargeMore func(credits int) error
-	// ensureCredits fails if credits don't fit the limit, without using them.
-	ensureCredits func(credits int) error
 	// The IDs of the stored variables the block lets the code use, by the
 	// names the code uses.
 	variables map[string]string

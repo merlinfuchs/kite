@@ -8171,7 +8171,7 @@
       "kind": "handler",
       "integration": "ai",
       "id": "ask",
-      "description": "Ask AI a question or let it respond to a prompt, like the Ask AI block, and get its answer. Costs 5 credits with small, 20 with medium and 100 with large.",
+      "description": "Ask AI a question or let it respond to a prompt, like the Ask AI block, and get its answer. Costs 5 credits with small, 20 with medium, and 100 with large.",
       "credits": 5,
       "variable_credits": true,
       "params": {
@@ -8195,7 +8195,7 @@
             ]
           },
           "max_tokens": {
-            "description": "The longest answer in tokens, including reasoning, up to 1,000 and 500 if unset. Answers over 500 tokens cost the model's credits once more.",
+            "description": "The longest answer. Up to 1,000 tokens, including reasoning, and 500 if unset. Answers over 500 tokens cost the model's Ask AI credits once more.",
             "type": "number"
           }
         },
@@ -8211,7 +8211,8 @@
       "policy": {
         "code": true,
         "target": "none",
-        "destructive": false
+        "destructive": false,
+        "reason": false
       }
     },
     {
@@ -8245,7 +8246,8 @@
       "policy": {
         "code": true,
         "target": "none",
-        "destructive": false
+        "destructive": false,
+        "reason": false
       }
     },
     {
@@ -8307,7 +8309,8 @@
       "policy": {
         "code": true,
         "target": "none",
-        "destructive": false
+        "destructive": false,
+        "reason": false
       }
     },
     {
@@ -8349,7 +8352,8 @@
       "policy": {
         "code": true,
         "target": "none",
-        "destructive": false
+        "destructive": false,
+        "reason": false
       }
     },
     {
@@ -8435,7 +8439,8 @@
       "policy": {
         "code": true,
         "target": "none",
-        "destructive": false
+        "destructive": false,
+        "reason": false
       }
     }
   ]

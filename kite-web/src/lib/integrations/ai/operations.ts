@@ -4,34 +4,29 @@ import {
   aiTranslateMaxLength,
   aiTranslateStepLength,
 } from "../../blocks/aiTranslate";
-import { aiScore } from "../../blocks/aiScore";
+import { aiScore, aiScoreMaxLevels } from "../../blocks/aiScore";
 import { controlAiCheck } from "../../blocks/controlAiCheck";
 import { controlConditionAiChoice } from "../../blocks/controlConditionAiChoice";
 import {
+  aiAnswerLimits,
   aiInputStepLength,
-  aiMaxOutputTokens,
   aiModelTiers,
   aiModelTierValues,
-  aiOutputStepTokens,
 } from "../../flow/aiModels";
 import { translateLanguageCodes } from "../../flow/translateLanguages";
+import { formatNumber as n } from "../../utils";
 import { HandlerOperationDefinition } from "../handlerOperations";
 
 // The AI blocks for code, which cost the same. Search the Web isn't one, as
 // its searches take longer than the 10 seconds a run of code has. Run by
 // kite-service/pkg/flow/operation_handlers_ai.go.
 
-const n = (v: number) => v.toLocaleString("en-US");
-// Costs 5 credits with small, 20 with medium and 100 with large.
-const tierCredits = aiModelTiers
-  .map((t, i) =>
-    i === 0
-      ? `Costs ${n(t.credits.chat)} credits with ${t.value}`
-      : `${i === aiModelTiers.length - 1 ? " and" : ","} ${n(
-          t.credits.chat
-        )} with ${t.value}`
+// Costs 5 credits with small, 20 with medium, and 100 with large.
+const tierCredits = `Costs ${new Intl.ListFormat("en").format(
+  aiModelTiers.map(
+    (t, i) => `${n(t.credits.chat)}${i === 0 ? " credits" : ""} with ${t.value}`
   )
-  .join("");
+)}`;
 
 const question = z.string().describe("The question about the input.");
 const input = z
@@ -70,13 +65,7 @@ export const aiOperations: HandlerOperationDefinition[] = [
         max_tokens: z
           .number()
           .optional()
-          .describe(
-            `The longest answer in tokens, including reasoning, up to ${n(
-              aiMaxOutputTokens
-            )} and ${n(aiOutputStepTokens)} if unset. Answers over ${n(
-              aiOutputStepTokens
-            )} tokens cost the model's credits once more.`
-          ),
+          .describe(`The longest answer. ${aiAnswerLimits}`),
       })
       .strict(),
     result: z.string().describe("The answer."),
@@ -127,7 +116,7 @@ export const aiOperations: HandlerOperationDefinition[] = [
         levels: z
           .array(z.string())
           .describe(
-            "2 to 10 descriptions of the levels, from the lowest to the highest."
+            `2 to ${aiScoreMaxLevels} descriptions of the levels, from the lowest to the highest.`
           ),
       })
       .strict(),

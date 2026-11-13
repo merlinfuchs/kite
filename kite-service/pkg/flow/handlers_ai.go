@@ -216,20 +216,43 @@ func decide(ctx *FlowContext, data *AIDecisionData, opts provider.DecideOpts) (p
 
 	opts.Question = question.String()
 	opts.Input = input.String()
-	return decideValues(ctx, opts, nil)
+	if err := checkDecision(&opts); err != nil {
+		return provider.Decision{}, err
+	}
+	return ctx.Decision.Decide(ctx, opts)
 }
 
-// decideValues checks the question, input, options and levels of opts and
-// asks the model. charge is called once they're valid, for calls from code,
-// which are charged then.
-func decideValues(ctx *FlowContext, opts provider.DecideOpts, charge func() error) (provider.Decision, error) {
+// checkDecision sets the model of opts and checks its question, input,
+// options and levels, for blocks and code.
+func checkDecision(opts *provider.DecideOpts) error {
 	opts.Model = aiDecisionModel
 	if strings.TrimSpace(opts.Question) == "" {
-		return provider.Decision{}, errors.New("question is empty")
+		return errors.New("question is empty")
 	}
 	// Like a message without content, which the model would still judge.
 	if strings.TrimSpace(opts.Input) == "" {
-		return provider.Decision{}, errors.New("input is empty")
+		return errors.New("input is empty")
+	}
+
+	switch opts.Type {
+	case provider.DecisionTypeChoice:
+		if len(opts.Options) == 0 {
+			return errors.New("add at least one option")
+		}
+		for name := range opts.Options {
+			if strings.TrimSpace(name) == "" {
+				return errors.New("every option needs a name")
+			}
+		}
+	case provider.DecisionTypeScore:
+		if len(opts.Levels) < 2 || len(opts.Levels) > aiScoreMaxLevels {
+			return fmt.Errorf("needs 2 to %d levels, has %d", aiScoreMaxLevels, len(opts.Levels))
+		}
+		for _, level := range opts.Levels {
+			if strings.TrimSpace(level) == "" {
+				return errors.New("every level needs a description")
+			}
+		}
 	}
 
 	length := len(opts.Question) + len(opts.Input)
@@ -240,18 +263,12 @@ func decideValues(ctx *FlowContext, opts provider.DecideOpts, charge func() erro
 		length += len(level)
 	}
 	if length > aiDecisionMaxInputLength {
-		return provider.Decision{}, fmt.Errorf(
+		return fmt.Errorf(
 			"question, input and options are %d bytes, more than the limit of %d",
 			length, aiDecisionMaxInputLength,
 		)
 	}
-
-	if charge != nil {
-		if err := charge(); err != nil {
-			return provider.Decision{}, err
-		}
-	}
-	return ctx.Decision.Decide(ctx, opts)
+	return nil
 }
 
 // evalProbability evaluates a threshold from 0 to 1, or returns fallback if
@@ -298,9 +315,6 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 			options[name] = child.Data.AIChoiceDescription
 			items[name] = child
 		}
-	}
-	if len(items) == 0 {
-		return errors.New("add at least one option")
 	}
 
 	minConfidence, err := evalProbability(ctx, "min confidence", data.MinConfidence, 0)
@@ -402,15 +416,6 @@ func executeActionAIScore(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	if len(data.Levels) < 2 || len(data.Levels) > aiScoreMaxLevels {
-		return fmt.Errorf("needs 2 to %d levels, has %d", aiScoreMaxLevels, len(data.Levels))
-	}
-	for _, level := range data.Levels {
-		if strings.TrimSpace(level) == "" {
-			return errors.New("every level needs a description")
-		}
-	}
-
 	decision, err := decide(ctx, data, provider.DecideOpts{
 		Type:   provider.DecisionTypeScore,
 		Levels: data.Levels,
@@ -508,6 +513,8 @@ func executeActionAITranslate(n *CompiledFlowNode, ctx *FlowContext) error {
 // aiTranslation is a request of AI Translate, from a block or code.
 type aiTranslation struct {
 	text string
+	// Characters of text.
+	length int
 	// The code of the language, like es.
 	language string
 }
@@ -529,18 +536,17 @@ func newAITranslation(text string, language string) (aiTranslation, error) {
 	if length > aiTranslateMaxLength {
 		return aiTranslation{}, fmt.Errorf("text is %d characters, more than the limit of %d", length, aiTranslateMaxLength)
 	}
-	return aiTranslation{text: text, language: code}, nil
+	return aiTranslation{text: text, length: length, language: code}, nil
 }
 
 // credits are 1 for each aiTranslateStepLength characters started.
 func (t aiTranslation) credits() int {
-	return (utf8.RuneCountInString(t.text)-1)/aiTranslateStepLength + 1
+	return (t.length-1)/aiTranslateStepLength + 1
 }
 
 func (t aiTranslation) run(ctx *FlowContext) (aiTranslationResult, error) {
 	languageName := aiTranslateLanguages[t.language]
-	input := t.text
-	length := utf8.RuneCountInString(input)
+	input, length := t.text, t.length
 
 	tier := aiModelTiers[AIModelSmall]
 	response, err := ctx.AI.CreateResponse(ctx, provider.CreateResponseOpts{

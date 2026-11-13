@@ -66,8 +66,8 @@ func TestJavaScriptRunAIErrors(t *testing.T) {
 		{"long prompt", `await ai.ask({prompt: "x".repeat(9000), model: "large"})`, "ai.ask: prompt and system prompt are 9000 bytes, more than the limit of 8000 for this model"},
 		{"unknown parameter", `await ai.check({question: "Spam?", input: "hi", foo: 1})`, "ai.check: it has no parameter foo"},
 		{"empty input", `await ai.check({question: "Spam?", input: " "})`, "ai.check: input is empty"},
-		{"no options", `await ai.choose({question: "Which?", input: "hi"})`, "ai.choose: missing parameter options"},
-		{"one level", `await ai.score({question: "How?", input: "hi", levels: ["low"]})`, "ai.score: invalid value for parameter levels: needs 2 to 10 levels, has 1"},
+		{"no options", `await ai.choose({question: "Which?", input: "hi"})`, "ai.choose: add at least one option"},
+		{"one level", `await ai.score({question: "How?", input: "hi", levels: ["low"]})`, "ai.score: needs 2 to 10 levels, has 1"},
 		{"language", `await ai.translate({text: "hi", language: "xx"})`, `ai.translate: unsupported language "xx"`},
 		{"search", `await ai.searchWeb({prompt: "hi"})`, "ai.searchWeb isn't available"},
 		// The most the answer can cost has to fit before anything is paid.

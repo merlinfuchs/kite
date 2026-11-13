@@ -1303,12 +1303,12 @@ declare const variables: {
 };
 
 declare const ai: {
-  /** Ask AI a question or let it respond to a prompt, like the Ask AI block, and get its answer. Costs 5 credits with small, 20 with medium and 100 with large. */
+  /** Ask AI a question or let it respond to a prompt, like the Ask AI block, and get its answer. Costs 5 credits with small, 20 with medium, and 100 with large. */
   ask(arg: {
     /** Message the AI responds to. Up to 64,000 bytes together with the system prompt, or 8,000 with large. Each 8,000 bytes after the first cost the model's credits again. */ prompt: string;
     /** Instructions for how the AI should behave. */ system_prompt?: string;
     /** small is fast, medium reasons first, large is the smartest. Defaults to small. */ model?: "small" | "medium" | "large";
-    /** The longest answer in tokens, including reasoning, up to 1,000 and 500 if unset. Answers over 500 tokens cost the model's credits once more. */ max_tokens?: number;
+    /** The longest answer. Up to 1,000 tokens, including reasoning, and 500 if unset. Answers over 500 tokens cost the model's Ask AI credits once more. */ max_tokens?: number;
   }): Promise<string>;
   /** Let AI answer a yes or no question about the input, like the AI Check block. Compare the result with a threshold, like 0.5. Costs 1 credit. */
   check(arg: {

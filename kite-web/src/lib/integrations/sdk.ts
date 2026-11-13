@@ -188,9 +188,16 @@ function schemaType(s: JSONSchema): string {
   return "any";
 }
 
+// Wraps a union in parentheses, like (string | null)[], but not an object
+// with a union inside.
 function wrap(type: string) {
-  const object = type.startsWith("{") && type.endsWith("}");
-  return type.includes("|") && !object ? `(${type})` : type;
+  let depth = 0;
+  for (const c of type) {
+    if ("({[<".includes(c)) depth++;
+    else if (")}]>".includes(c)) depth--;
+    else if (c === "|" && depth === 0) return `(${type})`;
+  }
+  return type;
 }
 
 export function costText(credits: number) {

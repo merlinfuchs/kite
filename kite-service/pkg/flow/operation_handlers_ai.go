@@ -53,14 +53,21 @@ func aiAskOperation(call operationCall) (any, error) {
 
 	// Like the block: the input now, the output once the answer is there,
 	// and the most the output can cost has to fit before either.
-	credits := ask.credits() + ask.extraInputCredits()
-	if err := call.ensureCredits(credits + ask.maxExtraOutputCredits()); err != nil {
-		return nil, err
-	}
-	if err := call.chargeCredits(credits); err != nil {
+	if err := call.chargeCredits(ask.credits()+ask.extraInputCredits(), ask.maxExtraOutputCredits()); err != nil {
 		return nil, err
 	}
 	return ask.run(call.ctx, call.chargeMore)
+}
+
+// decideForCode checks opts, charges the call and asks the model.
+func decideForCode(call operationCall, opts provider.DecideOpts) (provider.Decision, error) {
+	if err := checkDecision(&opts); err != nil {
+		return provider.Decision{}, err
+	}
+	if err := call.charge(); err != nil {
+		return provider.Decision{}, err
+	}
+	return call.ctx.Decision.Decide(call.ctx, opts)
 }
 
 // aiCheckOperation is ai.check, AI Check for code, which returns how likely
@@ -73,12 +80,12 @@ func aiCheckOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	decision, err := decideValues(call.ctx, provider.DecideOpts{
+	decision, err := decideForCode(call, provider.DecideOpts{
 		Type:     provider.DecisionTypeNoul,
 		Question: arg.Question,
 		Input:    arg.Input,
 		Options:  map[string]string{"true": "Yes", "false": "No"},
-	}, call.charge)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -95,21 +102,12 @@ func aiChooseOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	if len(arg.Options) == 0 {
-		return nil, errors.New("missing parameter options")
-	}
-	for name := range arg.Options {
-		if strings.TrimSpace(name) == "" {
-			return nil, errors.New("invalid value for parameter options: every option needs a name")
-		}
-	}
-
-	decision, err := decideValues(call.ctx, provider.DecideOpts{
+	decision, err := decideForCode(call, provider.DecideOpts{
 		Type:     provider.DecisionTypeChoice,
 		Question: arg.Question,
 		Input:    arg.Input,
 		Options:  arg.Options,
-	}, call.charge)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -132,21 +130,12 @@ func aiScoreOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
-	if len(arg.Levels) < 2 || len(arg.Levels) > aiScoreMaxLevels {
-		return nil, fmt.Errorf("invalid value for parameter levels: needs 2 to %d levels, has %d", aiScoreMaxLevels, len(arg.Levels))
-	}
-	for _, level := range arg.Levels {
-		if strings.TrimSpace(level) == "" {
-			return nil, errors.New("invalid value for parameter levels: every level needs a description")
-		}
-	}
-
-	decision, err := decideValues(call.ctx, provider.DecideOpts{
+	decision, err := decideForCode(call, provider.DecideOpts{
 		Type:     provider.DecisionTypeScore,
 		Question: arg.Question,
 		Input:    arg.Input,
 		Levels:   arg.Levels,
-	}, call.charge)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +156,7 @@ func aiTranslateOperation(call operationCall) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := call.chargeCredits(t.credits()); err != nil {
+	if err := call.chargeCredits(t.credits(), 0); err != nil {
 		return nil, err
 	}
 	return t.run(call.ctx)
