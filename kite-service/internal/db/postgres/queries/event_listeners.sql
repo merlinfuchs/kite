@@ -78,11 +78,13 @@ DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING *;
 -- name: GetEventListenerForUpdate :one
 SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;
 
--- Stopped apps are left alone, their event listeners don't run anyway.
+-- Only apps that had a plan count, free apps that were over before the free
+-- limits were lowered keep their event listeners. Stopped apps are left alone too.
 -- name: GetAppsWithEnabledEventListenersOver :many
 SELECT el.app_id, el.source, COUNT(*) AS count FROM event_listeners el
 JOIN apps a ON a.id = el.app_id AND a.enabled
 WHERE el.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = el.app_id)
 GROUP BY el.app_id, el.source
 HAVING COUNT(*) > @min_count::INT;
 

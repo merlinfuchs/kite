@@ -36,7 +36,9 @@ type Features interface {
 }
 
 // Enforcer disables the newest commands and event listeners of apps that have
-// more enabled than their plan allows for longer than the GracePeriod.
+// more enabled than their plan allows for longer than the GracePeriod. Only
+// apps that had a plan are enforced, so free apps that were over before the
+// free limits were lowered keep what they have.
 type Enforcer struct {
 	appStore           store.AppStore
 	commandStore       store.CommandStore

@@ -207,6 +207,7 @@ const getAppsWithEnabledEventListenersOver = `-- name: GetAppsWithEnabledEventLi
 SELECT el.app_id, el.source, COUNT(*) AS count FROM event_listeners el
 JOIN apps a ON a.id = el.app_id AND a.enabled
 WHERE el.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = el.app_id)
 GROUP BY el.app_id, el.source
 HAVING COUNT(*) > $1::INT
 `
@@ -217,7 +218,8 @@ type GetAppsWithEnabledEventListenersOverRow struct {
 	Count  int64
 }
 
-// Stopped apps are left alone, their event listeners don't run anyway.
+// Only apps that had a plan count, free apps that were over before the free
+// limits were lowered keep their event listeners. Stopped apps are left alone too.
 func (q *Queries) GetAppsWithEnabledEventListenersOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledEventListenersOverRow, error) {
 	rows, err := q.db.Query(ctx, getAppsWithEnabledEventListenersOver, minCount)
 	if err != nil {

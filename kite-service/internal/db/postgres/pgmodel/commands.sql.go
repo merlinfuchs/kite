@@ -175,6 +175,7 @@ const getAppsWithEnabledCommandsOver = `-- name: GetAppsWithEnabledCommandsOver 
 SELECT c.app_id, COUNT(*) AS count FROM commands c
 JOIN apps a ON a.id = c.app_id AND a.enabled
 WHERE c.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = c.app_id)
 GROUP BY c.app_id
 HAVING COUNT(*) > $1::INT
 `
@@ -184,7 +185,8 @@ type GetAppsWithEnabledCommandsOverRow struct {
 	Count int64
 }
 
-// Stopped apps are left alone, their commands aren't in Discord anyway.
+// Only apps that had a plan count, free apps that were over before the free
+// limits were lowered keep their commands. Stopped apps are left alone too.
 func (q *Queries) GetAppsWithEnabledCommandsOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledCommandsOverRow, error) {
 	rows, err := q.db.Query(ctx, getAppsWithEnabledCommandsOver, minCount)
 	if err != nil {
