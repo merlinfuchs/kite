@@ -76,13 +76,13 @@ const content: ComparisonPageContent = {
       feature: "Ready-made features",
       kite: "100+ templates, including leveling and economy",
       competitor:
-        "35+ modules and a marketplace. 11 modules are free and outside the limits.",
+        "35+ modules and a marketplace. 11 of them are free and don't count toward the limits.",
     },
     {
       feature: "Change a ready-made feature's blocks (free)",
       kite: "Yes, a template's commands are yours",
       competitor:
-        "No, you can look at a module's blocks but changing them needs Premium",
+        "No. You can look at a module's blocks, but changing them needs Premium.",
     },
     {
       feature: "Open source",
@@ -104,7 +104,7 @@ const content: ComparisonPageContent = {
     {
       title: "Change any template for free",
       description:
-        "On BotGhost's free plan you can look at a module's blocks, but changing them needs Premium. A Kite template adds normal commands to your bot, and you can change every block for free. They count toward your 15 commands and 10 event listeners.",
+        "On BotGhost's free plan you can look at a module's blocks, but changing them needs Premium. A Kite template adds normal commands to your bot, and you can change every block for free. Those commands count toward your 15 commands and 10 event listeners.",
     },
     {
       title: "No inactivity rule",

@@ -24,7 +24,7 @@ const botMakers: {
     summary:
       "You build commands and event listeners by connecting blocks in a visual editor, or describe them to Flow AI, the AI assistant that builds your bot. Kite hosts the bot 24/7 and is open source.",
     freePlan:
-      "15 commands, 10 event listeners, and 10,000 credits a month per bot, on up to 100 servers. Up to 10 bots. You can set your own status, and bots stay online even when nobody uses them.",
+      "15 commands, 10 event listeners, and 10,000 credits a month per bot, on up to 100 servers. You can make up to 10 bots and set your own status for free. Bots stay online even when nobody uses them.",
     paidPlans: "From $2.99 a month per bot.",
     bestFor:
       "Your own bot with your own commands, without paying or writing code.",
@@ -49,7 +49,7 @@ const botMakers: {
     summary:
       "A bot builder for the web, Android, and iOS. You write commands in BDScript, its own scripting language.",
     freePlan:
-      "Free, with hosting time that you earn with a button or by watching ads.",
+      "Free, but your bot runs on hosting time that you earn with a button or by watching ads.",
     bestFor:
       "Building your bot on your phone, or if you already know BDScript.",
     lastChecked: "October 2026",
@@ -63,7 +63,7 @@ const botMakers: {
     freePlan:
       "2 bots, each on up to 15 servers, with 15 commands and events combined. The status shows an invt.bot ad, and a bot goes offline after 14 days without an event.",
     bestFor:
-      "Building your bot with an AI agent of your choice, or storing data in a real database.",
+      "Building your bot with an AI agent of your choice, or storing data in a built-in database.",
     lastChecked: "October 2026",
   },
   {
@@ -132,7 +132,7 @@ export default function AlternativesPage() {
   return (
     <HomeLayout
       title="Best free Discord bot makers in 2026"
-      description="Eight free and no-code Discord bot builders compared, including Kite, BotGhost, BDFD, and inventor.bot. See what each free plan includes and when each one is the better choice."
+      description="Eight Discord bot builders compared, including Kite, BotGhost, BDFD, and inventor.bot. See which ones are free, what each free plan includes, and when each one is the better choice."
       jsonLd={jsonLd}
     >
       <section className="container py-16 md:py-24 text-center max-w-3xl">
