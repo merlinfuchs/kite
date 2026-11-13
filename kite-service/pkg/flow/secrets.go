@@ -106,6 +106,7 @@ func newFlowSecrets(ctx *FlowContext, templates ...string) (*flowSecrets, error)
 	res.evalCtx = eval.Context{
 		Env:      maps.Clone(ctx.EvalCtx.Env),
 		Patchers: ctx.EvalCtx.Patchers,
+		Values:   ctx.EvalCtx.Values,
 	}
 	if res.evalCtx.Env == nil {
 		res.evalCtx.Env = eval.Env{}

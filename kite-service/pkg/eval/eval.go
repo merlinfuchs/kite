@@ -78,6 +78,10 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		)
 	}
 
+	if v, ok := c.Values[strings.TrimSpace(expression)]; ok {
+		return thing.NewString(v), nil
+	}
+
 	c.Env["ctx"] = proxyContext{ctx: ctx}
 
 	program, err := compile(expression, c)

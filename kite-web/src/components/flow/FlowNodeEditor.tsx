@@ -136,6 +136,7 @@ import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
+import HttpRequestTestPanel from "./HttpRequestTestPanel";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
 import {
@@ -1765,6 +1766,9 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
+          <EditOnly>
+            <HttpRequestTestPanel data={data.http_request_data || {}} />
+          </EditOnly>
         </div>
       </DialogContent>
     </Dialog>

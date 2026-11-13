@@ -3,6 +3,7 @@ package flow
 import (
 	"bytes"
 	"io"
+	"net/http"
 	"net/url"
 	"slices"
 
@@ -27,50 +28,13 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
-	templates := []string{data.URL, string(data.BodyJSON)}
-	for _, kv := range slices.Concat(data.Headers, data.Query) {
-		templates = append(templates, kv.Value)
-	}
-	secrets, err := newFlowSecrets(ctx, templates...)
+	secrets, err := newFlowSecrets(ctx, data.templates()...)
 	if err != nil {
 		return err
 	}
-
-	rawURL, err := secrets.EvalTemplate(ctx, data.URL)
+	req, _, err := buildHTTPRequest(ctx, data, secrets)
 	if err != nil {
 		return err
-	}
-	query := url.Values{}
-	for _, kv := range data.Query {
-		value, err := secrets.EvalTemplate(ctx, kv.Value)
-		if err != nil {
-			return err
-		}
-		query.Add(kv.Key, value.String())
-	}
-
-	var body io.Reader
-	if data.BodyJSON != nil {
-		value, err := secrets.EvalJSONTemplate(ctx, data.BodyJSON)
-		if err != nil {
-			return err
-		}
-		body = bytes.NewReader(value)
-	}
-
-	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, body)
-	if err != nil {
-		return secrets.Redact(err)
-	}
-	for _, kv := range data.Headers {
-		value, err := secrets.EvalTemplate(ctx, kv.Value)
-		if err != nil {
-			return err
-		}
-		req.Header.Add(kv.Key, value.String())
-	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
 	}
 
 	res, err := sendHTTP(ctx, req, secrets, thing.MaxBodySize)
@@ -79,4 +43,56 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 	ctx.StoreNodeResult(n, thing.NewHTTPResponse(res))
 	return n.ExecuteChildren(ctx)
+}
+
+// templates are the settings of the request that can have placeholders.
+func (data *HTTPRequestData) templates() []string {
+	templates := []string{data.URL, string(data.BodyJSON)}
+	for _, kv := range slices.Concat(data.Headers, data.Query) {
+		templates = append(templates, kv.Value)
+	}
+	return templates
+}
+
+// buildHTTPRequest builds the request of a Send API Request block, and
+// returns its body too.
+func buildHTTPRequest(ctx *FlowContext, data *HTTPRequestData, secrets *flowSecrets) (*http.Request, []byte, error) {
+	rawURL, err := secrets.EvalTemplate(ctx, data.URL)
+	if err != nil {
+		return nil, nil, err
+	}
+	query := url.Values{}
+	for _, kv := range data.Query {
+		value, err := secrets.EvalTemplate(ctx, kv.Value)
+		if err != nil {
+			return nil, nil, err
+		}
+		query.Add(kv.Key, value.String())
+	}
+
+	var body []byte
+	var bodyReader io.Reader
+	if data.BodyJSON != nil {
+		body, err = secrets.EvalJSONTemplate(ctx, data.BodyJSON)
+		if err != nil {
+			return nil, nil, err
+		}
+		bodyReader = bytes.NewReader(body)
+	}
+
+	req, err := newHTTPRequest(ctx, data.Method, rawURL.String(), query, bodyReader)
+	if err != nil {
+		return nil, nil, secrets.Redact(err)
+	}
+	for _, kv := range data.Headers {
+		value, err := secrets.EvalTemplate(ctx, kv.Value)
+		if err != nil {
+			return nil, nil, err
+		}
+		req.Header.Add(kv.Key, value.String())
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	return req, body, nil
 }

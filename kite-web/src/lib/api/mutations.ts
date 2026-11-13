@@ -45,6 +45,8 @@ import {
   EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  HTTPRequestTestRequest,
+  HTTPRequestTestResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -1779,6 +1781,22 @@ export function useShareCodeResolveMutation() {
     mutationFn: (code: string) =>
       apiRequest<ShareCodeGetResponse>(
         `/v1/share-codes/${encodeURIComponent(code)}`
+      ),
+  });
+}
+
+export function useHTTPRequestTestMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: HTTPRequestTestRequest) =>
+      apiRequest<HTTPRequestTestResponse>(
+        `/v1/apps/${appId}/test-http-request`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       ),
   });
 }

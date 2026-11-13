@@ -18,6 +18,7 @@ import (
 
 type Runner interface {
 	Run(ctx context.Context, appID string, test testrun.Test) (*testrun.Result, error)
+	SendHTTPRequest(ctx context.Context, appID string, data flow.HTTPRequestData, values map[string]string) flow.TestHTTPRequestResult
 }
 
 type FlowTestHandler struct {
@@ -60,6 +61,29 @@ func (h *FlowTestHandler) HandleMessageTest(c *handler.Context, req wire.FlowTes
 		Message:      c.Message,
 		FlowSourceID: req.FlowSourceID,
 	})
+}
+
+// HandleHTTPRequestTest sends the request of a Send API Request block, which
+// test runs don't. It's free, the route limits how often it's used.
+func (h *FlowTestHandler) HandleHTTPRequestTest(c *handler.Context, req wire.HTTPRequestTestRequest) (*wire.HTTPRequestTestResponse, error) {
+	res := h.runner.SendHTTPRequest(c.Context(), c.App.ID, req.Data, req.Values)
+
+	out := &wire.HTTPRequestTestResponse{
+		Method:     res.Method,
+		URL:        res.URL,
+		Body:       res.Body,
+		DurationMS: res.Duration.Milliseconds(),
+		Error:      res.Error,
+	}
+	if res.Response != nil {
+		out.Response = &wire.HTTPRequestTestResponseData{
+			Status:     res.Response.Status,
+			StatusCode: res.Response.StatusCode,
+			Headers:    res.Response.Headers,
+			Body:       string(res.Response.Body),
+		}
+	}
+	return out, nil
 }
 
 func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test testrun.Test) (*wire.FlowTestResponse, error) {

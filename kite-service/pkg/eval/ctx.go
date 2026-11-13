@@ -32,6 +32,9 @@ type Context struct {
 	// KeepUnresolved keeps placeholders that fail or are empty as they are
 	// written, for messages sent without an interaction or event to fill them.
 	KeepUnresolved bool
+	// Values replace the placeholders of these expressions with text, for
+	// requests sent from the editor, where there's no event to fill them in.
+	Values map[string]string
 }
 
 type Env map[string]any
