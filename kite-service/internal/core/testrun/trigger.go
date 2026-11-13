@@ -98,6 +98,10 @@ func (s *testSession) interactionEvent(
 // commandEvent builds the interaction of the command with the arguments of
 // the test.
 func (s *testSession) commandEvent(root *flow.CompiledFlowNode, test Test) (gateway.Event, error) {
+	if root.CommandType() != discord.ChatInputCommand {
+		return s.contextCommandEvent(root, test)
+	}
+
 	var args []map[string]any
 	for _, arg := range root.CommandArguments() {
 		b, err := json.Marshal(arg)
@@ -167,6 +171,83 @@ func (s *testSession) commandEvent(root *flow.CompiledFlowNode, test Test) (gate
 		data["guild_id"] = s.guildID.String()
 	}
 	return s.interactionEvent(s.userID, s.guildID, s.channelID, discord.CommandInteractionType, data, nil, test.Event)
+}
+
+// contextCommandEvent builds the interaction of a User or Message command. Its
+// target is the user or message with the ID of the test's "target" option.
+// By default it's the user who runs it, or a message from them in the channel
+// that only exists in the test.
+func (s *testSession) contextCommandEvent(root *flow.CompiledFlowNode, test Test) (gateway.Event, error) {
+	var targetID string
+	for name, raw := range test.Options {
+		if name != "target" {
+			return nil, testErrorf("only slash commands have arguments, got %q, use target for the user or message", name)
+		}
+		if err := json.Unmarshal(raw, &targetID); err != nil {
+			return nil, testErrorf("target must be an ID")
+		}
+	}
+
+	resolved := make(map[string]any)
+	if root.CommandType() == discord.UserCommand {
+		if targetID == "" {
+			targetID = s.userID.String()
+		}
+		if err := s.resolveSelect(resolved, int(discord.UserSelectComponentType), []string{targetID}); err != nil {
+			return nil, testErrorf("target: %v", err)
+		}
+	} else {
+		msg, err := s.targetMessage(targetID)
+		if err != nil {
+			return nil, err
+		}
+		targetID = msg.ID.String()
+		addResolved(resolved, "messages", targetID, msg)
+	}
+
+	data := map[string]any{
+		"id":        flow.TestSnowflake().String(),
+		"name":      root.CommandName(),
+		"type":      root.CommandType(),
+		"target_id": targetID,
+		"resolved":  resolved,
+	}
+	if s.guildID.IsValid() {
+		data["guild_id"] = s.guildID.String()
+	}
+	return s.interactionEvent(s.userID, s.guildID, s.channelID, discord.CommandInteractionType, data, nil, test.Event)
+}
+
+// targetMessage is the message a Message command is used on in a test.
+func (s *testSession) targetMessage(id string) (*discord.Message, error) {
+	if id != "" {
+		messageID, err := discord.ParseSnowflake(id)
+		if err != nil {
+			return nil, testErrorf("target must be the ID of a message")
+		}
+		if msg, ok := s.fakeMessage(discord.MessageID(messageID)); ok {
+			return &msg, nil
+		}
+		msg, err := s.session.Message(s.channelID, discord.MessageID(messageID))
+		if err != nil {
+			return nil, testErrorf("message %s isn't in channel %s or the bot can't see it", id, s.channelID)
+		}
+		return msg, nil
+	}
+
+	user, err := s.user(s.userID)
+	if err != nil {
+		return nil, testErrorf("user %s doesn't exist", s.userID)
+	}
+	return &discord.Message{
+		ID:        discord.MessageID(flow.TestSnowflake()),
+		ChannelID: s.channelID,
+		GuildID:   s.guildID,
+		Author:    *user,
+		Content:   "Test message",
+		Timestamp: discord.NewTimestamp(time.Now()),
+		Type:      discord.DefaultMessage,
+	}, nil
 }
 
 func (s *testSession) commandOptionValue(arg map[string]any, t discord.CommandOptionType, raw json.RawMessage, resolved map[string]any) (any, error) {
