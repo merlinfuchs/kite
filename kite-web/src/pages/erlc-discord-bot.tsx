@@ -25,6 +25,7 @@ const content: LandingPageContent = {
     {
       heading: "Start with the ER:LC template",
       body: "Enable ER:LC with your server key and add the template. Your bot gets three slash commands.",
+      link: { label: "View the template", href: "/marketplace/erlc" },
       points: [
         {
           title: "/status",

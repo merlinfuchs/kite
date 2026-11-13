@@ -25,6 +25,10 @@ const content: LandingPageContent = {
     {
       heading: "Start with the Roblox Ranking template",
       body: "Enable Bloxlink and Roblox Open Cloud with their keys, enter your group's ID, and add the template. Your bot gets three slash commands.",
+      link: {
+        label: "View the template",
+        href: "/marketplace/roblox-ranking",
+      },
       points: [
         {
           title: "/setrank",
