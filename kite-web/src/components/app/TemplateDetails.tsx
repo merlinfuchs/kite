@@ -19,7 +19,7 @@ import {
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
-import { useRouter } from "next/router";
+import { onBackClick } from "@/lib/navigation";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import {
@@ -82,7 +82,6 @@ export function TemplateDetails({
     categoryHref?: (category: TemplateCategory) => LinkProps["href"];
   };
 }) {
-  const router = useRouter();
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
@@ -100,29 +99,10 @@ export function TemplateDetails({
   return (
     <div>
       {backHref && (
-        <Link
+        <AllTemplatesLink
           href={backHref}
-          onClick={(e) => {
-            if (
-              !e.metaKey &&
-              !e.ctrlKey &&
-              !e.shiftKey &&
-              !e.altKey &&
-              e.button === 0 &&
-              window.history.state?.idx > 0
-            ) {
-              e.preventDefault();
-              router.back();
-            }
-          }}
-          className={cn(
-            "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
-            backOnMobile ? "inline-flex" : "hidden md:inline-flex"
-          )}
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          All templates
-        </Link>
+          className={backOnMobile ? undefined : "hidden md:inline-flex"}
+        />
       )}
 
       {template.author.kind === "user" && !template.listed && (
@@ -336,6 +316,30 @@ export function TemplateDetails({
 
       {related && <RelatedTemplates template={template} {...related} />}
     </div>
+  );
+}
+
+// AllTemplatesLink goes back to the list of templates, keeping its filters
+// when the user came from it, see onBackClick.
+export function AllTemplatesLink({
+  href,
+  className,
+}: {
+  href: LinkProps["href"];
+  className?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onBackClick(href)}
+      className={cn(
+        "inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
+        className
+      )}
+    >
+      <ArrowLeftIcon className="h-4 w-4" />
+      All templates
+    </Link>
   );
 }
 

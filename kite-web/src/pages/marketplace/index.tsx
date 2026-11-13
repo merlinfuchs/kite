@@ -130,7 +130,6 @@ export default function MarketplacePage({ bundles, featuredDay }: Props) {
         templates={templates}
         href={(t) => templatePath(t.id)}
         buildHref="/apps"
-        category={null}
         categoryHref={categoryPath}
         featuredDay={featuredDay}
         hero={

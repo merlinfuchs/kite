@@ -14,6 +14,7 @@ import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 import KiteBanDialog from "@/components/common/KiteBanDialog";
 import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
+import "@/lib/navigation";
 
 const fontSans = FontSans({
   subsets: ["latin"],

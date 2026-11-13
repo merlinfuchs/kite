@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { categoryPath, templateCategories } from "./flow/templates";
+import { categoryFilters, categoryPath } from "./flow/templates";
 
 const pagesDir = join(__dirname, "../pages");
 const publicFile = (name: string) =>
@@ -41,10 +41,7 @@ const dynamicRoutes: Record<string, () => string[]> = {
   // the export has none.
   "/marketplace/[templateId]": () => [],
   "/marketplace/creators/[creatorId]": () => [],
-  "/marketplace/categories/[category]": () => [
-    categoryPath("all"),
-    ...templateCategories.map((c) => categoryPath(c.value)),
-  ],
+  "/marketplace/categories/[category]": () => categoryFilters.map(categoryPath),
 };
 
 const indexableRoutes = pageFiles(pagesDir)

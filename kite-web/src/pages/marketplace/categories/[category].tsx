@@ -6,8 +6,9 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { fetchBundles, withApiData } from "@/lib/apiData";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import {
+  CategoryFilter,
+  categoryFilters,
   categoryPath,
-  TemplateCategory,
   templateCategories,
   templateFromBundle,
   templatePath,
@@ -16,33 +17,23 @@ import { Bundle } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { useMemo } from "react";
 
-type Category = TemplateCategory | "all";
-
 type Props = {
-  category: Category;
+  category: CategoryFilter;
   // The templates of the category, the official ones first.
   bundles: Bundle[];
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticPaths: GetStaticPaths = () => ({
-  paths: [
-    categoryPath("all"),
-    ...templateCategories.map((c) => categoryPath(c.value)),
-  ],
+  paths: categoryFilters.map(categoryPath),
   fallback: false,
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-  const category: Category =
-    params?.category === "all"
-      ? "all"
-      : templateCategories.find((c) => c.value === params?.category)!.value;
-  const allBundles = (await fetchBundles()) ?? [];
-  const bundles =
-    category === "all"
-      ? allBundles
-      : allBundles.filter((b) => templateFromBundle(b)?.category === category);
+  const category = categoryFilters.find((c) => c === params?.category)!;
+  const bundles = ((await fetchBundles()) ?? []).filter(
+    (b) => category === "all" || templateFromBundle(b)?.category === category
+  );
   return withApiData(
     {
       category,
@@ -53,8 +44,14 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   );
 };
 
+const allTemplates = {
+  title: "All Discord Bot Templates",
+  description:
+    "Every template made by Kite and the community. Add one to your bot and change anything in the editor.",
+};
+
 // CategoryPage lists all templates of a category, which the marketplace only
-// shows the most added of.
+// shows the most added of, or all templates.
 export default function CategoryPage({ category, bundles }: Props) {
   const templates = useMemo(
     () => bundles.flatMap((b) => templateFromBundle(b) ?? []),
@@ -62,11 +59,7 @@ export default function CategoryPage({ category, bundles }: Props) {
   );
   const { title, description } =
     category === "all"
-      ? {
-          title: "All Discord Bot Templates",
-          description:
-            "Every template from Kite and the community, ready to add to your bot and customize in the editor.",
-        }
+      ? allTemplates
       : templateCategories.find((c) => c.value === category)!;
 
   return (
@@ -78,8 +71,6 @@ export default function CategoryPage({ category, bundles }: Props) {
         templates={templates}
         href={(t) => templatePath(t.id)}
         buildHref="/apps"
-        rows={false}
-        category={category}
         categoryHref={categoryPath}
         hero={
           <div>

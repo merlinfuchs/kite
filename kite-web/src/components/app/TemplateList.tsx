@@ -1,4 +1,6 @@
 import {
+  CategoryFilter,
+  categoryFilters,
   featuredTemplates,
   Template,
   TemplateCategory,
@@ -48,8 +50,6 @@ export function TemplateList({
   added,
   buildHref,
   hero,
-  rows = true,
-  category,
   categoryHref,
   featuredDay,
 }: {
@@ -62,14 +62,9 @@ export function TemplateList({
   // The title of a page that's only the marketplace, shown with the search
   // in a band across the page.
   hero?: React.ReactNode;
-  // Whether it starts with rows of picks instead of all templates, like on
-  // the page of a category.
-  rows?: boolean;
-  // Active category when each category has its own page.
-  category?: TemplateCategory | "all" | null;
-  // The page of a category, which the row of a category links to. Without
-  // one, it filters by the category.
-  categoryHref?: (category: TemplateCategory | "all") => LinkProps["href"];
+  // The page of a category, which the chips and the row of a category link
+  // to. Without one, they filter by the category.
+  categoryHref?: (category: CategoryFilter) => string;
   // The day the featured templates are picked for, from when a page was
   // rendered on the server, so it doesn't change while it hydrates. Today
   // without one.
@@ -80,22 +75,17 @@ export function TemplateList({
   const router = useRouter();
   const param = (key: string) =>
     typeof router.query[key] === "string" ? router.query[key] : undefined;
-  const urlCategory: TemplateCategory | "all" | null =
-    param("category") === "all"
-      ? "all"
-      : templateCategories.find((c) => c.value === param("category"))?.value ??
-        null;
-  const activeCategory = category !== undefined ? category : urlCategory;
-  const categoryLink = (
-    target: TemplateCategory | "all" | null
-  ): LinkProps["href"] => {
-    const pathname = target ? String(categoryHref!(target)) : "/marketplace";
+  // The page of a category has it in its path, which is in the query too.
+  const activeCategory =
+    categoryFilters.find((c) => c === param("category")) ?? null;
+  // The page of a category with the filters of this one.
+  const categoryLink = (href: string) => {
     const query: Record<string, string> = {};
     for (const key of ["q", "source", "sort", "starred"]) {
-      const v = param(key);
-      if (v) query[key] = v;
+      const value = param(key);
+      if (value) query[key] = value;
     }
-    return Object.keys(query).length ? { pathname, query } : pathname;
+    return { pathname: href, query };
   };
   const source = (sources.find((s) => s.value === param("source"))?.value ??
     "all") as Source;
@@ -111,15 +101,19 @@ export function TemplateList({
       scroll: false,
     });
   };
-  const setCategory = (value: TemplateCategory | "all" | null) =>
-    setQuery({ category: value });
+  const setCategory = (value: CategoryFilter) => setQuery({ category: value });
   const setSource = (value: Source) =>
     setQuery({ source: value === "all" ? null : value });
-  // Only the ones the user starred, of any page of the marketplace.
+  const inCategory = templates.filter(
+    (t) =>
+      !activeCategory ||
+      activeCategory === "all" ||
+      t.category === activeCategory
+  );
+  // Only the ones the user starred, of any page of the marketplace. The
+  // count is of the category, so it's what the filter shows.
   const starredIds = useStarredTemplateIds();
-  const starred = categoryHref
-    ? starredIds?.length ?? 0
-    : templates.filter((t) => starredIds?.includes(t.id)).length;
+  const starred = inCategory.filter((t) => starredIds?.includes(t.id)).length;
   // It's off without starred ones left, like after unstarring the last one,
   // since the chip to turn it off is gone then.
   const starredOnly = param("starred") === "1" && starred > 0;
@@ -151,7 +145,6 @@ export function TemplateList({
   const hasUsers = templates.some((t) => t.author.kind !== "kite");
   // Without filters it shows the rows instead of all templates.
   const canBrowse =
-    rows &&
     !search &&
     !activeCategory &&
     source === "all" &&
@@ -159,11 +152,8 @@ export function TemplateList({
     !starredOnly;
   const browsing = canBrowse && !param("sort");
 
-  const filtered = templates.filter(
+  const filtered = inCategory.filter(
     (t) =>
-      (!activeCategory ||
-        activeCategory === "all" ||
-        t.category === activeCategory) &&
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
@@ -234,75 +224,49 @@ export function TemplateList({
           </>
         )}
       </div>
-      <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap empty:hidden">
-        {categoryHref ? (
-          <>
+      <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap">
+        <Chip
+          active={browsing}
+          href={categoryHref && "/marketplace"}
+          onClick={() => {
+            setSearch("");
+            setAddedOnly(false);
+            setQuery({
+              category: null,
+              sort: null,
+              source: null,
+              starred: null,
+              q: null,
+            });
+          }}
+          label="Home"
+        />
+        <Chip
+          active={activeCategory === "all" || (!activeCategory && !browsing)}
+          href={categoryHref && categoryLink(categoryHref("all"))}
+          onClick={() => setCategory("all")}
+          label="All"
+          count={categoryHref ? undefined : templates.length}
+        />
+        {templateCategories.map((c) => {
+          // A page of a category only has its own templates to count. Without
+          // pages, only categories that have a template, so no filter ends up
+          // empty.
+          const count = categoryHref
+            ? undefined
+            : templates.filter((t) => t.category === c.value).length;
+          if (count === 0) return null;
+          return (
             <Chip
-              active={activeCategory === null && browsing}
-              href="/marketplace"
-              label="Home"
+              key={c.value}
+              active={activeCategory === c.value}
+              href={categoryHref && categoryLink(categoryHref(c.value))}
+              onClick={() => setCategory(c.value)}
+              label={c.label}
+              count={count}
             />
-            <Chip
-              active={
-                activeCategory === "all" ||
-                (activeCategory === null && !browsing)
-              }
-              href={categoryLink("all")}
-              label="All"
-            />
-            {templateCategories.map((c) => (
-              <Chip
-                key={c.value}
-                active={activeCategory === c.value}
-                href={categoryLink(c.value)}
-                label={c.label}
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            <Chip
-              active={browsing}
-              onClick={() => {
-                setSearch("");
-                setAddedOnly(false);
-                setQuery({
-                  category: null,
-                  sort: null,
-                  source: null,
-                  starred: null,
-                  q: null,
-                });
-              }}
-              label="Home"
-            />
-            <Chip
-              active={
-                activeCategory === "all" || (!activeCategory && !browsing)
-              }
-              onClick={() => setCategory("all")}
-              label="All"
-              count={templates.length}
-            />
-            {templateCategories.map((c) => {
-              // Only categories that have a template, so no filter ends up
-              // empty.
-              const count = templates.filter(
-                (t) => t.category === c.value
-              ).length;
-              if (!count) return null;
-              return (
-                <Chip
-                  key={c.value}
-                  active={activeCategory === c.value}
-                  onClick={() => setCategory(c.value)}
-                  label={c.label}
-                  count={count}
-                />
-              );
-            })}
-          </>
-        )}
+          );
+        })}
         {added && templates.some(added) && (
           <Chip
             active={addedOnly}
@@ -360,16 +324,13 @@ export function TemplateList({
       entry={entry}
       showAll={(sort, source) => {
         if (categoryHref) {
-          const query: Record<string, string> = { sort };
-          if (source) query.source = source;
-          router.push({ pathname: String(categoryHref("all")), query });
+          router.push({
+            pathname: categoryHref("all"),
+            query: source ? { sort, source } : { sort },
+          });
           return;
         }
-        setQuery({
-          category: "all",
-          sort,
-          source: source ?? null,
-        });
+        setQuery({ category: "all", sort, source: source ?? null });
         scrollToAll();
       }}
       categoryHref={categoryHref}
@@ -438,7 +399,7 @@ function Rows({
   added?: (template: Template) => boolean;
   entry: (template: Template) => React.ReactNode;
   showAll: (sort: Sort, source?: Source) => void;
-  categoryHref?: (category: TemplateCategory | "all") => LinkProps["href"];
+  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
   featuredDay?: number;
   sortSelect: React.ReactNode;
 }) {
@@ -464,7 +425,7 @@ function Rows({
         <Row
           title="Featured"
           description="A few templates worth a look, new every day."
-          headerRight={sortSelect}
+          action={sortSelect}
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
@@ -507,7 +468,7 @@ function Rows({
         <Row
           title="Most added"
           description="The templates the most bots use."
-          action={{ label: "See all", onClick: () => showAll("installs") }}
+          action={<SeeAllButton onClick={() => showAll("installs")} />}
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
             {mostAdded.map(entry)}
@@ -518,10 +479,7 @@ function Rows({
         <Row
           title="Popular in the community"
           description="The templates made by users of Kite that the most bots use."
-          action={{
-            label: "See all",
-            onClick: () => showAll("installs", "users"),
-          }}
+          action={<SeeAllButton onClick={() => showAll("installs", "users")} />}
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
             {popular.map(entry)}
@@ -532,10 +490,12 @@ function Rows({
         <Row
           title="New from the community"
           description="Made by users of Kite, who are responsible for them. Kite reviews them before they're listed."
-          action={{
-            label: `See all ${users.length}`,
-            onClick: () => showAll("newest", "users"),
-          }}
+          action={
+            <SeeAllButton
+              label={`See all ${users.length}`}
+              onClick={() => showAll("newest", "users")}
+            />
+          }
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
             {newest.map(entry)}
@@ -607,13 +567,12 @@ function Row({
   title,
   description,
   action,
-  headerRight,
   children,
 }: {
   title: string;
   description?: string;
-  action?: { label: string; onClick: () => void };
-  headerRight?: React.ReactNode;
+  // Next to the title, like a button to see all.
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -625,19 +584,28 @@ function Row({
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>
-        {headerRight ??
-          (action && (
-            <button
-              onClick={action.onClick}
-              className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              {action.label}
-              <ArrowRightIcon className="h-4 w-4" />
-            </button>
-          ))}
+        {action}
       </div>
       {children}
     </section>
+  );
+}
+
+function SeeAllButton({
+  label = "See all",
+  onClick,
+}: {
+  label?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
+    >
+      {label}
+      <ArrowRightIcon className="h-4 w-4" />
+    </button>
   );
 }
 
@@ -666,29 +634,28 @@ function Chip({
     </>
   );
 
-  if (href) {
-    return (
-      <Button
-        size="sm"
-        variant={active ? "secondary" : "ghost"}
-        className="rounded-full flex-none"
-        asChild
-      >
-        <Link href={href} scroll={false}>
-          {body}
-        </Link>
-      </Button>
-    );
-  }
-
+  // A link to a page if it has one, which goes there without prefetching,
+  // since the page of all templates has as much data as the marketplace.
   return (
     <Button
       size="sm"
       variant={active ? "secondary" : "ghost"}
       className="rounded-full flex-none"
-      onClick={onClick}
+      asChild={!!href}
+      onClick={href ? undefined : onClick}
     >
-      {body}
+      {href ? (
+        <Link
+          href={href}
+          scroll={false}
+          prefetch={false}
+          aria-current={active ? "page" : undefined}
+        >
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
     </Button>
   );
 }

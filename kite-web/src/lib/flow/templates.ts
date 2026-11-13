@@ -152,6 +152,15 @@ export const templateCategories = [
   },
 ] as const;
 
+// CategoryFilter is a category, or "all" for every template. Each has a page
+// in the marketplace, see categoryPath.
+export type CategoryFilter = TemplateCategory | "all";
+
+export const categoryFilters: CategoryFilter[] = [
+  "all",
+  ...templateCategories.map((c) => c.value),
+];
+
 // templateCategory is the category of a template, Other if it has none.
 export function templateCategory(template: Template) {
   return (
@@ -573,7 +582,7 @@ export function templatePath(id: string) {
 
 // categoryPath is the page of the templates of a category in the
 // marketplace.
-export function categoryPath(category: TemplateCategory | "all") {
+export function categoryPath(category: CategoryFilter) {
   return `/marketplace/categories/${category}`;
 }
 
