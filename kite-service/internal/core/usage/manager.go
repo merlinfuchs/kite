@@ -141,6 +141,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
+				if err := m.cleanupCollaboratorInvites(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup collaborator invites",
+						slog.String("error", err.Error()),
+					)
+				}
 				if err := m.cleanupResumePoints(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup resume points",
@@ -414,6 +420,14 @@ func (m *UsageManager) cleanupAuditLog(ctx context.Context) error {
 	err := m.appStore.DeleteAppAuditLogEntriesBefore(ctx, expiry)
 	if err != nil {
 		return fmt.Errorf("failed to delete audit log entries: %w", err)
+	}
+	return nil
+}
+
+func (m *UsageManager) cleanupCollaboratorInvites(ctx context.Context) error {
+	err := m.appStore.DeleteExpiredCollaboratorInvites(ctx, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("failed to delete expired collaborator invites: %w", err)
 	}
 	return nil
 }

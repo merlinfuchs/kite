@@ -99,6 +99,7 @@ type AppStore interface {
 	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
 	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
 	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
+	DeleteExpiredCollaboratorInvites(ctx context.Context, now time.Time) error
 	CollaboratorInvite(ctx context.Context, appID string, discordUsername string) (*model.AppCollaboratorInvite, error)
 	// CollaboratorInvitesByUser returns the pending invites of the user, by
 	// their ID or, for invites from before they used Kite, their username.

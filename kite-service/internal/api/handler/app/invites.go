@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -24,17 +25,9 @@ func (h *AppHandler) HandleUserInviteList(c *handler.Context) (*wire.UserCollabo
 		return nil, err
 	}
 
-	res := make(wire.UserCollaboratorInviteListResponse, 0, len(invites))
-	for _, invite := range invites {
-		if invite.InvitedByUserID.Valid {
-			inviter, err := h.userStore.User(c.Context(), invite.InvitedByUserID.String)
-			if err == nil {
-				invite.InvitedBy = inviter
-			} else if !errors.Is(err, store.ErrNotFound) {
-				return nil, err
-			}
-		}
-		res = append(res, wire.UserCollaboratorInviteToWire(invite))
+	res := make(wire.UserCollaboratorInviteListResponse, len(invites))
+	for i, invite := range invites {
+		res[i] = wire.UserCollaboratorInviteToWire(invite)
 	}
 
 	return &res, nil
@@ -50,6 +43,40 @@ func (h *AppHandler) HandleUserInviteAccept(c *handler.Context) (*wire.UserColla
 
 	appID := c.Param("appID")
 	now := time.Now().UTC()
+
+	invites, err := h.appStore.CollaboratorInvitesByUser(c.Context(), user.ID, user.DiscordUsername, now)
+	if err != nil {
+		return nil, err
+	}
+	if !slices.ContainsFunc(invites, func(invite *model.AppCollaboratorInvite) bool { return invite.AppID == appID }) {
+		return nil, handler.ErrNotFound("unknown_invite", "Invite not found, it might have expired or been revoked")
+	}
+
+	_, err = h.appStore.Collaborator(c.Context(), appID, user.ID)
+	if err == nil {
+		if err := h.appStore.DeclineCollaboratorInvite(c.Context(), appID, user.ID, user.DiscordUsername); err != nil && !errors.Is(err, store.ErrNotFound) {
+			return nil, err
+		}
+		return nil, handler.ErrBadRequest("already_collaborator", "You're already a collaborator of this app")
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return nil, err
+	}
+
+	// The app's plan might have changed since the invite.
+	features, err := h.planManager.AppFeatures(c.Context(), appID)
+	if err != nil {
+		return nil, err
+	}
+	if features.MaxCollaborators != 0 {
+		collaborators, err := h.appStore.CollaboratorsByApp(c.Context(), appID)
+		if err != nil {
+			return nil, err
+		}
+		// The owner and the new collaborator count too.
+		if len(collaborators)+2 > features.MaxCollaborators {
+			return nil, handler.ErrBadRequest("resource_limit", "This app has no free collaborator seats anymore. Ask its owner to upgrade its plan or remove a collaborator.")
+		}
+	}
 
 	collaborator, err := h.appStore.AcceptCollaboratorInvite(c.Context(), appID, user.ID, user.DiscordUsername, now)
 	if err != nil {

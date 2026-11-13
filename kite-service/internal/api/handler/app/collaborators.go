@@ -58,18 +58,6 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 
 	now := time.Now().UTC()
 
-	if c.Features.MaxCollaborators != 0 {
-		count, err := h.appStore.CountCollaboratorsAndInvitesByApp(c.Context(), c.App.ID, now)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count collaborators: %w", err)
-		}
-
-		// We count the owner as a collaborator
-		if (count + 1) >= c.Features.MaxCollaborators {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", c.Features.MaxCollaborators))
-		}
-	}
-
 	isUserID := wire.DiscordUserIDRegex.MatchString(req.DiscordUser)
 	discordUsername := strings.ToLower(strings.TrimPrefix(req.DiscordUser, "@"))
 
@@ -103,6 +91,29 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 		userID = null.StringFrom(user.ID)
 		// Invites are keyed by username, so one by ID replaces one by name.
 		discordUsername = strings.ToLower(user.DiscordUsername)
+	}
+
+	// Inviting again replaces the pending invite, so admins can't turn the
+	// owner's invite of an admin into one of a developer.
+	existing, err := h.appStore.CollaboratorInvite(c.Context(), c.App.ID, discordUsername)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, err
+	}
+	if existing != nil && !c.UserAppRole.CanRemoveRole(existing.Role) {
+		return nil, handler.ErrForbidden("missing_permissions", "Only the owner of the app can change invites of admins")
+	}
+
+	// A new invite takes a seat, one that replaces a pending invite already has one.
+	if c.Features.MaxCollaborators != 0 && (existing == nil || !existing.ExpiresAt.After(now)) {
+		count, err := h.appStore.CountCollaboratorsAndInvitesByApp(c.Context(), c.App.ID, now)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count collaborators: %w", err)
+		}
+
+		// We count the owner as a collaborator
+		if (count + 1) >= c.Features.MaxCollaborators {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", c.Features.MaxCollaborators))
+		}
 	}
 
 	invite, err := h.appStore.UpsertCollaboratorInvite(c.Context(), &model.AppCollaboratorInvite{

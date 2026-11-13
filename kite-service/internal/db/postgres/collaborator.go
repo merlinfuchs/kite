@@ -138,6 +138,10 @@ func (c *Client) DeleteCollaboratorInvite(ctx context.Context, appID string, dis
 	})
 }
 
+func (c *Client) DeleteExpiredCollaboratorInvites(ctx context.Context, now time.Time) error {
+	return c.Q.DeleteExpiredCollaboratorInvites(ctx, pgtype.Timestamp{Time: now.UTC(), Valid: true})
+}
+
 func (c *Client) CollaboratorInvite(ctx context.Context, appID string, discordUsername string) (*model.AppCollaboratorInvite, error) {
 	row, err := c.Q.GetCollaboratorInvite(ctx, pgmodel.GetCollaboratorInviteParams{
 		AppID:           appID,
@@ -171,6 +175,15 @@ func (c *Client) CollaboratorInvitesByUser(ctx context.Context, userID string, d
 			return nil, err
 		}
 		invite.App = app
+		if row.CollaboratorInvite.InvitedByUserID.Valid && row.InviterDisplayName.Valid {
+			invite.InvitedBy = &model.User{
+				ID:              row.CollaboratorInvite.InvitedByUserID.String,
+				DisplayName:     row.InviterDisplayName.String,
+				DiscordID:       row.InviterDiscordID.String,
+				DiscordUsername: row.InviterDiscordUsername.String,
+				DiscordAvatar:   null.NewString(row.InviterDiscordAvatar.String, row.InviterDiscordAvatar.Valid),
+			}
+		}
 		invites[i] = invite
 	}
 

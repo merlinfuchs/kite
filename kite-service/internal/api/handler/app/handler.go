@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -18,6 +19,7 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
+	planManager    *plan.PlanManager
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -26,12 +28,14 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
+	planManager *plan.PlanManager,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
+		planManager:    planManager,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}

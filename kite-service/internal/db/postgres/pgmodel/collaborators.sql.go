@@ -12,19 +12,23 @@ import (
 )
 
 const acceptCollaboratorInvite = `-- name: AcceptCollaboratorInvite :one
-WITH accepted AS (
-    DELETE FROM collaborator_invites
+WITH invite AS (
+    SELECT collaborator_invites.app_id, collaborator_invites.role FROM collaborator_invites
+    JOIN apps ON apps.id = collaborator_invites.app_id
     WHERE collaborator_invites.app_id = $3::text
         AND (collaborator_invites.user_id = $1::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($4::text)))
         AND collaborator_invites.expires_at > $2::timestamp
-    RETURNING app_id, discord_username, role, created_at, expires_at, user_id, invited_by_user_id
+        AND apps.owner_user_id != $1::text
+    ORDER BY collaborator_invites.user_id IS NULL, collaborator_invites.created_at DESC
+    LIMIT 1
+), deleted AS (
+    DELETE FROM collaborator_invites
+    WHERE collaborator_invites.app_id IN (SELECT invite.app_id FROM invite)
+        AND (collaborator_invites.user_id = $1::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($4::text)))
 )
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
-SELECT accepted.app_id, $1::text, accepted.role, $2::timestamp, $2::timestamp FROM accepted
-JOIN apps ON apps.id = accepted.app_id
-WHERE apps.owner_user_id != $1::text
-LIMIT 1
-ON CONFLICT (user_id, app_id) DO UPDATE SET role = EXCLUDED.role, updated_at = EXCLUDED.updated_at
+SELECT invite.app_id, $1::text, invite.role, $2::timestamp, $2::timestamp FROM invite
+ON CONFLICT (user_id, app_id) DO NOTHING
 RETURNING user_id, app_id, role, created_at, updated_at
 `
 
@@ -35,6 +39,9 @@ type AcceptCollaboratorInviteParams struct {
 	DiscordUsername string
 }
 
+// A user can match two invites to the app, one by their ID and one by a
+// username they took later. The one by ID wins, and both are deleted, as
+// they're a collaborator now. An existing collaborator keeps their role.
 func (q *Queries) AcceptCollaboratorInvite(ctx context.Context, arg AcceptCollaboratorInviteParams) (Collaborator, error) {
 	row := q.db.QueryRow(ctx, acceptCollaboratorInvite,
 		arg.UserID,
@@ -154,6 +161,15 @@ func (q *Queries) DeleteCollaboratorInvite(ctx context.Context, arg DeleteCollab
 	return err
 }
 
+const deleteExpiredCollaboratorInvites = `-- name: DeleteExpiredCollaboratorInvites :exec
+DELETE FROM collaborator_invites WHERE expires_at <= $1
+`
+
+func (q *Queries) DeleteExpiredCollaboratorInvites(ctx context.Context, now pgtype.Timestamp) error {
+	_, err := q.db.Exec(ctx, deleteExpiredCollaboratorInvites, now)
+	return err
+}
+
 const getCollaborator = `-- name: GetCollaborator :one
 SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
@@ -256,9 +272,14 @@ func (q *Queries) GetCollaboratorInvitesByApp(ctx context.Context, arg GetCollab
 }
 
 const getCollaboratorInvitesByUser = `-- name: GetCollaboratorInvitesByUser :many
-
-SELECT collaborator_invites.app_id, collaborator_invites.discord_username, collaborator_invites.role, collaborator_invites.created_at, collaborator_invites.expires_at, collaborator_invites.user_id, collaborator_invites.invited_by_user_id, apps.id, apps.name, apps.description, apps.enabled, apps.owner_user_id, apps.creator_user_id, apps.discord_token, apps.discord_id, apps.created_at, apps.updated_at, apps.discord_status, apps.disabled_reason, apps.commands_deploy_at, apps.commands_deployed_hash, apps.commands_deploy_error, apps.discord_guild_count, apps.discord_user_install_count, apps.discord_counts_updated_at, apps.discord_verify_key, apps.credits_paused_at, apps.credit_notices_enabled FROM collaborator_invites
+SELECT collaborator_invites.app_id, collaborator_invites.discord_username, collaborator_invites.role, collaborator_invites.created_at, collaborator_invites.expires_at, collaborator_invites.user_id, collaborator_invites.invited_by_user_id, apps.id, apps.name, apps.description, apps.enabled, apps.owner_user_id, apps.creator_user_id, apps.discord_token, apps.discord_id, apps.created_at, apps.updated_at, apps.discord_status, apps.disabled_reason, apps.commands_deploy_at, apps.commands_deployed_hash, apps.commands_deploy_error, apps.discord_guild_count, apps.discord_user_install_count, apps.discord_counts_updated_at, apps.discord_verify_key, apps.credits_paused_at, apps.credit_notices_enabled,
+    inviter.display_name AS inviter_display_name,
+    inviter.discord_username AS inviter_discord_username,
+    inviter.discord_id AS inviter_discord_id,
+    inviter.discord_avatar AS inviter_discord_avatar
+FROM collaborator_invites
 JOIN apps ON apps.id = collaborator_invites.app_id
+LEFT JOIN users AS inviter ON inviter.id = collaborator_invites.invited_by_user_id
 WHERE (collaborator_invites.user_id = $1::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower($2::text)))
     AND collaborator_invites.expires_at > $3::timestamp
     AND apps.owner_user_id != $1::text
@@ -272,8 +293,12 @@ type GetCollaboratorInvitesByUserParams struct {
 }
 
 type GetCollaboratorInvitesByUserRow struct {
-	CollaboratorInvite CollaboratorInvite
-	App                App
+	CollaboratorInvite     CollaboratorInvite
+	App                    App
+	InviterDisplayName     pgtype.Text
+	InviterDiscordUsername pgtype.Text
+	InviterDiscordID       pgtype.Text
+	InviterDiscordAvatar   pgtype.Text
 }
 
 // Invites of users that already used Kite are matched by their ID, the others
@@ -316,6 +341,10 @@ func (q *Queries) GetCollaboratorInvitesByUser(ctx context.Context, arg GetColla
 			&i.App.DiscordVerifyKey,
 			&i.App.CreditsPausedAt,
 			&i.App.CreditNoticesEnabled,
+			&i.InviterDisplayName,
+			&i.InviterDiscordUsername,
+			&i.InviterDiscordID,
+			&i.InviterDiscordAvatar,
 		); err != nil {
 			return nil, err
 		}

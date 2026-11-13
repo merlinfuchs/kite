@@ -49,35 +49,50 @@ RETURNING *;
 DELETE FROM collaborator_invites
 WHERE app_id = $1 AND discord_username = $2;
 
+-- name: DeleteExpiredCollaboratorInvites :exec
+DELETE FROM collaborator_invites WHERE expires_at <= @now;
+
 -- name: GetCollaboratorInvite :one
 SELECT * FROM collaborator_invites
 WHERE app_id = $1 AND discord_username = $2;
 
 -- Invites of users that already used Kite are matched by their ID, the others
 -- by the Discord username they were invited with.
-
 -- name: GetCollaboratorInvitesByUser :many
-SELECT sqlc.embed(collaborator_invites), sqlc.embed(apps) FROM collaborator_invites
+SELECT sqlc.embed(collaborator_invites), sqlc.embed(apps),
+    inviter.display_name AS inviter_display_name,
+    inviter.discord_username AS inviter_discord_username,
+    inviter.discord_id AS inviter_discord_id,
+    inviter.discord_avatar AS inviter_discord_avatar
+FROM collaborator_invites
 JOIN apps ON apps.id = collaborator_invites.app_id
+LEFT JOIN users AS inviter ON inviter.id = collaborator_invites.invited_by_user_id
 WHERE (collaborator_invites.user_id = @user_id::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower(@discord_username::text)))
     AND collaborator_invites.expires_at > @now::timestamp
     AND apps.owner_user_id != @user_id::text
 ORDER BY collaborator_invites.created_at DESC;
 
+-- A user can match two invites to the app, one by their ID and one by a
+-- username they took later. The one by ID wins, and both are deleted, as
+-- they're a collaborator now. An existing collaborator keeps their role.
 -- name: AcceptCollaboratorInvite :one
-WITH accepted AS (
-    DELETE FROM collaborator_invites
+WITH invite AS (
+    SELECT collaborator_invites.app_id, collaborator_invites.role FROM collaborator_invites
+    JOIN apps ON apps.id = collaborator_invites.app_id
     WHERE collaborator_invites.app_id = @app_id::text
         AND (collaborator_invites.user_id = @user_id::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower(@discord_username::text)))
         AND collaborator_invites.expires_at > @now::timestamp
-    RETURNING *
+        AND apps.owner_user_id != @user_id::text
+    ORDER BY collaborator_invites.user_id IS NULL, collaborator_invites.created_at DESC
+    LIMIT 1
+), deleted AS (
+    DELETE FROM collaborator_invites
+    WHERE collaborator_invites.app_id IN (SELECT invite.app_id FROM invite)
+        AND (collaborator_invites.user_id = @user_id::text OR (collaborator_invites.user_id IS NULL AND collaborator_invites.discord_username = lower(@discord_username::text)))
 )
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
-SELECT accepted.app_id, @user_id::text, accepted.role, @now::timestamp, @now::timestamp FROM accepted
-JOIN apps ON apps.id = accepted.app_id
-WHERE apps.owner_user_id != @user_id::text
-LIMIT 1
-ON CONFLICT (user_id, app_id) DO UPDATE SET role = EXCLUDED.role, updated_at = EXCLUDED.updated_at
+SELECT invite.app_id, @user_id::text, invite.role, @now::timestamp, @now::timestamp FROM invite
+ON CONFLICT (user_id, app_id) DO NOTHING
 RETURNING *;
 
 -- name: DeclineCollaboratorInvite :execrows
