@@ -9,6 +9,7 @@ import {
   FlowTestRequest,
   FlowTestResponse,
 } from "../types/wire.gen";
+import type { TestNodeStatus } from "./context";
 import { isSelectMenu } from "./resume";
 import { findFlowSourceComponent } from "./templates";
 
@@ -43,7 +44,9 @@ export type FlowTestState = {
   // channels.
   values: string[];
   valueIds: string;
-  result: FlowTestResponse | null;
+  // The last test and its result. Clicks and submits run it again with the
+  // same seed and one more action, see TestRandom in the service.
+  last: { request: FlowTestRequest; result: FlowTestResponse } | null;
   error: string | null;
 };
 
@@ -58,12 +61,41 @@ export const initialFlowTestState: FlowTestState = {
   webhookBody: "",
   values: [],
   valueIds: "",
-  result: null,
+  last: null,
   error: null,
 };
 
 export function flowTestPath(target: FlowTestTarget) {
   return `${itemVersionPathSegments[target.type]}/${target.id}`;
+}
+
+// A seed for a new test, which JSON keeps exactly.
+export function newFlowTestSeed() {
+  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) + 1;
+}
+
+// How each block ran in a test. A block that ran more than once, like in a
+// loop, shows the worst.
+export function flowTestNodeStatus(
+  result: FlowTestResponse | undefined
+): Record<string, TestNodeStatus> {
+  const rank = { ok: 0, warning: 1, error: 2 };
+  const res: Record<string, TestNodeStatus> = {};
+  for (const execution of result?.executions ?? []) {
+    if (execution.other_flow) continue;
+    for (const step of execution.steps) {
+      const status: TestNodeStatus = step.error
+        ? "error"
+        : step.effects?.some((e) => e.warnings?.length)
+        ? "warning"
+        : "ok";
+      const current = res[step.node_id];
+      if (!current || rank[status] > rank[current]) {
+        res[step.node_id] = status;
+      }
+    }
+  }
+  return res;
 }
 
 // The IDs in a text like "123, 456".
@@ -241,9 +273,7 @@ export function flowTestEffectTitle(effect: FlowTestEffect) {
     const title = respondTitles[effect.data?.type];
     if (title) return title;
   }
-  return (
-    effectTitles[effect.action] ?? "Would " + effect.action.replaceAll("_", " ")
-  );
+  return effectTitles[effect.action] ?? "Would make a change in Discord";
 }
 
 // The message an effect would send or edit to, for the preview, or null if

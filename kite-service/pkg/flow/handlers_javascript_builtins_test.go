@@ -132,7 +132,7 @@ func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 
 func TestJavaScriptRunHTTPRequestInTestRuns(t *testing.T) {
 	c := javaScriptTestContext(t, FlowProviders{HTTP: &codeHTTPProvider{status: 200}, Log: &provider.MockLogProvider{}}, 1000, eval.Env{})
-	c.Test = NewTestRun(nil)
+	c.Test = NewTestRun(nil, nil)
 	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: `
 try { await fetch("https://example.com/{{secrets.MISSING}}") } catch (e) { return e.message }`}}}
 	require.NoError(t, node.Execute(c))

@@ -1,9 +1,11 @@
 package testrun
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -57,9 +59,18 @@ func (s *testSession) useComponent(ctx context.Context, userID discord.UserID, t
 		"custom_id":      component.CustomID,
 		"component_type": component.Type,
 	}
-	label := fmt.Sprintf("Click %q", target)
+	// Named like users see it, the target can be a custom ID, which the
+	// editor shows to users.
+	name := "the button"
 	if isSelect {
-		label = fmt.Sprintf("Select %s in %q", strings.Join(values, ", "), target)
+		name = "the select menu"
+	}
+	if n := cmp.Or(component.Label, component.Placeholder, component.Emoji); n != "" {
+		name = strconv.Quote(n)
+	}
+	label := "Click " + name
+	if isSelect {
+		label = fmt.Sprintf("Select %s in %s", strings.Join(values, ", "), name)
 		data["values"] = values
 		if component.Type != int(discord.StringSelectComponentType) {
 			resolved := map[string]any{}
@@ -97,6 +108,11 @@ func (s *testSession) useComponent(ctx context.Context, userID discord.UserID, t
 	root, err := flow.CompileComponentButton(source)
 	if err != nil {
 		return testErrorf("the flow of %q is invalid: %v", target, err)
+	}
+	if tmpl.ID+"/"+component.CustomID == s.testedFlow {
+		s.mu.Lock()
+		s.testedRoots[root] = true
+		s.mu.Unlock()
 	}
 	s.execute(ctx, label, root, root, event, nil, nil)
 	return nil
@@ -291,6 +307,7 @@ type testComponent struct {
 	Type        int
 	Label       string
 	Placeholder string
+	Emoji       string
 }
 
 // findComponent finds the button or select menu with the label, placeholder
@@ -355,7 +372,9 @@ func messageComponents(msg discord.Message) []testComponent {
 			if customID != "" && discord.ComponentType(typ) != discord.TextInputComponentType {
 				label, _ := v["label"].(string)
 				placeholder, _ := v["placeholder"].(string)
-				res = append(res, testComponent{CustomID: customID, Type: int(typ), Label: label, Placeholder: placeholder})
+				emoji, _ := v["emoji"].(map[string]any)
+				emojiName, _ := emoji["name"].(string)
+				res = append(res, testComponent{CustomID: customID, Type: int(typ), Label: label, Placeholder: placeholder, Emoji: emojiName})
 			}
 			for _, child := range v {
 				walk(child)

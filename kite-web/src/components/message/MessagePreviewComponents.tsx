@@ -24,6 +24,14 @@ export const AttachmentUrlContext = createContext<Map<string, string>>(
   new Map()
 );
 
+// Lets the buttons and select menus of a preview be used, like in the results
+// of a test. Without it they only show.
+export const PreviewComponentActionsContext = createContext<{
+  onClick(button: MessageComponentButton): void;
+  onSelect(selectMenu: MessageComponentSelectMenu): void;
+  disabled: boolean;
+} | null>(null);
+
 function useMediaUrl(url: string): string {
   const attachments = useContext(AttachmentUrlContext);
   if (!url.startsWith(ATTACHMENT_PREFIX)) return url;
@@ -60,6 +68,8 @@ function ComponentEmoji({
 }
 
 function PreviewButton({ button }: { button: MessageComponentButton }) {
+  const actions = useContext(PreviewComponentActionsContext);
+
   const content = (
     <>
       {button.emoji && <ComponentEmoji emoji={button.emoji} />}
@@ -97,6 +107,19 @@ function PreviewButton({ button }: { button: MessageComponentButton }) {
     );
   }
 
+  if (actions && !button.disabled) {
+    return (
+      <button
+        type="button"
+        className={cn(className, actions.disabled && "opacity-60")}
+        disabled={actions.disabled}
+        onClick={() => actions.onClick(button)}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return <div className={className}>{content}</div>;
 }
 
@@ -105,12 +128,19 @@ function PreviewSelectMenu({
 }: {
   selectMenu: MessageComponentSelectMenu;
 }) {
+  const actions = useContext(PreviewComponentActionsContext);
+  const usable = actions && !selectMenu.disabled;
+
   return (
     <div
       className={cn(
         "discord-select-menu discord-select-menu-hoverable",
-        selectMenu.disabled && "discord-select-menu-disabled"
+        selectMenu.disabled && "discord-select-menu-disabled",
+        usable && "cursor-pointer",
+        usable && actions.disabled && "opacity-60 pointer-events-none"
       )}
+      role={usable ? "button" : undefined}
+      onClick={usable ? () => actions.onSelect(selectMenu) : undefined}
     >
       <span className="discord-select-menu-placeholder">
         {selectMenu.placeholder || "Make a selection"}

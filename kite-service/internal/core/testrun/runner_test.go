@@ -271,6 +271,10 @@ func TestFlowTestClickButton(t *testing.T) {
 	if click.Error != "" {
 		t.Fatalf("click failed: %s", click.Error)
 	}
+	// The click resumed the tested flow.
+	if click.OtherFlow || res.FailedAction != nil {
+		t.Errorf("other flow = %v, failed action = %v", click.OtherFlow, res.FailedAction)
+	}
 
 	var warnings []string
 	var paths []string
@@ -305,6 +309,9 @@ func TestFlowTestUnknownButton(t *testing.T) {
 	last := res.Executions[len(res.Executions)-1]
 	if !strings.Contains(last.Error, `no button "Yes"`) {
 		t.Errorf("error = %q", last.Error)
+	}
+	if res.FailedAction == nil || *res.FailedAction != 0 {
+		t.Errorf("failed action = %v, want 0", res.FailedAction)
 	}
 }
 
@@ -720,6 +727,9 @@ func TestFlowTestMessageButton(t *testing.T) {
 	if got := responseContent(t, findEffect(t, res.Executions[0], "respond")); got != "Pong" {
 		t.Errorf("response = %q", got)
 	}
+	if res.Executions[0].OtherFlow {
+		t.Error("the tested button's flow counts as another flow")
+	}
 }
 
 func TestFlowTestAICheck(t *testing.T) {
@@ -775,4 +785,44 @@ type fakeVariableStore struct {
 
 func (f *fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
 	return f.variables, nil
+}
+
+// A test run again with the same seed picks the same and sends the same
+// custom IDs, so the editor can run it again with a click.
+func TestFlowTestSeed(t *testing.T) {
+	test := Test{
+		Kind: KindCommand,
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "roll", "description": "Roll"}},
+				{"id": "roll", "type": "action_random_generate", "data": {"random_min": "0", "random_max": "1000000"}},
+				{"id": "ask", "type": "action_response_create", "data": {"message_data": {"content": "{{result('roll')}}", "components": [
+					{"type": 1, "components": [{"id": 1, "type": 2, "style": 1, "label": "Again"}]}
+				]}}}
+			],
+			"edges": [
+				{"id": "1", "source": "entry", "target": "roll"},
+				{"id": "2", "source": "roll", "target": "ask"}
+			]
+		}`),
+		Seed: 42,
+	}
+
+	sent := func(res *Result) (string, string) {
+		data := findEffect(t, res.Executions[0], "respond").Data.(map[string]any)
+		msg := data["message"].(*api.InteractionResponseData)
+		b, _ := json.Marshal(msg.Components)
+		return msg.Content.Val, string(b)
+	}
+
+	content1, components1 := sent(runTest(t, test))
+	content2, components2 := sent(runTest(t, test))
+	if content1 != content2 || components1 != components2 {
+		t.Errorf("runs differ with the same seed: %q %s, %q %s", content1, components1, content2, components2)
+	}
+
+	test.Seed = 43
+	if content3, _ := sent(runTest(t, test)); content3 == content1 {
+		t.Errorf("another seed picked the same: %q", content3)
+	}
 }

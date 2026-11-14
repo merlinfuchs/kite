@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Node, ReactFlowState, useStore } from "@xyflow/react";
 import { LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { useFlowTestMutation } from "@/lib/api/mutations";
@@ -6,7 +6,7 @@ import { useAppStateGuilds } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { NodeData } from "@/lib/flow/dataSchema";
 import { getCommandArguments } from "@/lib/flow/commandArguments";
-import { useFlowContext } from "@/lib/flow/context";
+import { useFlowContext, useFlowContextStore } from "@/lib/flow/context";
 import {
   FlowTestState,
   FlowTestTarget,
@@ -14,9 +14,11 @@ import {
   findTestSelectMenu,
   flowTestInputs,
   flowTestPath,
+  newFlowTestSeed,
 } from "@/lib/flow/flowTest";
 import { useGetFlowData } from "@/lib/flow/parametersStore";
 import { ComponentTypeStringSelect } from "@/lib/types/message.gen";
+import { FlowTestAction, FlowTestRequest } from "@/lib/types/wire.gen";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
@@ -56,7 +58,7 @@ export default function FlowTestPanel({
   onShowNode: (id: string) => void;
 }) {
   const appId = useAppId();
-  const mutation = useFlowTestMutation(appId);
+  const { mutate, isPending } = useFlowTestMutation(appId);
   const getFlowData = useGetFlowData();
 
   const eventType =
@@ -67,9 +69,12 @@ export default function FlowTestPanel({
   const args = useStore(selectArgs, sameNodes);
 
   const state = useFlowContext((s) => s.test);
-  const setTest = useFlowContext((s) => s.setTest);
-  const set = (patch: Partial<FlowTestState>) =>
-    setTest((s) => ({ ...s, ...patch }));
+  const store = useFlowContextStore();
+  const set = useCallback(
+    (patch: Partial<FlowTestState>) =>
+      store.getState().setTest((s) => ({ ...s, ...patch })),
+    [store]
+  );
 
   const guilds = useAppStateGuilds();
   const guildId = state.guildId ?? guilds?.[0]?.id ?? null;
@@ -105,29 +110,57 @@ export default function FlowTestPanel({
       return;
     }
 
-    set({ error: null });
-    mutation.mutate(
-      { path: flowTestPath(target), req },
-      {
-        onSuccess(res) {
-          if (res.success) {
-            set({ result: res.data });
-          } else {
-            set({
-              result: null,
-              error:
+    req.seed = newFlowTestSeed();
+    send(req, true);
+  }
+
+  // Sends the test. When a click or submit fails, the result before it stays.
+  const send = useCallback(
+    (req: FlowTestRequest, isNew: boolean) => {
+      const failed = (error: string) =>
+        set(isNew ? { last: null, error } : { error });
+
+      set({ error: null });
+      mutate(
+        { path: flowTestPath(target), req },
+        {
+          onSuccess(res) {
+            const executions = res.success ? res.data.executions : [];
+            if (res.success && res.data.failed_action != null) {
+              // The action couldn't be done, like a click on a button the
+              // flow didn't send. Running it again would fail the same way.
+              failed(executions[executions.length - 1]?.error ?? "");
+            } else if (res.success) {
+              set({ last: { request: req, result: res.data } });
+            } else {
+              failed(
                 res.error.code === "app_not_running"
                   ? "Your app is offline. Start it to run a test."
-                  : res.error.message,
-            });
-          }
-        },
-        onError(err) {
-          set({ result: null, error: `The test couldn't run: ${err.message}` });
-        },
-      }
-    );
-  }
+                  : res.error.message
+              );
+            }
+          },
+          onError(err) {
+            failed(`The test couldn't run: ${err.message}`);
+          },
+        }
+      );
+    },
+    [mutate, target, set]
+  );
+
+  // Clicks, picks and submits run the last test again with them.
+  const act = useCallback(
+    (action: FlowTestAction) => {
+      const last = store.getState().test.last;
+      if (!last) return;
+      send(
+        { ...last.request, then: [...(last.request.then ?? []), action] },
+        false
+      );
+    },
+    [store, send]
+  );
 
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
@@ -261,12 +294,8 @@ export default function FlowTestPanel({
                   </FlowTestField>
                 ))}
 
-              <Button
-                onClick={run}
-                disabled={mutation.isPending}
-                className="self-start"
-              >
-                {mutation.isPending ? (
+              <Button onClick={run} disabled={isPending} className="self-start">
+                {isPending ? (
                   <LoaderCircleIcon className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <PlayIcon className="h-4 w-4 mr-2" />
@@ -280,8 +309,23 @@ export default function FlowTestPanel({
             <div className="text-sm text-destructive">{state.error}</div>
           )}
 
-          {state.result && (
-            <FlowTestResult result={state.result} onShowNode={onShowNode} />
+          {state.last && (
+            <>
+              <FlowTestResult
+                result={state.last.result}
+                pending={isPending}
+                onAction={act}
+                onShowNode={onShowNode}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start -ml-3 text-muted-foreground"
+                onClick={() => set({ last: null, error: null })}
+              >
+                Clear result
+              </Button>
+            </>
           )}
         </div>
       </ScrollArea>

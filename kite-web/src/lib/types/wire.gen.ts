@@ -1292,6 +1292,12 @@ export interface FlowTestRequest {
    */
   mocks?: { [key: string]: FlowTestMock};
   /**
+   * Makes blocks like Random pick the same each time a test with the same
+   * seed runs, so it can run again with a click on a button the flow sent.
+   * 0 picks a seed.
+   */
+  seed?: number /* uint64 */;
+  /**
    * Values of stored variables when the test starts, in place of the stored
    * ones.
    */
@@ -1358,6 +1364,11 @@ export interface FlowTestResponse {
    * Mocked blocks that never ran.
    */
   unused_mocks?: string[];
+  /**
+   * The index of the action in then that couldn't be done. Its error is
+   * the last execution.
+   */
+  failed_action?: number /* int */;
 }
 /**
  * FlowTestExecution is one run of the flow, like the command or a click on a
@@ -1372,6 +1383,12 @@ export interface FlowTestExecution {
    * The error that ended the run, if no Error Handler caught it.
    */
   error?: string;
+  /**
+   * Set for runs of a flow other than the tested one, like the flow of a
+   * button on a message template it sent. Their blocks aren't in the
+   * tested flow, even if they have the same IDs.
+   */
+  other_flow?: boolean;
 }
 /**
  * FlowTestStep is a block that ran.
