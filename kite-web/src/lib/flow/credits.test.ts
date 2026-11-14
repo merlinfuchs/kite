@@ -125,6 +125,15 @@ describe("getFlowCredits", () => {
       max: 2,
       variableLoops: true,
     });
+
+    for (const loop_count of ["", "   ", undefined]) {
+      nodes[1] = testNode("loop", "control_loop", { loop_count });
+      expect(getFlowCredits(nodes, edges)).toEqual({
+        min: 1,
+        max: 2,
+        variableLoops: true,
+      });
+    }
   });
 
   it("leaves out what buttons run", () => {

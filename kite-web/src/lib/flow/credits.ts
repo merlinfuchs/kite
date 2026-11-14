@@ -71,7 +71,8 @@ export function getFlowCredits(
     }
 
     if (component === "control_loop") {
-      const count = Number(node.data.loop_count);
+      const rawCount = String(node.data.loop_count ?? "").trim();
+      const count = rawCount ? Number(rawCount) : NaN;
       const known = Number.isInteger(count) && count >= 0;
       if (!known) variableLoops = true;
       const isEach = (c: FlowNode) =>
