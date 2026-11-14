@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Node, useStoreApi } from "@xyflow/react";
+import { Node, useStore, useStoreApi } from "@xyflow/react";
+import { XIcon } from "lucide-react";
 import { NodeData } from "@/lib/flow/dataSchema";
-import { parseTestValue } from "@/lib/flow/flowTest";
+import {
+  blockReturnsText,
+  jsonOrText,
+  mockTestResult,
+} from "@/lib/flow/flowTest";
+import { getNodeTitle } from "@/lib/flow/nodes";
 import { FlowTestMock } from "@/lib/types/wire.gen";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import {
@@ -16,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { FlowTestField as Field } from "./FlowTestField";
 
 // The block whose test result is edited.
 export type MockTarget = { nodeId: string; nodeType: string; title: string };
@@ -73,10 +79,10 @@ function MockForm({
       case "http":
         return {
           status_code: Number(statusCode) || 200,
-          body: parseTestValue(value),
+          body: jsonOrText(value),
         };
       case "text":
-        return parseTestValue(value);
+        return mockTestResult(target.nodeType, value);
       default:
         return value;
     }
@@ -163,7 +169,11 @@ function MockForm({
           <Textarea
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Text, or JSON for a result with more than text"
+            placeholder={
+              blockReturnsText(target.nodeType)
+                ? "The text the block returns"
+                : "The result of the block as JSON"
+            }
           />
         </Field>
       )}
@@ -184,21 +194,6 @@ function MockForm({
         </Button>
       </DialogFooter>
     </>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="text-sm">{label}</Label>
-      {children}
-    </div>
   );
 }
 
@@ -248,4 +243,72 @@ function useAIChoiceOptions(target: MockTarget) {
         ? [n.data.ai_choice_name]
         : []
     );
+}
+
+// The test results that are set, which later tests use too.
+export function FlowTestMockList({
+  mocks,
+  onEdit,
+  onRemove,
+}: {
+  mocks: Record<string, FlowTestMock>;
+  onEdit: (target: MockTarget) => void;
+  onRemove: (nodeId: string) => void;
+}) {
+  const ids = Object.keys(mocks);
+  if (!ids.length) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-sm font-medium">Test results</div>
+      {ids.map((nodeId) => (
+        <MockListEntry
+          key={nodeId}
+          nodeId={nodeId}
+          fails={!!mocks[nodeId].error}
+          onEdit={onEdit}
+          onRemove={onRemove}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MockListEntry({
+  nodeId,
+  fails,
+  onEdit,
+  onRemove,
+}: {
+  nodeId: string;
+  fails: boolean;
+  onEdit: (target: MockTarget) => void;
+  onRemove: (nodeId: string) => void;
+}) {
+  const node = useStore((s) => s.nodeLookup.get(nodeId)) as
+    | Node<NodeData>
+    | undefined;
+  // Blocks deleted since aren't in the test anymore.
+  if (!node) return null;
+  const title = getNodeTitle(node);
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <button
+        className="flex-auto text-left truncate hover:underline"
+        onClick={() => onEdit({ nodeId, nodeType: node.type!, title })}
+      >
+        {title}: {fails ? "fails" : "returns your result"}
+      </button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="flex-none size-7"
+        onClick={() => onRemove(nodeId)}
+      >
+        <XIcon className="size-4" />
+        <span className="sr-only">Remove</span>
+      </Button>
+    </div>
+  );
 }

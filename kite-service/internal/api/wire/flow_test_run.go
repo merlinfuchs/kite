@@ -144,7 +144,7 @@ type FlowTestStep struct {
 	Result    any              `json:"result,omitempty" tstype:"any"`
 	Error     string           `json:"error,omitempty"`
 	ErrorCode string           `json:"error_code,omitempty"`
-	Notes     []string         `json:"notes,omitempty"`
+	Notes     []flow.TestNote  `json:"notes,omitempty"`
 	Effects   []FlowTestEffect `json:"effects,omitempty"`
 }
 

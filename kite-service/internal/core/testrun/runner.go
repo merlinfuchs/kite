@@ -582,8 +582,7 @@ func (s *testSession) runOnce(
 	s.current = interaction
 	s.mu.Unlock()
 
-	run := flow.NewTestRun(s.mocks)
-	run.Random = s.random
+	run := flow.NewTestRun(s.mocks, s.random)
 	fCtx := s.env.FlowContextWithProviders(ctx, s.appID, s.session, data, s.testProviders(run), state, node)
 	defer fCtx.Cancel()
 	fCtx.Test = run

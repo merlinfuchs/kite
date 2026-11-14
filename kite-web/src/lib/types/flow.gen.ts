@@ -826,6 +826,41 @@ export interface FlowContextNodeState {
 }
 
 //////////
+// source: test_note.go
+
+/**
+ * TestNoteCode tells the notes of test runs apart, so the editor can word
+ * them for users and offer to set a block's test result. The text of a note
+ * is written for MCP agents.
+ */
+export type TestNoteCode = string;
+/**
+ * The block calls a service other than Discord and wasn't run.
+ */
+export const TestNoteNotRun: TestNoteCode = "not_run";
+/**
+ * The block was mocked.
+ */
+export const TestNoteMocked: TestNoteCode = "mocked";
+/**
+ * AI Choice and AI Check, which aren't asked AI in test runs.
+ */
+export const TestNoteAIChoiceNotAsked: TestNoteCode = "ai_choice_not_asked";
+export const TestNoteAICheckNotAsked: TestNoteCode = "ai_check_not_asked";
+/**
+ * Verify Webhook, which takes the valid branch.
+ */
+export const TestNoteSignatureNotChecked: TestNoteCode = "signature_not_checked";
+export const TestNoteWaitSkipped: TestNoteCode = "wait_skipped";
+/**
+ * TestNote is how a block ran differently than it would outside of a test.
+ */
+export interface TestNote {
+  code: TestNoteCode;
+  text: string;
+}
+
+//////////
 // source: trigger.go
 
 /**

@@ -328,7 +328,7 @@ func TestFlowTestExternalRequests(t *testing.T) {
 	res := runTest(t, Test{Kind: KindCommand, Flow: testFlow(t, weatherFlow)})
 	exec := res.Executions[0]
 	for _, step := range exec.Steps {
-		if step.NodeID == "http" && (len(step.Notes) == 0 || !strings.HasPrefix(step.Notes[0], "Not run")) {
+		if step.NodeID == "http" && (len(step.Notes) == 0 || step.Notes[0].Code != flow.TestNoteNotRun) {
 			t.Errorf("request without a mock isn't marked as not run: %+v", step)
 		}
 	}

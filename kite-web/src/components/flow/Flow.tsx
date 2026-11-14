@@ -1,8 +1,4 @@
-import {
-  FlowContextStoreProvider,
-  FlowContextType,
-  useFlowContextStore,
-} from "@/lib/flow/context";
+import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { Node, OnSelectionChangeParams, useStoreApi } from "@xyflow/react";
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
@@ -22,13 +18,7 @@ import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
 import { useFlowParametersStore } from "@/lib/flow/parametersStore";
 import { isNoteNode } from "@/lib/flow/notes";
-import {
-  FlowTestState,
-  FlowTestTarget,
-  flowTestNodeStatus,
-  initialFlowTestState,
-} from "@/lib/flow/flowTest";
-import { FlowTestResponse } from "@/lib/types/wire.gen";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import FlowTestDrawer from "./FlowTestDrawer";
 
 interface Props {
@@ -68,8 +58,6 @@ export default function Flow({
   const [logsOpen, setLogsOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
-  const [testState, setTestState] =
-    useState<FlowTestState>(initialFlowTestState);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -164,7 +152,6 @@ export default function Flow({
 
   return (
     <FlowContextStoreProvider type={context}>
-      <TestNodeStatusSync result={testState.result} />
       {/* Keep toasts below the nav bar on mobile */}
       <style jsx global>{`
         @media (max-width: 767px) {
@@ -182,8 +169,6 @@ export default function Flow({
           selectedNodeId={selectedNodeId}
           logs={logs}
           testTarget={testTarget}
-          testState={testState}
-          onTestStateChange={setTestState}
           onShowNode={showNode}
         />
 
@@ -272,8 +257,6 @@ export default function Flow({
         {testTarget && (
           <FlowTestDrawer
             target={testTarget}
-            state={testState}
-            onStateChange={setTestState}
             open={testOpen}
             onOpenChange={setTestOpen}
             onShowNode={showNode}
@@ -287,13 +270,4 @@ export default function Flow({
       </div>
     </FlowContextStoreProvider>
   );
-}
-
-// Shows how the blocks ran in the last test on them.
-function TestNodeStatusSync({ result }: { result: FlowTestResponse | null }) {
-  const store = useFlowContextStore();
-  useEffect(() => {
-    store.getState().setTestNodeStatus(flowTestNodeStatus(result));
-  }, [store, result]);
-  return null;
 }

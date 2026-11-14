@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
-  canSetTestResult,
+  buildFlowTestRequest,
   flowTestEffectMessage,
   flowTestEffectTitle,
+  canSetTestResult,
   flowTestNodeStatus,
   flowTestNoteText,
-  parseTestValue,
-  withFlowTestAction,
+  initialFlowTestState,
+  mockTestResult,
+  variableTestValue,
 } from "./flowTest";
 
 describe("flowTestEffectMessage", () => {
@@ -24,6 +26,8 @@ describe("flowTestEffectMessage", () => {
               components: [
                 { type: 2, style: 1, label: "Yes", custom_id: "abc" },
                 { type: 2, style: 5, label: "Docs", url: "https://kite.onl" },
+                // Discord leaves out the label and animated.
+                { type: 2, style: 2, emoji: { name: "👍" }, custom_id: "up" },
               ],
             },
           ],
@@ -37,6 +41,7 @@ describe("flowTestEffectMessage", () => {
     expect(msg?.embeds[0].title).toBe("Poll");
     const row = msg?.components[0] as any;
     expect(row.components[0].flow_source_id).toBe("abc");
+    expect(row.components[2].flow_source_id).toBe("up");
   });
 
   it("is null without a message", () => {
@@ -54,6 +59,76 @@ describe("flowTestEffectTitle", () => {
     expect(flowTestEffectTitle({ action: "something_new" })).toBe(
       "Would something new"
     );
+  });
+});
+
+describe("buildFlowTestRequest", () => {
+  const flow = { nodes: [], edges: [] };
+
+  it("sends the arguments of a command by name", () => {
+    const req = buildFlowTestRequest(
+      { ...initialFlowTestState, options: { a1: " 5 ", a2: "", a3: "hi" } },
+      {
+        target: { type: "command", id: "c1" },
+        flow,
+        guildId: "g1",
+        eventType: "",
+        commandType: "chat_input",
+        args: {
+          a1: { name: "amount", type: "integer" },
+          a2: { name: "reason", type: "string" },
+          a3: { name: "text", type: "string" },
+        },
+      }
+    );
+    expect(req.options).toEqual({ amount: 5, text: "hi" });
+    expect(req.flow_source).toBe(flow);
+    expect(req.guild_id).toBe("g1");
+  });
+
+  it("sends a webhook without a channel", () => {
+    const req = buildFlowTestRequest(
+      { ...initialFlowTestState, channelId: "ch1", webhookBody: "{}" },
+      {
+        target: { type: "event_listener", id: "e1" },
+        flow,
+        guildId: null,
+        eventType: "webhook",
+        commandType: "chat_input",
+        args: {},
+      }
+    );
+    expect(req.webhook).toEqual({ body: "{}" });
+    expect(req.channel_id).toBeUndefined();
+  });
+
+  it("tests the flow of the dialog in the message", () => {
+    const req = buildFlowTestRequest(
+      { ...initialFlowTestState, valueIds: "1, 2" },
+      {
+        target: {
+          type: "message",
+          id: "m1",
+          flowSourceId: "f1",
+          getMessage: () => ({
+            data: {
+              components: [
+                { type: 1, components: [{ type: 5, flow_source_id: "f1" }] },
+              ],
+            },
+            flow_sources: { f1: { nodes: [], edges: [] }, f2: flow },
+          }),
+        },
+        flow,
+        guildId: null,
+        eventType: "",
+        commandType: "chat_input",
+        args: {},
+      }
+    );
+    expect(req.message?.flow_sources.f1).toBe(flow);
+    expect(req.flow_source_id).toBe("f1");
+    expect(req.values).toEqual(["1", "2"]);
   });
 });
 
@@ -76,9 +151,7 @@ describe("flowTestNodeStatus", () => {
             {
               node_id: "c",
               node_type: "action_http_request",
-              notes: [
-                "Not run, test runs don't send requests outside of Discord. Mock the block to set its result.",
-              ],
+              notes: [{ code: "not_run", text: "Not run" }],
             },
           ],
         },
@@ -88,36 +161,33 @@ describe("flowTestNodeStatus", () => {
   });
 });
 
-describe("withFlowTestAction", () => {
-  it("adds the action after the earlier ones", () => {
-    const req = withFlowTestAction(
-      { seed: 5, then: [{ click: "a" }] },
-      { submit: { name: "x" } }
-    );
-    expect(req).toEqual({
-      seed: 5,
-      then: [{ click: "a" }, { submit: { name: "x" } }],
-    });
-  });
-});
-
 describe("flowTestNoteText", () => {
-  it("rewrites the notes of the service for the editor", () => {
-    const note =
-      "Not run, test runs don't send requests outside of Discord. Mock the block to set its result.";
+  it("words the notes of the service for the editor", () => {
+    const note = { code: "not_run", text: "Not run. Mock the block." };
     expect(flowTestNoteText(note)).toContain("Set a test result");
     expect(canSetTestResult({ notes: [note] })).toBe(true);
-    expect(flowTestNoteText("Waited 5m0s, which test runs skip")).toBe(
-      "Waited 5m0s, which test runs skip"
-    );
-    expect(canSetTestResult({ notes: ["Waited 5m0s"] })).toBe(false);
+
+    const wait = { code: "wait_skipped", text: "Waited 5m0s" };
+    expect(flowTestNoteText(wait)).toBe("Waited 5m0s");
+    expect(canSetTestResult({ notes: [wait] })).toBe(false);
   });
 });
 
-describe("parseTestValue", () => {
-  it("keeps text that isn't JSON", () => {
-    expect(parseTestValue("95")).toBe(95);
-    expect(parseTestValue('{"xp": 3}')).toEqual({ xp: 3 });
-    expect(parseTestValue("hello")).toBe("hello");
+describe("test values", () => {
+  it("reads stored values by their type", () => {
+    const v = { variableId: "v", scope: "", value: "007" };
+    expect(variableTestValue({ ...v, type: "string" })).toBe("007");
+    expect(variableTestValue({ ...v, type: "number" })).toBe(7);
+    expect(
+      variableTestValue({ ...v, type: "json", value: '{"xp":3}' })
+    ).toEqual({ xp: 3 });
+    expect(variableTestValue({ ...v, type: "string", value: " " })).toBeNull();
+  });
+
+  it("keeps the text of blocks that return text", () => {
+    expect(mockTestResult("action_ai_chat_completion", "42")).toBe("42");
+    expect(mockTestResult("action_roblox_user_get", '{"id": 1}')).toEqual({
+      id: 1,
+    });
   });
 });

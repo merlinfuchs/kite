@@ -31,9 +31,9 @@ type TestRun struct {
 
 	mocks     map[string]TestMock
 	usedMocks map[string]bool
-	// Random is shared by the runs of a test, so running it again with the
-	// same seed picks the same.
-	Random    *TestRandom
+	// Shared by the runs of a test, so running it again with the same seed
+	// picks the same.
+	random    *TestRandom
 	steps     []TestStep
 	truncated bool
 	// The steps of the blocks that are running, innermost last. -1 for blocks
@@ -68,7 +68,7 @@ type TestStep struct {
 	ErrorCode FlowNodeErrorCode
 	// How the block ran differently than it would outside of a test, like
 	// being mocked.
-	Notes []string
+	Notes []TestNote
 	// What the block would have changed.
 	Effects []TestEffect
 }
@@ -82,9 +82,10 @@ type TestEffect struct {
 	Warnings []string
 }
 
-func NewTestRun(mocks map[string]TestMock) *TestRun {
+func NewTestRun(mocks map[string]TestMock, random *TestRandom) *TestRun {
 	return &TestRun{
 		mocks:     mocks,
+		random:    random,
 		usedMocks: make(map[string]bool),
 	}
 }
@@ -120,11 +121,11 @@ func (t *TestRun) AddEffect(effect TestEffect) {
 }
 
 // AddNote records how the block that is running ran differently.
-func (t *TestRun) AddNote(note string) {
+func (t *TestRun) AddNote(code TestNoteCode, text string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if step := t.current(); step != nil {
-		step.Notes = append(step.Notes, note)
+		step.Notes = append(step.Notes, TestNote{Code: code, Text: text})
 	}
 }
 
@@ -141,7 +142,7 @@ func (t *TestRun) CurrentMock() (TestMock, bool) {
 	mock, ok := t.mocks[step.NodeID]
 	if ok {
 		t.usedMocks[step.NodeID] = true
-		step.Notes = append(step.Notes, "Mocked")
+		step.Notes = append(step.Notes, TestNote{Code: TestNoteMocked, Text: "Mocked"})
 	}
 	return mock, ok
 }
@@ -231,7 +232,7 @@ func (t *TestRun) runBlock(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	if !mocked {
-		t.AddNote("Not run, test runs don't send requests outside of Discord. Mock the block to set its result.")
+		t.AddNote(TestNoteNotRun, "Not run, test runs don't send requests outside of Discord. Mock the block to set its result.")
 		return n.ExecuteChildren(ctx)
 	}
 
@@ -265,7 +266,7 @@ func (t *TestRun) runWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error 
 			return traceError(n, errors.New(`invalid mock result: must be "valid" or "invalid"`))
 		}
 	} else {
-		t.AddNote(`Signature not checked in test runs, took the valid branch. Mock the block with "invalid" to take the other one.`)
+		t.AddNote(TestNoteSignatureNotChecked, `Signature not checked in test runs, took the valid branch. Mock the block with "invalid" to take the other one.`)
 	}
 	return n.ExecuteChildrenByHandle(ctx, handle)
 }
@@ -373,10 +374,10 @@ func (t *TestRandom) IntN(n int) int {
 	return t.r.IntN(n)
 }
 
-func (t *TestRandom) Shuffle(n int, swap func(i, j int)) {
+func (t *TestRandom) Float64() float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.r.Shuffle(n, swap)
+	return t.r.Float64()
 }
 
 // ID returns a new ID, counting up from 1.

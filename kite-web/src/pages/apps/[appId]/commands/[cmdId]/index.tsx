@@ -95,11 +95,6 @@ export default function AppCommandPage() {
     [appId, cmdId]
   );
 
-  const testTarget = useMemo(
-    () => ({ kind: "command" as const, id: cmdId }),
-    [cmdId]
-  );
-
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
@@ -119,7 +114,6 @@ export default function AppCommandPage() {
           onExit={exit}
           logs={logs}
           versionTarget={versionTarget}
-          testTarget={testTarget}
         />
       )}
     </div>

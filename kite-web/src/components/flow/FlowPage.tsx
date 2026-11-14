@@ -1,12 +1,13 @@
 import { FlowData } from "@/lib/flow/dataSchema";
 import FlowNav from "./FlowNav";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
 import { FlowTestTarget } from "@/lib/flow/flowTest";
+
 import { ItemVersionTarget } from "@/lib/api/queries";
 import {
   useEditorSession,
@@ -35,7 +36,6 @@ interface Props {
   onSave: (data: FlowData, editorSession?: string) => Promise<boolean>;
   onExit: () => void;
   versionTarget: ItemVersionTarget;
-  testTarget?: FlowTestTarget;
 }
 
 function InnerFlowPage({
@@ -51,9 +51,15 @@ function InnerFlowPage({
   onSave,
   onExit,
   versionTarget,
-  testTarget,
 }: Props) {
   const getFlowData = useGetFlowData();
+  const testTarget = useMemo<FlowTestTarget | undefined>(
+    () =>
+      versionTarget.type === "message"
+        ? undefined
+        : { type: versionTarget.type, id: versionTarget.id },
+    [versionTarget]
+  );
   const [chatOpen, setChatOpen] = useState(false);
   const editorRef = useRef<FlowEditorApi>(null);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);

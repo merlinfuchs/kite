@@ -46,7 +46,7 @@ export default memo(function MessageComponentFlow({
     () =>
       messageId
         ? {
-            kind: "message",
+            type: "message",
             id: messageId,
             flowSourceId,
             getMessage: () => ({
