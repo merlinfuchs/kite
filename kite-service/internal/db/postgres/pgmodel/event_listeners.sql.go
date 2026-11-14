@@ -172,6 +172,74 @@ func (q *Queries) DeleteEventListenersByBundleInstall(ctx context.Context, bundl
 	return items, nil
 }
 
+const disableNewestEventListeners = `-- name: DisableNewestEventListeners :execrows
+UPDATE event_listeners SET enabled = FALSE, updated_at = $1
+WHERE id IN (
+    SELECT el.id FROM event_listeners el
+    WHERE el.app_id = $2 AND el.source = $3 AND el.enabled
+    ORDER BY el.created_at, el.id
+    OFFSET $4::INT
+)
+`
+
+type DisableNewestEventListenersParams struct {
+	UpdatedAt pgtype.Timestamp
+	AppID     string
+	Source    string
+	Keep      int32
+}
+
+// Keeps the oldest enabled ones, so running it again changes nothing.
+func (q *Queries) DisableNewestEventListeners(ctx context.Context, arg DisableNewestEventListenersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, disableNewestEventListeners,
+		arg.UpdatedAt,
+		arg.AppID,
+		arg.Source,
+		arg.Keep,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getAppsWithEnabledEventListenersOver = `-- name: GetAppsWithEnabledEventListenersOver :many
+SELECT el.app_id, el.source, COUNT(*) AS count FROM event_listeners el
+JOIN apps a ON a.id = el.app_id AND a.enabled
+WHERE el.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = el.app_id)
+GROUP BY el.app_id, el.source
+HAVING COUNT(*) > $1::INT
+`
+
+type GetAppsWithEnabledEventListenersOverRow struct {
+	AppID  string
+	Source string
+	Count  int64
+}
+
+// Only apps that had a plan count, free apps that were over before the free
+// limits were lowered keep their event listeners. Stopped apps are left alone too.
+func (q *Queries) GetAppsWithEnabledEventListenersOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledEventListenersOverRow, error) {
+	rows, err := q.db.Query(ctx, getAppsWithEnabledEventListenersOver, minCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAppsWithEnabledEventListenersOverRow
+	for rows.Next() {
+		var i GetAppsWithEnabledEventListenersOverRow
+		if err := rows.Scan(&i.AppID, &i.Source, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEnabledEventListenerIDs = `-- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE
 `

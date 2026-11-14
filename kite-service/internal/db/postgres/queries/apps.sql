@@ -284,3 +284,16 @@ WHERE id = $1;
 -- Doesn't touch updated_at either.
 -- name: UpdateAppDiscordVerifyKey :exec
 UPDATE apps SET discord_verify_key = $2 WHERE id = $1;
+
+-- Doesn't touch updated_at, the engine doesn't need to reload the app.
+-- name: MarkAppOverLimit :execrows
+UPDATE apps SET over_limit_since = @over_limit_since
+WHERE id = @id AND over_limit_since IS NULL;
+
+-- name: GetAppsOverLimitSince :many
+SELECT id, over_limit_since FROM apps
+WHERE id = ANY(@ids::TEXT[]) AND over_limit_since IS NOT NULL;
+
+-- name: ClearAppsOverLimit :exec
+UPDATE apps SET over_limit_since = NULL
+WHERE over_limit_since IS NOT NULL AND NOT (id = ANY(@keep_ids::TEXT[]));

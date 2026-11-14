@@ -54,3 +54,23 @@ DELETE FROM commands WHERE bundle_install_id = $1 RETURNING *;
 
 -- name: GetCommandForUpdate :one
 SELECT * FROM commands WHERE id = $1 FOR UPDATE;
+
+-- Only apps that had a plan count, free apps that were over before the free
+-- limits were lowered keep their commands. Stopped apps are left alone too.
+-- name: GetAppsWithEnabledCommandsOver :many
+SELECT c.app_id, COUNT(*) AS count FROM commands c
+JOIN apps a ON a.id = c.app_id AND a.enabled
+WHERE c.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = c.app_id)
+GROUP BY c.app_id
+HAVING COUNT(*) > @min_count::INT;
+
+-- Keeps the oldest enabled ones, so running it again changes nothing.
+-- name: DisableNewestCommands :execrows
+UPDATE commands SET enabled = FALSE, updated_at = @updated_at
+WHERE id IN (
+    SELECT c.id FROM commands c
+    WHERE c.app_id = @app_id AND c.enabled
+    ORDER BY c.created_at, c.id
+    OFFSET @keep::INT
+);
