@@ -20,6 +20,10 @@ export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
 export const FlowParameterTypeChannel: FlowParameterType = "channel";
 export const FlowParameterTypeRole: FlowParameterType = "role";
 /**
+ * A channel category, like the one tickets are created in.
+ */
+export const FlowParameterTypeCategory: FlowParameterType = "category";
+/**
  * Yes or no, picked from a menu. The value is true or false.
  */
 export const FlowParameterTypeBoolean: FlowParameterType = "boolean";

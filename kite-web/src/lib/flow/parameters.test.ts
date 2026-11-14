@@ -21,5 +21,8 @@ describe("parameters", () => {
     expect(
       needsValue({ key: "a", type: "role", required: true, value: "1" })
     ).toBe(false);
+    expect(
+      needsValue({ key: "a", type: "category", required: true, value: "" })
+    ).toBe(true);
   });
 });

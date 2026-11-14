@@ -19,7 +19,10 @@ import RoleSelect from "../common/RoleSelect";
 export type ParameterField = Omit<FlowParameter, "value">;
 
 // Parameters that are picked from the server.
-const pickerTypes = ["channel", "role"];
+const pickerTypes = ["channel", "category", "role"];
+
+// Discord's type of a channel category.
+const categoryChannelTypes = [4];
 
 export function isPickedParameter(parameter: ParameterField) {
   return pickerTypes.includes(parameter.type);
@@ -158,6 +161,18 @@ export function ParameterInput({
           value={value || null}
           onChange={(id) => onChange(id ?? "")}
           emptyText={emptyText}
+        />
+      );
+    case "category":
+      return (
+        <ChannelSelect
+          guildId={guildId}
+          types={categoryChannelTypes}
+          placeholder="Select category..."
+          searchPlaceholder="Search category..."
+          value={value || null}
+          onChange={(id) => onChange(id ?? "")}
+          emptyText={guildId ? "No category found." : emptyText}
         />
       );
     case "role":
