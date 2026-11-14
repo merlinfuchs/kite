@@ -21,7 +21,6 @@ import { flagNames, parseLookupId } from "@/tools/common/utils/lookup";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
 import { LookupResult, useLookup } from "@/tools/common/hooks/useLookup";
 import { useRouter } from "next/router";
-import { useState } from "react";
 
 // The badges Discord shows on profiles, from the public flags of the user.
 const userBadges: [number, string][] = [
@@ -56,34 +55,20 @@ function colorHex(color: number) {
 export default function UserLookup() {
   const router = useRouter();
   const { data: session } = useUserQuery();
-  const [inputError, setInputError] = useState<string>();
 
-  const {
-    result,
-    loading,
-    lookup: lookupId,
-  } = useLookup({
+  const { result, error, loading, initialValue, lookup } = useLookup({
     name: "user",
+    param: "id",
+    parse: parseLookupId,
+    invalid:
+      "This isn't a Discord user ID. IDs are numbers with 17 to 20 digits.",
+    ready: !!session?.success,
     fetch: fetchUser,
     unreachable: "Couldn't reach Kite. Check your connection and try again.",
     staleTime: 10 * 60 * 1000,
   });
 
-  function lookup(value: string) {
-    const id = parseLookupId(value);
-    if (!id) {
-      setInputError(
-        "This isn't a Discord user ID. IDs are numbers with 17 to 20 digits."
-      );
-      return;
-    }
-    setInputError(undefined);
-    lookupId(id);
-  }
-
   const user = result?.success ? result.data : null;
-  const error =
-    inputError ?? (result && !result.success ? result.error : undefined);
 
   if (session && !session.success) {
     return (
@@ -108,11 +93,13 @@ export default function UserLookup() {
         id="user-id"
         label="User ID"
         placeholder="1083038298513887292"
+        initialValue={initialValue}
+        key={initialValue}
         loading={loading}
         error={error}
         onLookup={lookup}
       />
-      {user && !inputError && <UserInfo user={user} />}
+      {user && <UserInfo user={user} />}
     </div>
   );
 }

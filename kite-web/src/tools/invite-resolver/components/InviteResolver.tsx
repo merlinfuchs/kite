@@ -15,7 +15,6 @@ import userAvatar, {
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
 import { useLookup } from "@/tools/common/hooks/useLookup";
 import { discordUnreachable, fetchDiscord } from "@/tools/common/utils/lookup";
-import { useState } from "react";
 
 interface InviteData {
   type: number;
@@ -81,33 +80,16 @@ function fetchInvite(code: string) {
 }
 
 export default function InviteResolver() {
-  const [inputError, setInputError] = useState<string>();
-
-  const {
-    result,
-    loading,
-    lookup: lookupCode,
-  } = useLookup({
+  const { result, error, loading, initialValue, lookup } = useLookup({
     name: "invite",
+    param: "code",
+    parse: parseInviteCode,
+    invalid:
+      "This isn't an invite. Paste a link like discord.gg/abc123 or just its code.",
     fetch: fetchInvite,
     unreachable: discordUnreachable,
     staleTime: 5 * 60 * 1000,
   });
-
-  function lookup(value: string) {
-    const parsed = parseInviteCode(value);
-    if (!parsed) {
-      setInputError(
-        "This isn't an invite. Paste a link like discord.gg/abc123 or just its code."
-      );
-      return;
-    }
-    setInputError(undefined);
-    lookupCode(parsed);
-  }
-
-  const error =
-    inputError ?? (result && !result.success ? result.error : undefined);
 
   return (
     <div className="space-y-6">
@@ -115,11 +97,13 @@ export default function InviteResolver() {
         id="invite"
         label="Invite link or code"
         placeholder="discord.gg/discord-developers"
+        initialValue={initialValue}
+        key={initialValue}
         loading={loading}
         error={error}
         onLookup={lookup}
       />
-      {result?.success && !inputError && <InviteInfo invite={result.data} />}
+      {result?.success && <InviteInfo invite={result.data} />}
     </div>
   );
 }
