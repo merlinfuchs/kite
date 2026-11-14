@@ -1,8 +1,10 @@
 package flow
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -10,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func runJavaScriptAI(t *testing.T, code string, ai *recordingAIProvider, decision *fakeDecisionProvider, maxCredits int) (*FlowContext, error) {
+func runJavaScriptAI(t *testing.T, code string, ai provider.AIProvider, decision *fakeDecisionProvider, maxCredits int) (*FlowContext, error) {
 	if ai == nil {
 		ai = &recordingAIProvider{}
 	}
@@ -128,4 +130,54 @@ func TestJavaScriptRunAITranslate(t *testing.T) {
 	c, err = runJavaScriptAI(t, `return await ai.translate({text: "x".repeat(2500), language: "es"})`, &recordingAIProvider{text: `{"source_language":"en","text":"x"}`}, nil, 1000)
 	require.NoError(t, err)
 	assert.Equal(t, 13, c.CreditsUsed())
+}
+
+// slowAIProvider answers after a while, so calls of code overlap.
+type slowAIProvider struct{}
+
+func (slowAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
+	time.Sleep(50 * time.Millisecond)
+	return provider.AIResponse{Text: "ok"}, nil
+}
+
+// Calls at the same time can't use the credits another call holds for the
+// longest answer it can get.
+func TestJavaScriptRunAIReservesAnswers(t *testing.T) {
+	// The block, then 100 for large and up to 100 for a long answer each.
+	c, err := runJavaScriptAI(t, `
+const results = await Promise.allSettled([1, 2].map(() => ai.ask({prompt: "hi", model: "large", max_tokens: 1000})))
+return results.map((r) => r.status === "fulfilled" ? "ok" : r.reason.message)`, slowAIProvider{}, nil, 330)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []any{"ok", "ai.ask: credits limit exceeded: 330"}, c.GetNodeResult("js_1").JSONValue())
+	// The answer was short, so its reserve wasn't used.
+	assert.Equal(t, 110, c.CreditsUsed())
+}
+
+func TestJavaScriptRunAIInTestRuns(t *testing.T) {
+	c := javaScriptTestContext(t, FlowProviders{Log: &provider.MockLogProvider{}, AI: &recordingAIProvider{}, Decision: &fakeDecisionProvider{}}, 1000, eval.Env{})
+	c.Test = NewTestRun(nil)
+	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: `
+const errors = []
+for (const call of [
+  () => ai.ask({prompt: "hi"}),
+  () => ai.check({question: "Spam?", input: "hi"}),
+  () => ai.translate({text: "hi", language: "es"}),
+]) {
+  try { await call() } catch (e) { errors.push(e.message) }
+}
+return errors`}}}
+	require.NoError(t, node.Execute(c))
+	assert.JSONEq(t, `["ai.ask: test runs don't ask AI","ai.check: test runs don't ask AI","ai.translate: test runs don't ask AI"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.Equal(t, 10, c.CreditsUsed())
+}
+
+// Option names are trimmed like those of the block.
+func TestJavaScriptRunAIChooseTrimsOptions(t *testing.T) {
+	decision := &fakeDecisionProvider{decision: provider.Decision{Choice: "bug", Confidence: 0.9}}
+	c, err := runJavaScriptAI(t, `return await ai.choose({question: "What?", input: "it crashed", options: {"bug ": ""}})`, nil, decision, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"choice":"bug","confidence":0.9}`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+
+	_, err = runJavaScriptAI(t, `return await ai.choose({question: "What?", input: "hi", options: {"bug": "", " bug": ""}})`, nil, nil, 1000)
+	assert.ErrorContains(t, err, `ai.choose: option "bug" exists twice`)
 }

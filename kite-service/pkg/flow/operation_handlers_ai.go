@@ -11,6 +11,10 @@ import (
 // The ai.* operations of code run like the AI blocks and cost the same. Search
 // the Web isn't one, as its searches take longer than a run of code can.
 
+// errAIInTestRuns fails AI calls of code in test runs, which skip the AI
+// blocks too, before they're charged.
+var errAIInTestRuns = errors.New("test runs don't ask AI")
+
 // aiAskOperation is ai.ask, Ask AI for code.
 func aiAskOperation(call operationCall) (any, error) {
 	var arg struct {
@@ -50,6 +54,9 @@ func aiAskOperation(call operationCall) (any, error) {
 	if err := ask.validate(); err != nil {
 		return nil, err
 	}
+	if call.ctx.Test != nil {
+		return nil, errAIInTestRuns
+	}
 
 	// Like the block: the input now, the output once the answer is there,
 	// and the most the output can cost has to fit before either.
@@ -63,6 +70,9 @@ func aiAskOperation(call operationCall) (any, error) {
 func decideForCode(call operationCall, opts provider.DecideOpts) (provider.Decision, error) {
 	if err := checkDecision(&opts); err != nil {
 		return provider.Decision{}, err
+	}
+	if call.ctx.Test != nil {
+		return provider.Decision{}, errAIInTestRuns
 	}
 	if err := call.charge(); err != nil {
 		return provider.Decision{}, err
@@ -102,18 +112,28 @@ func aiChooseOperation(call operationCall) (any, error) {
 	if err := decodeOperationArg(call.arg, &arg); err != nil {
 		return nil, err
 	}
+	// Like the options of the block.
+	options := make(map[string]string, len(arg.Options))
+	for name, description := range arg.Options {
+		name = strings.TrimSpace(name)
+		if _, ok := options[name]; ok {
+			return nil, fmt.Errorf("option %q exists twice", name)
+		}
+		options[name] = description
+	}
+
 	decision, err := decideForCode(call, provider.DecideOpts{
 		Type:     provider.DecisionTypeChoice,
 		Question: arg.Question,
 		Input:    arg.Input,
-		Options:  arg.Options,
+		Options:  options,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	res := map[string]any{"choice": nil, "confidence": decision.Confidence}
-	if _, ok := arg.Options[decision.Choice]; ok {
+	if _, ok := options[decision.Choice]; ok {
 		res["choice"] = decision.Choice
 	}
 	return res, nil
@@ -155,6 +175,9 @@ func aiTranslateOperation(call operationCall) (any, error) {
 	t, err := newAITranslation(arg.Text, arg.Language)
 	if err != nil {
 		return nil, err
+	}
+	if call.ctx.Test != nil {
+		return nil, errAIInTestRuns
 	}
 	if err := call.chargeCredits(t.credits(), 0); err != nil {
 		return nil, err

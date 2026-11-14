@@ -25,7 +25,8 @@ type operationCall struct {
 	// chargeMore can charge later.
 	chargeCredits func(credits int, reserve int) error
 	// chargeMore charges credits on top, for what's only known after paying
-	// for something, like the length of an AI answer.
+	// for something, like the length of an AI answer. It releases the reserve
+	// of chargeCredits, and is called at most once.
 	chargeMore func(credits int) error
 	// The IDs of the stored variables the block lets the code use, by the
 	// names the code uses.
