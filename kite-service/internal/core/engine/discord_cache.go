@@ -93,7 +93,35 @@ func (p *DiscordProvider) cachedChannel(ids []discord.Snowflake) (any, bool) {
 	if err != nil || !cachedChannelType(channel) {
 		return nil, false
 	}
+	// The cache has every channel of the server, also those the bot can't
+	// see, for which Discord answers 403.
+	if !p.cachedCanView(channel) {
+		return nil, false
+	}
 	return channelJSON(*channel), true
+}
+
+// cachedCanView reports whether the bot can see channel, from the cache
+// only, unlike state.Permissions, which asks Discord for what's missing.
+func (p *DiscordProvider) cachedCanView(channel *discord.Channel) bool {
+	cabinet := p.session.Cabinet
+	me, err := cabinet.Me()
+	if err != nil {
+		return false
+	}
+	guild, err := cabinet.Guild(channel.GuildID)
+	if err != nil {
+		return false
+	}
+	member, err := cabinet.Member(channel.GuildID, me.ID)
+	if err != nil {
+		return false
+	}
+	roles, err := cabinet.Roles(channel.GuildID)
+	if err != nil {
+		return false
+	}
+	return discord.CalcOverrides(*guild, *channel, *member, roles).Has(discord.PermissionViewChannel)
 }
 
 func (p *DiscordProvider) cachedChannels(ids []discord.Snowflake) (any, bool) {
@@ -197,14 +225,17 @@ func channelJSON(channel discord.Channel) map[string]any {
 		"permission_overwrites": []any{},
 	})
 	nullIfEmpty(m, "parent_id")
-	// Only Discord's answers to interactions have the bot's permissions.
+	// Only Discord's answers to interactions have the bot's permissions. The
+	// cache doesn't update the last message and pin, so they're left out.
 	delete(m, "permissions")
+	delete(m, "last_message_id")
+	delete(m, "last_pin_timestamp")
 	switch channel.Type {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum:
-		nullIfEmpty(m, "topic", "last_message_id")
+		nullIfEmpty(m, "topic")
 		withDefault(m, map[string]any{"rate_limit_per_user": 0})
 	case discord.GuildVoice, discord.GuildStageVoice:
-		nullIfEmpty(m, "rtc_region", "last_message_id")
+		nullIfEmpty(m, "rtc_region")
 		withDefault(m, map[string]any{"rate_limit_per_user": 0, "bitrate": 0, "user_limit": 0})
 	}
 	return m

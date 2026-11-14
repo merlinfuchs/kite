@@ -31,6 +31,7 @@ const discordTypesFile = "../../../../kite-web/src/lib/integrations/discord/type
 func cacheTestState(intents gateway.Intents) *state.State {
 	s := state.New("Bot token")
 	s.AddIntents(intents)
+	s.Cabinet.MyselfSet(discord.User{ID: 99, Username: "bot", Bot: true}, false)
 
 	now := discord.NewTimestamp(time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC))
 	enabled := true
@@ -46,12 +47,15 @@ func cacheTestState(intents gateway.Intents) *state.State {
 			BoostedSince: now, CommunicationDisabledUntil: now, Deaf: true, Mute: true, Flags: 1, IsPending: true,
 		},
 	}
+	// The bot, which the cache always has.
+	members = append(members, discord.Member{User: discord.User{ID: 99, Username: "bot", Bot: true}, Joined: now})
 	for _, m := range members {
 		s.Cabinet.MemberSet(1, &m, false)
 	}
 
 	roles := []discord.Role{
-		{ID: 2, Name: "@everyone", Permissions: discord.PermissionViewChannel},
+		// @everyone has the ID of the server.
+		{ID: 1, Name: "@everyone", Permissions: discord.PermissionViewChannel},
 		{
 			ID: 3, Name: "Mod", Permissions: discord.PermissionBanMembers, Position: 1, Color: 255,
 			Hoist: true, Mentionable: true, Icon: "i1", UnicodeEmoji: "🪁",
@@ -69,11 +73,16 @@ func cacheTestState(intents gateway.Intents) *state.State {
 		{
 			ID: 6, GuildID: 1, Type: discord.GuildText, Name: "rules", Position: 2, Topic: "Be nice",
 			NSFW: true, ParentID: 7, LastMessageID: 8, UserRateLimit: 5, Flags: 2,
-			Overwrites: []discord.Overwrite{{ID: 2, Type: discord.OverwriteRole, Deny: discord.PermissionSendMessages}},
+			Overwrites: []discord.Overwrite{{ID: 1, Type: discord.OverwriteRole, Deny: discord.PermissionSendMessages}},
 		},
 		{ID: 7, GuildID: 1, Type: discord.GuildCategory, Name: "Info"},
 		{ID: 9, GuildID: 1, Type: discord.GuildVoice, Name: "Voice", VoiceBitrate: 64000},
 		{ID: 12, GuildID: 1, Type: discord.GuildPublicThread, Name: "thread", ParentID: 5},
+		// Hidden from the bot.
+		{
+			ID: 13, GuildID: 1, Type: discord.GuildText, Name: "staff",
+			Overwrites: []discord.Overwrite{{ID: 1, Type: discord.OverwriteRole, Deny: discord.PermissionViewChannel}},
+		},
 	}
 	s.Cabinet.GuildSet(&discord.Guild{ID: 1, Name: "Kite"}, false)
 	for _, c := range channels {
@@ -122,7 +131,7 @@ func TestCachedAPIResponsesMatchTheSpec(t *testing.T) {
 		{"/guilds/1/members/10", "discord.GuildMemberResponse"},
 		{"/guilds/1/members/11", "discord.GuildMemberResponse"},
 		{"/guilds/1/roles", "discord.GuildRoleResponse[]"},
-		{"/guilds/1/roles/2", "discord.GuildRoleResponse"},
+		{"/guilds/1/roles/1", "discord.GuildRoleResponse"},
 		{"/guilds/1/roles/3", "discord.GuildRoleResponse"},
 		{"/channels/5", "discord.GuildChannelResponse"},
 		{"/channels/6", "discord.GuildChannelResponse"},
@@ -153,7 +162,11 @@ func TestCachedAPIResponses(t *testing.T) {
 
 	// Threads aren't listed, like by Discord.
 	channels := cachedResponse(t, p, "/guilds/1/channels").([]any)
-	assert.Len(t, channels, 4)
+	assert.Len(t, channels, 5)
+
+	// The cache doesn't keep the last message up to date.
+	channel := cachedResponse(t, p, "/channels/6").(map[string]any)
+	assert.NotContains(t, channel, "last_message_id")
 }
 
 func TestCachedAPIResponsesFallBack(t *testing.T) {
@@ -174,8 +187,9 @@ func TestCachedAPIResponsesFallBack(t *testing.T) {
 		// Not in the cache.
 		"/guilds/1/roles/99",
 		"/channels/99",
-		// Threads, queries and other endpoints.
+		// Threads, channels the bot can't see, queries and other endpoints.
 		"/channels/12",
+		"/channels/13",
 		"/guilds/1/channels?foo=1",
 		"/guilds/1",
 	} {
@@ -192,6 +206,7 @@ func TestCachedAPIResponsesFallBack(t *testing.T) {
 		"/api/v9/guilds/1/roles/99",
 		"/api/v9/channels/99",
 		"/api/v9/channels/12",
+		"/api/v9/channels/13",
 		"/api/v9/guilds/1/channels?foo=1",
 		"/api/v9/guilds/1",
 		"/api/v9/channels/5",
