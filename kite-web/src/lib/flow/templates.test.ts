@@ -271,8 +271,6 @@ describe("marketplace", () => {
     expect(days.size).toBeGreaterThan(1);
 
     // Nothing is featured while no user's has enough installs.
-    expect(featuredTemplates([...official, user("new", 1)], 20000)).toEqual(
-      []
-    );
+    expect(featuredTemplates([...official, user("new", 1)], 20000)).toEqual([]);
   });
 });

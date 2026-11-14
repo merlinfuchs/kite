@@ -168,24 +168,26 @@ export function templateCategory(template: Template) {
 // days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
   const seen = new Set<string>();
-  return templates
-    .filter(
-      (t) =>
-        t.author.kind === "user" &&
-        t.listed &&
-        (t.installs ?? 0) >= minFeaturedInstalls
-    )
-    // A different order of them every day.
-    .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
-    .sort((a, b) => a.rank - b.rank)
-    .map(({ t }) => t)
-    .filter((t) => {
-      const creator = t.author.kind === "user" ? t.author.discordId : "";
-      if (seen.has(creator)) return false;
-      seen.add(creator);
-      return true;
-    })
-    .slice(0, 3);
+  return (
+    templates
+      .filter(
+        (t) =>
+          t.author.kind === "user" &&
+          t.listed &&
+          (t.installs ?? 0) >= minFeaturedInstalls
+      )
+      // A different order of them every day.
+      .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
+      .sort((a, b) => a.rank - b.rank)
+      .map(({ t }) => t)
+      .filter((t) => {
+        const creator = t.author.kind === "user" ? t.author.discordId : "";
+        if (seen.has(creator)) return false;
+        seen.add(creator);
+        return true;
+      })
+      .slice(0, 3)
+  );
 }
 
 // Users' templates need a few installs to be featured, so the ones nobody
