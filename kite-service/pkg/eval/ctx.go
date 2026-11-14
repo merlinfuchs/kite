@@ -780,6 +780,20 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.ChannelID.IsValid() {
 			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		}
+	case *gateway.ThreadCreateEvent:
+		if e.OwnerID != 0 {
+			if member, ok := guild(e.GuildID).member(e.OwnerID); ok {
+				env.Member = guild(e.GuildID).memberEnv(member)
+				env.User = env.Member
+			} else {
+				env.User = NewUserIDEnv(e.OwnerID)
+				env.Member = env.User
+			}
+		}
+		env.Channel = currentChannelEnv(session, e.ID, &e.Channel)
+		if e.GuildID != 0 {
+			env.Guild = guild(e.GuildID).guildEnv()
+		}
 	case *guildevent.VoiceStateUpdate:
 		if e.Member != nil {
 			env.Member = guild(e.GuildID).memberEnv(*e.Member)

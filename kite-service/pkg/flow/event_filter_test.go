@@ -19,10 +19,12 @@ const testBotID discord.UserID = 99
 
 type testEventData struct {
 	FlowContextData
-	event ws.Event
+	event     ws.Event
+	channelID discord.ChannelID
 }
 
-func (d testEventData) Event() ws.Event { return d.event }
+func (d testEventData) Event() ws.Event              { return d.event }
+func (d testEventData) ChannelID() discord.ChannelID { return d.channelID }
 
 func filter(target EventFilterTarget, mode ComparsionMode, value string) *FlowNodeData {
 	return &FlowNodeData{
@@ -182,6 +184,15 @@ func TestFilterEvent(t *testing.T) {
 	assert.True(t, entry.FilterEvent(testEventData{event: human}, testBotID))
 }
 
+func TestEventFilterThreadCreate(t *testing.T) {
+	entry, err := CompileEventListener(eventFlowWithFilter("thread_create", *filter(EventFilterTypeChannelID, ComparsionModeEqual, "10")))
+	require.NoError(t, err)
+
+	thread := &gateway.ThreadCreateEvent{Channel: discord.Channel{ID: 10, GuildID: 2, OwnerID: 1}}
+	assert.True(t, entry.FilterEvent(testEventData{event: thread, channelID: 10}, testBotID))
+	assert.False(t, entry.FilterEvent(testEventData{event: thread, channelID: 11}, testBotID))
+}
+
 func TestFilterEventParameters(t *testing.T) {
 	data := eventFlowWithFilter("message_create", *filter(EventFilterTypeMessageContent, ComparsionModeStartsWith, "{{ params.prefix }}help"))
 	data.Parameters = []FlowParameter{{Key: "prefix", Type: FlowParameterTypeText, Value: "!"}}
@@ -220,6 +231,8 @@ func TestValidateEventFilters(t *testing.T) {
 		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
 		{"voice state update channel", "voice_state_update", filter(EventFilterTypeChannelID, ComparsionModeEqual, "1"), false},
 		{"voice state update message content", "voice_state_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
+		{"thread create channel", "thread_create", filter(EventFilterTypeChannelID, ComparsionModeEqual, "1"), false},
+		{"thread create message content", "thread_create", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
 	}
 
 	for _, tt := range tests {

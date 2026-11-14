@@ -79,6 +79,9 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeVoiceStateAction, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID, EventFilterTypeRoleID, EventFilterTypeUserIsBot,
 	},
+	"thread_create": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
+	},
 }
 
 // EventFilterTargets returns what event filters can check for an event type.
