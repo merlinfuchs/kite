@@ -20,13 +20,14 @@ export const capabilityGroups = [
     types: ["action_member_voice_edit"],
   },
   {
-    label: "Deletes messages, reactions, channels or roles",
+    label: "Deletes messages, reactions, channels, roles or invites",
     types: [
       "action_message_delete",
       "action_message_bulk_delete",
       "action_message_reaction_delete",
       "action_channel_delete",
       "action_role_delete",
+      "action_invite_delete",
     ],
   },
   {

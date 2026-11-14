@@ -63,6 +63,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
+- [Delete invite](./actions/action_invite_delete.md) - Delete invite links by code
 - [Create forum post](./actions/action_forum_post_create.md) - Create posts in forum and media channels
 
 ## Voice blocks
