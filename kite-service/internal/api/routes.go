@@ -26,6 +26,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/lookup"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -190,6 +191,18 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(oauthHandler.HandleOAuthAuthorize),
 		sessionManager.RequireSession,
 		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// For the user lookup tool on the website. Discord doesn't allow showing
+	// the profiles to anyone, so it needs a login.
+	lookupHandler, err := lookup.NewLookupHandler(s.config.DiscordBotToken)
+	if err != nil {
+		panic(err)
+	}
+	lookupGroup := v1Group.Group("/lookup", sessionManager.RequireSession)
+	lookupGroup.Get("/users/{userID}",
+		handler.Typed(lookupHandler.HandleUserGet),
+		handler.RateLimitByUser(20, time.Minute),
 	)
 
 	// Share code routes

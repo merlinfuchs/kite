@@ -1540,6 +1540,39 @@ export interface LogSummary {
 export type LogSummaryGetResponse = LogSummary;
 
 //////////
+// source: lookup.go
+
+/**
+ * LookupUserGetResponse is the public profile of a Discord user, for the user
+ * lookup tool on the website.
+ */
+export interface LookupUserGetResponse {
+  id: string;
+  username: string;
+  global_name: null | string;
+  discriminator: string;
+  avatar: null | string;
+  banner: null | string;
+  accent_color: null | number;
+  bot: boolean;
+  system: boolean;
+  public_flags: number /* int */;
+  /**
+   * AvatarDecoration is the asset of the decoration around the avatar.
+   */
+  avatar_decoration: null | string;
+  /**
+   * PrimaryGuild is the server tag the user shows next to their name.
+   */
+  primary_guild?: LookupUserPrimaryGuild;
+}
+export interface LookupUserPrimaryGuild {
+  guild_id: string;
+  tag: string;
+  badge: string;
+}
+
+//////////
 // source: message.go
 
 export interface Message {
