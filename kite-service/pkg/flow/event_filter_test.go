@@ -19,10 +19,12 @@ const testBotID discord.UserID = 99
 
 type testEventData struct {
 	FlowContextData
-	event ws.Event
+	event     ws.Event
+	channelID discord.ChannelID
 }
 
-func (d testEventData) Event() ws.Event { return d.event }
+func (d testEventData) Event() ws.Event              { return d.event }
+func (d testEventData) ChannelID() discord.ChannelID { return d.channelID }
 
 func filter(target EventFilterTarget, mode ComparsionMode, value string) *FlowNodeData {
 	return &FlowNodeData{
@@ -180,6 +182,15 @@ func TestFilterEvent(t *testing.T) {
 	human := &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{}}}
 	assert.False(t, entry.FilterEvent(testEventData{event: bot}, testBotID))
 	assert.True(t, entry.FilterEvent(testEventData{event: human}, testBotID))
+}
+
+func TestEventFilterThreadCreate(t *testing.T) {
+	entry, err := CompileEventListener(eventFlowWithFilter("thread_create", *filter(EventFilterTypeChannelID, ComparsionModeEqual, "10")))
+	require.NoError(t, err)
+
+	thread := &gateway.ThreadCreateEvent{Channel: discord.Channel{ID: 10, GuildID: 2, OwnerID: 1}}
+	assert.True(t, entry.FilterEvent(testEventData{event: thread, channelID: 10}, testBotID))
+	assert.False(t, entry.FilterEvent(testEventData{event: thread, channelID: 11}, testBotID))
 }
 
 func TestFilterEventParameters(t *testing.T) {

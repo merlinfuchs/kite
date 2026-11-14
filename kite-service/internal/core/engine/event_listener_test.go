@@ -297,7 +297,6 @@ func TestBoostRemoveEventData(t *testing.T) {
 }
 
 func TestThreadCreateEventData(t *testing.T) {
-	l := &EventListener{}
 	event := &gateway.ThreadCreateEvent{Channel: discord.Channel{
 		ID:      10,
 		GuildID: 2,
@@ -305,8 +304,14 @@ func TestThreadCreateEventData(t *testing.T) {
 		Name:    "support-thread",
 		Type:    discord.GuildPublicThread,
 	}}
-	if !l.shouldHandleEvent(event, 0) {
-		t.Error("ignored thread create event")
+	if !shouldHandleEvent(model.EventListenerTypeDiscordThreadCreate, event, 0) {
+		t.Error("ignored thread create event when bot ID is unknown")
+	}
+	if !shouldHandleEvent(model.EventListenerTypeDiscordThreadCreate, event, 99) {
+		t.Error("ignored thread create event from another user")
+	}
+	if shouldHandleEvent(model.EventListenerTypeDiscordThreadCreate, event, 1) {
+		t.Error("handled thread create event created by the bot itself")
 	}
 
 	data := &EventData{event: event}

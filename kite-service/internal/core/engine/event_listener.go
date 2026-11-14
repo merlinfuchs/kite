@@ -156,7 +156,9 @@ func shouldHandleEvent(eventType model.EventListenerType, e ws.Event, botID disc
 	case *guildevent.VoiceStateUpdate:
 		return d.UserID != botID
 	case *gateway.ThreadCreateEvent:
-		return true
+		// Ignore threads created by the app itself, or a flow that creates a
+		// thread would trigger itself.
+		return !botID.IsValid() || d.OwnerID != botID
 	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
 	// never gets here, see listenersForEvent.
 	case guildevent.Event:
