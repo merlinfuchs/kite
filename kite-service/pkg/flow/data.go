@@ -121,16 +121,14 @@ const (
 	FlowParameterTypeTextarea FlowParameterType = "textarea"
 	FlowParameterTypeChannel  FlowParameterType = "channel"
 	FlowParameterTypeRole     FlowParameterType = "role"
-	// A channel category, like the one tickets are created in.
-	FlowParameterTypeCategory FlowParameterType = "category"
 	// Yes or no, picked from a menu. The value is true or false.
 	FlowParameterTypeBoolean FlowParameterType = "boolean"
 )
 
-// Picked is whether the value is picked from a server, as the ID of a channel,
-// category or role.
+// Picked is whether the value is picked from a server, as the ID of a channel
+// or role.
 func (t FlowParameterType) Picked() bool {
-	return t == FlowParameterTypeChannel || t == FlowParameterTypeCategory || t == FlowParameterTypeRole
+	return t == FlowParameterTypeChannel || t == FlowParameterTypeRole
 }
 
 // FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
@@ -140,7 +138,7 @@ type FlowParameter struct {
 	Description string            `json:"description,omitempty"`
 	Type        FlowParameterType `json:"type"`
 	Required    bool              `json:"required,omitempty"`
-	// Value is the ID of the channel, category or role for those types.
+	// Value is the ID of the channel or role for those types.
 	Value string `json:"value"`
 }
 
@@ -154,7 +152,6 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeTextarea,
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
-			FlowParameterTypeCategory,
 			FlowParameterTypeBoolean,
 		)),
 		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {

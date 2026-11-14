@@ -239,12 +239,12 @@ export const templateParameterSchema = z.object({
   key: z.string().regex(parameterKeyPattern),
   label: z.string().min(1),
   description: z.string().min(1),
-  // channel, category and role are picked from a server the app is in, and
-  // their ID is the value. boolean is yes or no, picked from a menu, as true or false.
-  type: z.enum(["text", "textarea", "channel", "category", "role", "boolean"]),
+  // channel and role are picked from a server the app is in, and their ID is
+  // the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Channels, categories
-  // and roles don't have one.
+  // The value it starts with when the template is added. Channels and roles
+  // don't have one.
   default: z.string().optional(),
 });
 
@@ -254,7 +254,6 @@ export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
   text: "Text",
   textarea: "Long text",
   channel: "Channel",
-  category: "Category",
   role: "Role",
   boolean: "Yes/No",
 };

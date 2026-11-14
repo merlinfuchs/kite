@@ -34,7 +34,7 @@ func TestEveryBundleInstalls(t *testing.T) {
 	for _, b := range Official() {
 		values := map[string]string{}
 		for _, p := range b.Parameters {
-			if p.Type.Picked() {
+			if p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole {
 				values[p.Key] = "123456789012345678"
 			} else {
 				values[p.Key] = "text"

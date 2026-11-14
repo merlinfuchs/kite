@@ -36,11 +36,10 @@ const parameterTypes = Object.entries(parameterTypeLabels).map(
   ([value, label]) => ({ value, label })
 );
 
-// Channels, categories and roles are stored by ID, so a message needs these to
-// mention them.
+// Channels and roles are stored by ID, so a message needs these to mention
+// them.
 const mentionFormats: Record<string, ((key: string) => string) | undefined> = {
   channel: (key) => `<#{{params.${key}}}>`,
-  category: (key) => `<#{{params.${key}}}>`,
   role: (key) => `<@&{{params.${key}}}>`,
 };
 
