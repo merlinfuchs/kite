@@ -86,17 +86,17 @@ func (l *EventListener) HandleScheduledRun(session *state.State, occurrence time
 	)
 }
 
-func (l *EventListener) HandleEvent(appID string, session *state.State, event gateway.Event) {
-	var botID discord.UserID
-	if session != nil {
-		botID = session.Ready().User.ID
+// eventTypes is the type of a Discord listener. Scheduled and webhook
+// listeners get no Discord events.
+func (l *EventListener) eventTypes() []model.EventListenerType {
+	if l.listener.Source != model.EventSourceDiscord {
+		return nil
 	}
+	return []model.EventListenerType{l.listener.Type}
+}
 
+func (l *EventListener) handleEvent(_ model.EventListenerType, session *state.State, event gateway.Event) {
 	// TODO: check listener specific filters as well
-	if !l.shouldHandleEvent(event, botID) {
-		return
-	}
-
 	l.env.executeFlowEvent(
 		context.Background(),
 		l.listener.AppID,
@@ -114,15 +114,15 @@ func ShouldHandleEvent(listener *model.EventListener, e ws.Event, botID discord.
 	if listener.Source != model.EventSourceDiscord {
 		return true
 	}
-	return (&EventListener{listener: listener}).shouldHandleEvent(e, botID)
+	return shouldHandleEvent(listener.Type, e, botID)
 }
 
-// shouldHandleEvent reports whether the listener runs for an event. botID is
-// the app's own user, zero if unknown.
-func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool {
+// shouldHandleEvent reports whether handlers of eventType run for an event.
+// botID is the app's own user, zero if unknown.
+func shouldHandleEvent(eventType model.EventListenerType, e ws.Event, botID discord.UserID) bool {
 	switch d := e.(type) {
 	case *gateway.MessageCreateEvent:
-		if l.listener != nil && l.listener.Type == model.EventListenerTypeDiscordGuildBoost {
+		if eventType == model.EventListenerTypeDiscordGuildBoost {
 			return isBoostMessage(d.Message)
 		}
 		// TODO?: It would be better if we check if the author is specifically the current app
