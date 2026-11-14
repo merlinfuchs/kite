@@ -14,7 +14,6 @@ import {
   parseLookupId,
 } from "@/tools/common/utils/lookup";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
-import { useState } from "react";
 
 interface ApplicationData {
   id: string;
@@ -52,33 +51,16 @@ function fetchApplication(id: string) {
 }
 
 export default function ApplicationLookup() {
-  const [inputError, setInputError] = useState<string>();
-
-  const {
-    result,
-    loading,
-    lookup: lookupId,
-  } = useLookup({
+  const { result, error, loading, initialValue, lookup } = useLookup({
     name: "application",
+    param: "id",
+    parse: parseLookupId,
+    invalid:
+      "This isn't a Discord app ID. IDs are numbers with 17 to 20 digits.",
     fetch: fetchApplication,
     unreachable: discordUnreachable,
     staleTime: 10 * 60 * 1000,
   });
-
-  function lookup(value: string) {
-    const id = parseLookupId(value);
-    if (!id) {
-      setInputError(
-        "This isn't a Discord app ID. IDs are numbers with 17 to 20 digits."
-      );
-      return;
-    }
-    setInputError(undefined);
-    lookupId(id);
-  }
-
-  const error =
-    inputError ?? (result && !result.success ? result.error : undefined);
 
   return (
     <div className="space-y-6">
@@ -86,11 +68,13 @@ export default function ApplicationLookup() {
         id="app-id"
         label="Application ID"
         placeholder="235148962103951360"
+        initialValue={initialValue}
+        key={initialValue}
         loading={loading}
         error={error}
         onLookup={lookup}
       />
-      {result?.success && !inputError && <ApplicationInfo app={result.data} />}
+      {result?.success && <ApplicationInfo app={result.data} />}
     </div>
   );
 }

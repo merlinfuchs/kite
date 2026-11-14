@@ -10,6 +10,7 @@ export default function LookupForm({
   id,
   label,
   placeholder,
+  initialValue = "",
   loading,
   error,
   onLookup,
@@ -17,11 +18,12 @@ export default function LookupForm({
   id: string;
   label: string;
   placeholder: string;
+  initialValue?: string;
   loading: boolean;
   error?: string;
   onLookup: (value: string) => void;
 }) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
 
   function submit(e: FormEvent) {
     e.preventDefault();
