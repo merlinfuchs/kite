@@ -111,6 +111,7 @@ export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
 export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
+export const FlowNodeTypeActionWebhookMessageCreate: FlowNodeType = "action_webhook_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -221,6 +222,11 @@ export interface FlowNodeData {
    */
   persona_name?: string;
   persona_avatar_url?: string;
+  /**
+   * Webhook Message Create
+   */
+  webhook_url?: string;
+  webhook_thread_id?: string;
   /**
    * Message Reaction Create, Delete
    */

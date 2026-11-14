@@ -65,6 +65,14 @@ export const capabilityGroups = [
     types: ["action_persona_message_create"],
   },
   {
+    label: "Creates webhooks in your server",
+    types: ["action_webhook_create"],
+  },
+  {
+    label: "Sends messages through webhooks",
+    types: ["action_webhook_message_create"],
+  },
+  {
     label: "Changes your bot's status or server profile",
     types: ["action_status_set", "action_server_profile_edit"],
   },

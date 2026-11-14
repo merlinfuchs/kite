@@ -237,6 +237,7 @@ const (
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
 	FlowNodeTypeActionPersonaMessageCreate  FlowNodeType = "action_persona_message_create"
+	FlowNodeTypeActionWebhookMessageCreate  FlowNodeType = "action_webhook_message_create"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -362,6 +363,10 @@ type FlowNodeData struct {
 	// Persona Message Create
 	PersonaName      string `json:"persona_name,omitempty"`
 	PersonaAvatarURL string `json:"persona_avatar_url,omitempty"`
+
+	// Webhook Message Create
+	WebhookURL      string `json:"webhook_url,omitempty"`
+	WebhookThreadID string `json:"webhook_thread_id,omitempty"`
 
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`

@@ -270,6 +270,8 @@ export const settingInputs: Record<string, any> = {
   forward_channel_target: ForwardChannelTargetInput,
   persona_name: PersonaNameInput,
   persona_avatar_url: PersonaAvatarUrlInput,
+  webhook_url: WebhookTargetUrlInput,
+  webhook_thread_id: WebhookThreadIdInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   member_voice_mute: MemberVoiceMuteInput,
@@ -4623,6 +4625,36 @@ function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
       errors={errors}
       placeholders
       imageUpload
+    />
+  );
+}
+
+function WebhookTargetUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="webhook_url"
+      title="Webhook URL"
+      description="The URL of the webhook, like https://discord.com/api/webhooks/ID/TOKEN. It has the webhook's token, so you can use a secret like {{secrets.WEBHOOK_URL}}."
+      value={data.webhook_url || ""}
+      updateValue={(v) => updateData({ webhook_url: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookThreadIdInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="webhook_thread_id"
+      title="Thread ID"
+      description="Send the message to this thread of the webhook's channel. Leave empty to send it to the channel."
+      value={data.webhook_thread_id || ""}
+      updateValue={(v) => updateData({ webhook_thread_id: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }

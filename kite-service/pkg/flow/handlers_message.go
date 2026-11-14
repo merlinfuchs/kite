@@ -3,6 +3,8 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -23,6 +25,7 @@ func init() {
 		FlowNodeTypeActionMessageGet:           executeActionMessageGet,
 		FlowNodeTypeActionMessageForward:       executeActionMessageForward,
 		FlowNodeTypeActionPersonaMessageCreate: executeActionPersonaMessageCreate,
+		FlowNodeTypeActionWebhookMessageCreate: executeActionWebhookMessageCreate,
 	})
 }
 
@@ -134,6 +137,94 @@ func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 	)
 	if err != nil {
 		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+	if resumePointID != "" {
+		// We have to create the resume point after the message has been stored
+		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	if n.Data.MessageTemplateID != "" {
+		// Like ephemeral messages, the bot can't edit it later, but the
+		// template's buttons still need the instance.
+		err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
+			MessageTemplateID: n.Data.MessageTemplateID,
+			MessageID:         msg.ID,
+			ChannelID:         msg.ChannelID,
+			GuildID:           ctx.Data.GuildID(),
+			Ephemeral:         true,
+		})
+		if err != nil {
+			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+		}
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+// webhookURLRe is the URL of a Discord webhook. The ID and token of the URL
+// are what the message is sent with, never the host, so a URL can't point the
+// request anywhere else.
+var webhookURLRe = regexp.MustCompile(`^https://(?:(?:canary|ptb)\.)?discord(?:app)?\.com/api(?:/v\d+)?/webhooks/(\d+)/([A-Za-z0-9._-]+)/?(?:\?.*)?$`)
+
+func parseWebhookURL(raw string) (discord.WebhookID, string, error) {
+	m := webhookURLRe.FindStringSubmatch(raw)
+	if m == nil {
+		// The URL isn't in the error, it has the webhook's token.
+		return 0, "", fmt.Errorf("webhook URL must look like https://discord.com/api/webhooks/ID/TOKEN")
+	}
+	id, err := strconv.ParseUint(m[1], 10, 64)
+	if err != nil || id == 0 {
+		return 0, "", fmt.Errorf("webhook URL has an invalid webhook ID")
+	}
+	return discord.WebhookID(id), m[2], nil
+}
+
+func executeActionWebhookMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	if ctx.IsEntry() {
+		return n.resumeFromComponent(ctx)
+	}
+
+	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	if err != nil {
+		return err
+	}
+
+	// The URL has the webhook's token, so it can be a secret.
+	secrets, err := newPlainFlowSecrets(ctx, n.Data.WebhookURL)
+	if err != nil {
+		return err
+	}
+	rawURL, err := secrets.EvalTemplate(ctx, n.Data.WebhookURL)
+	if err != nil {
+		return err
+	}
+	webhookID, webhookToken, err := parseWebhookURL(strings.TrimSpace(rawURL.String()))
+	if err != nil {
+		return err
+	}
+	webhook := provider.WebhookTarget{ID: webhookID, Token: webhookToken}
+
+	if n.Data.WebhookThreadID != "" {
+		threadID, err := ctx.EvalTemplate(n.Data.WebhookThreadID)
+		if err != nil {
+			return err
+		}
+		if !threadID.IsNil() && strings.TrimSpace(threadID.String()) != "" {
+			webhook.ThreadID = discord.ChannelID(threadID.Snowflake())
+			if !webhook.ThreadID.IsValid() {
+				return fmt.Errorf("thread ID is invalid")
+			}
+		}
+	}
+
+	msg, err := ctx.Discord.CreateWebhookMessage(ctx, webhook, data.ToSendMessageData(opts))
+	if err != nil {
+		return secrets.Redact(err)
 	}
 
 	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
