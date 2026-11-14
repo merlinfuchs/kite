@@ -1,6 +1,6 @@
 # JavaScript
 
-Status: step 1, the Run JavaScript block, implemented 2026-11-08. Step 2, operations from code, implemented 2026-11-09 for reads, stored variables and requests, and 2026-11-14 for writes to Discord and integrations. Handler operations for the gateway cache, AI and voice are missing. Modules are a proposal.
+Status: step 1, the Run JavaScript block, implemented 2026-11-08. Step 2, operations from code, implemented 2026-11-09 for reads, stored variables and requests, and 2026-11-14 for writes to Discord and integrations. Reads of members, roles and channels come from the gateway cache when it has them. Handler operations for AI and voice are missing. Modules are a proposal.
 
 Kite runs user JavaScript in `kite-service/pkg/js`. The plan has three steps. The Run JavaScript block computes and returns a value, with no access to anything. Then scripts get the operations of Kite's integrations, like Discord's API, stored variables and AI. Maybe later, whole bot features are written as JavaScript modules that register commands and event handlers. The last step isn't decided.
 
@@ -45,7 +45,7 @@ Step 2 gives scripts the operations of Kite's integrations through `kite.call`. 
 Scripts don't call blocks. A block is shaped for the editor. It has a curated subset of an operation's options, text fields with placeholders and results in Kite's shapes. The Create channel block leaves out options that are hard to show in the editor, and code should have all of them. So blocks and scripts both use the operations underneath, which `design/integrations.md` defines:
 
 - The operations of an integration's `api.json`, like the 208 operations of Discord's API that Kite allows, generated from its OpenAPI spec, and the hand-written ones of Roblox, ER:LC and Cookie API.
-- Operations that aren't a request to a service, like reading a member from the gateway cache, stored variables, AI and voice. They have a Go handler and a JSON Schema for their parameters and result.
+- Operations that aren't a request to a service, like stored variables, AI and voice. They have a Go handler and a JSON Schema for their parameters and result.
 - Requests to any URL, like the HTTP Request block sends, which 432 active free apps used in October 2026. They're the one operation of a built-in `http` integration and go through the egress proxy like today.
 
 An integration's `api.json` is the list of what scripts may call, not a copy of the service's spec. Discord's leaves out the writes that would break how Kite manages the app, like registering application commands, which would replace the commands Kite syncs, and editing the application or its interactions endpoint URL. Regenerating it from Discord's spec has to keep them out, and a test should check that it does.
