@@ -25,7 +25,10 @@ export interface CodeOperation {
   // Its name in the namespace, like getChannel.
   name: string;
   description: string;
+  // What a call costs, or the least it costs if its description explains a
+  // cost that depends on the argument.
   credits: number;
+  variableCredits?: boolean;
   // The type of the argument and of what the promise resolves to.
   params: CodeParam[];
   result: string;
@@ -61,6 +64,7 @@ function codeOperation(op: Operation): CodeOperation {
     return {
       ...base,
       description: op.description,
+      variableCredits: op.variable_credits,
       params: Object.entries(params.properties ?? {}).map(([name, p]) => ({
         name,
         type: schemaType(p),
@@ -139,7 +143,7 @@ function bodyType(params: ApiParam[] | undefined) {
 
 // The part of JSON Schema z.toJSONSchema gives for the operations.
 interface JSONSchema {
-  type?: string;
+  type?: string | string[];
   description?: string;
   enum?: unknown[];
   properties?: Record<string, JSONSchema>;
@@ -152,6 +156,10 @@ interface JSONSchema {
 function schemaType(s: JSONSchema): string {
   if (s.enum) return s.enum.map((v) => JSON.stringify(v)).join(" | ");
   if (s.anyOf) return s.anyOf.map(schemaType).join(" | ");
+  // Like a nullable string, type: ["string", "null"].
+  if (Array.isArray(s.type)) {
+    return s.type.map((type) => schemaType({ ...s, type })).join(" | ");
+  }
   switch (s.type) {
     case "string":
     case "number":
@@ -180,8 +188,16 @@ function schemaType(s: JSONSchema): string {
   return "any";
 }
 
+// Wraps a union in parentheses, like (string | null)[], but not an object
+// with a union inside.
 function wrap(type: string) {
-  return type.includes("|") ? `(${type})` : type;
+  let depth = 0;
+  for (const c of type) {
+    if ("({[<".includes(c)) depth++;
+    else if (")}]>".includes(c)) depth--;
+    else if (c === "|" && depth === 0) return `(${type})`;
+  }
+  return type;
 }
 
 export function costText(credits: number) {
@@ -263,7 +279,9 @@ export function codeSignature(op: CodeOperation, indent = "") {
   );
   const optional = op.params.every((p) => !p.required) ? "?" : "";
   return [
-    `${indent}/** ${op.description} ${costText(op.credits)} */`,
+    `${indent}/** ${op.description}${
+      op.variableCredits ? "" : ` ${costText(op.credits)}`
+    } */`,
     op.params.length
       ? `${indent}${op.name}(arg${optional}: {\n${params.join(
           "\n"

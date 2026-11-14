@@ -78,7 +78,7 @@ export const capabilityGroups = [
   },
   {
     label:
-      "Runs code that can change things in Discord and send requests to other websites",
+      "Runs code that can change things in Discord, use AI, and send requests to other websites",
     types: ["action_javascript_run"],
   },
   {

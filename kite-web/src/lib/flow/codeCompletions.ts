@@ -122,7 +122,9 @@ function members(
               .filter((p) => p.required)
               .map((p) => p.name)
               .join(", ")})`,
-            info: `${op.description} ${costText(op.credits)}`,
+            info: op.variableCredits
+              ? op.description
+              : `${op.description} ${costText(op.credits)}`,
           }));
   if (!options.length) return null;
   return { from: context.pos - typed.length, options, validFor: word };

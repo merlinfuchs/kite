@@ -181,6 +181,9 @@ type javaScriptHost struct {
 	mu  sync.Mutex
 	// The block's stored variables, see operationCall.
 	variables map[string]string
+	// Credits held for calls running at the same time that charge more once
+	// they finish, like the answer of ai.ask, so other calls can't use them.
+	reserved int
 }
 
 // callContext is a copy of the flow's context that's canceled with the call.
@@ -197,15 +200,34 @@ func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
 // credits. Unlike for a block, a call over the limit isn't billed, as code
 // can catch the error and keep calling.
 func (h *javaScriptHost) charge(op operation) error {
+	return h.chargeCredits(op, op.Credits, 0)
+}
+
+// chargeCredits is charge with credits instead of op's, if credits and
+// reserve fit the limit.
+func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if err := h.ctx.increaseOperations(); err != nil {
 		return err
 	}
-	if err := h.ctx.ensureCredits(op.Credits); err != nil {
+	if err := h.ctx.ensureCredits(credits + reserve + h.reserved); err != nil {
 		return err
 	}
-	return h.ctx.increaseCredits(op.Credits)
+	if err := h.ctx.increaseCredits(credits); err != nil {
+		return err
+	}
+	h.reserved += reserve
+	return nil
+}
+
+// chargeMore releases a reserve of chargeCredits and charges credits, at most
+// that reserve.
+func (h *javaScriptHost) chargeMore(reserve int, credits int) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.reserved -= reserve
+	return h.ctx.increaseCredits(credits)
 }
 
 func (h *javaScriptHost) lookup(name string) js.HostFunc {
@@ -220,12 +242,29 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			return nil
 		}
 		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+			// What this call holds of h.reserved.
+			var reserved int
 			res, err := handler(operationCall{
-				ctx:       h.callContext(callCtx),
-				arg:       arg,
-				charge:    func() error { return h.charge(op) },
+				ctx:    h.callContext(callCtx),
+				arg:    arg,
+				charge: func() error { return h.charge(op) },
+				chargeCredits: func(credits int, reserve int) error {
+					if err := h.chargeCredits(op, credits, reserve); err != nil {
+						return err
+					}
+					reserved = reserve
+					return nil
+				},
+				chargeMore: func(credits int) error {
+					defer func() { reserved = 0 }()
+					return h.chargeMore(reserved, credits)
+				},
 				variables: h.variables,
 			})
+			// A reserve the call didn't charge, like after an error.
+			if reserved > 0 {
+				h.chargeMore(reserved, 0)
+			}
 			if err != nil {
 				return nil, err
 			}

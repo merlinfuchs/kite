@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { aiOperations } from "./ai/operations";
 import { httpOperations } from "./http/operations";
 import { variablesOperations } from "./variables/operations";
 
@@ -10,7 +11,10 @@ export interface HandlerOperationDefinition {
   // Name of the operation in its group, in snake case like operationIds.
   id: string;
   description: string;
+  // What a call costs, or the least it costs with variable_credits.
   credits: number;
+  // The credits depend on the argument, which the description explains.
+  variable_credits?: boolean;
   // The argument code passes, an object.
   params: z.ZodType;
   result: z.ZodType;
@@ -23,4 +27,5 @@ export interface HandlerOperationDefinition {
 export const handlerOperations: Record<string, HandlerOperationDefinition[]> = {
   http: httpOperations,
   variables: variablesOperations,
+  ai: aiOperations,
 };

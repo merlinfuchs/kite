@@ -1,6 +1,6 @@
 # JavaScript
 
-Status: step 1, the Run JavaScript block, implemented 2026-11-08. Step 2, operations from code, implemented 2026-11-09 for reads, stored variables and requests, and 2026-11-14 for writes to Discord and integrations. Reads of members, roles and channels come from the gateway cache when it has them. Handler operations for AI and voice are missing. Modules are a proposal.
+Status: step 1, the Run JavaScript block, implemented 2026-11-08. Step 2, operations from code, implemented 2026-11-09 for reads, stored variables and requests, and 2026-11-14 for writes to Discord and integrations. Reads of members, roles and channels come from the gateway cache when it has them. Code calls the AI blocks with `ai.*` since 2026-11-14, except Search the Web, whose searches take longer than a run can. Handler operations for voice are missing. Modules are a proposal.
 
 Kite runs user JavaScript in `kite-service/pkg/js`. The plan has three steps. The Run JavaScript block computes and returns a value, with no access to anything. Then scripts get the operations of Kite's integrations, like Discord's API, stored variables and AI. Maybe later, whole bot features are written as JavaScript modules that register commands and event handlers. The last step isn't decided.
 

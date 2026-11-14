@@ -145,6 +145,25 @@ Runs at the same time don't overwrite each other's `append`, `prepend` and `incr
 
 A scoped variable needs a `scope`, like a user ID, and an unscoped one ignores it. The name stays the same when the variable is renamed, and when the flow is part of a template, apps that add it get their own copy of the variable. Getting a value is free, the others cost [1 credit](../../credit-system.md#cost-breakdown) each, like the blocks.
 
+## AI
+
+The code can use the AI blocks with `ai.ask`, `ai.check`, `ai.choose`, `ai.score` and `ai.translate`. Each call costs what its block costs, so the code can sort or answer several messages in one run. Calls with `Promise.all` run at the same time:
+
+```js
+const spam = await Promise.all(
+  input.messages.map((m) => ai.check({ question: "Is this spam?", input: m.content }))
+);
+return input.messages.filter((m, i) => spam[i] > 0.8).map((m) => m.id);
+```
+
+- `ai.ask({ prompt, system_prompt, model, max_tokens })` returns the answer of [Ask AI](./action_ai_chat_completion.md). The model is `small`, `medium` or `large`, and `small` if it's left out. It costs 5, 20 or 100 credits, and more for long prompts and answers, like the block.
+- `ai.check({ question, input })` returns how likely the answer to a yes or no question is yes, from 0 to 1, like [AI Check](../controls/control_ai_check.md).
+- `ai.choose({ question, input, options })` picks one of the options, which is an object with a description of each, like `{ bug: "Something broke", idea: "" }`. It returns `{ choice, confidence }`, with `choice` set to `null` if no option fits, like [AI Choice](../controls/control_condition_ai_choice.md).
+- `ai.score({ question, input, levels })` rates the input with 2 to 10 levels from the lowest to the highest, and returns the level from 1, like [AI Score](./action_ai_score.md).
+- `ai.translate({ text, language })` returns `{ text, source_language }`, like [AI Translate](./action_ai_translate.md).
+
+Check, choose and score cost [1 credit](../../credit-system.md#cost-breakdown) each, and translate 1 credit for each 1,000 characters. Searching the web isn't available, as it takes longer than the 10 seconds a run can take. Use the [Search the Web](./action_ai_web_search.md) block instead. A run that asks the `medium` or `large` model several times can also take too long, so ask those once per run.
+
 ## Sending requests to other websites
 
 `fetch` sends a request to any URL, like the [Send API Request](./action_http_request.md) block. It takes the method, the headers and a text body. The response has `ok`, `status`, `statusText`, `headers.get()`, `text()` and `json()`.
