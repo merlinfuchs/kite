@@ -80,30 +80,35 @@ export default function FlowTestPanel({
   const guildId = state.guildId ?? guilds?.[0]?.id ?? null;
   const inputs = flowTestInputs(eventType);
 
-  const messageData =
-    target.type === "message" ? target.getMessage().data : null;
+  // The message can't change while its button's flow is open.
   const selectMenu = useMemo(
     () =>
       target.type === "message"
-        ? findTestSelectMenu(messageData, target.flowSourceId)
+        ? findTestSelectMenu(target.getMessage().data, target.flowSourceId)
         : null,
-    [target, messageData]
+    [target]
   );
 
   function run() {
-    const req = buildFlowTestRequest(state, {
-      target,
-      flow: getFlowData(),
-      guildId,
-      eventType,
-      commandType,
-      args: Object.fromEntries(
-        args.map((a) => [
-          a.id,
-          { name: a.data.name ?? "", type: a.data.command_argument_type },
-        ])
-      ),
-    });
+    let req;
+    try {
+      req = buildFlowTestRequest(state, {
+        target,
+        flow: getFlowData(),
+        guildId,
+        eventType,
+        commandType,
+        args: Object.fromEntries(
+          args.map((a) => [
+            a.id,
+            { name: a.data.name ?? "", type: a.data.command_argument_type },
+          ])
+        ),
+      });
+    } catch (err) {
+      set({ error: (err as Error).message });
+      return;
+    }
 
     req.seed = newFlowTestSeed();
     send(req, true);

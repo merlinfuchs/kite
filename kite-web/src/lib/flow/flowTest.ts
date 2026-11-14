@@ -190,7 +190,7 @@ export function buildFlowTestRequest(
       for (const [id, arg] of Object.entries(args)) {
         const value = state.options[id]?.trim();
         if (arg.name && value) {
-          req.options[arg.name] = optionValue(arg.type, value);
+          req.options[arg.name] = optionValue(arg, value);
         }
       }
     } else if (state.targetId.trim()) {
@@ -209,10 +209,18 @@ export function buildFlowTestRequest(
   return req;
 }
 
-function optionValue(type: string | undefined, value: string): unknown {
-  switch (type) {
+// Throws for numbers Discord wouldn't send.
+function optionValue(arg: FlowTestArgument, value: string): unknown {
+  switch (arg.type) {
     case "integer":
+      if (!/^-?\d+$/.test(value)) {
+        throw new Error(`${arg.name} must be a whole number.`);
+      }
+      return Number(value);
     case "number":
+      if (!Number.isFinite(Number(value))) {
+        throw new Error(`${arg.name} must be a number.`);
+      }
       return Number(value);
     case "boolean":
       return value === "true";
