@@ -1,7 +1,7 @@
 import { Button } from "../ui/button";
 import CommandListEntry from "./CommandListEntry";
 import AppEmptyPlaceholder, {
-  AppEmptyTemplatesLink,
+  AppEmptyImportLinks,
 } from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
@@ -49,7 +49,7 @@ export default function CommandList() {
               title="No commands yet"
               description="Commands are what your users type in Discord, like /ban or /help. Create one and build what it does in the flow editor."
               action={<ListActions>{commandActions}</ListActions>}
-              footer={<AppEmptyTemplatesLink />}
+              footer={<AppEmptyImportLinks />}
             />
           ) : (
             <SearchableList

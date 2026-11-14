@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -434,6 +435,37 @@ function ImportForm({
       }
       submitLabel="Continue"
       loading={loading}
+      hint={
+        kind === "command" || eventSource === "discord" ? (
+          <>
+            Switching from BotGhost?{" "}
+            <Link
+              href={{
+                pathname: "/apps/[appId]/import/botghost",
+                query: { appId },
+              }}
+              className="underline hover:text-foreground"
+            >
+              Import your whole bot
+            </Link>
+            {kind === "command" && (
+              <>
+                , or{" "}
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/import/inventor",
+                    query: { appId },
+                  }}
+                  className="underline hover:text-foreground"
+                >
+                  import from inventor.bot
+                </Link>
+              </>
+            )}
+            .
+          </>
+        ) : undefined
+      }
       onData={(data, type) => {
         if (type === null) {
           previewShareData(data as ShareData, "json");

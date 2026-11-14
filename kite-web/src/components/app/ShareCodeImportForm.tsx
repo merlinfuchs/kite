@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import {
   DialogClose,
   DialogDescription,
@@ -21,12 +21,15 @@ export function ShareCodeImportForm({
   jsonPlaceholder,
   submitLabel,
   loading,
+  hint,
   onData,
 }: {
   title: string;
   jsonPlaceholder: string;
   submitLabel: string;
   loading?: boolean;
+  // Shown below the input, like where to import something else.
+  hint?: ReactNode;
   onData: (data: unknown, type: string | null) => void;
 }) {
   const [useJson, setUseJson] = useState(false);
@@ -96,6 +99,8 @@ export function ShareCodeImportForm({
           />
         </ShareCodePanel>
       )}
+
+      {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
 
       <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
         <Button variant="ghost" onClick={() => setUseJson(!useJson)}>

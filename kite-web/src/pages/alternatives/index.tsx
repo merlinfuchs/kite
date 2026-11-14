@@ -16,6 +16,10 @@ const botMakers: {
   paidPlans?: string;
   bestFor: string;
   lastChecked?: string;
+  // Set when Kite can import some of this bot maker's commands. The guide is
+  // the name of its page in the docs, under guides.
+  importNote?: string;
+  importGuide?: string;
 }[] = [
   {
     name: "Kite",
@@ -41,6 +45,9 @@ const botMakers: {
     bestFor:
       "Switching on ready-made modules like tickets, giveaways, and reaction roles instead of building commands.",
     lastChecked: "November 2026",
+    importNote:
+      "Kite can import some of your BotGhost custom commands and custom events.",
+    importGuide: "botghost-import",
   },
   {
     name: "Bot Designer for Discord (BDFD)",
@@ -65,6 +72,8 @@ const botMakers: {
     bestFor:
       "Building your bot with an AI agent of your choice, or storing data in a built-in database.",
     lastChecked: "October 2026",
+    importNote: "Kite can import some of your inventor.bot slash commands.",
+    importGuide: "inventor-import",
   },
   {
     name: "SCNX",
@@ -143,6 +152,10 @@ export default function AlternativesPage() {
           See what each free plan includes and when each bot maker is the better
           choice. We checked every plan in October or November 2026.
         </p>
+        <p className="text-muted-foreground mt-4">
+          Coming from BotGhost or inventor.bot? Kite can import some of your
+          commands, so you don&apos;t have to build them again.
+        </p>
       </section>
 
       <section className="container pb-12 md:pb-16">
@@ -169,6 +182,22 @@ export default function AlternativesPage() {
                   <dt className="font-medium">Best for</dt>
                   <dd className="text-muted-foreground">{b.bestFor}</dd>
                 </div>
+                {b.importNote && (
+                  <div>
+                    <dt className="font-medium">Moving to Kite</dt>
+                    <dd className="text-muted-foreground">
+                      {b.importNote}{" "}
+                      <a
+                        href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/${b.importGuide}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Learn how
+                      </a>
+                    </dd>
+                  </div>
+                )}
               </dl>
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 mt-6">
                 <Link

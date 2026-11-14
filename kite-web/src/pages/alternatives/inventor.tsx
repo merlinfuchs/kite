@@ -28,6 +28,10 @@ const content: ComparisonPageContent = {
     "You want to build and fix your bot with an AI agent of your choice",
     "You want a built-in database",
   ],
+  importNote: {
+    text: "Already built commands in inventor.bot? Kite can import some of your slash commands, so you don't have to build them all again.",
+    guide: "inventor-import",
+  },
   rows: [
     {
       feature: "Free bots",
@@ -104,7 +108,15 @@ const content: ComparisonPageContent = {
     },
     openSourcePoint,
   ],
-  faqs: [freeFaq, noCodeFaq],
+  faqs: [
+    freeFaq,
+    noCodeFaq,
+    {
+      question: "Can I move my inventor.bot commands to Kite?",
+      answer:
+        "Some of them. Kite's import reads the slash commands of your inventor.bot bot and adds the ones it can convert to your app. It converts messages with text so far, and lists the blocks it can't convert yet, so you know what to rebuild.",
+    },
+  ],
 };
 
 export default function InventorAlternativePage() {
