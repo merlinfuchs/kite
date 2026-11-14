@@ -4,13 +4,16 @@ import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
 import { getNodeTitle, getNodeValues } from "@/lib/flow/nodes";
 import { NodeData } from "@/lib/flow/dataSchema";
 import {
+  canSetTestResult,
   flowTestEffectMessage,
   flowTestEffectTitle,
+  flowTestNoteText,
 } from "@/lib/flow/flowTest";
 import {
   FlowTestAction,
   FlowTestEffect,
   FlowTestExecution,
+  FlowTestMock,
   FlowTestResponse,
   FlowTestStep,
 } from "@/lib/types/wire.gen";
@@ -21,12 +24,16 @@ import { MessageComponentSelectMenu } from "@/lib/message/schema";
 import { ShowBlockButton } from "./FlowLogList";
 import FlowTestModalForm from "./FlowTestModalForm";
 import FlowTestSelectDialog from "./FlowTestSelectDialog";
+import { MockTarget } from "./FlowTestMockDialog";
+import { Button } from "../ui/button";
 
 type Actions = {
   // What the user does in the result, like clicking a button the flow sent,
   // runs the test again with it.
   onAction(action: FlowTestAction): void;
   onShowNode(id: string): void;
+  onEditMock(target: MockTarget): void;
+  mocks: Record<string, FlowTestMock>;
   pending: boolean;
 };
 
@@ -37,14 +44,16 @@ export default memo(function FlowTestResult({
   result,
   onAction,
   onShowNode,
+  onEditMock,
+  mocks,
   pending,
 }: { result: FlowTestResponse } & Actions) {
   const [selectMenu, setSelectMenu] =
     useState<MessageComponentSelectMenu | null>(null);
 
   const actions = useMemo(
-    () => ({ onAction, onShowNode, pending }),
-    [onAction, onShowNode, pending]
+    () => ({ onAction, onShowNode, onEditMock, mocks, pending }),
+    [onAction, onShowNode, onEditMock, mocks, pending]
   );
   const componentActions = useMemo(
     () => ({
@@ -146,7 +155,7 @@ function Step({
   isLast: boolean;
   inFlow: boolean;
 }) {
-  const { onShowNode } = useActions();
+  const { onShowNode, onEditMock, mocks } = useActions();
   const node = useStore((s) =>
     inFlow ? s.nodeLookup.get(step.node_id) : undefined
   );
@@ -178,8 +187,25 @@ function Step({
       )}
 
       {step.notes?.map((note, i) => (
-        <Note key={i} text={note} />
+        <Note key={i} text={flowTestNoteText(note)} />
       ))}
+
+      {node && (canSetTestResult(step) || mocks[step.node_id]) && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="self-start"
+          onClick={() =>
+            onEditMock({
+              nodeId: step.node_id,
+              nodeType: step.node_type,
+              title,
+            })
+          }
+        >
+          {mocks[step.node_id] ? "Change test result" : "Set test result"}
+        </Button>
+      )}
 
       {step.effects?.map((effect, i) => (
         <Effect key={i} effect={effect} isLast={isLast} />

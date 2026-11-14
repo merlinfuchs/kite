@@ -1,11 +1,22 @@
 import { itemVersionPathSegments } from "../api/queries";
 import { parsePreviewMessage } from "../message/documentConvert";
 import { Message } from "../message/schema";
-import { FlowData } from "../types/flow.gen";
+import {
+  FlowData,
+  TestNote,
+  TestNoteAICheckNotAsked,
+  TestNoteAIChoiceNotAsked,
+  TestNoteMocked,
+  TestNoteNotRun,
+  TestNoteSignatureNotChecked,
+  TestNoteWaitSkipped,
+} from "../types/flow.gen";
+import { getBlockDefinition } from "../blocks";
 import { ComponentData, ComponentTypeStringSelect } from "../types/message.gen";
 import {
   FlowTestEffect,
   FlowTestMessage,
+  FlowTestMock,
   FlowTestRequest,
   FlowTestResponse,
 } from "../types/wire.gen";
@@ -44,6 +55,10 @@ export type FlowTestState = {
   // channels.
   values: string[];
   valueIds: string;
+  // What blocks do instead of running, by the ID of the block.
+  mocks: Record<string, FlowTestMock>;
+  // Values of stored variables the test starts with.
+  variables: FlowTestVariableInput[];
   // The last test and its result. Clicks and submits run it again with the
   // same seed and one more action, see TestRandom in the service.
   last: { request: FlowTestRequest; result: FlowTestResponse } | null;
@@ -61,6 +76,8 @@ export const initialFlowTestState: FlowTestState = {
   webhookBody: "",
   values: [],
   valueIds: "",
+  mocks: {},
+  variables: [],
   last: null,
   error: null,
 };
@@ -79,7 +96,7 @@ export function newFlowTestSeed() {
 export function flowTestNodeStatus(
   result: FlowTestResponse | undefined
 ): Record<string, TestNodeStatus> {
-  const rank = { ok: 0, warning: 1, error: 2 };
+  const rank = { ok: 0, skipped: 1, warning: 2, error: 3 };
   const res: Record<string, TestNodeStatus> = {};
   for (const execution of result?.executions ?? []) {
     if (execution.other_flow) continue;
@@ -88,6 +105,8 @@ export function flowTestNodeStatus(
         ? "error"
         : step.effects?.some((e) => e.warnings?.length)
         ? "warning"
+        : step.notes?.some((n) => n.code === TestNoteNotRun)
+        ? "skipped"
         : "ok";
       const current = res[step.node_id];
       if (!current || rank[status] > rank[current]) {
@@ -135,6 +154,69 @@ export function flowTestInputs(eventType: string) {
     // Scheduled and webhook runs have no user, server or channel.
     place: eventType !== "webhook" && eventType !== "schedule_cron",
   };
+}
+
+export type FlowTestVariableInput = {
+  variableId: string;
+  scope: string;
+  // Like on the page of the variable: string, number, bool or json.
+  type: string;
+  // Empty for no value.
+  value: string;
+};
+
+// The result of a block's test result as entered. Blocks that return text,
+// like Ask AI, get the text. Others, like Get Roblox User, return more and
+// take JSON.
+export function mockTestResult(nodeType: string, text: string): unknown {
+  return blockReturnsText(nodeType) ? text : jsonOrText(text);
+}
+
+export function blockReturnsText(nodeType: string) {
+  return !!getBlockDefinition(nodeType)?.result?.schema?.safeParse("").success;
+}
+
+export function jsonOrText(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+// The notes of the service are written for MCP agents, which mock blocks.
+// The editor calls that setting a test result.
+const noteTexts: Record<string, string> = {
+  [TestNoteNotRun]:
+    "Didn't run. Tests don't send requests outside of Discord. Set a test result to test what comes after it.",
+  [TestNoteAIChoiceNotAsked]:
+    "AI isn't asked in tests, so no option was picked. Set a test result to pick one.",
+  [TestNoteAICheckNotAsked]:
+    "AI isn't asked in tests, so the answer was no. Set a test result to change it.",
+  [TestNoteSignatureNotChecked]:
+    "The signature isn't checked in tests, so the request counts as valid. Set a test result to test an invalid one.",
+  [TestNoteMocked]: "Used the test result you set.",
+  [TestNoteWaitSkipped]: "Tests don't wait, so the flow went on right away.",
+};
+
+// The notes of blocks that can be given a test result.
+const mockableNotes = new Set<string>([
+  TestNoteNotRun,
+  TestNoteAIChoiceNotAsked,
+  TestNoteAICheckNotAsked,
+  TestNoteSignatureNotChecked,
+  TestNoteMocked,
+]);
+
+export function flowTestNoteText(note: TestNote) {
+  return Object.hasOwn(noteTexts, note.code) ? noteTexts[note.code] : note.text;
+}
+
+// Whether a step can be given a test result: blocks that didn't run because
+// they call other services, asked AI or checked a webhook, and the ones that
+// have one.
+export function canSetTestResult(step: { notes?: TestNote[] }) {
+  return !!step.notes?.some((n) => mockableNotes.has(n.code));
 }
 
 export type FlowTestArgument = { name: string; type?: string };
@@ -197,6 +279,18 @@ export function buildFlowTestRequest(
     } else if (state.targetId.trim()) {
       req.options = { target: state.targetId.trim() };
     }
+  }
+
+  if (Object.keys(state.mocks).length) req.mocks = state.mocks;
+  const variables = state.variables.filter((v) => v.variableId);
+  if (variables.length) {
+    // The service reads the text like the page of the variable does, and
+    // rejects invalid values.
+    req.variables = variables.map((v) => ({
+      variable_id: v.variableId,
+      scope: v.scope.trim() || undefined,
+      ...(v.value.trim() ? { type: v.type, value: v.value } : { value: null }),
+    }));
   }
 
   if (inputs.message && state.content) {

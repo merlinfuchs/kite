@@ -4,6 +4,7 @@ import {
   CheckIcon,
   LinkIcon,
   LucideIcon,
+  MinusIcon,
   XIcon,
 } from "lucide-react";
 import { TestNodeStatus, useTestNodeStatus } from "@/lib/flow/context";
@@ -78,6 +79,11 @@ const testStatusMarkers: Record<
   { className: string; Icon: LucideIcon; title: string }
 > = {
   ok: { className: "bg-green-600", Icon: CheckIcon, title: "Ran in the test" },
+  skipped: {
+    className: "bg-zinc-500",
+    Icon: MinusIcon,
+    title: "Didn't run in the test, it calls a service other than Discord",
+  },
   warning: {
     className: "bg-amber-500",
     Icon: AlertTriangleIcon,

@@ -92,6 +92,9 @@ type FlowTestVariable struct {
 	Scope *string `json:"scope,omitempty"`
 	// The value, or null for no value.
 	Value json.RawMessage `json:"value,omitempty" tstype:"any"`
+	// Type makes value text that is read like on the page of the variable,
+	// like "number" for "5". An invalid value is an error.
+	Type VariableValueType `json:"type,omitempty"`
 }
 
 func (v FlowTestVariable) Validate() error {
@@ -151,7 +154,7 @@ type FlowTestStep struct {
 	Result    any              `json:"result,omitempty" tstype:"any"`
 	Error     string           `json:"error,omitempty"`
 	ErrorCode string           `json:"error_code,omitempty"`
-	Notes     []string         `json:"notes,omitempty"`
+	Notes     []flow.TestNote  `json:"notes,omitempty"`
 	Effects   []FlowTestEffect `json:"effects,omitempty"`
 }
 
