@@ -311,7 +311,13 @@ func TestThreadCreateEventData(t *testing.T) {
 		Type:    discord.GuildPublicThread,
 	}}
 	if !l.shouldHandleEvent(event, 0) {
-		t.Error("ignored thread create event")
+		t.Error("ignored thread create event when bot ID is unknown")
+	}
+	if !l.shouldHandleEvent(event, 99) {
+		t.Error("ignored thread create event from another user")
+	}
+	if l.shouldHandleEvent(event, 1) {
+		t.Error("handled thread create event created by the bot itself")
 	}
 
 	data := &EventData{event: event}
