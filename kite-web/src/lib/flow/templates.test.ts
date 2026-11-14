@@ -227,33 +227,42 @@ describe("marketplace", () => {
     }
   });
 
-  it("features two of Kite's templates and one of a user", () => {
+  it("features only templates made by users, one per creator", () => {
     const official = getTemplates();
-    const user = (id: string, installs: number): Template => ({
+    const user = (id: string, installs: number, creator = id): Template => ({
       ...official[0]!,
       id,
       installs,
       listed: true,
       author: {
         kind: "user",
-        discordId: id,
-        name: id,
-        username: id,
+        discordId: creator,
+        name: creator,
+        username: creator,
         avatarUrl: "",
       },
     });
-    const templates = [...official, user("tried", 5), user("new", 1)];
+    const templates = [
+      ...official,
+      user("a", 5),
+      user("b", 9),
+      user("c", 7),
+      user("c2", 8, "c"),
+      user("d", 6),
+      user("new", 1),
+    ];
 
     const featured = featuredTemplates(templates, 20000);
-    expect(featured.map((t) => t.author.kind)).toEqual([
-      "kite",
-      "user",
-      "kite",
-    ]);
-    expect(featured[1]!.id).toBe("tried");
+    expect(featured).toHaveLength(3);
+    expect(featured.every((t) => t.author.kind === "user")).toBe(true);
+    expect(featured.map((t) => t.id)).not.toContain("new");
+    const creators = featured.map((t) =>
+      t.author.kind === "user" ? t.author.discordId : ""
+    );
+    expect(new Set(creators).size).toBe(3);
     expect(featuredTemplates(templates, 20000)).toEqual(featured);
     const days = new Set(
-      [20000, 20001, 20002].map((day) =>
+      [20000, 20001, 20002, 20003].map((day) =>
         featuredTemplates(templates, day)
           .map((t) => t.id)
           .join()
@@ -261,11 +270,9 @@ describe("marketplace", () => {
     );
     expect(days.size).toBeGreaterThan(1);
 
-    // Only Kite's while no user's has enough installs.
-    expect(
-      featuredTemplates([...official, user("new", 1)], 20000).map(
-        (t) => t.author.kind
-      )
-    ).toEqual(["kite", "kite", "kite"]);
+    // Nothing is featured while no user's has enough installs.
+    expect(featuredTemplates([...official, user("new", 1)], 20000)).toEqual(
+      []
+    );
   });
 });
