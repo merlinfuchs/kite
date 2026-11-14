@@ -1,8 +1,8 @@
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import env from "@/lib/env/client";
-import { kiteTools, Tool } from "@/tools/registry";
+import { toolJsonLd } from "@/lib/seo";
+import { kiteTools } from "@/tools/registry";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
@@ -32,7 +32,7 @@ export default function ToolLayout({
     <HomeLayout
       title={title}
       description={description}
-      jsonLd={[...toolJsonLd(tool, title, description), ...(jsonLd ?? [])]}
+      jsonLd={[...toolJsonLd(title, tool.href, description), ...(jsonLd ?? [])]}
     >
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl py-10 md:py-14">
@@ -75,40 +75,4 @@ export default function ToolLayout({
       <HomeFooter />
     </HomeLayout>
   );
-}
-
-// Tells search engines that the page is a free tool, and where it sits.
-function toolJsonLd(tool: Tool, title: string, description: string) {
-  const url = env.NEXT_PUBLIC_SITE_URL + tool.href;
-  return [
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      name: title,
-      url,
-      description,
-      applicationCategory: "UtilitiesApplication",
-      operatingSystem: "Web",
-      isAccessibleForFree: true,
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-      publisher: {
-        "@type": "Organization",
-        name: "Kite",
-        url: env.NEXT_PUBLIC_SITE_URL,
-      },
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Tools",
-          item: env.NEXT_PUBLIC_SITE_URL + "/tools",
-        },
-        { "@type": "ListItem", position: 2, name: title, item: url },
-      ],
-    },
-  ];
 }

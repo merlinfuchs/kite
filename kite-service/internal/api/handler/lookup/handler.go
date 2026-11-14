@@ -1,15 +1,20 @@
 package lookup
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"golang.org/x/sync/singleflight"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -22,9 +27,13 @@ var snowflakeRegex = regexp.MustCompile(`^[0-9]{17,20}$`)
 type LookupHandler struct {
 	botToken string
 	baseURL  string
-	client   *http.Client
+	// The client waits for Discord's rate limits instead of running into them,
+	// because the bot also hands out roles and sends Kite's notifications.
+	client *api.Client
 	// Users by ID, nil for IDs that aren't a user.
 	cache *ristretto.Cache
+	// Lookups of the same user at the same time ask Discord once.
+	group singleflight.Group
 }
 
 func NewLookupHandler(botToken string) (*LookupHandler, error) {
@@ -37,10 +46,16 @@ func NewLookupHandler(botToken string) (*LookupHandler, error) {
 		return nil, fmt.Errorf("failed to create cache: %w", err)
 	}
 
+	client := api.NewClient("Bot " + botToken)
+	// Waiting for a rate limit to reset counts toward the timeout, so a busy
+	// bot answers with an error instead of keeping the request open.
+	client.Client.Timeout = 10 * time.Second
+	client.Client.Retries = 1
+
 	return &LookupHandler{
 		botToken: botToken,
-		baseURL:  "https://discord.com/api/v10",
-		client:   &http.Client{Timeout: 10 * time.Second},
+		baseURL:  strings.TrimSuffix(api.Endpoint, "/"),
+		client:   client,
 		cache:    cache,
 	}, nil
 }
@@ -85,32 +100,38 @@ func (h *LookupHandler) HandleUserGet(c *handler.Context) (*wire.LookupUserGetRe
 		return user, nil
 	}
 
-	req, err := http.NewRequestWithContext(c.Context(), http.MethodGet, h.baseURL+"/users/"+userID, nil)
+	// Not tied to the request, so one caller leaving doesn't cancel the
+	// lookup for the others waiting on it.
+	v, err, _ := h.group.Do(userID, func() (any, error) {
+		return h.fetchUser(context.Background(), userID)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bot "+h.botToken)
-
-	resp, err := h.client.Do(req)
-	if err != nil {
+		var httpErr *httputil.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status {
+			case http.StatusNotFound:
+				return nil, errUnknownUser
+			case http.StatusTooManyRequests:
+				return nil, errTooManyLookups
+			}
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, errTooManyLookups
+		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
-	defer resp.Body.Close()
+	return v.(*wire.LookupUserGetResponse), nil
+}
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-	case http.StatusNotFound:
-		h.cache.SetWithTTL(userID, (*wire.LookupUserGetResponse)(nil), 1, cacheDuration)
-		return nil, errUnknownUser
-	case http.StatusTooManyRequests:
-		return nil, handler.ErrRateLimit("Too many lookups right now. Please try again in a minute.")
-	default:
-		return nil, fmt.Errorf("failed to get user: discord returned status %d", resp.StatusCode)
-	}
-
+func (h *LookupHandler) fetchUser(ctx context.Context, userID string) (*wire.LookupUserGetResponse, error) {
 	var du discordUser
-	if err := json.NewDecoder(resp.Body).Decode(&du); err != nil {
-		return nil, fmt.Errorf("failed to decode user: %w", err)
+	err := h.client.WithContext(ctx).RequestJSON(&du, http.MethodGet, h.baseURL+"/users/"+userID)
+	if err != nil {
+		var httpErr *httputil.HTTPError
+		if errors.As(err, &httpErr) && httpErr.Status == http.StatusNotFound {
+			h.cache.SetWithTTL(userID, (*wire.LookupUserGetResponse)(nil), 1, cacheDuration)
+		}
+		return nil, err
 	}
 
 	user := &wire.LookupUserGetResponse{
@@ -139,5 +160,7 @@ func (h *LookupHandler) HandleUserGet(c *handler.Context) (*wire.LookupUserGetRe
 	h.cache.SetWithTTL(userID, user, 1, cacheDuration)
 	return user, nil
 }
+
+var errTooManyLookups = handler.ErrRateLimit("Too many lookups right now. Please try again in a minute.")
 
 var errUnknownUser = handler.ErrNotFound("unknown_user", "There is no Discord user with this ID.")

@@ -19,7 +19,7 @@ import userAvatar, {
 } from "@/tools/common/utils/discordCdn";
 import { flagNames, parseLookupId } from "@/tools/common/utils/lookup";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
-import { useQuery } from "@tanstack/react-query";
+import { LookupResult, useLookup } from "@/tools/common/hooks/useLookup";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
@@ -40,6 +40,15 @@ const userBadges: [number, string][] = [
   [1 << 22, "Active Developer"],
 ];
 
+async function fetchUser(
+  id: string
+): Promise<LookupResult<LookupUserGetResponse>> {
+  const res = await apiRequest<LookupUserGetResponse>(`/v1/lookup/users/${id}`);
+  return res.success
+    ? { success: true, data: res.data }
+    : { success: false, error: res.error.message };
+}
+
 function colorHex(color: number) {
   return "#" + color.toString(16).padStart(6, "0");
 }
@@ -47,14 +56,16 @@ function colorHex(color: number) {
 export default function UserLookup() {
   const router = useRouter();
   const { data: session } = useUserQuery();
-  const [userId, setUserId] = useState<string | null>(null);
   const [inputError, setInputError] = useState<string>();
 
-  const { data, isFetching } = useQuery({
-    queryKey: ["lookup-user", userId],
-    queryFn: () =>
-      apiRequest<LookupUserGetResponse>(`/v1/lookup/users/${userId}`),
-    enabled: !!userId,
+  const {
+    result,
+    loading,
+    lookup: lookupId,
+  } = useLookup({
+    name: "user",
+    fetch: fetchUser,
+    unreachable: "Couldn't reach Kite. Check your connection and try again.",
     staleTime: 10 * 60 * 1000,
   });
 
@@ -67,12 +78,12 @@ export default function UserLookup() {
       return;
     }
     setInputError(undefined);
-    setUserId(id);
+    lookupId(id);
   }
 
-  const user = data?.success ? data.data : null;
+  const user = result?.success ? result.data : null;
   const error =
-    inputError ?? (data && !data.success ? data.error.message : undefined);
+    inputError ?? (result && !result.success ? result.error : undefined);
 
   if (session && !session.success) {
     return (
@@ -97,7 +108,7 @@ export default function UserLookup() {
         id="user-id"
         label="User ID"
         placeholder="1083038298513887292"
-        loading={isFetching}
+        loading={loading}
         error={error}
         onLookup={lookup}
       />
@@ -144,11 +155,13 @@ function UserInfo({ user }: { user: LookupUserGetResponse }) {
       label: "Server tag",
       value: (
         <span className="inline-flex items-center gap-2">
-          <img
-            src={guildTagBadgeUrl(tag.guild_id, tag.badge)}
-            alt=""
-            className="w-4 h-4"
-          />
+          {tag.badge && (
+            <img
+              src={guildTagBadgeUrl(tag.guild_id, tag.badge)}
+              alt=""
+              className="w-4 h-4"
+            />
+          )}
           {tag.tag}
           <span className="text-muted-foreground">
             from server {tag.guild_id}

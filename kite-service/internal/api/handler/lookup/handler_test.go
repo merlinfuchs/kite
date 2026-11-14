@@ -32,6 +32,10 @@ func TestHandleUserGet(t *testing.T) {
 				"avatar_decoration_data": {"asset": "a_fed43ab12698df65902ba06727e20c0e", "sku_id": "1"},
 				"primary_guild": {"identity_guild_id": "613425648685547541", "identity_enabled": true, "tag": "DDEV", "badge": "abc"}
 			}`))
+		case "/users/99999999999999999":
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"message": "You are being rate limited.", "retry_after": 0.01, "global": false}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(`{"message": "Unknown User", "code": 10013}`))
@@ -69,6 +73,10 @@ func TestHandleUserGet(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, status)
 	assert.Equal(t, "unknown_user", resp.Error.Code)
 
+	status, resp = get("99999999999999999")
+	assert.Equal(t, http.StatusTooManyRequests, status)
+	assert.Equal(t, "rate_limit", resp.Error.Code)
+
 	status, resp = get("abc")
 	assert.Equal(t, http.StatusBadRequest, status)
 	assert.Equal(t, "invalid_user_id", resp.Error.Code)
@@ -77,5 +85,5 @@ func TestHandleUserGet(t *testing.T) {
 	h.cache.Wait()
 	get("80351110224678912")
 	get("123456789012345678")
-	assert.Equal(t, 2, discordCalls)
+	assert.Equal(t, 3, discordCalls)
 }

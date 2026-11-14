@@ -13,7 +13,8 @@ import userAvatar, {
   guildTagBadgeUrl,
 } from "@/tools/common/utils/discordCdn";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
-import { useQuery } from "@tanstack/react-query";
+import { useLookup } from "@/tools/common/hooks/useLookup";
+import { discordUnreachable, fetchDiscord } from "@/tools/common/utils/lookup";
 import { useState } from "react";
 
 interface InviteData {
@@ -50,12 +51,8 @@ interface InviteData {
   approximate_presence_count?: number;
 }
 
-type InviteResponse =
-  | { success: true; invite: InviteData }
-  | { success: false; error: string };
-
 const inviteRegex =
-  /^(?:https?:\/\/)?(?:www\.)?(?:(?:canary\.|ptb\.)?discord(?:app)?\.com\/invite|discord\.gg)\/([a-zA-Z0-9-]+)\/?$/;
+  /^(?:https?:\/\/)?(?:www\.)?(?:(?:canary\.|ptb\.)?discord(?:app)?\.com\/invite|discord\.gg)\/([a-zA-Z0-9-]+)\/?(?:[?#].*)?$/;
 
 // Finds the code in an invite link, or takes the code itself.
 function parseInviteCode(value: string) {
@@ -74,41 +71,26 @@ const featureBadges: [string, string][] = [
   ["DISCOVERABLE", "Discoverable"],
 ];
 
-async function fetchInvite(code: string): Promise<InviteResponse> {
-  const res = await fetch(
-    `https://discord.com/api/v10/invites/${encodeURIComponent(
+function fetchInvite(code: string) {
+  return fetchDiscord<InviteData>(
+    `/invites/${encodeURIComponent(
       code
-    )}?with_counts=true&with_expiration=true`
+    )}?with_counts=true&with_expiration=true`,
+    "This invite doesn't exist. It may have expired or been deleted."
   );
-  if (res.status === 404) {
-    return {
-      success: false,
-      error: "This invite doesn't exist. It may have expired or been deleted.",
-    };
-  }
-  if (res.status === 429) {
-    return {
-      success: false,
-      error: "Discord is limiting lookups right now. Try again in a minute.",
-    };
-  }
-  if (!res.ok) {
-    return {
-      success: false,
-      error: "Discord didn't answer. Try again in a moment.",
-    };
-  }
-  return { success: true, invite: await res.json() };
 }
 
 export default function InviteResolver() {
-  const [code, setCode] = useState<string | null>(null);
   const [inputError, setInputError] = useState<string>();
 
-  const { data, isFetching } = useQuery({
-    queryKey: ["lookup-invite", code],
-    queryFn: () => fetchInvite(code!),
-    enabled: !!code,
+  const {
+    result,
+    loading,
+    lookup: lookupCode,
+  } = useLookup({
+    name: "invite",
+    fetch: fetchInvite,
+    unreachable: discordUnreachable,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -121,10 +103,11 @@ export default function InviteResolver() {
       return;
     }
     setInputError(undefined);
-    setCode(parsed);
+    lookupCode(parsed);
   }
 
-  const error = inputError ?? (data && !data.success ? data.error : undefined);
+  const error =
+    inputError ?? (result && !result.success ? result.error : undefined);
 
   return (
     <div className="space-y-6">
@@ -132,11 +115,11 @@ export default function InviteResolver() {
         id="invite"
         label="Invite link or code"
         placeholder="discord.gg/discord-developers"
-        loading={isFetching}
+        loading={loading}
         error={error}
         onLookup={lookup}
       />
-      {data?.success && !inputError && <InviteInfo invite={data.invite} />}
+      {result?.success && !inputError && <InviteInfo invite={result.data} />}
     </div>
   );
 }

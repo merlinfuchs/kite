@@ -7,9 +7,13 @@ import {
   LookupRows,
 } from "@/tools/common/components/LookupResult";
 import { appIconUrl } from "@/tools/common/utils/discordCdn";
-import { parseLookupId } from "@/tools/common/utils/lookup";
+import { useLookup } from "@/tools/common/hooks/useLookup";
+import {
+  discordUnreachable,
+  fetchDiscord,
+  parseLookupId,
+} from "@/tools/common/utils/lookup";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 interface ApplicationData {
@@ -32,10 +36,6 @@ interface ApplicationData {
   bot?: { id: string; username: string; discriminator: string };
 }
 
-type ApplicationResponse =
-  | { success: true; app: ApplicationData }
-  | { success: false; error: string };
-
 // Each privileged intent has a flag for verified apps and one for apps in
 // fewer than 100 servers, which don't need to be approved for it.
 const intents: [string, number, number][] = [
@@ -44,37 +44,24 @@ const intents: [string, number, number][] = [
   ["Message Content", 1 << 18, 1 << 19],
 ];
 
-async function fetchApplication(id: string): Promise<ApplicationResponse> {
-  const res = await fetch(`https://discord.com/api/v10/applications/${id}/rpc`);
-  if (res.status === 404) {
-    return {
-      success: false,
-      error: "There is no Discord app with this ID.",
-    };
-  }
-  if (res.status === 429) {
-    return {
-      success: false,
-      error: "Discord is limiting lookups right now. Try again in a minute.",
-    };
-  }
-  if (!res.ok) {
-    return {
-      success: false,
-      error: "Discord didn't answer. Try again in a moment.",
-    };
-  }
-  return { success: true, app: await res.json() };
+function fetchApplication(id: string) {
+  return fetchDiscord<ApplicationData>(
+    `/applications/${id}/rpc`,
+    "There is no Discord app with this ID."
+  );
 }
 
 export default function ApplicationLookup() {
-  const [appId, setAppId] = useState<string | null>(null);
   const [inputError, setInputError] = useState<string>();
 
-  const { data, isFetching } = useQuery({
-    queryKey: ["lookup-application", appId],
-    queryFn: () => fetchApplication(appId!),
-    enabled: !!appId,
+  const {
+    result,
+    loading,
+    lookup: lookupId,
+  } = useLookup({
+    name: "application",
+    fetch: fetchApplication,
+    unreachable: discordUnreachable,
     staleTime: 10 * 60 * 1000,
   });
 
@@ -87,10 +74,11 @@ export default function ApplicationLookup() {
       return;
     }
     setInputError(undefined);
-    setAppId(id);
+    lookupId(id);
   }
 
-  const error = inputError ?? (data && !data.success ? data.error : undefined);
+  const error =
+    inputError ?? (result && !result.success ? result.error : undefined);
 
   return (
     <div className="space-y-6">
@@ -98,11 +86,11 @@ export default function ApplicationLookup() {
         id="app-id"
         label="Application ID"
         placeholder="235148962103951360"
-        loading={isFetching}
+        loading={loading}
         error={error}
         onLookup={lookup}
       />
-      {data?.success && !inputError && <ApplicationInfo app={data.app} />}
+      {result?.success && !inputError && <ApplicationInfo app={result.data} />}
     </div>
   );
 }
@@ -115,9 +103,11 @@ function ApplicationInfo({ app }: { app: ApplicationData }) {
   if (app.is_discoverable) badges.push("In the App Directory");
   if (app.is_monetized) badges.push("Has premium");
 
+  // Without install settings, Discord needs the scopes in the link.
   const inviteUrl =
     app.custom_install_url ??
-    `https://discord.com/oauth2/authorize?client_id=${app.id}`;
+    `https://discord.com/oauth2/authorize?client_id=${app.id}` +
+      (app.install_params ? "" : "&scope=bot%20applications.commands");
 
   const rows: LookupRow[] = [
     { label: "Application ID", value: app.id, copy: app.id },
