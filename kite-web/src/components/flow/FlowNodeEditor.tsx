@@ -3428,7 +3428,12 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <FlowMessageViewDialog message={data.message_data} />
       ) : (
         <MessageEditorDialog
-          onClose={(v) => updateData({ message_data: v })}
+          onClose={(v, changed) => {
+            // Opening the editor and backing out must not count as an edit of
+            // the flow, otherwise the command shows unsaved changes.
+            if (!changed) return;
+            updateData({ message_data: v });
+          }}
           message={data.message_data || {}}
         >
           <Button className="w-full">Edit message</Button>
