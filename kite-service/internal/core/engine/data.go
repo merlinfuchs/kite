@@ -95,6 +95,8 @@ func (d *EventData) UserID() discord.UserID {
 		return data.UserID
 	case *guildevent.VoiceStateUpdate:
 		return data.UserID
+	case *gateway.ThreadCreateEvent:
+		return data.OwnerID
 	case *guildevent.MessageDelete:
 		// The author, if the bot saw the message.
 		if data.Message != nil {
@@ -136,6 +138,8 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *guildevent.VoiceStateUpdate:
 		return data.GuildID
+	case *gateway.ThreadCreateEvent:
+		return data.GuildID
 	}
 	return 0
 }
@@ -163,6 +167,8 @@ func (d *EventData) ChannelID() discord.ChannelID {
 			return data.OldChannelID
 		}
 		return data.ChannelID
+	case *gateway.ThreadCreateEvent:
+		return data.ID
 	}
 	return 0
 }

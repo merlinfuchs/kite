@@ -32,6 +32,7 @@ export const discordEntryEvent: BlockDefinition = {
           "guild_boost_remove",
           "guild_audit_log_entry_create",
           "voice_state_update",
+          "thread_create",
           "cron",
           "webhook",
         ])
