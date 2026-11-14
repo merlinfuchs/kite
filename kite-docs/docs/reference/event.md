@@ -12,7 +12,7 @@ With event listeners you can listen for events inside the Discord servers that y
 - Direct message received
 - Member Join
 - Member Leave
-- Member Update
+- Server member update
 - Reaction Add
 - Reaction Remove
 - Bot joined server
