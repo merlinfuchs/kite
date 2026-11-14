@@ -1093,11 +1093,15 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 		res.VoiceUserLimit = uint(userLimit.Int())
 	}
 
-	position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
-	if err != nil {
-		return res, err
+	if strings.TrimSpace(d.Position) != "" {
+		position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if strings.TrimSpace(position.String()) != "" {
+			res.Position = option.NewInt(int(position.Int()))
+		}
 	}
-	res.Position = option.NewInt(int(position.Int()))
 
 	if channelTypeSupportsRateLimitPerUser(res.Type) {
 		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)

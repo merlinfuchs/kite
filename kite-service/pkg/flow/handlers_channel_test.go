@@ -310,3 +310,49 @@ func TestChannelEditAppliedTags(t *testing.T) {
 		require.ErrorContains(t, err, "only forum and media posts have tags, channel "+channel+" isn't one")
 	}
 }
+
+func TestChannelEmptyPositionOmitted(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		position string
+		wantSet  bool
+		wantPos  int
+	}{
+		{name: "empty", position: "", wantSet: false},
+		{name: "blank template", position: "{{ ' ' }}", wantSet: false},
+		{name: "explicit zero", position: "0", wantSet: true, wantPos: 0},
+		{name: "explicit positive", position: "{{ 4 }}", wantSet: true, wantPos: 4},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := map[string]any{
+				"channel_target": "3",
+				"channel_data": map[string]any{
+					"name":     "general",
+					"position": tc.position,
+				},
+			}
+			raw, err := json.Marshal(data)
+			require.NoError(t, err)
+			dataJSON := string(raw)
+
+			p := &channelTestProvider{}
+			_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, dataJSON)
+			require.NoError(t, err)
+			if tc.wantSet {
+				require.NotNil(t, p.edit.Position)
+				assert.Equal(t, tc.wantPos, p.edit.Position.Val)
+			} else {
+				assert.Nil(t, p.edit.Position)
+			}
+
+			_, err = executeChannelBlock(t, p, FlowNodeTypeActionChannelCreate, dataJSON)
+			require.NoError(t, err)
+			if tc.wantSet {
+				require.NotNil(t, p.create.Position)
+				assert.Equal(t, tc.wantPos, *p.create.Position)
+			} else {
+				assert.Nil(t, p.create.Position)
+			}
+		})
+	}
+}
