@@ -102,7 +102,7 @@ func TestRunErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := Options{Code: tt.code, timeout: testTimeout}
-			if tt.want == errTimeout.Message {
+			if tt.want == blockLimits.errTimeout.Message {
 				opts.timeout = 0
 			}
 			start := time.Now()
@@ -215,7 +215,7 @@ func TestRunConcurrent(t *testing.T) {
 			}
 			res, err := Run(context.Background(), opts)
 			if i%5 == 0 {
-				if err != errTimeout {
+				if err != blockLimits.errTimeout {
 					errs <- fmt.Errorf("spin: %v", err)
 				}
 			} else if err != nil || string(res) != strconv.Itoa(i*2) {
@@ -401,10 +401,10 @@ func TestHostCallsDontUseTime(t *testing.T) {
 	_, err = runHost(t, `
 const spin = (ms) => { const end = Date.now() + ms; while (Date.now() < end) {} };
 for (let i = 0; i < 4; i++) { spin(30); await discord.echo(i) }`, func(o *Options) { o.timeout = 100 * time.Millisecond })
-	assert.Equal(t, errTimeout, err)
+	assert.Equal(t, blockLimits.errTimeout, err)
 
 	_, err = runHost(t, `await discord.sleep(1000)`, func(o *Options) { o.wallTime = 100 * time.Millisecond })
-	assert.Equal(t, errWallTime, err)
+	assert.Equal(t, blockLimits.errWallTime, err)
 }
 
 func TestUnawaitedHostCallsFinish(t *testing.T) {

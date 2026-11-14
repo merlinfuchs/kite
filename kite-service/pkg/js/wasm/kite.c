@@ -124,8 +124,9 @@ static JSValue js_call(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 }
 
 // The resolving functions of the calls Go hasn't answered yet, by ID. Go
-// starts at most MAX_CALLS, from 1. Matches MaxCalls in js.go.
-#define MAX_CALLS 20
+// starts at most MAX_CALLS, from 1. Matches MaxModuleCalls in js.go, the
+// higher of the limits of runs.
+#define MAX_CALLS 50
 static JSValue calls[MAX_CALLS + 1][2];
 
 // Starts a call, which Go answers with kite_resolve, and returns its promise.
@@ -261,6 +262,10 @@ int32_t kite_init(uint32_t memory_limit, uint32_t stack_size, const char *prelud
   JS_FreeValue(ctx, res);
   return 0;
 }
+
+// Sets the memory limit of the run, which kite_init set for the snapshot.
+EXPORT("kite_limit")
+void kite_limit(uint32_t memory_limit) { JS_SetMemoryLimit(rt, memory_limit); }
 
 EXPORT("kite_alloc")
 void *kite_alloc(uint32_t n) { return malloc(n); }
