@@ -129,16 +129,6 @@ func (s *APIServer) RegisterRoutes(
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
-	// Public, for the user lookup tool on the website
-	lookupHandler, err := lookup.NewLookupHandler(s.config.DiscordBotToken)
-	if err != nil {
-		panic(err)
-	}
-	v1Group.Get("/lookup/users/{userID}",
-		handler.Typed(lookupHandler.HandleUserGet),
-		handler.RateLimitByIP(20, time.Minute),
-	)
-
 	// Bundles are public, like the templates on the website. A token gets the
 	// user's own ones too, so the MCP server can add them.
 	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore, planManager)
@@ -201,6 +191,18 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(oauthHandler.HandleOAuthAuthorize),
 		sessionManager.RequireSession,
 		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// For the user lookup tool on the website. Discord doesn't allow showing
+	// the profiles to anyone, so it needs a login.
+	lookupHandler, err := lookup.NewLookupHandler(s.config.DiscordBotToken)
+	if err != nil {
+		panic(err)
+	}
+	lookupGroup := v1Group.Group("/lookup", sessionManager.RequireSession)
+	lookupGroup.Get("/users/{userID}",
+		handler.Typed(lookupHandler.HandleUserGet),
+		handler.RateLimitByUser(20, time.Minute),
 	)
 
 	// Share code routes

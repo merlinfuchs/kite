@@ -15,7 +15,7 @@ export default function ToolsPage() {
           <h1 className="text-4xl md:text-5xl font-bold">Free Discord tools</h1>
           <p className="text-xl text-muted-foreground mt-4 max-w-2xl mx-auto">
             Small tools for everyone who runs a Discord server or builds a bot.
-            None of them need an account.
+            Only the user lookup needs you to log in.
           </p>
         </div>
       </section>

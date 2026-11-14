@@ -1,4 +1,7 @@
-import { apiRequest } from "@/lib/api/client";
+import DiscordIcon from "@/components/icons/DiscordIcon";
+import { Button } from "@/components/ui/button";
+import { apiRequest, loginUrlTo } from "@/lib/api/client";
+import { useUserQuery } from "@/lib/api/queries";
 import { LookupUserGetResponse } from "@/lib/types/wire.gen";
 import LookupForm from "@/tools/common/components/LookupForm";
 import {
@@ -17,6 +20,7 @@ import userAvatar, {
 import { flagNames, parseLookupId } from "@/tools/common/utils/lookup";
 import { decodeSnowflake } from "@/tools/snowflake-decoder/snowflake";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/router";
 import { useState } from "react";
 
 // The badges Discord shows on profiles, from the public flags of the user.
@@ -41,6 +45,8 @@ function colorHex(color: number) {
 }
 
 export default function UserLookup() {
+  const router = useRouter();
+  const { data: session } = useUserQuery();
   const [userId, setUserId] = useState<string | null>(null);
   const [inputError, setInputError] = useState<string>();
 
@@ -67,6 +73,23 @@ export default function UserLookup() {
   const user = data?.success ? data.data : null;
   const error =
     inputError ?? (data && !data.success ? data.error.message : undefined);
+
+  if (session && !session.success) {
+    return (
+      <div className="flex flex-col items-center text-center gap-4 py-6">
+        <p className="text-muted-foreground max-w-md">
+          Log in with Discord to look up users. It&apos;s free and takes a few
+          seconds.
+        </p>
+        <Button asChild>
+          <a href={loginUrlTo(router.asPath)}>
+            <DiscordIcon className="w-5 h-5 mr-2" />
+            Log in with Discord
+          </a>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

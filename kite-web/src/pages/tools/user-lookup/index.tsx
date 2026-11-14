@@ -5,6 +5,11 @@ import UserLookup from "@/tools/user-lookup/components/UserLookup";
 
 const faqs = [
   {
+    question: "Why do I need to log in?",
+    answer:
+      "Discord doesn't allow showing user profiles to anyone without an account. Logging in with Discord is free and takes a few seconds.",
+  },
+  {
     question: "How do I get someone's user ID?",
     answer:
       "Turn on Developer Mode in User Settings under Advanced. Then right-click the user and click on Copy User ID.",
@@ -45,8 +50,9 @@ export default function UserLookupPage() {
           </p>
           <p>
             Kite asks Discord for the profile with its own bot, because Discord
-            only shows profiles to bots. Results are kept for 10 minutes, so a
-            new avatar can take that long to show up.
+            only shows profiles to bots. You need to log in with Discord to use
+            it. Results are kept for 10 minutes, so a new avatar can take that
+            long to show up.
           </p>
         </ToolArticle>
       }
