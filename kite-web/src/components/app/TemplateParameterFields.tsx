@@ -11,7 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import ChannelSelect from "../common/ChannelSelect";
+import ChannelSelect, {
+  channelAndCategoryTypes,
+} from "../common/ChannelSelect";
 import GuildSelect from "../common/GuildSelect";
 import RoleSelect from "../common/RoleSelect";
 
@@ -155,6 +157,7 @@ export function ParameterInput({
       return (
         <ChannelSelect
           guildId={guildId}
+          types={channelAndCategoryTypes}
           value={value || null}
           onChange={(id) => onChange(id ?? "")}
           emptyText={emptyText}

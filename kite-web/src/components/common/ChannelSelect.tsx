@@ -1,5 +1,6 @@
 import { useAppStateGuildChannels } from "@/lib/hooks/api";
 import {
+  FolderIcon,
   HashIcon,
   ImageIcon,
   MegaphoneIcon,
@@ -13,9 +14,14 @@ import EntitySelect from "./EntitySelect";
 // Text, voice, announcement, stage
 const sendableChannelTypes = [0, 2, 5, 13];
 
+// Sendable channels and categories, for parameters a template can use as
+// either, like the category tickets are created in.
+export const channelAndCategoryTypes = [...sendableChannelTypes, 4];
+
 const channelTypeIcons: Record<number, typeof HashIcon> = {
   0: HashIcon,
   2: Volume2Icon,
+  4: FolderIcon,
   5: MegaphoneIcon,
   13: RadioIcon,
   15: MessagesSquareIcon,
