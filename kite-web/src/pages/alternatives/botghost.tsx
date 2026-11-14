@@ -31,6 +31,10 @@ const content: ComparisonPageContent = {
     "You'd rather turn on modules than build commands",
     "You want YouTube, Twitch, or Reddit notifications and are fine paying for them",
   ],
+  importNote: {
+    text: "Already built commands in BotGhost? Kite can import some of your custom commands and custom events, so you don't have to build them all again.",
+    guide: "botghost-import",
+  },
   rows: [
     {
       feature: "Servers per bot (free)",
@@ -119,7 +123,15 @@ const content: ComparisonPageContent = {
     aiBuilderPoint,
     openSourcePoint,
   ],
-  faqs: [freeFaq, noCodeFaq],
+  faqs: [
+    freeFaq,
+    noCodeFaq,
+    {
+      question: "Can I move my BotGhost commands to Kite?",
+      answer:
+        "Some of them. Kite's import reads the custom commands and custom events of your BotGhost bot and adds them to your app, where you can change them like anything you built yourself. Custom variables, forms, loops, music, and tickets have to be rebuilt, and the import copies what your bot does, not the bot itself.",
+    },
+  ],
 };
 
 export default function BotGhostAlternativePage() {

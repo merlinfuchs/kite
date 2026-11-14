@@ -32,6 +32,7 @@ Features (feature | what it means for the user | free or paid):
 - Stored variables | keep points, counts, and settings per member or server, up to 64 KB per value | free
 - Marketplace templates | add a ready-made bot, like moderation or giveaways, then change it | free
 - Share and list your own templates | anyone with the link can add it, and listed ones show in the Marketplace | free
+- Import from BotGhost and inventor.bot | bring the custom commands and custom events of a BotGhost bot, or the slash commands of an inventor.bot bot, to Kite instead of building them again. One "Move to Kite" bookmark works for both. Not everything converts: for BotGhost, custom variables, forms, loops, music and tickets have to be rebuilt, and for inventor.bot only messages with text convert so far. Never say it moves a whole bot or everything | free
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free

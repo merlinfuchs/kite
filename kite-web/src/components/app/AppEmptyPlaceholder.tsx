@@ -54,3 +54,29 @@ export function AppEmptyTemplatesLink() {
     </>
   );
 }
+
+// For the pages of what BotGhost bots have too: commands and event listeners.
+export function AppEmptyImportLinks() {
+  const appId = useAppId();
+
+  return (
+    <>
+      <AppEmptyTemplatesLink /> Switching from another bot maker? Import your
+      commands from{" "}
+      <Link
+        href={{ pathname: "/apps/[appId]/import/botghost", query: { appId } }}
+        className="underline hover:text-foreground"
+      >
+        BotGhost
+      </Link>{" "}
+      or{" "}
+      <Link
+        href={{ pathname: "/apps/[appId]/import/inventor", query: { appId } }}
+        className="underline hover:text-foreground"
+      >
+        inventor.bot
+      </Link>
+      .
+    </>
+  );
+}

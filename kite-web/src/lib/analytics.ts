@@ -34,6 +34,10 @@ export type AnalyticsEvent =
   | "flow_save_failed"
   // Everything else in an app.
   | "event_listener_created"
+  // Commands and custom events of a BotGhost bot were read for importing.
+  | "botghost_import_read"
+  // Commands of an inventor.bot bot were read for importing.
+  | "inventor_import_read"
   | "message_created"
   | "message_saved"
   | "message_sent"

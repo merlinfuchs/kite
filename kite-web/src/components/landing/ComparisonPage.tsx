@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import env from "@/lib/env/client";
 import { faqJsonLd } from "@/lib/seo";
 import { CheckIcon } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,9 @@ export interface ComparisonPageContent {
   chooseKite: string[];
   chooseCompetitor: string[];
   rows: { feature: string; kite: string; competitor: string }[];
+  // Set when Kite can import some of what the competitor's bots have. The
+  // guide is the name of its page in the docs, under guides.
+  importNote?: { text: string; guide: string };
   reasons: { title: string; description: string }[];
   faqs: FAQProps[];
 }
@@ -58,6 +62,19 @@ export default function ComparisonPage({
           <Button className="mt-8 md:w-48" asChild>
             <Link href="/apps">Get started for free</Link>
           </Button>
+          {content.importNote && (
+            <p className="text-sm text-muted-foreground mt-4">
+              {content.importNote.text}{" "}
+              <a
+                href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/${content.importNote.guide}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline"
+              >
+                Learn how
+              </a>
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-14 max-w-4xl mx-auto">

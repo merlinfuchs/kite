@@ -151,7 +151,7 @@ function Checklist({ app }: { app: App }) {
             current={current}
             done={setup.has_flow}
             title="Give your bot something to do"
-            description="Start from a template, or build your own from blocks with the help of AI."
+            description="Start from a template, or build your own from blocks with the help of AI. Switching from BotGhost or inventor.bot? Import your commands."
           >
             <SetupTemplates
               onOpen={(t) => {
@@ -177,6 +177,26 @@ function Checklist({ app }: { app: App }) {
                 }}
               >
                 Browse all templates
+              </Link>
+            </Button>
+            <Button size="sm" variant="ghost" asChild>
+              <Link
+                href={{
+                  pathname: "/apps/[appId]/import/botghost",
+                  query: { appId: app.id },
+                }}
+              >
+                Import from BotGhost
+              </Link>
+            </Button>
+            <Button size="sm" variant="ghost" asChild>
+              <Link
+                href={{
+                  pathname: "/apps/[appId]/import/inventor",
+                  query: { appId: app.id },
+                }}
+              >
+                Import from inventor.bot
               </Link>
             </Button>
           </Step>
