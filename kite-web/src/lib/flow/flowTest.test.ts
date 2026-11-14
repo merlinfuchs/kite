@@ -8,7 +8,6 @@ import {
   flowTestNoteText,
   initialFlowTestState,
   mockTestResult,
-  variableTestValue,
 } from "./flowTest";
 
 describe("flowTestEffectMessage", () => {
@@ -57,7 +56,7 @@ describe("flowTestEffectTitle", () => {
       flowTestEffectTitle({ action: "respond", data: { type: "modal" } })
     ).toBe("Would show a modal");
     expect(flowTestEffectTitle({ action: "something_new" })).toBe(
-      "Would something new"
+      "Would make a change in Discord"
     );
   });
 });
@@ -84,6 +83,24 @@ describe("buildFlowTestRequest", () => {
     expect(req.options).toEqual({ amount: 5, text: "hi" });
     expect(req.flow_source).toBe(flow);
     expect(req.guild_id).toBe("g1");
+  });
+
+  it("rejects numbers Discord wouldn't send", () => {
+    const build = (value: string) =>
+      buildFlowTestRequest(
+        { ...initialFlowTestState, options: { a1: value } },
+        {
+          target: { type: "command", id: "c1" },
+          flow,
+          guildId: null,
+          eventType: "",
+          commandType: "chat_input",
+          args: { a1: { name: "amount", type: "integer" } },
+        }
+      );
+    expect(() => build("5.5")).toThrow("amount must be a whole number.");
+    expect(() => build("-")).toThrow();
+    expect(build("-3").options).toEqual({ amount: -3 });
   });
 
   it("sends a webhook without a channel", () => {
@@ -155,6 +172,13 @@ describe("flowTestNodeStatus", () => {
             },
           ],
         },
+        {
+          trigger: 'Click "Ping"',
+          other_flow: true,
+          steps: [
+            { node_id: "a", node_type: "action_message_create", error: "x" },
+          ],
+        },
       ],
     });
     expect(status).toEqual({ a: "warning", b: "error", c: "skipped" });
@@ -168,20 +192,37 @@ describe("flowTestNoteText", () => {
     expect(canSetTestResult({ notes: [note] })).toBe(true);
 
     const wait = { code: "wait_skipped", text: "Waited 5m0s" };
-    expect(flowTestNoteText(wait)).toBe("Waited 5m0s");
     expect(canSetTestResult({ notes: [wait] })).toBe(false);
+    const unknown = { code: "toString", text: "New note" };
+    expect(flowTestNoteText(unknown)).toBe("New note");
+    expect(canSetTestResult({ notes: [unknown] })).toBe(false);
   });
 });
 
 describe("test values", () => {
-  it("reads stored values by their type", () => {
-    const v = { variableId: "v", scope: "", value: "007" };
-    expect(variableTestValue({ ...v, type: "string" })).toBe("007");
-    expect(variableTestValue({ ...v, type: "number" })).toBe(7);
-    expect(
-      variableTestValue({ ...v, type: "json", value: '{"xp":3}' })
-    ).toEqual({ xp: 3 });
-    expect(variableTestValue({ ...v, type: "string", value: " " })).toBeNull();
+  it("sends stored values as text with their type", () => {
+    const req = buildFlowTestRequest(
+      {
+        ...initialFlowTestState,
+        variables: [
+          { variableId: "xp", scope: " 1_2 ", type: "number", value: "007" },
+          { variableId: "afk", scope: "", type: "string", value: " " },
+          { variableId: "", scope: "", type: "string", value: "x" },
+        ],
+      },
+      {
+        target: { type: "command", id: "c1" },
+        flow: { nodes: [], edges: [] },
+        guildId: null,
+        eventType: "",
+        commandType: "chat_input",
+        args: {},
+      }
+    );
+    expect(req.variables).toEqual([
+      { variable_id: "xp", scope: "1_2", type: "number", value: "007" },
+      { variable_id: "afk", scope: undefined, value: null },
+    ]);
   });
 
   it("keeps the text of blocks that return text", () => {

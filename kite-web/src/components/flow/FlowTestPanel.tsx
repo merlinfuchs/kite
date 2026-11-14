@@ -91,33 +91,41 @@ export default function FlowTestPanel({
   const guildId = state.guildId ?? guilds?.[0]?.id ?? null;
   const inputs = flowTestInputs(eventType);
 
-  const messageData =
-    target.type === "message" ? target.getMessage().data : null;
+  // The message can't change while its button's flow is open.
   const selectMenu = useMemo(
     () =>
       target.type === "message"
-        ? findTestSelectMenu(messageData, target.flowSourceId)
+        ? findTestSelectMenu(target.getMessage().data, target.flowSourceId)
         : null,
-    [target, messageData]
+    [target]
   );
 
-  function run() {
-    const req = buildFlowTestRequest(state, {
-      target,
-      flow: getFlowData(),
-      guildId,
-      eventType,
-      commandType,
-      args: Object.fromEntries(
-        args.map((a) => [
-          a.id,
-          { name: a.data.name ?? "", type: a.data.command_argument_type },
-        ])
-      ),
-    });
+  // The request of the form and the flow in the editor, or null if the form
+  // has an invalid value.
+  function build(test: FlowTestState) {
+    try {
+      return buildFlowTestRequest(test, {
+        target,
+        flow: getFlowData(),
+        guildId,
+        eventType,
+        commandType,
+        args: Object.fromEntries(
+          args.map((a) => [
+            a.id,
+            { name: a.data.name ?? "", type: a.data.command_argument_type },
+          ])
+        ),
+      });
+    } catch (err) {
+      set({ error: (err as Error).message });
+      return null;
+    }
+  }
 
-    req.seed = newFlowTestSeed();
-    send(req, true);
+  function run() {
+    const req = build(state);
+    if (req) send({ ...req, seed: newFlowTestSeed() }, true);
   }
 
   // Sends the test. When a click or submit fails, the result before it stays.
@@ -131,7 +139,12 @@ export default function FlowTestPanel({
         { path: flowTestPath(target), req },
         {
           onSuccess(res) {
-            if (res.success) {
+            const executions = res.success ? res.data.executions : [];
+            if (res.success && res.data.failed_action != null) {
+              // The action couldn't be done, like a click on a button the
+              // flow didn't send. Running it again would fail the same way.
+              failed(executions[executions.length - 1]?.error ?? "");
+            } else if (res.success) {
               set({ last: { request: req, result: res.data } });
             } else {
               failed(
@@ -150,23 +163,24 @@ export default function FlowTestPanel({
     [mutate, target, set]
   );
 
-  // A changed test result runs the last test again with it, with the same
-  // clicks.
-  const saveMock = useCallback(
-    (nodeId: string, mock: FlowTestMock | undefined) => {
-      const { mocks: current, last } = store.getState().test;
-      const mocks = { ...current };
-      if (mock) {
-        mocks[nodeId] = mock;
-      } else {
-        delete mocks[nodeId];
-      }
-      set({ mocks });
-      setMockTarget(null);
-      if (last) send({ ...last.request, mocks }, false);
-    },
-    [store, set, send]
-  );
+  // A changed test result runs the test again with it and the flow as it is
+  // now, with the same seed and clicks.
+  function saveMock(nodeId: string, mock: FlowTestMock | undefined) {
+    const mocks = { ...state.mocks };
+    if (mock) {
+      mocks[nodeId] = mock;
+    } else {
+      delete mocks[nodeId];
+    }
+    set({ mocks });
+    setMockTarget(null);
+
+    const last = state.last?.request;
+    const req = last && build({ ...state, mocks });
+    if (last && req) {
+      send({ ...req, seed: last.seed, then: last.then }, false);
+    }
+  }
 
   // Clicks, picks and submits run the last test again with them.
   const act = useCallback(

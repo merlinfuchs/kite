@@ -78,7 +78,7 @@ function MockForm({
     switch (kind) {
       case "http":
         return {
-          status_code: Number(statusCode) || 200,
+          status_code: Number(statusCode),
           body: jsonOrText(value),
         };
       case "text":
@@ -88,7 +88,13 @@ function MockForm({
     }
   }
 
-  const canSave = fails ? !!error.trim() : !!value.trim() || kind === "http";
+  // HTTP status codes are 100 to 599.
+  const validStatus = /^[1-5]\d\d$/.test(statusCode.trim());
+  const canSave = fails
+    ? !!error.trim()
+    : kind === "http"
+    ? validStatus
+    : !!value.trim();
 
   return (
     <>
@@ -154,6 +160,11 @@ function MockForm({
               value={statusCode}
               onChange={(e) => setStatusCode(e.target.value)}
             />
+            {!validStatus && (
+              <div className="text-xs text-destructive">
+                Enter a status code from 100 to 599, like 404.
+              </div>
+            )}
           </Field>
           <Field label="Body">
             <Textarea

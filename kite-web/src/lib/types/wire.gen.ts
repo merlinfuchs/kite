@@ -1337,6 +1337,11 @@ export interface FlowTestVariable {
    * The value, or null for no value.
    */
   value?: any;
+  /**
+   * Type makes value text that is read like on the page of the variable,
+   * like "number" for "5". An invalid value is an error.
+   */
+  type?: VariableValueType;
 }
 export interface FlowTestAction {
   /**
@@ -1364,6 +1369,11 @@ export interface FlowTestResponse {
    * Mocked blocks that never ran.
    */
   unused_mocks?: string[];
+  /**
+   * The index of the action in then that couldn't be done. Its error is
+   * the last execution.
+   */
+  failed_action?: number /* int */;
 }
 /**
  * FlowTestExecution is one run of the flow, like the command or a click on a
@@ -1378,6 +1388,12 @@ export interface FlowTestExecution {
    * The error that ended the run, if no Error Handler caught it.
    */
   error?: string;
+  /**
+   * Set for runs of a flow other than the tested one, like the flow of a
+   * button on a message template it sent. Their blocks aren't in the
+   * tested flow, even if they have the same IDs.
+   */
+  other_flow?: boolean;
 }
 /**
  * FlowTestStep is a block that ran.

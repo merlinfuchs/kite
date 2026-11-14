@@ -117,7 +117,12 @@ function Execution({
       )}
 
       {execution.steps.map((step, i) => (
-        <Step key={i} step={step} isLast={isLast} />
+        <Step
+          key={i}
+          step={step}
+          isLast={isLast}
+          inFlow={!execution.other_flow}
+        />
       ))}
 
       {execution.truncated && (
@@ -139,9 +144,21 @@ function Execution({
   );
 }
 
-function Step({ step, isLast }: { step: FlowTestStep; isLast: boolean }) {
+// inFlow is unset for steps of other flows, like the flow of a button on a
+// message template, whose blocks can have the IDs of blocks in this one.
+function Step({
+  step,
+  isLast,
+  inFlow,
+}: {
+  step: FlowTestStep;
+  isLast: boolean;
+  inFlow: boolean;
+}) {
   const { onShowNode, onEditMock, mocks } = useActions();
-  const node = useStore((s) => s.nodeLookup.get(step.node_id));
+  const node = useStore((s) =>
+    inFlow ? s.nodeLookup.get(step.node_id) : undefined
+  );
   const values = getNodeValues(step.node_type);
   const title = node
     ? getNodeTitle(node as { type?: string; data: NodeData })
@@ -160,7 +177,9 @@ function Step({ step, isLast }: { step: FlowTestStep; isLast: boolean }) {
           />
         </div>
         <div className="flex-auto text-sm font-medium truncate">{title}</div>
-        <ShowBlockButton nodeId={step.node_id} onShowNode={onShowNode} />
+        {node && (
+          <ShowBlockButton nodeId={step.node_id} onShowNode={onShowNode} />
+        )}
       </div>
 
       {step.error && (

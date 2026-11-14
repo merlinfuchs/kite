@@ -9,6 +9,7 @@ import {
   TestNoteMocked,
   TestNoteNotRun,
   TestNoteSignatureNotChecked,
+  TestNoteWaitSkipped,
 } from "../types/flow.gen";
 import { getBlockDefinition } from "../blocks";
 import { ComponentData, ComponentTypeStringSelect } from "../types/message.gen";
@@ -98,6 +99,7 @@ export function flowTestNodeStatus(
   const rank = { ok: 0, skipped: 1, warning: 2, error: 3 };
   const res: Record<string, TestNodeStatus> = {};
   for (const execution of result?.executions ?? []) {
+    if (execution.other_flow) continue;
     for (const step of execution.steps) {
       const status: TestNodeStatus = step.error
         ? "error"
@@ -163,22 +165,6 @@ export type FlowTestVariableInput = {
   value: string;
 };
 
-// The value of a stored variable a test starts with, null for no value.
-export function variableTestValue(v: FlowTestVariableInput): unknown {
-  const text = v.value.trim();
-  if (!text) return null;
-  switch (v.type) {
-    case "number":
-      return Number(text);
-    case "bool":
-      return text === "true";
-    case "json":
-      return jsonOrText(text);
-    default:
-      return v.value;
-  }
-}
-
 // The result of a block's test result as entered. Blocks that return text,
 // like Ask AI, get the text. Others, like Get Roblox User, return more and
 // take JSON.
@@ -210,17 +196,27 @@ const noteTexts: Record<string, string> = {
   [TestNoteSignatureNotChecked]:
     "The signature isn't checked in tests, so the request counts as valid. Set a test result to test an invalid one.",
   [TestNoteMocked]: "Used the test result you set.",
+  [TestNoteWaitSkipped]: "Tests don't wait, so the flow went on right away.",
 };
 
+// The notes of blocks that can be given a test result.
+const mockableNotes = new Set<string>([
+  TestNoteNotRun,
+  TestNoteAIChoiceNotAsked,
+  TestNoteAICheckNotAsked,
+  TestNoteSignatureNotChecked,
+  TestNoteMocked,
+]);
+
 export function flowTestNoteText(note: TestNote) {
-  return noteTexts[note.code] ?? note.text;
+  return Object.hasOwn(noteTexts, note.code) ? noteTexts[note.code] : note.text;
 }
 
 // Whether a step can be given a test result: blocks that didn't run because
 // they call other services, asked AI or checked a webhook, and the ones that
 // have one.
 export function canSetTestResult(step: { notes?: TestNote[] }) {
-  return !!step.notes?.some((n) => n.code in noteTexts);
+  return !!step.notes?.some((n) => mockableNotes.has(n.code));
 }
 
 export type FlowTestArgument = { name: string; type?: string };
@@ -277,7 +273,7 @@ export function buildFlowTestRequest(
       for (const [id, arg] of Object.entries(args)) {
         const value = state.options[id]?.trim();
         if (arg.name && value) {
-          req.options[arg.name] = optionValue(arg.type, value);
+          req.options[arg.name] = optionValue(arg, value);
         }
       }
     } else if (state.targetId.trim()) {
@@ -288,10 +284,12 @@ export function buildFlowTestRequest(
   if (Object.keys(state.mocks).length) req.mocks = state.mocks;
   const variables = state.variables.filter((v) => v.variableId);
   if (variables.length) {
+    // The service reads the text like the page of the variable does, and
+    // rejects invalid values.
     req.variables = variables.map((v) => ({
       variable_id: v.variableId,
       scope: v.scope.trim() || undefined,
-      value: variableTestValue(v),
+      ...(v.value.trim() ? { type: v.type, value: v.value } : { value: null }),
     }));
   }
 
@@ -306,10 +304,18 @@ export function buildFlowTestRequest(
   return req;
 }
 
-function optionValue(type: string | undefined, value: string): unknown {
-  switch (type) {
+// Throws for numbers Discord wouldn't send.
+function optionValue(arg: FlowTestArgument, value: string): unknown {
+  switch (arg.type) {
     case "integer":
+      if (!/^-?\d+$/.test(value)) {
+        throw new Error(`${arg.name} must be a whole number.`);
+      }
+      return Number(value);
     case "number":
+      if (!Number.isFinite(Number(value))) {
+        throw new Error(`${arg.name} must be a number.`);
+      }
       return Number(value);
     case "boolean":
       return value === "true";
@@ -361,9 +367,7 @@ export function flowTestEffectTitle(effect: FlowTestEffect) {
     const title = respondTitles[effect.data?.type];
     if (title) return title;
   }
-  return (
-    effectTitles[effect.action] ?? "Would " + effect.action.replaceAll("_", " ")
-  );
+  return effectTitles[effect.action] ?? "Would make a change in Discord";
 }
 
 // The message an effect would send or edit to, for the preview, or null if
