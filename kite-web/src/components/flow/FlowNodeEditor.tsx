@@ -477,7 +477,9 @@ export default function FlowNodeEditor({
     <div
       className={cn(
         "bg-background flex flex-col min-h-0 overflow-hidden",
-        className ?? "absolute top-0 left-0 w-96 h-full"
+        // Above the panel it covers, whose content can stack, like the
+        // avatars of message previews in test results.
+        className ?? "absolute top-0 left-0 w-96 h-full z-10"
       )}
     >
       <ScrollArea className="flex-1 min-h-0 w-full">

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { MessageComponentSelectMenu } from "@/lib/message/schema";
+import { splitIds } from "@/lib/flow/flowTest";
+import { ComponentTypeStringSelect } from "@/lib/types/message.gen";
+import { FlowTestCheckboxList } from "./FlowTestField";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
 import {
   Dialog,
@@ -49,13 +51,8 @@ function SelectForm({
   const [values, setValues] = useState<string[]>([]);
   const [ids, setIds] = useState("");
 
-  const hasOptions = selectMenu.type === 3;
-  const picked = hasOptions
-    ? values
-    : ids
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
+  const hasOptions = selectMenu.type === ComponentTypeStringSelect;
+  const picked = hasOptions ? values : splitIds(ids);
 
   return (
     <>
@@ -71,21 +68,14 @@ function SelectForm({
       </DialogHeader>
 
       {hasOptions ? (
-        <div className="flex flex-col gap-2">
-          {selectMenu.options.map((o) => (
-            <label key={o.id} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={values.includes(o.value)}
-                onCheckedChange={(checked) =>
-                  setValues((v) =>
-                    checked ? [...v, o.value] : v.filter((x) => x !== o.value)
-                  )
-                }
-              />
-              {o.label || o.value}
-            </label>
-          ))}
-        </div>
+        <FlowTestCheckboxList
+          options={selectMenu.options.map((o) => ({
+            label: o.label || o.value,
+            value: o.value,
+          }))}
+          value={values}
+          onChange={setValues}
+        />
       ) : (
         <Input value={ids} onChange={(e) => setIds(e.target.value)} />
       )}

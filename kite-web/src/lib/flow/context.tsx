@@ -11,6 +11,11 @@ import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { Message, Variable } from "../types/wire.gen";
 import { useMessages, useVariables } from "../hooks/api";
+import {
+  FlowTestState,
+  flowTestNodeStatus,
+  initialFlowTestState,
+} from "./flowTest";
 
 // Read-only previews, like the flows of a template, don't show the validation
 // markers on blocks. Their parameters are only filled in when the template is
@@ -94,9 +99,11 @@ export interface FlowContextStore {
   // the user keeps or undoes the changes.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
+  // The form and result of the test panel, kept while it's closed.
+  test: FlowTestState;
+  setTest(update: (test: FlowTestState) => FlowTestState): void;
   // How the blocks ran in the last test, shown on them until it's cleared.
   testNodeStatus: Record<string, TestNodeStatus>;
-  setTestNodeStatus(status: Record<string, TestNodeStatus>): void;
 }
 
 // A block that ran in a test failed, would likely be rejected by Discord, or
@@ -111,8 +118,17 @@ export const createFlowContextStore = () => {
       setType: (type) => set({ type }),
       aiChangedNodeIds: [],
       setAIChangedNodeIds: (ids) => set({ aiChangedNodeIds: ids }),
+      test: initialFlowTestState,
+      setTest: (update) => {
+        const prev = get().test;
+        const test = update(prev);
+        set(
+          test.last?.result === prev.last?.result
+            ? { test }
+            : { test, testNodeStatus: flowTestNodeStatus(test.last?.result) }
+        );
+      },
       testNodeStatus: {},
-      setTestNodeStatus: (status) => set({ testNodeStatus: status }),
     }))
   );
 };

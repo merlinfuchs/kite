@@ -6,15 +6,12 @@ import {
   DrawerDescription,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { FlowTestState, FlowTestTarget } from "@/lib/flow/flowTest";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 import { XIcon } from "lucide-react";
-import { Dispatch, SetStateAction } from "react";
 import FlowTestPanel from "./FlowTestPanel";
 
 interface Props {
   target: FlowTestTarget;
-  state: FlowTestState;
-  onStateChange: Dispatch<SetStateAction<FlowTestState>>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onShowNode: (id: string) => void;
@@ -22,8 +19,6 @@ interface Props {
 
 export default function FlowTestDrawer({
   target,
-  state,
-  onStateChange,
   open,
   onOpenChange,
   onShowNode,
@@ -51,13 +46,7 @@ export default function FlowTestDrawer({
           </DrawerClose>
         </div>
         <div className="flex-1 min-h-0 overflow-hidden">
-          <FlowTestPanel
-            target={target}
-            state={state}
-            onStateChange={onStateChange}
-            hideHeader
-            onShowNode={onShowNode}
-          />
+          <FlowTestPanel target={target} hideHeader onShowNode={onShowNode} />
         </div>
       </DrawerContent>
     </Drawer>

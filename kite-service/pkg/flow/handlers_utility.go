@@ -75,27 +75,32 @@ func randomNumber(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 	return thing.NewInt(ctx.randIntN(maxInt-minInt) + minInt), nil
 }
 
-// randIntN and randShuffle use the random of the test in test runs, see
-// TestRandom.
+// testRandom is the random of the test in test runs, see TestRandom.
+func (ctx *FlowContext) testRandom() *TestRandom {
+	if ctx.Test == nil {
+		return nil
+	}
+	return ctx.Test.random
+}
+
 func (ctx *FlowContext) randIntN(n int) int {
-	if ctx.Test != nil && ctx.Test.Random != nil {
-		return ctx.Test.Random.IntN(n)
+	if r := ctx.testRandom(); r != nil {
+		return r.IntN(n)
 	}
 	return rand.IntN(n)
 }
 
-func (ctx *FlowContext) randShuffle(n int, swap func(i, j int)) {
-	if ctx.Test != nil && ctx.Test.Random != nil {
-		ctx.Test.Random.Shuffle(n, swap)
-		return
+func (ctx *FlowContext) randFloat64() float64 {
+	if r := ctx.testRandom(); r != nil {
+		return r.Float64()
 	}
-	rand.Shuffle(n, swap)
+	return rand.Float64()
 }
 
-// uniqueID returns the ID of a new resume point, see TestRandom.
+// uniqueID returns the ID of a new resume point.
 func (ctx *FlowContext) uniqueID() string {
-	if ctx.Test != nil && ctx.Test.Random != nil {
-		return ctx.Test.Random.ID()
+	if r := ctx.testRandom(); r != nil {
+		return r.ID()
 	}
 	return util.UniqueID()
 }
@@ -137,9 +142,10 @@ func randomItems(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 
 	// A copy, as the items can be the stored result of another block.
 	items := slices.Clone(listOrLines(value))
-	ctx.randShuffle(len(items), func(i, j int) {
+	for i := len(items) - 1; i > 0; i-- {
+		j := ctx.randIntN(i + 1)
 		items[i], items[j] = items[j], items[i]
-	})
+	}
 	return thing.NewArray(items[:min(count, len(items))]), nil
 }
 
@@ -327,9 +333,10 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		host.variables[v.Name] = v.VariableID
 	}
 	res, runErr := js.Run(ctx, js.Options{
-		Code:  data.Code,
-		Input: input,
-		Host:  host.lookup,
+		Code:   data.Code,
+		Input:  input,
+		Host:   host.lookup,
+		Random: ctx.randFloat64,
 		Log: func(level js.LogLevel, message string) {
 			if n := len(logs); n > 0 && logs[n-1].level == level {
 				logs[n-1].lines = append(logs[n-1].lines, message)

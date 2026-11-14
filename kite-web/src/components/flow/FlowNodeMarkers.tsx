@@ -1,6 +1,12 @@
 import { NodeData } from "@/lib/flow/dataSchema";
-import { AlertTriangleIcon, CheckIcon, LinkIcon, XIcon } from "lucide-react";
-import { useTestNodeStatus } from "@/lib/flow/context";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  LinkIcon,
+  LucideIcon,
+  XIcon,
+} from "lucide-react";
+import { TestNodeStatus, useTestNodeStatus } from "@/lib/flow/context";
 import { useMemo } from "react";
 import { useEdges } from "@xyflow/react";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -39,27 +45,16 @@ export default function FlowNodeMarkers({
   }, [dataSchema, data]);
 
   const testStatus = useTestNodeStatus(id);
+  const test = testStatus && testStatusMarkers[testStatus];
 
   return (
     <>
-      {testStatus && (
+      {test && (
         <div
-          className={`absolute -top-2 -left-2 h-5 w-5 rounded-full flex items-center justify-center text-white ${
-            testStatus === "error"
-              ? "bg-red-500"
-              : testStatus === "warning"
-              ? "bg-amber-500"
-              : "bg-green-600"
-          }`}
-          title={testNodeStatusTitles[testStatus]}
+          className={`absolute -top-2 -left-2 h-5 w-5 rounded-full flex items-center justify-center text-white ${test.className}`}
+          title={test.title}
         >
-          {testStatus === "error" ? (
-            <XIcon className="h-3 w-3" />
-          ) : testStatus === "warning" ? (
-            <AlertTriangleIcon className="h-3 w-3" />
-          ) : (
-            <CheckIcon className="h-3 w-3" />
-          )}
+          <test.Icon className="h-3 w-3" />
         </div>
       )}
       <div className="absolute -top-2 -right-2 flex space-x-1">
@@ -78,8 +73,15 @@ export default function FlowNodeMarkers({
   );
 }
 
-const testNodeStatusTitles = {
-  ok: "Ran in the test",
-  warning: "Ran in the test, Discord would likely reject what it does",
-  error: "Failed in the test",
+const testStatusMarkers: Record<
+  TestNodeStatus,
+  { className: string; Icon: LucideIcon; title: string }
+> = {
+  ok: { className: "bg-green-600", Icon: CheckIcon, title: "Ran in the test" },
+  warning: {
+    className: "bg-amber-500",
+    Icon: AlertTriangleIcon,
+    title: "Ran in the test, Discord would likely reject what it does",
+  },
+  error: { className: "bg-red-500", Icon: XIcon, title: "Failed in the test" },
 };

@@ -31,9 +31,9 @@ type TestRun struct {
 
 	mocks     map[string]TestMock
 	usedMocks map[string]bool
-	// Random is shared by the runs of a test, so running it again with the
-	// same seed picks the same.
-	Random    *TestRandom
+	// Shared by the runs of a test, so running it again with the same seed
+	// picks the same.
+	random    *TestRandom
 	steps     []TestStep
 	truncated bool
 	// The steps of the blocks that are running, innermost last. -1 for blocks
@@ -82,9 +82,10 @@ type TestEffect struct {
 	Warnings []string
 }
 
-func NewTestRun(mocks map[string]TestMock) *TestRun {
+func NewTestRun(mocks map[string]TestMock, random *TestRandom) *TestRun {
 	return &TestRun{
 		mocks:     mocks,
+		random:    random,
 		usedMocks: make(map[string]bool),
 	}
 }
@@ -373,10 +374,10 @@ func (t *TestRandom) IntN(n int) int {
 	return t.r.IntN(n)
 }
 
-func (t *TestRandom) Shuffle(n int, swap func(i, j int)) {
+func (t *TestRandom) Float64() float64 {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.r.Shuffle(n, swap)
+	return t.r.Float64()
 }
 
 // ID returns a new ID, counting up from 1.
