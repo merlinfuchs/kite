@@ -493,7 +493,7 @@
       ],
       "flow_only": true,
       "policy": {
-        "code": false,
+        "code": true,
         "target": "guild",
         "destructive": true,
         "reason": true
@@ -4533,7 +4533,7 @@
       "has_body": false,
       "flow_only": true,
       "policy": {
-        "code": false,
+        "code": true,
         "target": "guild",
         "destructive": true,
         "reason": true
@@ -5772,7 +5772,7 @@
       ],
       "flow_only": true,
       "policy": {
-        "code": false,
+        "code": true,
         "target": "guild",
         "destructive": true,
         "reason": true

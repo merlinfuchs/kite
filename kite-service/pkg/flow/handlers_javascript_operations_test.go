@@ -91,25 +91,6 @@ return msg.id`, p, 1000)
 	assert.Equal(t, 12, c.CreditsUsed())
 }
 
-func TestJavaScriptRunDestructiveCalls(t *testing.T) {
-	p := &operationsTestProvider{}
-	c, err := runJavaScriptOperations(t, `
-const errors = []
-for (let i = 0; i < 7; i++) {
-  try { await discord.deleteMessage({channel_id: "5", message_id: String(i + 1)}) } catch (e) { errors.push(e.message) }
-}
-// Other writes still work.
-await discord.createMessage({channel_id: "5", body: {content: "Done"}})
-return errors`, p, 1000)
-	require.NoError(t, err)
-	assert.JSONEq(t, `[
-  "discord.deleteMessage: the code can delete, remove or ban in Discord only 5 times per run",
-  "discord.deleteMessage: the code can delete, remove or ban in Discord only 5 times per run"
-]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
-	assert.Len(t, p.paths, 6)
-	assert.Equal(t, 16, c.CreditsUsed())
-}
-
 func TestJavaScriptRunOperationErrors(t *testing.T) {
 	tests := []struct {
 		name string
@@ -117,7 +98,6 @@ func TestJavaScriptRunOperationErrors(t *testing.T) {
 		want string
 	}{
 		{"interaction", `await discord.createFollowupMessage({body: {content: "hi"}})`, "Error: discord.createFollowupMessage isn't available"},
-		{"whole server", `await discord.pruneGuild({guild_id: "7"})`, "Error: discord.pruneGuild isn't available"},
 		{"body outside of body", `await discord.createMessage({channel_id: "5", content: "hi"})`, "Error: discord.createMessage: it has no parameter content"},
 		{"reason of a read", `await discord.getChannel({channel_id: "5", reason: "hi"})`, "Error: discord.getChannel: it has no parameter reason"},
 		{"reason not text", `await discord.deleteMessage({channel_id: "5", message_id: "6", reason: 1})`, "Error: discord.deleteMessage: the reason must be text"},

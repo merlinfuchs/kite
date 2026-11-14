@@ -105,6 +105,12 @@ declare const discord: {
     /** The JSON body of the request. */ body: { user_ids: string[] };
     /** The reason in the server's audit log. */ reason?: string;
   }): Promise<null>;
+  /** Bulk ban users from guild, POST /guilds/{guild_id}/bulk-ban. Costs 1 credit. */
+  bulkBanUsersFromGuild(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body: discord.BulkBanUsersRequest;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<discord.BulkBanUsersResponse>;
   /** Bulk delete messages, POST /channels/{channel_id}/messages/bulk-delete. Costs 1 credit. */
   bulkDeleteMessages(arg: {
     channel_id: string;
@@ -754,6 +760,11 @@ declare const discord: {
     channel_id: string;
     /** The reason in the server's audit log. */ reason?: string;
   }): Promise<null>;
+  /** Leave guild, DELETE /users/@me/guilds/{guild_id}. Costs 1 credit. */
+  leaveGuild(arg: {
+    guild_id: string;
+    /** The reason in the server's audit log. */ reason?: string;
+  }): Promise<null>;
   /** Leave lobby, DELETE /lobbies/{lobby_id}/members/@me. Costs 1 credit. */
   leaveLobby(arg: {
     lobby_id: string;
@@ -962,6 +973,12 @@ declare const discord: {
     guild_id: string;
     days?: number;
     include_roles?: string;
+  }): Promise<discord.GuildPruneResponse>;
+  /** Prune guild, POST /guilds/{guild_id}/prune. Costs 1 credit. */
+  pruneGuild(arg: {
+    guild_id: string;
+    /** The JSON body of the request. */ body?: discord.PruneGuildRequest;
+    /** The reason in the server's audit log. */ reason?: string;
   }): Promise<discord.GuildPruneResponse>;
   /** Put guilds onboarding, PUT /guilds/{guild_id}/onboarding. Costs 1 credit. */
   putGuildsOnboarding(arg: {
@@ -1666,6 +1683,14 @@ declare namespace discord {
     deaf?: boolean | null;
     access_token: string;
     flags?: number | null;
+  }
+  interface BulkBanUsersRequest {
+    user_ids: string[];
+    delete_message_seconds?: number | null;
+  }
+  interface BulkBanUsersResponse {
+    banned_users: string[];
+    failed_users: string[];
   }
   interface BulkLobbyMemberRequest {
     id: string;
@@ -3523,6 +3548,11 @@ declare namespace discord {
     refresh_token?: string | null;
     scopes?: string[] | null;
     expires_at_s?: number | null;
+  }
+  interface PruneGuildRequest {
+    days?: number | null;
+    compute_prune_count?: boolean | null;
+    include_roles?: string | string[] | null;
   }
   interface PurchaseNotificationResponse {
     type: discord.PurchaseType;

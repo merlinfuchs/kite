@@ -9,8 +9,6 @@ const maxCodeLength = 4000;
 export const javascriptMaxInputs = 20;
 // MaxJavaScriptVariables in kite-service/pkg/flow/data.go.
 export const javascriptMaxVariables = 10;
-// maxJavaScriptDestructiveCalls in kite-service/pkg/flow/handlers_utility.go.
-const javascriptMaxDestructiveCalls = 5;
 
 // parameterKeyPattern, which blocks can't import as parameters.ts imports
 // them, and ParameterKeyPattern in kite-service/pkg/flow/params.go.
@@ -42,7 +40,7 @@ export const javascriptRun: BlockDefinition = {
                 "Placeholders don't work in code. Add an input and read it as input.name instead.",
             })
             .describe(
-              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can call Discord with the endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, the JSON body under body and the audit log reason under reason, like await discord.getChannel({channel_id: input.channel}) or await discord.createMessage({channel_id: input.channel, body: {content: "Hi"}}), which return Discord's JSON. Endpoints of the interaction, like replying to it, and bulk bans, pruning and leaving a server aren't available. A failed request throws an Error with status, like 404, and Discord's error code as code. Also the endpoints of ER:LC and Cookie API, like erlc.getServer(). Reads from Discord are free, others cost 1 credit. Up to 20 calls per run, of which up to ${javascriptMaxDestructiveCalls} delete, remove or ban something in Discord. fetch(url, {method, headers, body}) sends a request to any URL for ${httpRequest.credits} credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
+              `JavaScript that runs as the body of an async function and returns the result, like: return input.items.length. Inputs are properties of input. Placeholders in the code aren't filled in, only {{secrets.NAME}} in requests. It can use await. It can call Discord with the endpoints of action_discord_api_request in camel case, with the path and query parameters in one object, the JSON body under body and the audit log reason under reason, like await discord.getChannel({channel_id: input.channel}) or await discord.createMessage({channel_id: input.channel, body: {content: "Hi"}}), which return Discord's JSON. Endpoints of the interaction, like replying to it, aren't available. A failed request throws an Error with status, like 404, and Discord's error code as code. Also the endpoints of ER:LC and Cookie API, like erlc.getServer(). Reads from Discord are free, others cost 1 credit. Up to 20 calls per run. fetch(url, {method, headers, body}) sends a request to any URL for ${httpRequest.credits} credits, with {{secrets.NAME}} in the URL, headers or body replaced by the app's secret, and a 4xx doesn't throw. It has no timers or Intl. formatDate(date, format, timeZone) formats a date with tokens like "dddd HH:mm" in a time zone like "Europe/Berlin". It can run for 25 ms and use 8 MB of memory. Up to ${maxCodeLength} characters.`
             ),
           inputs: z
             .array(

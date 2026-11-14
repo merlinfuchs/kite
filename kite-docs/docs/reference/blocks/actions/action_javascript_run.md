@@ -120,8 +120,6 @@ await discord.addGuildMemberRole({
 return msg.id;
 ```
 
-A run can delete, remove or ban something up to 5 times, like deleting messages, removing roles or kicking members. Calls past that fail, so a mistake in a loop can't empty a server. To delete many messages at once, use `discord.bulkDeleteMessages` with up to 100 IDs. Banning many members at once, pruning members and leaving a server aren't available in code. Use the [Ban member](./action_member_ban.md) and [Leave server](./action_server_leave.md) blocks instead.
-
 The code can't reply to the command or button the flow runs with. Return what to say, and reply with a [Create response message](./action_response_create.md) block after this one.
 
 Reading from Discord is free. Each change in Discord and each call of another integration costs [1 credit](../../credit-system.md#cost-breakdown). The integration has to be enabled in the app. Test runs show the changes instead of making them.
