@@ -8,6 +8,7 @@ import {
   MicIcon,
   MessageSquareDiffIcon,
   MessageSquareIcon,
+  MessageSquarePlusIcon,
   MessageSquareXIcon,
   ScrollTextIcon,
   ServerCrashIcon,
@@ -166,6 +167,14 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: MicIcon,
     category: "Voice",
     placeholders: ["voice", "user", "server", "channel"],
+  },
+  {
+    value: "thread_create",
+    label: "Thread create",
+    description: "A thread or forum post is created in a server",
+    icon: MessageSquarePlusIcon,
+    category: "Channels",
+    placeholders: ["user", "server", "channel"],
   },
   {
     value: "guild_create",

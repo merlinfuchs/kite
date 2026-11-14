@@ -55,6 +55,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&guildevent.BoostRemove{},
 		&gateway.GuildAuditLogEntryCreateEvent{},
 		&gateway.VoiceStateUpdateEvent{},
+		&gateway.ThreadCreateEvent{},
 	}
 
 	for _, e := range dispatched {
@@ -82,6 +83,7 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordGuildBoostRemove,
 		model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
 		model.EventListenerTypeDiscordVoiceStateUpdate,
+		model.EventListenerTypeDiscordThreadCreate,
 	}
 
 	for _, tp := range types {
@@ -110,5 +112,11 @@ func TestAuditLogEventMatchesListenerType(t *testing.T) {
 func TestVoiceStateUpdateMatchesListenerType(t *testing.T) {
 	if got := model.EventTypeFromDiscordEventType((&gateway.VoiceStateUpdateEvent{}).EventType()); got != model.EventListenerTypeDiscordVoiceStateUpdate {
 		t.Errorf("voice state update maps to %q, want %q", got, model.EventListenerTypeDiscordVoiceStateUpdate)
+	}
+}
+
+func TestThreadCreateMatchesListenerType(t *testing.T) {
+	if got := model.EventTypeFromDiscordEventType((&gateway.ThreadCreateEvent{}).EventType()); got != model.EventListenerTypeDiscordThreadCreate {
+		t.Errorf("thread create maps to %q, want %q", got, model.EventListenerTypeDiscordThreadCreate)
 	}
 }

@@ -40,6 +40,7 @@ const (
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
 	EventListenerTypeDiscordVoiceStateUpdate         EventListenerType = "voice_state_update"
+	EventListenerTypeDiscordThreadCreate             EventListenerType = "thread_create"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

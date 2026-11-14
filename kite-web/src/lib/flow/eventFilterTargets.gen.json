@@ -86,6 +86,11 @@
       "message_has_attachment",
       "message_mentions_bot"
     ],
+    "thread_create": [
+      "user_id",
+      "guild_id",
+      "channel_id"
+    ],
     "voice_state_update": [
       "voice_state_action",
       "user_id",
