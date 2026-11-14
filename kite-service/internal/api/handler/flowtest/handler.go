@@ -51,14 +51,21 @@ func (h *FlowTestHandler) HandleEventListenerTest(c *handler.Context, req wire.F
 
 func (h *FlowTestHandler) HandleMessageTest(c *handler.Context, req wire.FlowTestRequest) (*wire.FlowTestResponse, error) {
 	if req.FlowSource != nil {
-		return nil, handler.ErrBadRequest("invalid_test", "Messages are tested as they are saved, without flow_source")
+		return nil, handler.ErrBadRequest("invalid_test", "Drafts of messages are passed as message, not flow_source")
 	}
 	if req.FlowSourceID == "" {
 		return nil, handler.ErrBadRequest("invalid_test", "flow_source_id of the button or select menu to test is required")
 	}
+	msg := c.Message
+	if req.Message != nil {
+		draft := *c.Message
+		draft.Data = req.Message.Data
+		draft.FlowSources = req.Message.FlowSources
+		msg = &draft
+	}
 	return h.run(c, req, testrun.Test{
 		Kind:         testrun.KindMessage,
-		Message:      c.Message,
+		Message:      msg,
 		FlowSourceID: req.FlowSourceID,
 	})
 }

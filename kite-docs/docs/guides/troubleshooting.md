@@ -12,6 +12,16 @@ When a block fails, Kite logs an error with the type of the block and the reason
 
 Logs are kept for 30 days.
 
+## Test a flow
+
+The `Test` tab on the left side of the flow editor runs the flow as if someone used it. It tests the flow as it is in the editor, so you don't have to save first. On a phone, it's under the `...` button.
+
+Fill in what the flow starts with, like the arguments of a command or the text of a message, and click `Run test`. You see every block that ran in order, with its result or error. You also see what the bot would have done, like the messages it would have sent, with a warning when Discord would reject it. That happens when the bot is missing a permission, or when a role is above the bot's highest role.
+
+Nothing is sent or changed, and tests don't cost credits. Changes to stored variables only last for the test. The bot still reads your server for real, so a wrong channel or role ID shows up as an error. Blocks that call services other than Discord, like `Send API Request` and the AI blocks, don't run in a test and have no result. `Wait` blocks are skipped.
+
+Your app has to be online to run a test.
+
 ## My bot is offline
 
 Open the dashboard of your app. If the app was stopped, a popup tells you why.

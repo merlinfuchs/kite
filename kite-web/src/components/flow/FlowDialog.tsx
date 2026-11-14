@@ -15,18 +15,21 @@ import {
   FlowParametersProvider,
   useGetFlowData,
 } from "@/lib/flow/parametersStore";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
 
 function InnerFlowDialog({
   flowData,
   logFilter,
   context,
   viewportKey,
+  testTarget,
   onChange,
 }: {
   flowData: FlowData;
   logFilter: FlowLogEntriesFilter;
   context: FlowContextType;
   viewportKey?: string;
+  testTarget?: FlowTestTarget;
   onChange: (d: FlowData) => void;
 }) {
   const getFlowData = useGetFlowData();
@@ -44,6 +47,7 @@ function InnerFlowDialog({
       context={context}
       viewportKey={viewportKey}
       onChange={handleChange}
+      testTarget={testTarget}
     />
   );
 }
@@ -55,12 +59,14 @@ export default function FlowDialog({
   logFilter,
   context,
   viewportKey,
+  testTarget,
 }: {
   flowData: FlowData;
   logFilter: FlowLogEntriesFilter;
   onClose: (data: FlowData) => void;
   context: FlowContextType;
   viewportKey?: string;
+  testTarget?: FlowTestTarget;
   children: React.ReactNode;
 }) {
   const dataRef = useRef(flowData);
@@ -94,6 +100,7 @@ export default function FlowDialog({
               logFilter={logFilter}
               context={context}
               viewportKey={viewportKey}
+              testTarget={testTarget}
               onChange={onChange}
             />
           </FlowParametersProvider>
