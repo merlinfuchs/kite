@@ -46,7 +46,7 @@ func newEngine(ctx context.Context) (*engine, error) {
 	// new Array(2**28).join() runs on until wazero closes the module. It also
 	// lets the Go GC stop the goroutine.
 	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigCompiler().
-		WithMemoryLimitPages(maxPages).
+		WithMemoryLimitPages(moduleMaxPages).
 		WithCloseOnContextDone(true))
 
 	if err := instantiateHost(ctx, rt); err != nil {
@@ -86,48 +86,66 @@ func newEngine(ctx context.Context) (*engine, error) {
 
 	// Copying the memory is a full snapshot because the only mutable global
 	// is the stack pointer, which is back at its start between calls.
-	mem, _ := mod.Memory().Read(0, mod.Memory().Size())
-	e.snapshot = append([]byte(nil), mem...)
+	e.snapshot = inst.snapshot()
 	return e, nil
 }
 
-func (e *engine) newInstance(ctx context.Context) (*instance, error) {
+// newInstance starts an instance from snapshot, or from the snapshot of the
+// engine if it's nil.
+func (e *engine) newInstance(ctx context.Context, l *limits, snapshot []byte) (*instance, error) {
+	if snapshot == nil {
+		snapshot = e.snapshot
+	}
 	// The memory starts with the capacity of the snapshot, so growing it to
 	// the snapshot's size doesn't copy it. Without that a run took 3 times as
 	// long on Linux, see design/javascript.md.
-	allocCtx := experimental.WithMemoryAllocator(ctx, snapshotAllocator{capacity: uint64(len(e.snapshot))})
+	allocCtx := experimental.WithMemoryAllocator(ctx, snapshotAllocator{
+		capacity: uint64(len(snapshot)),
+		max:      uint64(l.pages) * 65536,
+	})
 	mod, err := e.rt.InstantiateModule(allocCtx, e.compiled, wazero.NewModuleConfig().WithName("").WithStartFunctions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate QuickJS: %w", err)
 	}
 	mem := mod.Memory()
-	if pages := uint32(len(e.snapshot)) / 65536; pages > mem.Size()/65536 {
+	if pages := uint32(len(snapshot)) / 65536; pages > mem.Size()/65536 {
 		if _, ok := mem.Grow(pages - mem.Size()/65536); !ok {
 			mod.Close(ctx)
 			return nil, errors.New("failed to grow memory")
 		}
 	}
-	mem.Write(0, e.snapshot)
+	mem.Write(0, snapshot)
+	if _, err := mod.ExportedFunction("kite_limit").Call(ctx, uint64(l.memory)); err != nil {
+		mod.Close(ctx)
+		return nil, err
+	}
 	return &instance{mod: mod, runFn: mod.ExportedFunction("kite_run"), resolveFn: mod.ExportedFunction("kite_resolve")}, nil
 }
 
 // snapshotAllocator allocates the memory of an instance with at least
-// capacity bytes of room.
+// capacity bytes of room, and lets it grow to max bytes, below the limit of
+// the runtime, which is the one of modules.
 type snapshotAllocator struct {
-	capacity uint64
+	capacity, max uint64
 }
 
 func (a snapshotAllocator) Allocate(capacity, maxBytes uint64) experimental.LinearMemory {
-	return &sliceMemory{buf: make([]byte, 0, min(maxBytes, max(capacity, a.capacity)))}
+	maxBytes = min(maxBytes, a.max)
+	return &sliceMemory{buf: make([]byte, 0, min(maxBytes, max(capacity, a.capacity))), max: maxBytes}
 }
 
 // sliceMemory is the memory of an instance, like wazero's own but with the
-// capacity of the allocator.
+// capacity and limit of the allocator.
 type sliceMemory struct {
 	buf []byte
+	max uint64
 }
 
 func (m *sliceMemory) Reallocate(size uint64) []byte {
+	// Fails memory.grow, so malloc returns NULL.
+	if size > m.max {
+		return nil
+	}
 	if size > uint64(cap(m.buf)) {
 		m.buf = append(m.buf[:cap(m.buf)], make([]byte, size-uint64(cap(m.buf)))...)
 	}
@@ -145,6 +163,13 @@ type instance struct {
 }
 
 func (i *instance) close(ctx context.Context) { i.mod.Close(ctx) }
+
+// snapshot copies the memory of the instance, which is a full snapshot
+// between calls, see newEngine.
+func (i *instance) snapshot() []byte {
+	mem, _ := i.mod.Memory().Read(0, i.mod.Memory().Size())
+	return append([]byte(nil), mem...)
+}
 
 // write copies b into the instance with a null after it, which QuickJS needs
 // after code and JSON.
@@ -207,18 +232,19 @@ func (i *instance) resolve(ctx context.Context, r callResult, budget *time.Durat
 // and takes what it used from it. Only the time code runs counts, not the
 // time it waits for calls.
 func (i *instance) call(ctx context.Context, budget *time.Duration, fn api.Function, args ...uint64) (out []byte, status runStatus, err error) {
+	st := stateFrom(ctx)
 	if *budget <= 0 {
-		return nil, 0, errTimeout
+		return nil, 0, st.limits.errTimeout
 	}
 	start := time.Now()
-	stateFrom(ctx).deadline = start.Add(*budget)
+	st.deadline = start.Add(*budget)
 	runCtx, cancel := context.WithTimeout(ctx, *budget+killGrace)
 	defer cancel()
 	res, err := fn.Call(runCtx, args...)
 	*budget -= time.Since(start)
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
-			return nil, 0, errTimeout
+			return nil, 0, st.limits.errTimeout
 		}
 		return nil, 0, err
 	}
@@ -243,13 +269,19 @@ const (
 // runState is what the host functions of one run see, passed in the context
 // of the calls into the instance.
 type runState struct {
+	limits   *limits
 	deadline time.Time
 	log      func(level LogLevel, message string)
 	pending  []byte
 
 	// The calls the code can start, see Options.Host, and the context they
 	// run in.
-	host    func(name string) HostFunc
+	host func(name string) HostFunc
+	// loading is set while a module loads, when calls fail. loadErr is the
+	// error of the first call it tried, which fails the load even if the
+	// code caught it.
+	loading bool
+	loadErr error
 	hostCtx context.Context
 	// started counts the calls the code started, inflight those not done.
 	started  int
@@ -299,6 +331,15 @@ func errorJSON(err error) []byte {
 // start starts the call the code makes as name, like discord.createMessage,
 // in the background, and returns its ID for kite_resolve.
 func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
+	if st.loading {
+		// Like the error of the prelude, which catches calls the code makes
+		// before the top level returns, with their line.
+		err := &Error{Message: "Error: " + loadCallMessage(name)}
+		if st.loadErr == nil {
+			st.loadErr = err
+		}
+		return 0, err
+	}
 	var fn HostFunc
 	// Only the camel case names, discord.create_message is no other way to
 	// call discord.createMessage.
@@ -308,8 +349,8 @@ func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
 	if fn == nil {
 		return 0, fmt.Errorf("%s isn't available", name)
 	}
-	if st.started >= MaxCalls {
-		return 0, fmt.Errorf("the code made more than %d calls", MaxCalls)
+	if st.started >= st.limits.calls {
+		return 0, fmt.Errorf("the code made more than %d calls", st.limits.calls)
 	}
 	st.started++
 	st.inflight++
