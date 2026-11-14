@@ -342,9 +342,11 @@ function Rows({
     .slice(0, rowSize);
   const users = templates.filter((t) => t.author.kind !== "kite");
   // Official templates fill most added, so the community's have their own row.
+  // It can repeat one from most added, so a popular template of the community
+  // doesn't leave the row that's made for it.
   const popular = onePerCreator(
     sortTemplates(users, "installs").filter(
-      (t) => t.installs && !featured.includes(t) && !mostAdded.includes(t)
+      (t) => t.installs && !featured.includes(t)
     )
   ).slice(0, rowSize);
   const newest = onePerCreator(
