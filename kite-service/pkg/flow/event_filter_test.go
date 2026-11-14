@@ -220,6 +220,8 @@ func TestValidateEventFilters(t *testing.T) {
 		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
 		{"voice state update channel", "voice_state_update", filter(EventFilterTypeChannelID, ComparsionModeEqual, "1"), false},
 		{"voice state update message content", "voice_state_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
+		{"member update role", "guild_member_update", filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), false},
+		{"member update message content", "guild_member_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
 	}
 
 	for _, tt := range tests {

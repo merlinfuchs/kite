@@ -101,6 +101,16 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
 		},
 		{
+			name: "member update listener adds guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildMemberUpdate,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
+		},
+		{
 			name: "bot joined and left server listeners need guilds only",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
