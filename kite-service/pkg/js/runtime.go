@@ -232,19 +232,19 @@ func (i *instance) resolve(ctx context.Context, r callResult, budget *time.Durat
 // and takes what it used from it. Only the time code runs counts, not the
 // time it waits for calls.
 func (i *instance) call(ctx context.Context, budget *time.Duration, fn api.Function, args ...uint64) (out []byte, status runStatus, err error) {
-	errTimeout := stateFrom(ctx).limits.errTimeout
+	st := stateFrom(ctx)
 	if *budget <= 0 {
-		return nil, 0, errTimeout
+		return nil, 0, st.limits.errTimeout
 	}
 	start := time.Now()
-	stateFrom(ctx).deadline = start.Add(*budget)
+	st.deadline = start.Add(*budget)
 	runCtx, cancel := context.WithTimeout(ctx, *budget+killGrace)
 	defer cancel()
 	res, err := fn.Call(runCtx, args...)
 	*budget -= time.Since(start)
 	if err != nil {
 		if ctx.Err() == nil && runCtx.Err() != nil {
-			return nil, 0, errTimeout
+			return nil, 0, st.limits.errTimeout
 		}
 		return nil, 0, err
 	}
@@ -276,7 +276,12 @@ type runState struct {
 
 	// The calls the code can start, see Options.Host, and the context they
 	// run in.
-	host    func(name string) HostFunc
+	host func(name string) HostFunc
+	// loading is set while a module loads, when calls fail. loadErr is the
+	// error of the first call it tried, which fails the load even if the
+	// code caught it.
+	loading bool
+	loadErr error
 	hostCtx context.Context
 	// started counts the calls the code started, inflight those not done.
 	started  int
@@ -326,6 +331,15 @@ func errorJSON(err error) []byte {
 // start starts the call the code makes as name, like discord.createMessage,
 // in the background, and returns its ID for kite_resolve.
 func (st *runState) start(name string, arg json.RawMessage) (int32, error) {
+	if st.loading {
+		// Like the error of the prelude, which catches calls the code makes
+		// before the top level returns, with their line.
+		err := &Error{Message: "Error: " + loadCallMessage(name)}
+		if st.loadErr == nil {
+			st.loadErr = err
+		}
+		return 0, err
+	}
 	var fn HostFunc
 	// Only the camel case names, discord.create_message is no other way to
 	// call discord.createMessage.

@@ -53,6 +53,9 @@ const (
 	// happens once for each version of it. A module of MaxModuleLength takes
 	// about 170 ms to load on kite.onl's server.
 	ModuleLoadTimeout = 500 * time.Millisecond
+	// ModuleLoadMemoryLimit caps the memory of loading a module, which is
+	// what every run of it starts with.
+	ModuleLoadMemoryLimit = 16 << 20
 	// MaxManifestLength caps the JSON of what a module registers.
 	MaxManifestLength = 256 << 10
 )
@@ -62,10 +65,11 @@ const (
 	// interrupt handler didn't stop.
 	killGrace = 25 * time.Millisecond
 	// maxPages caps the Wasm memory in pages of 64 KiB, as a backstop for
-	// memory QuickJS doesn't count against MemoryLimit. moduleMaxPages does
-	// for ModuleMemoryLimit.
-	maxPages       = 256
-	moduleMaxPages = 768
+	// memory QuickJS doesn't count against MemoryLimit. moduleMaxPages and
+	// moduleLoadMaxPages do for ModuleMemoryLimit and ModuleLoadMemoryLimit.
+	maxPages           = 256
+	moduleMaxPages     = 768
+	moduleLoadMaxPages = 384
 	// stackSize is the QuickJS stack limit, below the 1 MiB Wasm stack.
 	stackSize = 256 << 10
 )
@@ -170,20 +174,22 @@ var (
 		resultLength: MaxResultLength,
 	})
 	moduleLimits = newLimits(limits{
-		timeout:      ModuleTimeout,
-		memory:       ModuleMemoryLimit,
-		pages:        moduleMaxPages,
-		calls:        MaxModuleCalls,
-		wallTime:     MaxModuleWallTime,
-		resultLength: MaxManifestLength,
+		timeout:  ModuleTimeout,
+		memory:   ModuleMemoryLimit,
+		pages:    moduleMaxPages,
+		calls:    MaxModuleCalls,
+		wallTime: MaxModuleWallTime,
+		// Handlers return nothing.
+		resultLength: MaxResultLength,
 	})
+	// The memory of a loaded module is copied into every run, so loading
+	// gets less.
 	moduleLoadLimits = newLimits(limits{
-		timeout:      ModuleLoadTimeout,
-		memory:       ModuleMemoryLimit,
-		pages:        moduleMaxPages,
-		calls:        MaxModuleCalls,
-		wallTime:     MaxModuleWallTime,
-		resultLength: MaxManifestLength,
+		timeout:  ModuleLoadTimeout,
+		memory:   ModuleLoadMemoryLimit,
+		pages:    moduleLoadMaxPages,
+		calls:    0,
+		wallTime: MaxModuleWallTime,
 	})
 )
 
@@ -237,50 +243,48 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 	if len(input) > MaxInputLength {
 		return nil, &Error{Message: fmt.Sprintf("the inputs are more than %d MB", MaxInputLength>>20)}
 	}
-	return runScript(ctx, script{
+	out, _, err := runScript(ctx, script{
 		limits:   blockLimits,
-		eval:     codeHead + opts.Code + codeTail,
-		head:     codeHead,
-		code:     opts.Code,
-		tail:     codeTail,
+		source:   codeHead + opts.Code + codeTail,
 		input:    input,
 		log:      opts.Log,
 		host:     opts.Host,
 		timeout:  opts.timeout,
 		wallTime: opts.wallTime,
 	})
+	return out, err
 }
 
 // script is code to run with its limits. kite_run evaluates eval to the
-// function it calls with input. The code of the user is between head and
-// tail, which errors point to.
+// function it calls with input, or source if eval is empty. source is the
+// code of the user in what Go wraps it in, which errors point to.
 type script struct {
-	limits           *limits
-	eval             string
-	head, code, tail string
-	input            []byte
+	limits       *limits
+	eval, source string
+	input        []byte
 	// snapshot is the memory the run starts from, nil for the snapshot of
 	// the engine.
 	snapshot []byte
-	// keep gets a snapshot of the instance once the code returned.
-	keep func(snapshot []byte)
+	// load is set when a module loads. Calls fail then, and runScript
+	// returns a snapshot of the instance once the code returned.
+	load bool
 	log  func(level LogLevel, message string)
 	host func(name string) HostFunc
 	// Replace the limits in tests, like in Options.
 	timeout, wallTime time.Duration
 }
 
-func runScript(ctx context.Context, s script) (json.RawMessage, error) {
+func runScript(ctx context.Context, s script) (out json.RawMessage, snapshot []byte, err error) {
 	l := s.limits
 	e, err := getEngine()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	select {
 	case liveRuns <- struct{}{}:
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	}
 	defer func() { <-liveRuns }()
 
@@ -303,7 +307,7 @@ func runScript(ctx context.Context, s script) (json.RawMessage, error) {
 	}
 	defer release()
 	if err := acquire(ctx); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	wallTime := l.wallTime
@@ -317,6 +321,7 @@ func runScript(ctx context.Context, s script) (json.RawMessage, error) {
 	st := &runState{
 		limits:  l,
 		host:    s.host,
+		loading: s.load,
 		hostCtx: hostCtx,
 		results: make(chan callResult, l.calls),
 		log: func(level LogLevel, message string) {
@@ -335,7 +340,7 @@ func runScript(ctx context.Context, s script) (json.RawMessage, error) {
 	stateCtx := withState(ctx, st)
 	inst, err := e.newInstance(stateCtx, l, s.snapshot)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer inst.close(context.Background())
 
@@ -343,7 +348,11 @@ func runScript(ctx context.Context, s script) (json.RawMessage, error) {
 	if s.timeout > 0 {
 		budget = s.timeout
 	}
-	out, status, err := inst.run(stateCtx, []byte(s.eval), s.input, &budget)
+	eval := s.eval
+	if eval == "" {
+		eval = s.source
+	}
+	out, status, err := inst.run(stateCtx, []byte(eval), s.input, &budget)
 	for err == nil && status == runPending && st.inflight > 0 {
 		release()
 		select {
@@ -379,30 +388,33 @@ func runScript(ctx context.Context, s script) (json.RawMessage, error) {
 
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, nil, ctx.Err()
 		}
 		if err == l.errTimeout || err == l.errWallTime {
-			return nil, err
+			return nil, nil, err
 		}
-		return nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
+		return nil, nil, fmt.Errorf("the code stopped unexpectedly: %w", err)
 	}
 	switch status {
 	case runError:
-		return nil, s.error(string(out))
+		return nil, nil, s.error(string(out))
 	case runPending:
 		// No timers or host calls can settle it yet.
-		return nil, errPending
+		return nil, nil, errPending
 	case runResult:
 	default:
-		return nil, fmt.Errorf("the code stopped unexpectedly: status %d", status)
+		return nil, nil, fmt.Errorf("the code stopped unexpectedly: status %d", status)
+	}
+	if s.load {
+		if st.loadErr != nil {
+			return nil, nil, st.loadErr
+		}
+		return out, inst.snapshot(), nil
 	}
 	if len(out) > l.resultLength {
-		return nil, &Error{Message: fmt.Sprintf("the result is %d KB, more than the limit of %d KB", len(out)>>10, l.resultLength>>10)}
+		return nil, nil, &Error{Message: fmt.Sprintf("the result is %d KB, more than the limit of %d KB", len(out)>>10, l.resultLength>>10)}
 	}
-	if s.keep != nil {
-		s.keep(inst.snapshot())
-	}
-	return out, nil
+	return out, snapshot, nil
 }
 
 // The code runs as the body of an async function, so it can use await. The
@@ -431,14 +443,33 @@ func (s script) error(out string) *Error {
 	if m := codeLineRe.FindStringSubmatch(stack); m != nil {
 		line, _ := strconv.Atoi(m[1])
 		// QuickJS gives some errors, like reading a property of null, the
-		// last position it knows of. That's the start of the head, or after
-		// an await the statement it resumed at, which would be a wrong line.
-		lines := strings.Split(s.head+s.code+s.tail, "\n")
-		if (m[1] != "1" || m[2] != "1") && line <= len(lines) && !strings.Contains(lines[line-1], "await") {
+		// last position it knows of. That's the start of the wrapper, or
+		// after an await the statement it resumed at, which would be a wrong
+		// line.
+		text, ok := lineOf(s.source, line)
+		if (m[1] != "1" || m[2] != "1") && ok && !strings.Contains(text, "await") {
 			e.Line = line
 		}
 	}
 	return e
+}
+
+// lineOf returns line n of s, from 1, and whether s has it.
+func lineOf(s string, n int) (string, bool) {
+	if n < 1 {
+		return "", false
+	}
+	for ; n > 1; n-- {
+		i := strings.IndexByte(s, '\n')
+		if i < 0 {
+			return "", false
+		}
+		s = s[i+1:]
+	}
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		s = s[:i]
+	}
+	return s, true
 }
 
 const cutOff = " (cut off)"

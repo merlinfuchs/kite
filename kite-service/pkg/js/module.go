@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
@@ -114,12 +115,10 @@ func RunModule(ctx context.Context, opts ModuleOptions, call ModuleCall) error {
 	if len(in) > MaxInputLength {
 		return &Error{Message: fmt.Sprintf("the input is more than %d MB", MaxInputLength>>20)}
 	}
-	_, err = runScript(ctx, script{
+	_, _, err = runScript(ctx, script{
 		limits:   moduleLimits,
 		eval:     moduleCaller,
-		head:     moduleHead,
-		code:     opts.Code,
-		tail:     moduleTail,
+		source:   m.source,
 		input:    in,
 		snapshot: m.snapshot,
 		log:      opts.Log,
@@ -147,8 +146,9 @@ type moduleCache struct {
 	size  int
 	lru   list.List // of *loadedModule, the most recently used first
 	items map[[32]byte]*list.Element
-	// Runs of a module that isn't loaded yet wait for one load. They get
-	// its error, and what its top level logs only goes to the first.
+	// Runs of a module that isn't loaded yet wait for one load, or until
+	// their context is done. They get its error, and what its top level logs
+	// only goes to the first.
 	loads singleflight.Group
 }
 
@@ -156,6 +156,8 @@ type loadedModule struct {
 	key      [32]byte
 	snapshot []byte
 	manifest *Manifest
+	// source is the code as it loaded, which errors point to.
+	source string
 }
 
 func (c *moduleCache) get(key [32]byte) *loadedModule {
@@ -179,11 +181,11 @@ func (c *moduleCache) add(m *loadedModule) {
 		return
 	}
 	c.items[m.key] = c.lru.PushFront(m)
-	c.size += len(m.snapshot)
+	c.size += len(m.snapshot) + len(m.source)
 	for c.size > c.max && c.lru.Len() > 1 {
 		old := c.lru.Remove(c.lru.Back()).(*loadedModule)
 		delete(c.items, old.key)
-		c.size -= len(old.snapshot)
+		c.size -= len(old.snapshot) + len(old.source)
 	}
 }
 
@@ -195,34 +197,98 @@ func (c *moduleCache) load(ctx context.Context, opts ModuleOptions) (*loadedModu
 	if m := c.get(key); m != nil {
 		return m, nil
 	}
-	v, err, _ := c.loads.Do(string(key[:]), func() (any, error) {
+	// The load goes on if the caller that started it gives up, as others
+	// may wait for it. Its limits end it.
+	loadCtx := context.WithoutCancel(ctx)
+	ch := c.loads.DoChan(string(key[:]), func() (any, error) {
 		if m := c.get(key); m != nil {
 			return m, nil
 		}
-		m := &loadedModule{key: key}
-		out, err := runScript(ctx, script{
+		m := &loadedModule{key: key, source: moduleHead + opts.Code + moduleTail}
+		out, snapshot, err := runScript(loadCtx, script{
 			limits:   moduleLoadLimits,
-			eval:     moduleHead + opts.Code + moduleTail,
-			head:     moduleHead,
-			code:     opts.Code,
-			tail:     moduleTail,
+			source:   m.source,
 			input:    []byte("null"),
+			load:     true,
 			log:      opts.Log,
 			timeout:  opts.timeout,
 			wallTime: opts.wallTime,
-			keep:     func(snapshot []byte) { m.snapshot = snapshot },
 		})
 		if err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal(out, &m.manifest); err != nil {
+		if len(out) > MaxManifestLength {
+			return nil, &Error{Message: fmt.Sprintf("what the module registers is %d KB, more than the limit of %d KB", len(out)>>10, MaxManifestLength>>10)}
+		}
+		m.snapshot = snapshot
+		m.manifest = &Manifest{}
+		if err := json.Unmarshal(out, m.manifest); err != nil {
 			return nil, fmt.Errorf("failed to decode manifest: %w", err)
+		}
+		// The prelude checks all of this, but the code can get around it.
+		if err := m.manifest.validate(); err != nil {
+			return nil, err
 		}
 		c.add(m)
 		return m, nil
 	})
-	if err != nil {
-		return nil, err
+	select {
+	case r := <-ch:
+		if r.Err != nil {
+			return nil, r.Err
+		}
+		return r.Val.(*loadedModule), nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return v.(*loadedModule), nil
+}
+
+var (
+	eventNameRe     = regexp.MustCompile(`^[a-z_]+$`)
+	componentNameRe = regexp.MustCompile(`^[\w-]{1,32}$`)
+)
+
+func (m *Manifest) validate() error {
+	seen := map[string]bool{}
+	unique := func(kind, name string) error {
+		if name == "" || seen[kind+" "+name] {
+			return fmt.Errorf("invalid manifest: %s %q is empty or registered twice", kind, name)
+		}
+		seen[kind+" "+name] = true
+		return nil
+	}
+	for _, c := range m.Commands {
+		if err := unique("command", c.Name); err != nil {
+			return err
+		}
+		if len(c.Data) == 0 || c.Data[0] != '{' {
+			return fmt.Errorf("invalid manifest: the options of command %q aren't an object", c.Name)
+		}
+	}
+	for _, e := range m.Events {
+		if err := unique("event", e); err != nil {
+			return err
+		}
+		if !eventNameRe.MatchString(e) {
+			return fmt.Errorf("invalid manifest: invalid event %q", e)
+		}
+	}
+	for _, c := range m.Components {
+		if err := unique("component", c); err != nil {
+			return err
+		}
+		if !componentNameRe.MatchString(c) {
+			return fmt.Errorf("invalid manifest: invalid component %q", c)
+		}
+	}
+	for _, v := range m.Variables {
+		if err := unique("variable", v.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func loadCallMessage(name string) string {
+	return name + " can't be used at the top level of a module. Call it inside a handler instead."
 }

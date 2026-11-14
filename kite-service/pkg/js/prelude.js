@@ -2,7 +2,7 @@
 // scripts get, then removes kite so scripts only use what's defined here.
 (() => {
   const call = kite.call;
-  const start = kite.start;
+  const startCall = kite.start;
   delete globalThis.kite;
 
   // While the top level of a module runs, what it registered, see
@@ -16,6 +16,10 @@
     const err = new Error(`${name} can't be used at the top level of a module. Call it inside a handler instead.`);
     loadError ??= err;
     throw err;
+  };
+  const start = (name, arg) => {
+    noCallsWhileLoading(name);
+    return startCall(name, arg);
   };
 
   // discord.createMessage(arg) starts a call, which Go runs while the code
@@ -36,10 +40,7 @@
             ? undefined
             : Object.hasOwn(own, name)
               ? own[name]
-              : (arg) => {
-                  noCallsWhileLoading(prefix + name);
-                  return start(prefix + name, arg);
-                },
+              : (arg) => start(prefix + name, arg),
       }
     );
   }
@@ -48,7 +49,9 @@
   // for fetch. It takes a text body and headers as an object or pairs, and
   // the response has ok, status, statusText, headers.get(), text() and
   // json(). Like fetch, only failing to get a response rejects.
-  const fetch = async (url, init = {}) => {
+  globalThis.fetch = async (url, init = {}) => {
+    // Before the call, so the error names fetch.
+    noCallsWhileLoading("fetch");
     const { method, headers = {}, body } = init ?? {};
     if (body != null && typeof body !== "string") {
       throw new TypeError("fetch: the body must be text, like JSON.stringify(data)");
@@ -73,10 +76,6 @@
       text: async () => res.body,
       json: async () => JSON.parse(res.body),
     };
-  };
-  globalThis.fetch = (url, init) => {
-    noCallsWhileLoading("fetch");
-    return fetch(url, init);
   };
 
   const show = (v) => {
@@ -146,6 +145,9 @@
     if (typeof handler !== "function") throw new TypeError(`${fn}: the handler must be a function, like async (ctx) => { ... }`);
   };
 
+  const isCommandName = (name) =>
+    typeof name === "string" && name.split(" ").length <= 3 && name.split(" ").every((word) => /^[-_'\p{Ll}\p{Lo}\p{N}]{1,32}$/u.test(word));
+
   // discord.command("level show", { description, options }, handler)
   // registers a command, or a subcommand with the names of its command and
   // group before it. The options are Discord's, the handler gets ctx with
@@ -153,10 +155,29 @@
   registers.discord.command = (name, options, handler) => {
     const r = registering("discord.command");
     if (typeof options === "function") [options, handler] = [{}, options];
-    if (typeof name !== "string" || name === "") throw new TypeError('discord.command: the name must be text, like "level show"');
     if (!isObject(options)) throw new TypeError('discord.command: the options must be an object, like { description: "Shows your level" }');
+    // User and message commands, which Discord shows in menus, have names
+    // like "Show level". Slash commands have lowercase words for the
+    // command, group and subcommand.
+    const menu = options.type === 2 || options.type === 3;
+    if (menu ? typeof name !== "string" || name.length < 1 || name.length > 32 : !isCommandName(name)) {
+      throw new TypeError(
+        menu
+          ? "discord.command: the name of a user or message command must be 1 to 32 characters"
+          : 'discord.command: the name must be up to 3 lowercase words of up to 32 letters, digits, - and _, like "level show"'
+      );
+    }
     checkHandler("discord.command", handler);
     if (r.commands.has(name)) throw new TypeError(`discord.command: there's already a command called "${name}"`);
+    if (!menu) {
+      for (const [other, { data }] of r.commands) {
+        if (data.type === 2 || data.type === 3) continue;
+        const [parent, child] = other.length < name.length ? [other, name] : [name, other];
+        if (child.startsWith(parent + " ")) {
+          throw new TypeError(`discord.command: "${parent}" can't be a command and also have subcommands like "${child}"`);
+        }
+      }
+    }
     // A copy, as the module could change the object later, and to fail here
     // for options that aren't JSON.
     r.commands.set(name, { data: JSON.parse(JSON.stringify(options)), handler });
@@ -256,21 +277,19 @@
     const r = loaded;
     if (!r) throw new Error("the module isn't loaded");
     switch (input.kind) {
-      case "command": {
-        const command = r.commands.get(input.name);
-        if (!command) throw new Error(`the module has no command called "${input.name}"`);
-        const ctx = interactionContext(input.interaction);
-        ctx.options = optionValues(input.interaction?.data?.options);
-        await command.handler(ctx);
-        return null;
-      }
+      case "command":
       case "component": {
-        const handler = r.components.get(input.name);
-        if (!handler) throw new Error(`the module has no component called "${input.name}"`);
+        const command = input.kind === "command";
+        const handler = command ? r.commands.get(input.name)?.handler : r.components.get(input.name);
+        if (!handler) throw new Error(`the module has no ${input.kind} called "${input.name}"`);
         const ctx = interactionContext(input.interaction);
-        ctx.data = input.data ?? null;
+        if (command) {
+          ctx.options = optionValues(input.interaction?.data?.options);
+        } else {
+          ctx.data = input.data ?? null;
+        }
         await handler(ctx);
-        return null;
+        break;
       }
       case "event": {
         const handlers = r.events.get(input.name);
@@ -287,10 +306,12 @@
         }
         for (const err of errors.slice(1)) console.error(show(err));
         if (errors.length > 0) throw errors[0];
-        return null;
+        break;
       }
+      default:
+        throw new Error(`unknown kind ${input.kind}`);
     }
-    throw new Error(`unknown kind ${input.kind}`);
+    return null;
   };
   Object.defineProperty(globalThis, "__kiteModule", { value: loadModule });
   Object.defineProperty(globalThis, "__kiteDispatch", { value: dispatch });

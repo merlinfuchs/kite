@@ -85,9 +85,10 @@ func TestLoadModule(t *testing.T) {
 		"variables": [{"name": "xp", "scoped": true}, {"name": "total", "scoped": false}]
 	}`, string(b))
 
-	m, err = loadModule(t, `discord.command("ping", () => {})`)
+	m, err = loadModule(t, `discord.command("Show level", { type: 2 }, () => {}); discord.command("ping", () => {})`)
 	require.NoError(t, err)
-	assert.JSONEq(t, `{}`, string(m.Commands[0].Data))
+	assert.JSONEq(t, `{"type": 2}`, string(m.Commands[0].Data))
+	assert.JSONEq(t, `{}`, string(m.Commands[1].Data))
 }
 
 func TestLoadModuleErrors(t *testing.T) {
@@ -111,6 +112,15 @@ func TestLoadModuleErrors(t *testing.T) {
 		{"scoped", `variables.define("xp", { scoped: "yes" })`, "TypeError: variables.define: scoped must be true or false (line 1)"},
 		{"duplicate variable", `variables.define("xp"); variables.define("xp")`, `TypeError: variables.define: there's already a variable called "xp" (line 1)`},
 		{"thrown", "\n\nthrow new Error(\"nope\")", "Error: nope (line 3)"},
+		// Calls after the top level returned, which only Go sees.
+		{"call in microtask", "Promise.resolve().then(() => discord.createMessage({}))", "Error: discord.createMessage can't be used at the top level of a module. Call it inside a handler instead."},
+		{"uppercase command", `discord.command("Level", () => {})`, `TypeError: discord.command: the name must be up to 3 lowercase words of up to 32 letters, digits, - and _, like "level show" (line 1)`},
+		{"deep command", `discord.command("a b c d", () => {})`, `TypeError: discord.command: the name must be up to 3 lowercase words of up to 32 letters, digits, - and _, like "level show" (line 1)`},
+		{"command and subcommand", "discord.command(\"level show\", () => {})\ndiscord.command(\"level\", () => {})", `TypeError: discord.command: "level" can't be a command and also have subcommands like "level show" (line 2)`},
+		{"long menu command", `discord.command("x".repeat(33), { type: 2 }, () => {})`, "TypeError: discord.command: the name of a user or message command must be 1 to 32 characters (line 1)"},
+		// Code can close the function it loads in and return what it likes.
+		{"forged manifest", `}); (() => async () => ({ events: ["BAD"] }))(function () {`, `invalid manifest: invalid event "BAD"`},
+		{"memory", `globalThis.s = "x".repeat(20 << 20) + "y"`, "the code used more than 16 MB of memory"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
