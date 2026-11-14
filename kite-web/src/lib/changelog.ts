@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-14",
+    title: "Run JavaScript can change things in Discord",
+    description:
+      "The code of a Run JavaScript block can send messages, give roles, create channels, and make the other changes the Discord API Request block can. Each change costs 1 credit.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#changing-things-in-discord`,
+  },
+  {
     date: "2026-11-13",
     title: "Disabled commands and event listeners don't count toward your plan",
     description:

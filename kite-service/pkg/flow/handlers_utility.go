@@ -172,9 +172,10 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 }
 
 // javaScriptHost has the operations the code of a Run JavaScript block can
-// call: the reads, GET operations, of the integrations the app can use, and
-// the handler operations of Kite's own features. Each costs the credits of
-// its operation. The calls run at the same time, so they take turns with ctx.
+// call: those of the integrations the app can use whose policy allows code,
+// and the handler operations of Kite's own features. Each costs the credits
+// of its operation. The calls run at the same time, so they take turns with
+// ctx.
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
@@ -238,7 +239,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 	}
 
 	return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
-		path, body, err := operationRequest(op, arg)
+		path, body, reason, err := operationRequest(op, arg)
 		if err != nil {
 			return nil, err
 		}
@@ -254,7 +255,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			return nil, err
 		}
 
-		res, err := c.sendOperation(op, path, body, "")
+		res, err := c.sendOperation(op, path, body, reason)
 		if err != nil {
 			return nil, callError(err)
 		}

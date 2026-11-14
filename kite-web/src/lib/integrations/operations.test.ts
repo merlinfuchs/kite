@@ -23,6 +23,15 @@ describe("operations", () => {
     expect(writes.map((op) => op.id)).toEqual([]);
   });
 
+  it("lets code call what the Discord API Request block can, except the interaction", () => {
+    const code = (id: string) =>
+      operations.find((op) => op.integration === "discord" && op.id === id)
+        ?.policy.code;
+    expect(code("create_message")).toBe(true);
+    expect(code("bulk_ban_users_from_guild")).toBe(true);
+    expect(code("create_followup_message")).toBe(false);
+  });
+
   it("makes Discord reads free", () => {
     for (const op of operations) {
       if (
