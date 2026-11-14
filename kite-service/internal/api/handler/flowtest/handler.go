@@ -175,9 +175,10 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 
 func flowTestResponse(res *testrun.Result) *wire.FlowTestResponse {
 	resp := &wire.FlowTestResponse{
-		Executions:  make([]wire.FlowTestExecution, len(res.Executions)),
-		Credits:     res.Credits,
-		UnusedMocks: res.UnusedMocks,
+		Executions:   make([]wire.FlowTestExecution, len(res.Executions)),
+		Credits:      res.Credits,
+		UnusedMocks:  res.UnusedMocks,
+		FailedAction: res.FailedAction,
 	}
 
 	for i, exec := range res.Executions {
@@ -213,6 +214,7 @@ func flowTestResponse(res *testrun.Result) *wire.FlowTestResponse {
 			Truncated: exec.Truncated,
 			Notes:     exec.Notes,
 			Error:     exec.Error,
+			OtherFlow: exec.OtherFlow,
 		}
 	}
 	return resp

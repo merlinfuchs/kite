@@ -53,7 +53,7 @@ describe("flowTestEffectTitle", () => {
       flowTestEffectTitle({ action: "respond", data: { type: "modal" } })
     ).toBe("Would show a modal");
     expect(flowTestEffectTitle({ action: "something_new" })).toBe(
-      "Would something new"
+      "Would make a change in Discord"
     );
   });
 });
@@ -162,6 +162,13 @@ describe("flowTestNodeStatus", () => {
             },
             { node_id: "b", node_type: "action_message_create", error: "x" },
             { node_id: "b", node_type: "action_message_create" },
+          ],
+        },
+        {
+          trigger: 'Click "Ping"',
+          other_flow: true,
+          steps: [
+            { node_id: "a", node_type: "action_message_create", error: "x" },
           ],
         },
       ],

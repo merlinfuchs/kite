@@ -125,7 +125,12 @@ export default function FlowTestPanel({
         { path: flowTestPath(target), req },
         {
           onSuccess(res) {
-            if (res.success) {
+            const executions = res.success ? res.data.executions : [];
+            if (res.success && res.data.failed_action != null) {
+              // The action couldn't be done, like a click on a button the
+              // flow didn't send. Running it again would fail the same way.
+              failed(executions[executions.length - 1]?.error ?? "");
+            } else if (res.success) {
               set({ last: { request: req, result: res.data } });
             } else {
               failed(

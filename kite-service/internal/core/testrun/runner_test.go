@@ -271,6 +271,10 @@ func TestFlowTestClickButton(t *testing.T) {
 	if click.Error != "" {
 		t.Fatalf("click failed: %s", click.Error)
 	}
+	// The click resumed the tested flow.
+	if click.OtherFlow || res.FailedAction != nil {
+		t.Errorf("other flow = %v, failed action = %v", click.OtherFlow, res.FailedAction)
+	}
 
 	var warnings []string
 	var paths []string
@@ -305,6 +309,9 @@ func TestFlowTestUnknownButton(t *testing.T) {
 	last := res.Executions[len(res.Executions)-1]
 	if !strings.Contains(last.Error, `no button "Yes"`) {
 		t.Errorf("error = %q", last.Error)
+	}
+	if res.FailedAction == nil || *res.FailedAction != 0 {
+		t.Errorf("failed action = %v, want 0", res.FailedAction)
 	}
 }
 
@@ -719,6 +726,9 @@ func TestFlowTestMessageButton(t *testing.T) {
 	})
 	if got := responseContent(t, findEffect(t, res.Executions[0], "respond")); got != "Pong" {
 		t.Errorf("response = %q", got)
+	}
+	if res.Executions[0].OtherFlow {
+		t.Error("the tested button's flow counts as another flow")
 	}
 }
 

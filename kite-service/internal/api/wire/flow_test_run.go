@@ -124,6 +124,9 @@ type FlowTestResponse struct {
 	Credits int `json:"credits"`
 	// Mocked blocks that never ran.
 	UnusedMocks []string `json:"unused_mocks,omitempty"`
+	// The index of the action in then that couldn't be done. Its error is
+	// the last execution.
+	FailedAction *int `json:"failed_action,omitempty"`
 }
 
 // FlowTestExecution is one run of the flow, like the command or a click on a
@@ -135,6 +138,10 @@ type FlowTestExecution struct {
 	Notes     []string       `json:"notes,omitempty"`
 	// The error that ended the run, if no Error Handler caught it.
 	Error string `json:"error,omitempty"`
+	// Set for runs of a flow other than the tested one, like the flow of a
+	// button on a message template it sent. Their blocks aren't in the
+	// tested flow, even if they have the same IDs.
+	OtherFlow bool `json:"other_flow,omitempty"`
 }
 
 // FlowTestStep is a block that ran.

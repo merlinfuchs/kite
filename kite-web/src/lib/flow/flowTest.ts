@@ -82,6 +82,7 @@ export function flowTestNodeStatus(
   const rank = { ok: 0, warning: 1, error: 2 };
   const res: Record<string, TestNodeStatus> = {};
   for (const execution of result?.executions ?? []) {
+    if (execution.other_flow) continue;
     for (const step of execution.steps) {
       const status: TestNodeStatus = step.error
         ? "error"
@@ -272,9 +273,7 @@ export function flowTestEffectTitle(effect: FlowTestEffect) {
     const title = respondTitles[effect.data?.type];
     if (title) return title;
   }
-  return (
-    effectTitles[effect.action] ?? "Would " + effect.action.replaceAll("_", " ")
-  );
+  return effectTitles[effect.action] ?? "Would make a change in Discord";
 }
 
 // The message an effect would send or edit to, for the preview, or null if
