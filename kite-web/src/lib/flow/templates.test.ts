@@ -227,7 +227,7 @@ describe("marketplace", () => {
     }
   });
 
-  it("features two of Kite's templates and one of a user", () => {
+  it("features rows of two of Kite's templates and one of a user", () => {
     const official = getTemplates();
     const user = (id: string, installs: number): Template => ({
       ...official[0]!,
@@ -249,8 +249,12 @@ describe("marketplace", () => {
       "kite",
       "user",
       "kite",
+      "kite",
+      "kite",
+      "kite",
     ]);
     expect(featured[1]!.id).toBe("tried");
+    expect(new Set(featured.map((t) => t.id)).size).toBe(6);
     expect(featuredTemplates(templates, 20000)).toEqual(featured);
     const days = new Set(
       [20000, 20001, 20002].map((day) =>
@@ -266,6 +270,6 @@ describe("marketplace", () => {
       featuredTemplates([...official, user("new", 1)], 20000).map(
         (t) => t.author.kind
       )
-    ).toEqual(["kite", "kite", "kite"]);
+    ).toEqual(["kite", "kite", "kite", "kite", "kite", "kite"]);
   });
 });
