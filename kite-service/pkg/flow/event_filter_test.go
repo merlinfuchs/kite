@@ -182,6 +182,24 @@ func TestFilterEvent(t *testing.T) {
 	assert.True(t, entry.FilterEvent(testEventData{event: human}, testBotID))
 }
 
+func TestEventFilterGuildMemberUpdate(t *testing.T) {
+	roleEntry, err := CompileEventListener(eventFlowWithFilter("guild_member_update", *filter(EventFilterTypeRoleID, ComparsionModeEqual, "123")))
+	require.NoError(t, err)
+
+	withRole := &gateway.GuildMemberUpdateEvent{User: discord.User{ID: 1}, RoleIDs: []discord.RoleID{123}}
+	withoutRole := &gateway.GuildMemberUpdateEvent{User: discord.User{ID: 1}}
+	assert.True(t, roleEntry.FilterEvent(testEventData{event: withRole}, testBotID))
+	assert.False(t, roleEntry.FilterEvent(testEventData{event: withoutRole}, testBotID))
+
+	botEntry, err := CompileEventListener(eventFlowWithFilter("guild_member_update", *filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, "")))
+	require.NoError(t, err)
+
+	bot := &gateway.GuildMemberUpdateEvent{User: discord.User{Bot: true}}
+	human := &gateway.GuildMemberUpdateEvent{User: discord.User{Bot: false}}
+	assert.False(t, botEntry.FilterEvent(testEventData{event: bot}, testBotID))
+	assert.True(t, botEntry.FilterEvent(testEventData{event: human}, testBotID))
+}
+
 func TestFilterEventParameters(t *testing.T) {
 	data := eventFlowWithFilter("message_create", *filter(EventFilterTypeMessageContent, ComparsionModeStartsWith, "{{ params.prefix }}help"))
 	data.Parameters = []FlowParameter{{Key: "prefix", Type: FlowParameterTypeText, Value: "!"}}
@@ -220,6 +238,8 @@ func TestValidateEventFilters(t *testing.T) {
 		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
 		{"voice state update channel", "voice_state_update", filter(EventFilterTypeChannelID, ComparsionModeEqual, "1"), false},
 		{"voice state update message content", "voice_state_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
+		{"member update role", "guild_member_update", filter(EventFilterTypeRoleID, ComparsionModeEqual, "123"), false},
+		{"member update message content", "guild_member_update", filter(EventFilterTypeMessageContent, ComparsionModeEqual, "hi"), true},
 	}
 
 	for _, tt := range tests {

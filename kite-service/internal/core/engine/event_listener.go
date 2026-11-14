@@ -133,6 +133,8 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return true
 	case *gateway.GuildMemberRemoveEvent:
 		return true
+	case *gateway.GuildMemberUpdateEvent:
+		return true
 	case *gateway.MessageReactionAddEvent:
 		// Ignore the app's own reactions, or a flow that adds a reaction
 		// would trigger itself. Reactions of other bots still go through,

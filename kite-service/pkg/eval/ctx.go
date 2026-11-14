@@ -706,6 +706,12 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.User = NewUserEnv(e.User)
 		env.Member = env.User
 		env.Guild = guild(e.GuildID).guildEnv()
+	case *gateway.GuildMemberUpdateEvent:
+		member, _ := guild(e.GuildID).member(e.User.ID)
+		e.UpdateMember(&member)
+		env.Member = guild(e.GuildID).memberEnv(member)
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
 	case *guildevent.BoostRemove:
 		// The cache keeps when the member joined, which the event leaves out.
 		// It never updates when they started boosting, so that's cleared, as

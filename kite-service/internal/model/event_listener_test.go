@@ -15,6 +15,7 @@ func TestDiscordEventTypesHaveEventFilterTargets(t *testing.T) {
 		EventListenerTypeDiscordMessageDelete,
 		EventListenerTypeDiscordGuildMemberAdd,
 		EventListenerTypeDiscordGuildMemberRemove,
+		EventListenerTypeDiscordGuildMemberUpdate,
 		EventListenerTypeDiscordMessageReactionAdd,
 		EventListenerTypeDiscordMessageReactionRemove,
 		EventListenerTypeDiscordGuildCreate,
