@@ -44,6 +44,7 @@ function ItemCard({
   name,
   description,
   meta,
+  badge,
   checkbox,
   defaultOpen,
   children,
@@ -52,6 +53,8 @@ function ItemCard({
   name: string;
   description: string;
   meta: string;
+  // Shown in front of the meta, like the state of an imported item.
+  badge?: ReactNode;
   checkbox?: ItemCheckbox;
   defaultOpen?: boolean;
   children: React.ReactNode;
@@ -84,6 +87,7 @@ function ItemCard({
                 </div>
               )}
             </div>
+            {badge}
             <span className="text-xs text-muted-foreground flex-none hidden sm:block">
               {meta}
             </span>
@@ -109,6 +113,7 @@ export function FlowItemCard({
   description,
   context,
   flow,
+  badge,
   checkbox,
   defaultOpen,
 }: {
@@ -117,6 +122,7 @@ export function FlowItemCard({
   description: string;
   context: FlowContextType;
   flow: FlowData;
+  badge?: ReactNode;
   checkbox?: ItemCheckbox;
   defaultOpen?: boolean;
 }) {
@@ -128,6 +134,7 @@ export function FlowItemCard({
       name={name}
       description={description}
       meta={`${nodes.filter((n) => !isNoteNode(n)).length} blocks`}
+      badge={badge}
       checkbox={checkbox}
       defaultOpen={defaultOpen}
     >
