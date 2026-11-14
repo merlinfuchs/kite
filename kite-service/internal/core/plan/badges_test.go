@@ -31,9 +31,10 @@ func TestUserBadges(t *testing.T) {
 			sub("donor", "donation", model.SubscriptionStatusActive, before),
 		},
 		[]*model.CreatorStats{
-			{UserID: "dev", FirstListedAt: before, InstallerCount: 100},
-			{UserID: "late", FirstListedAt: after, InstallerCount: 9},
-			{UserID: "big", FirstListedAt: after, InstallerCount: 1000},
+			{UserID: "dev", FirstListedAt: before, InstallerCount: 100, StarCount: 24},
+			{UserID: "late", FirstListedAt: after, InstallerCount: 9, StarCount: 4},
+			{UserID: "big", FirstListedAt: after, InstallerCount: 1000, StarCount: 5000},
+			{UserID: "liked", FirstListedAt: after, StarCount: 5},
 		},
 		func(productID string) string { return titles[productID] },
 	)
@@ -44,16 +45,18 @@ func TestUserBadges(t *testing.T) {
 			{Kind: model.UserBadgeContributor},
 			{Kind: model.UserBadgeEarlyCreator},
 			{Kind: model.UserBadgeCreator, Milestone: 100},
+			{Kind: model.UserBadgeStar, Milestone: 20},
 		},
 		"fan": {
 			{Kind: model.UserBadgeEarlySupporter},
 			{Kind: model.UserBadgeSubscriber, Plan: "Plus"},
 		},
-		"mod":  {{Kind: model.UserBadgeStaff}},
-		"gone": {{Kind: model.UserBadgeEarlySupporter}},
-		"new":  {{Kind: model.UserBadgeSubscriber, Plan: "Premium"}},
-		"big":  {{Kind: model.UserBadgeCreator, Milestone: 1000}},
-		"late": {{Kind: model.UserBadgeCreator}},
+		"mod":   {{Kind: model.UserBadgeStaff}},
+		"gone":  {{Kind: model.UserBadgeEarlySupporter}},
+		"new":   {{Kind: model.UserBadgeSubscriber, Plan: "Premium"}},
+		"big":   {{Kind: model.UserBadgeCreator, Milestone: 1000}, {Kind: model.UserBadgeStar, Milestone: 50}},
+		"late":  {{Kind: model.UserBadgeCreator}},
+		"liked": {{Kind: model.UserBadgeCreator}, {Kind: model.UserBadgeStar, Milestone: 5}},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got badges for %d users, want %d: %v", len(got), len(want), got)

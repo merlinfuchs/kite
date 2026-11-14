@@ -19,7 +19,12 @@ const lg = (
     .map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`)
     .join("")}</linearGradient>`;
 
+// STAR is a star with rounded points in a 24x24 viewBox.
+const STAR =
+  "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z";
+
 export type CreatorTier = 0 | 10 | 100 | 1000;
+export type StarTier = 5 | 20 | 50;
 
 // The SVGs of the badges, each the inside of a 24x24 viewBox. g is a prefix
 // that keeps the IDs of their gradients apart when several are on a page.
@@ -116,6 +121,37 @@ export const badgeIcons = {
         ? sparkle(20, 2.8, 1.9) + sparkle(4, 15.6, 1.3, "#fff")
         : tier === 100
         ? sparkle(20, 2.8, 1.6)
+        : ""
+    }`;
+  },
+  // A star with a shine, its color by milestone, like the kite: they got
+  // stars for their templates.
+  star: (g: string, tier: StarTier) => {
+    const c = {
+      5: ["#A5F3FC", "#22D3EE", "#0E7490"],
+      20: ["#DDD6FE", "#8B5CF6", "#5B21B6"],
+      50: ["#FEF08A", "#FACC15", "#B45309"],
+    }[tier];
+    return `<defs>${lg(g + "a", 5, 2, 19, 21, [
+      [0, c[0]],
+      [0.5, c[1]],
+      [1, c[2]],
+    ])}
+      <clipPath id="${g}c"><path d="${STAR}"/></clipPath></defs>
+    <g transform="translate(12 12.3) scale(.92) translate(-12 -12)">
+      <path d="${STAR}" fill="url(#${g}a)"/>
+      <g clip-path="url(#${g}c)">
+        <path d="M2 16.2C9 18.6 18 15 22.6 7.4V23H2z" fill="${
+          c[2]
+        }" fill-opacity=".35"/>
+        <path d="M0 0H12.4C10.2 4.2 6.4 7.2 0 9z" fill="#fff" fill-opacity=".3"/>
+      </g>
+    </g>
+    ${
+      tier === 50
+        ? sparkle(20.4, 3, 1.9) + sparkle(3.4, 18.8, 1.3, "#fff")
+        : tier === 20
+        ? sparkle(20.4, 3, 1.6)
         : ""
     }`;
   },

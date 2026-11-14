@@ -1815,7 +1815,7 @@ export type UserGetResponse = User;
 export interface UserBadge {
   /**
    * Kind is staff, contributor, early_supporter, subscriber,
-   * early_creator or creator.
+   * early_creator, creator or star.
    */
   kind: string;
   /**
@@ -1824,7 +1824,8 @@ export interface UserBadge {
   plan?: string;
   /**
    * Milestone is how many other users at least added the templates of a
-   * creator, missing if fewer than the lowest milestone.
+   * creator, or how many stars at least they got for a star badge. Missing
+   * if fewer than the lowest milestone.
    */
   milestone?: number /* int */;
 }

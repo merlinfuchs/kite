@@ -6,7 +6,7 @@ import {
 import { UserBadge } from "@/lib/types/wire.gen";
 import { cn, formatNumber } from "@/lib/utils";
 import { useId } from "react";
-import { badgeIcons, CreatorTier } from "./badgeIcons";
+import { badgeIcons, CreatorTier, StarTier } from "./badgeIcons";
 
 type BadgeInfo = {
   svg: (prefix: string) => string;
@@ -60,6 +60,17 @@ function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
         description: tier
           ? `${formatNumber(tier)}+ other users added their templates`
           : "Shared a template in the Marketplace",
+      };
+    }
+    case "star": {
+      const tier = (badge.milestone ?? 0) as StarTier;
+      if (![5, 20, 50].includes(tier)) return undefined;
+      return {
+        svg: (prefix) => badgeIcons.star(prefix, tier),
+        title: `Star creator · ${formatNumber(tier)}+`,
+        description: `Other users gave their templates ${formatNumber(
+          tier
+        )}+ stars`,
       };
     }
   }

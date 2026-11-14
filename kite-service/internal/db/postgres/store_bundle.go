@@ -182,6 +182,7 @@ func (c *Client) CreatorStats(ctx context.Context, userIDs []string) ([]*model.C
 			UserID:         row.UserID,
 			FirstListedAt:  row.FirstListedAt.Time,
 			InstallerCount: int(row.InstallerCount),
+			StarCount:      int(row.StarCount),
 		}
 	}
 	return stats, nil
