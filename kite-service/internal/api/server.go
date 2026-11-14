@@ -29,6 +29,9 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	// DiscordBotToken is the bot of the Kite server, which looks up users for
+	// the user lookup tool.
+	DiscordBotToken     string
 	UserLimits          config.UserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int

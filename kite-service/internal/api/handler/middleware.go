@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"slices"
 	"time"
@@ -123,6 +124,43 @@ func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 
 			if !ok {
 				c.SetHeader("Retry-After", resetTime)
+				return ErrRateLimit("You are making too many requests. Please try again later.")
+			}
+
+			return next(c)
+		}
+	}
+}
+
+// RateLimitByIP limits routes anyone can call without a session. Behind nginx
+// the client is in X-Real-IP, otherwise it's the address of the connection.
+func RateLimitByIP(tokens uint64, interval time.Duration) MiddlewareFunc {
+	store, err := memorystore.New(&memorystore.Config{
+		Tokens:   tokens,
+		Interval: interval,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return func(next HandlerFunc) HandlerFunc {
+		return func(c *Context) error {
+			key := c.Header("X-Real-IP")
+			if key == "" {
+				key = c.r.RemoteAddr
+				if host, _, err := net.SplitHostPort(key); err == nil {
+					key = host
+				}
+			}
+
+			_, _, reset, ok, err := store.Take(c.Context(), key)
+			if err != nil {
+				slog.With("error", err).Error("failed to take rate limit token")
+				return ErrInternal(fmt.Sprintf("failed to take rate limit token: %v", err))
+			}
+
+			if !ok {
+				c.SetHeader("Retry-After", time.Unix(0, int64(reset)).UTC().Format(time.RFC1123))
 				return ErrRateLimit("You are making too many requests. Please try again later.")
 			}
 

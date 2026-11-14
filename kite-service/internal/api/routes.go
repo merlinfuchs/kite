@@ -26,6 +26,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/lookup"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -127,6 +128,16 @@ func (s *APIServer) RegisterRoutes(
 	// Public totals for the website
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
+
+	// Public, for the user lookup tool on the website
+	lookupHandler, err := lookup.NewLookupHandler(s.config.DiscordBotToken)
+	if err != nil {
+		panic(err)
+	}
+	v1Group.Get("/lookup/users/{userID}",
+		handler.Typed(lookupHandler.HandleUserGet),
+		handler.RateLimitByIP(20, time.Minute),
+	)
 
 	// Bundles are public, like the templates on the website. A token gets the
 	// user's own ones too, so the MCP server can add them.
