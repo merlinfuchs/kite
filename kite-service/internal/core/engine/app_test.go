@@ -37,14 +37,14 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.(*Command).cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.(*Command).cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
 	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "missing")]; got != nil {
-		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
+		t.Errorf("lookup of unknown name resolved to %v, want nil", got.(*Command).cmd.ID)
 	}
 }
 
@@ -88,9 +88,9 @@ func TestCommandIndexByType(t *testing.T) {
 		got := app.commandsByKey[interactionCommandKey(test.data)]
 		if test.want == "" {
 			if got != nil {
-				t.Errorf("%+v resolved to %s, want none", test.data, got.cmd.ID)
+				t.Errorf("%+v resolved to %s, want none", test.data, got.(*Command).cmd.ID)
 			}
-		} else if got == nil || got.cmd.ID != test.want {
+		} else if got == nil || got.(*Command).cmd.ID != test.want {
 			t.Errorf("%+v did not resolve to %s", test.data, test.want)
 		}
 	}
@@ -181,8 +181,8 @@ func TestListenerIndexRebuildDoesNotMutateExistingSlice(t *testing.T) {
 	if len(snapshot) != 1 {
 		t.Errorf("snapshot taken before rebuild changed length to %d, want 1", len(snapshot))
 	}
-	if snapshot[0].listener.ID != "l-1" {
-		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].listener.ID)
+	if snapshot[0].handler.(*EventListener).listener.ID != "l-1" {
+		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].handler.(*EventListener).listener.ID)
 	}
 }
 
