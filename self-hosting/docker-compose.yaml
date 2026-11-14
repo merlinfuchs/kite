@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kite
+      POSTGRES_USER: kite
+      POSTGRES_PASSWORD: local-kite-password
+    volumes:
+      - kite-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kite -d kite"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kite:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      KITE_API__HOST: 0.0.0.0
+      KITE_API__PORT: 8080
+      KITE_API__PUBLIC_BASE_URL: http://localhost:8080
+      KITE_API__SECURE_COOKIES: "false"
+      KITE_APP__PUBLIC_BASE_URL: http://localhost:8080
+      KITE_DATABASE__POSTGRES__HOST: postgres
+      KITE_DATABASE__POSTGRES__PORT: 5432
+      KITE_DATABASE__POSTGRES__USER: kite
+      KITE_DATABASE__POSTGRES__PASSWORD: local-kite-password
+      KITE_DATABASE__POSTGRES__DB_NAME: kite
+
+volumes:
+  kite-postgres:

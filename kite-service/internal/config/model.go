@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -11,6 +13,7 @@ type Config struct {
 	Database   DatabaseConfig   `toml:"database"`
 	API        APIConfig        `toml:"api"`
 	App        AppConfig        `toml:"app"`
+	SelfHosted SelfHostedConfig `toml:"self_hosted"`
 	UserLimits UserLimitsConfig `toml:"user_limits"`
 	Discord    DiscordConfig    `toml:"discord"`
 	Engine     EngineConfig     `toml:"engine"`
@@ -31,9 +34,30 @@ type Config struct {
 	ClusterIndex int `toml:"cluster_index"`
 }
 
+// SelfHostedConfig configures a private, owner-operated Kite instance.
+type SelfHostedConfig struct {
+	Enabled           bool     `toml:"enabled"`
+	AllowedDiscordIDs []string `toml:"allowed_discord_ids"`
+}
+
 func (cfg *Config) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	return validate.Struct(cfg)
+	if err := validate.Struct(cfg); err != nil {
+		return err
+	}
+
+	if cfg.SelfHosted.Enabled && len(cfg.SelfHosted.AllowedDiscordIDs) == 0 {
+		return errors.New("self_hosted.allowed_discord_ids must include at least one Discord user ID when self_hosted.enabled is true")
+	}
+	if cfg.SelfHosted.Enabled {
+		for _, id := range cfg.SelfHosted.AllowedDiscordIDs {
+			if strings.TrimSpace(id) == "" {
+				return errors.New("self_hosted.allowed_discord_ids can't contain an empty Discord user ID")
+			}
+		}
+	}
+
+	return nil
 }
 
 func (cfg *Config) IsPrimaryCluster() bool {

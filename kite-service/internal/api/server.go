@@ -29,6 +29,7 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	SelfHosted          config.SelfHostedConfig
 	UserLimits          config.UserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int

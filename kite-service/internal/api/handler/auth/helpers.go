@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -51,6 +52,9 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	if !discordUser.Verified {
 		return "", nil, fmt.Errorf("User email is not verified")
 	}
+	if !h.isDiscordUserAllowed(discordUser.ID) {
+		return "", nil, handler.ErrForbidden("private_instance", "This Kite instance is private. Ask its owner to allow your Discord account.")
+	}
 
 	displayName := discordUser.GlobalName
 	if displayName == "" {
@@ -85,6 +89,12 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	}
 
 	return token, session, nil
+}
+
+func (h *AuthHandler) isDiscordUserAllowed(discordID string) bool {
+	return len(h.config.AllowedDiscordIDs) == 0 || slices.ContainsFunc(h.config.AllowedDiscordIDs, func(allowedID string) bool {
+		return strings.TrimSpace(allowedID) == discordID
+	})
 }
 
 func (h *AuthHandler) getOauthStateCookie(c *handler.Context) string {

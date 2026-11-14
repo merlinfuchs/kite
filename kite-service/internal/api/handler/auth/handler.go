@@ -18,6 +18,7 @@ type AuthHandlerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	AllowedDiscordIDs   []string
 }
 
 type AuthHandler struct {

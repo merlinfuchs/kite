@@ -142,6 +142,7 @@ func (s *APIServer) RegisterRoutes(
 		APIPublicBaseURL:    s.config.APIPublicBaseURL,
 		DiscordClientID:     s.config.DiscordClientID,
 		DiscordClientSecret: s.config.DiscordClientSecret,
+		AllowedDiscordIDs:   s.config.SelfHosted.AllowedDiscordIDs,
 	}, userStore, appStore, sessionManager)
 
 	authGroup := v1Group.Group("/auth")

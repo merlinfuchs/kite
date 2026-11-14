@@ -90,3 +90,44 @@ func TestDebugServerDefaultsToDisabledAndLocal(t *testing.T) {
 		t.Errorf("debug.host = %q, want %q", cfg.Debug.Host, "127.0.0.1")
 	}
 }
+
+func TestSelfHostedProfileEnablesFeaturesAndRaisesQuotas(t *testing.T) {
+	cfg := unmarshalDefaults(t)
+	if len(cfg.Billing.Plans) != 1 {
+		t.Fatalf("default plans = %d, want 1", len(cfg.Billing.Plans))
+	}
+
+	defaultCredits := cfg.Billing.Plans[0].FeatureUsageCreditsPerMonth
+	applySelfHostedDefaults(&cfg)
+	if cfg.Billing.Plans[0].FeatureUsageCreditsPerMonth != defaultCredits {
+		t.Fatal("self-hosted profile changed quotas while disabled")
+	}
+
+	cfg.SelfHosted.Enabled = true
+	applySelfHostedDefaults(&cfg)
+	plan := cfg.Billing.Plans[0]
+	if plan.FeatureUsageCreditsPerMonth <= defaultCredits {
+		t.Errorf("monthly credits = %d, want more than default %d", plan.FeatureUsageCreditsPerMonth, defaultCredits)
+	}
+	if plan.FeatureMaxCollaborators < 3 {
+		t.Errorf("collaborators = %d, want at least 3", plan.FeatureMaxCollaborators)
+	}
+	if !plan.FeatureVoiceAudio || !plan.FeaturePersonas || !plan.FeatureAnimatedProfile {
+		t.Error("self-hosted profile should enable all boolean plan features")
+	}
+	if cfg.UserLimits.MaxAppsPerUser < 100 {
+		t.Errorf("max apps per user = %d, want a generous self-hosted limit", cfg.UserLimits.MaxAppsPerUser)
+	}
+}
+
+func TestSelfHostedAllowedDiscordIDsEnvironmentValue(t *testing.T) {
+	t.Setenv("KITE_SELF_HOSTED__ALLOWED_DISCORD_IDS", "123, 456")
+	k, err := loadBase(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := k.Strings("self_hosted.allowed_discord_ids")
+	if len(ids) != 2 || ids[0] != "123" || ids[1] != "456" {
+		t.Fatalf("allowed Discord IDs = %#v, want [123 456]", ids)
+	}
+}

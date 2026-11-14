@@ -30,6 +30,9 @@ Kite is actively developed and new blocks and integrations are added regularly. 
 
 This describes the easiest way to self host an instance of Kite by using a single binary that contains both the backend and frontend.
 
+For a private instance with an account allowlist and the product features
+enabled, see the [private self-hosting guide](./self-hosting/README.md).
+
 You can find prebuilt binaries of the server with the frontend files included [here](https://github.com/merlinfuchs/kite/releases/latest).
 
 To run Kite you will also need to run a [Postgres](https://www.postgresql.org/) server alongside it, so it's recommended to use `docker-compose` to simplify the process.
