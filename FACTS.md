@@ -152,6 +152,7 @@ Update these when the free plan, prices, or the description change. Listings tha
 | Open Launch | https://open-launch.com/projects/kite-discord-bot-maker, launches 2026-11-14 | Yes | Edit the project while logged in |
 | Uneed | https://www.uneed.best/tool/kite-discord-bot-maker, launches 2026-11-27 | Yes | Edit the product while logged in |
 | Startup Stash | Submitted 2026-11-13, waiting for approval | Yes | Email hello@startupstash.com |
+| StackShare | https://stackshare.io/kite-mwg7b97a | No | Edit the tool while logged in |
 | Official MCP Registry | `onl.kite/kite` | No | `kite-web/src/lib/mcp/server.json`, then `mcp-publisher publish` with a higher version |
 | Glama | `onl.kite/kite`, imported from the registry | No | Claimed through `kite-web/public/.well-known/glama.json` |
 | LobeHub | `merlinfuchs-kite` | No | `lhm` CLI |
