@@ -165,6 +165,21 @@ func TestBlockDefinitionMessagePublish(t *testing.T) {
 	assert.Equal(t, discord.MessageID(2), result.DiscordMessage().ID)
 }
 
+func TestBlockDefinitionPollEnd(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"2","channel_id":"6","content":""}`}
+	c, err := executeBlock(t, p, "action_poll_end", `{"message_target":"2"}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", p.req.Method)
+	// Falls back to the channel the flow runs in when channel_target is omitted.
+	assert.Equal(t, "/channels/6/polls/2/expire", p.req.Path)
+	assert.Nil(t, p.req.Body)
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordMessage, result.Type)
+	assert.Equal(t, discord.MessageID(2), result.DiscordMessage().ID)
+}
+
 func TestBlockDefinitionBulkDelete(t *testing.T) {
 	for name, ids := range map[string]string{
 		"separated":              `"11, 12 13"`,
