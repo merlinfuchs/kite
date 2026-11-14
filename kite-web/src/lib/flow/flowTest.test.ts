@@ -81,6 +81,24 @@ describe("buildFlowTestRequest", () => {
     expect(req.guild_id).toBe("g1");
   });
 
+  it("rejects numbers Discord wouldn't send", () => {
+    const build = (value: string) =>
+      buildFlowTestRequest(
+        { ...initialFlowTestState, options: { a1: value } },
+        {
+          target: { type: "command", id: "c1" },
+          flow,
+          guildId: null,
+          eventType: "",
+          commandType: "chat_input",
+          args: { a1: { name: "amount", type: "integer" } },
+        }
+      );
+    expect(() => build("5.5")).toThrow("amount must be a whole number.");
+    expect(() => build("-")).toThrow();
+    expect(build("-3").options).toEqual({ amount: -3 });
+  });
+
   it("sends a webhook without a channel", () => {
     const req = buildFlowTestRequest(
       { ...initialFlowTestState, channelId: "ch1", webhookBody: "{}" },
