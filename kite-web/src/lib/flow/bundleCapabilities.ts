@@ -118,6 +118,7 @@ export const harmlessTypes = [
   "action_message_reaction_create",
   "action_message_unpin",
   "action_poll_create",
+  "action_poll_end",
   "action_random_generate",
   "action_response_create",
   "action_response_defer",
