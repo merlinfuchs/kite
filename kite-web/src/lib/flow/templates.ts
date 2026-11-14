@@ -162,32 +162,30 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplates are the templates the marketplace shows first, two of
-// Kite's and one a user made, picked again every day. day is the number of
+// featuredTemplates are the templates the marketplace shows first: up to
+// three made by users, one per creator, picked again every day. Kite's own
+// have their own rows, so the community's get the spot. day is the number of
 // days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
-  // A different order of them every day.
-  const pick = (pool: Template[], count: number) =>
-    pool
-      .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, count)
-      .map(({ t }) => t);
-
-  const community = pick(
-    templates.filter(
+  const seen = new Set<string>();
+  return templates
+    .filter(
       (t) =>
         t.author.kind === "user" &&
         t.listed &&
         (t.installs ?? 0) >= minFeaturedInstalls
-    ),
-    1
-  );
-  const official = pick(
-    templates.filter((t) => t.author.kind === "kite"),
-    3 - community.length
-  );
-  return [...official.slice(0, 1), ...community, ...official.slice(1)];
+    )
+    // A different order of them every day.
+    .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ t }) => t)
+    .filter((t) => {
+      const creator = t.author.kind === "user" ? t.author.discordId : "";
+      if (seen.has(creator)) return false;
+      seen.add(creator);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 // Users' templates need a few installs to be featured, so the ones nobody
