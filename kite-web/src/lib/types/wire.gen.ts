@@ -501,6 +501,11 @@ export interface Bundle {
    */
   staff_pick: boolean;
   /**
+   * Featurable is whether an AI check found it good enough for the Featured
+   * row of the marketplace.
+   */
+  featurable: boolean;
+  /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
    */

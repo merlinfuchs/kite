@@ -1,7 +1,8 @@
 // Package prescreen has an AI look at templates submitted to the marketplace
 // before an admin does. It rejects the ones that are obviously not meant for
 // it, and gives the admins a summary, concerns and a rating for the others.
-// It never approves.
+// It never approves. Once a template is listed, it checks whether it may be
+// featured.
 package prescreen
 
 import (
@@ -29,6 +30,9 @@ import (
 //go:embed instructions.md
 var instructionsTemplate string
 
+//go:embed featured.md
+var featuredTemplate string
+
 // maxContentSize is the most content it screens, without positions, about 30k
 // tokens or a third of a cent with gpt-6-luna. The biggest template in the
 // marketplace has half of it. Bigger ones go to the admins unscreened instead
@@ -49,6 +53,7 @@ type Prescreener struct {
 	bundleStore  store.BundleStore
 	notifier     *notify.Notifier
 	instructions string
+	featured     string
 }
 
 func New(client *openai.Client, model string, bundleStore store.BundleStore, notifier *notify.Notifier) *Prescreener {
@@ -56,17 +61,21 @@ func New(client *openai.Client, model string, bundleStore store.BundleStore, not
 	for _, b := range bundle.Official() {
 		names = append(names, b.Name)
 	}
+	official := strings.Join(names, ", ")
 	return &Prescreener{
 		client:       client,
 		model:        model,
 		bundleStore:  bundleStore,
 		notifier:     notifier,
-		instructions: strings.ReplaceAll(instructionsTemplate, "{{official}}", strings.Join(names, ", ")),
+		instructions: strings.ReplaceAll(instructionsTemplate, "{{official}}", official),
+		featured:     strings.ReplaceAll(featuredTemplate, "{{official}}", official),
 	}
 }
 
-// Run screens the pending reviews that weren't screened yet, until ctx is
-// done. Reviews are screened again when their version or page changes.
+// Run screens the pending reviews that weren't screened yet, and checks
+// whether the listed templates that weren't checked yet may be featured,
+// until ctx is done. Reviews are screened again when their version or page
+// changes, and templates are checked again when a review of them is approved.
 func (p *Prescreener) Run(ctx context.Context) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
@@ -80,6 +89,7 @@ func (p *Prescreener) Run(ctx context.Context) {
 				slog.Error("Failed to pre-screen bundle review", slog.String("review_id", id), slog.String("error", err.Error()))
 			}
 		}
+		p.checkFeatured(ctx)
 
 		select {
 		case <-ctx.Done():
@@ -171,26 +181,7 @@ var errTooBig = errors.New("bundle content too big to pre-screen")
 // prompt is the page and content of the version in review, without the
 // positions of blocks.
 func prompt(r *model.PendingBundleReview) (string, error) {
-	var content any
-	if err := json.Unmarshal(r.Bundle.Content, &content); err != nil {
-		return "", fmt.Errorf("failed to decode bundle content: %w", err)
-	}
-	contentJSON, err := json.Marshal(withoutLayout(content, false))
-	if err != nil {
-		return "", err
-	}
-	if len(contentJSON) > maxContentSize {
-		return "", errTooBig
-	}
-
-	l := r.Review.Listing
-	page, err := json.Marshal(map[string]any{
-		"name":         l.Name,
-		"description":  l.Description,
-		"how_it_works": l.About,
-		"setup":        l.Setup,
-		"category":     l.Category,
-	})
+	pageAndContent, err := pageAndContent(r.Review.Listing, r.Bundle.Content)
 	if err != nil {
 		return "", err
 	}
@@ -202,8 +193,34 @@ func prompt(r *model.PendingBundleReview) (string, error) {
 			fmt.Fprintf(&b, "What changed, by the creator: %s\n", n.Notes)
 		}
 	}
-	fmt.Fprintf(&b, "Page:\n%s\n\nContent:\n%s", page, contentJSON)
+	b.WriteString(pageAndContent)
 	return b.String(), nil
+}
+
+func pageAndContent(l model.BundleListing, rawContent json.RawMessage) (string, error) {
+	var content any
+	if err := json.Unmarshal(rawContent, &content); err != nil {
+		return "", fmt.Errorf("failed to decode bundle content: %w", err)
+	}
+	contentJSON, err := json.Marshal(withoutLayout(content, false))
+	if err != nil {
+		return "", err
+	}
+	if len(contentJSON) > maxContentSize {
+		return "", errTooBig
+	}
+
+	page, err := json.Marshal(map[string]any{
+		"name":         l.Name,
+		"description":  l.Description,
+		"how_it_works": l.About,
+		"setup":        l.Setup,
+		"category":     l.Category,
+	})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("Page:\n%s\n\nContent:\n%s", page, contentJSON), nil
 }
 
 // withoutLayout drops where blocks are and how big, which says nothing about
@@ -255,12 +272,23 @@ func (o *output) rejects() bool {
 }
 
 func (p *Prescreener) ask(ctx context.Context, input string) (*output, error) {
+	var out output
+	if err := p.call(ctx, "prescreen", p.instructions, input, outputSchema, &out); err != nil {
+		return nil, err
+	}
+	out.Rating = min(max(out.Rating, 0), 100)
+	return &out, nil
+}
+
+// call has the model answer the input with JSON of the schema, decoded into
+// out.
+func (p *Prescreener) call(ctx context.Context, name string, instructions string, input string, schema map[string]any, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 
 	resp, err := p.client.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           p.model,
-		Instructions:    openai.String(p.instructions),
+		Instructions:    openai.String(instructions),
 		Input:           responses.ResponseNewParamsInputUnion{OfString: openai.String(input)},
 		MaxOutputTokens: openai.Int(16000),
 		Reasoning: shared.ReasoningParam{
@@ -269,35 +297,34 @@ func (p *Prescreener) ask(ctx context.Context, input string) (*output, error) {
 		Text: responses.ResponseTextConfigParam{
 			Format: responses.ResponseFormatTextConfigUnionParam{
 				OfJSONSchema: &responses.ResponseFormatTextJSONSchemaConfigParam{
-					Name:   "prescreen",
-					Schema: outputSchema,
+					Name:   name,
+					Schema: schema,
 					Strict: openai.Bool(true),
 				},
 			},
 		},
-		PromptCacheKey: openai.String("kite-prescreen"),
+		PromptCacheKey: openai.String("kite-" + name),
 		Store:          openai.Bool(false),
 	}, option.WithMaxRetries(1))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create response: %w", err)
+		return fmt.Errorf("failed to create response: %w", err)
 	}
 	slog.Info(
 		"Bundle review pre-screen",
+		slog.String("check", name),
 		slog.String("status", string(resp.Status)),
 		slog.Int("input_tokens", int(resp.Usage.InputTokens)),
 		slog.Int("cached_input_tokens", int(resp.Usage.InputTokensDetails.CachedTokens)),
 		slog.Int("output_tokens", int(resp.Usage.OutputTokens)),
 	)
 	if resp.Status != responses.ResponseStatusCompleted {
-		return nil, fmt.Errorf("response %s: %s", resp.Status, resp.IncompleteDetails.Reason)
+		return fmt.Errorf("response %s: %s", resp.Status, resp.IncompleteDetails.Reason)
 	}
 
-	var out output
-	if err := json.Unmarshal([]byte(resp.OutputText()), &out); err != nil {
-		return nil, fmt.Errorf("failed to decode output: %w", err)
+	if err := json.Unmarshal([]byte(resp.OutputText()), out); err != nil {
+		return fmt.Errorf("failed to decode output: %w", err)
 	}
-	out.Rating = min(max(out.Rating, 0), 100)
-	return &out, nil
+	return nil
 }
 
 var outputSchema = map[string]any{

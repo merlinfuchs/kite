@@ -227,13 +227,17 @@ describe("marketplace", () => {
     }
   });
 
-  it("features only templates made by users, one per creator", () => {
+  it("features staff picks and featurable templates of users, one per creator", () => {
     const official = getTemplates();
-    const user = (id: string, installs: number, creator = id): Template => ({
+    const user = (
+      id: string,
+      picked: Partial<Template> = { featurable: true },
+      creator = id
+    ): Template => ({
       ...official[0]!,
       id,
-      installs,
       listed: true,
+      ...picked,
       author: {
         kind: "user",
         discordId: creator,
@@ -243,19 +247,21 @@ describe("marketplace", () => {
       },
     });
     const templates = [
-      ...official,
-      user("a", 10),
-      user("b", 14),
-      user("c", 12),
-      user("c2", 13, "c"),
-      user("d", 11),
-      user("new", 9),
+      ...official.map((t) => ({ ...t, featurable: true })),
+      user("a"),
+      user("b", { staffPick: true }),
+      user("c"),
+      user("c2", { featurable: true }, "c"),
+      user("d"),
+      user("plain", {}),
+      user("unlisted", { featurable: true, listed: false }),
     ];
 
     const featured = featuredTemplates(templates, 20000);
     expect(featured).toHaveLength(3);
     expect(featured.every((t) => t.author.kind === "user")).toBe(true);
-    expect(featured.map((t) => t.id)).not.toContain("new");
+    expect(featured.map((t) => t.id)).not.toContain("plain");
+    expect(featured.map((t) => t.id)).not.toContain("unlisted");
     const creators = featured.map((t) =>
       t.author.kind === "user" ? t.author.discordId : ""
     );
@@ -270,7 +276,9 @@ describe("marketplace", () => {
     );
     expect(days.size).toBeGreaterThan(1);
 
-    // Nothing is featured while no user's has enough installs.
-    expect(featuredTemplates([...official, user("new", 9)], 20000)).toEqual([]);
+    // Nothing is featured while no user's was picked or found good enough.
+    expect(featuredTemplates([...official, user("plain", {})], 20000)).toEqual(
+      []
+    );
   });
 });
