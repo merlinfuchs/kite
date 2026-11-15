@@ -14,10 +14,6 @@ import EntitySelect from "./EntitySelect";
 // Text, voice, announcement, stage
 const sendableChannelTypes = [0, 2, 5, 13];
 
-// Sendable channels and categories, for parameters a template can use as
-// either, like the category tickets are created in.
-export const channelAndCategoryTypes = [...sendableChannelTypes, 4];
-
 const channelTypeIcons: Record<number, typeof HashIcon> = {
   0: HashIcon,
   2: Volume2Icon,
@@ -39,6 +35,7 @@ export default function ChannelSelect({
   onChange,
   types = sendableChannelTypes,
   placeholder = "Select channel...",
+  searchPlaceholder = "Search channel...",
   emptyText = "No channel found.",
 }: {
   guildId: string | null;
@@ -47,6 +44,7 @@ export default function ChannelSelect({
   // The channel types to list, the ones messages can be sent to by default.
   types?: number[];
   placeholder?: string;
+  searchPlaceholder?: string;
   emptyText?: string;
 }) {
   const allChannels = useAppStateGuildChannels(guildId);
@@ -64,7 +62,7 @@ export default function ChannelSelect({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      searchPlaceholder="Search channel..."
+      searchPlaceholder={searchPlaceholder}
       emptyText={emptyText}
     />
   );
