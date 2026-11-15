@@ -192,7 +192,7 @@ export function featuredTemplates(templates: Template[], day: number) {
 
 // Users' templates need a few installs to be featured, so the ones nobody
 // tried yet don't get the top of the marketplace.
-const minFeaturedInstalls = 5;
+const minFeaturedInstalls = 10;
 
 // utcDay is the day featuredTemplates picks for.
 export function utcDay(date = new Date()) {

@@ -244,12 +244,12 @@ describe("marketplace", () => {
     });
     const templates = [
       ...official,
-      user("a", 5),
-      user("b", 9),
-      user("c", 7),
-      user("c2", 8, "c"),
-      user("d", 6),
-      user("new", 1),
+      user("a", 10),
+      user("b", 14),
+      user("c", 12),
+      user("c2", 13, "c"),
+      user("d", 11),
+      user("new", 9),
     ];
 
     const featured = featuredTemplates(templates, 20000);
@@ -271,6 +271,6 @@ describe("marketplace", () => {
     expect(days.size).toBeGreaterThan(1);
 
     // Nothing is featured while no user's has enough installs.
-    expect(featuredTemplates([...official, user("new", 1)], 20000)).toEqual([]);
+    expect(featuredTemplates([...official, user("new", 9)], 20000)).toEqual([]);
   });
 });
