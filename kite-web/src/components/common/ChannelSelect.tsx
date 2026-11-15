@@ -1,5 +1,6 @@
 import { useAppStateGuildChannels } from "@/lib/hooks/api";
 import {
+  FolderIcon,
   HashIcon,
   ImageIcon,
   MegaphoneIcon,
@@ -16,6 +17,7 @@ const sendableChannelTypes = [0, 2, 5, 13];
 const channelTypeIcons: Record<number, typeof HashIcon> = {
   0: HashIcon,
   2: Volume2Icon,
+  4: FolderIcon,
   5: MegaphoneIcon,
   13: RadioIcon,
   15: MessagesSquareIcon,
@@ -33,6 +35,7 @@ export default function ChannelSelect({
   onChange,
   types = sendableChannelTypes,
   placeholder = "Select channel...",
+  searchPlaceholder = "Search channel...",
   emptyText = "No channel found.",
 }: {
   guildId: string | null;
@@ -41,6 +44,7 @@ export default function ChannelSelect({
   // The channel types to list, the ones messages can be sent to by default.
   types?: number[];
   placeholder?: string;
+  searchPlaceholder?: string;
   emptyText?: string;
 }) {
   const allChannels = useAppStateGuildChannels(guildId);
@@ -58,7 +62,7 @@ export default function ChannelSelect({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      searchPlaceholder="Search channel..."
+      searchPlaceholder={searchPlaceholder}
       emptyText={emptyText}
     />
   );
