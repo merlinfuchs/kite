@@ -14,9 +14,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// AppOwnerNotifier tells the owners of apps about the credits of their app,
-// with a DM from the app's own bot. If that fails, because the owner shares no
-// server with their bot or doesn't allow its DMs, Kite's bot sends it.
+// AppOwnerNotifier tells the owners of apps about the credits and limits of
+// their app, with a DM from the app's own bot. If that fails, because the owner
+// shares no server with their bot or doesn't allow its DMs, Kite's bot sends it.
 //
 // The terms allow these DMs as notices about the app, so they only say what
 // happened and how to get the bot running, never advertise a plan.
@@ -54,8 +54,10 @@ func (n *AppOwnerNotifier) CreditsUsedUp(app *model.App, limit int, resetAt time
 	))
 }
 
+const ownerFooter = "\n-# You get this because you own this app on Kite."
+
 func (n *AppOwnerNotifier) footer(app *model.App) string {
-	return fmt.Sprintf("\n-# You get this because you own this app on Kite. Turn these messages off in its settings: <%s/apps/%s/settings>", n.appBaseURL, app.ID)
+	return fmt.Sprintf("%s Turn these messages off in its settings: <%s/apps/%s/settings>", ownerFooter, n.appBaseURL, app.ID)
 }
 
 // dm sends the content to the owner of the app in the background.

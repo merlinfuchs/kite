@@ -41,3 +41,5 @@ You can get a full refund of the first payment of a subscription within 14 days 
 ## When a plan ends {#when-premium-ends}
 
 Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more variables or message templates than the free plan allows, or enable more commands or event listeners than it allows. The rotating status and the `Set status`, `Play audio`, `Edit server profile`, and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.
+
+If your app has more enabled commands or event listeners than the free plan allows, you get a direct message and an entry in its logs. Disable or delete some within 3 days. After that, Kite disables the newest ones until your app fits the limits. They stay disabled if you upgrade again, so enable the ones you want back yourself.

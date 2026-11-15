@@ -47,6 +47,33 @@ func (c *Client) CountEventListenersByAppAndSource(ctx context.Context, appID st
 	return store.ItemCounts{Total: int(res.Total), Enabled: int(res.Enabled)}, nil
 }
 
+func (c *Client) AppsWithEnabledEventListenersOver(ctx context.Context, minCount int) ([]store.EnabledEventListenerCount, error) {
+	rows, err := c.Q.GetAppsWithEnabledEventListenersOver(ctx, int32(minCount))
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]store.EnabledEventListenerCount, len(rows))
+	for i, row := range rows {
+		res[i] = store.EnabledEventListenerCount{
+			AppID:  row.AppID,
+			Source: model.EventSource(row.Source),
+			Count:  int(row.Count),
+		}
+	}
+	return res, nil
+}
+
+func (c *Client) DisableNewestEventListeners(ctx context.Context, appID string, source model.EventSource, keep int, updatedAt time.Time) (int, error) {
+	n, err := c.Q.DisableNewestEventListeners(ctx, pgmodel.DisableNewestEventListenersParams{
+		AppID:     appID,
+		Source:    string(source),
+		Keep:      int32(keep),
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	return int(n), err
+}
+
 func (c *Client) UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error {
 	ids := make([]string, 0, len(lastRunAts))
 	times := make([]pgtype.Timestamp, 0, len(lastRunAts))

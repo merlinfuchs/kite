@@ -46,6 +46,7 @@ type App struct {
 	DiscordVerifyKey        pgtype.Text
 	CreditsPausedAt         pgtype.Timestamp
 	CreditNoticesEnabled    bool
+	OverLimitSince          pgtype.Timestamp
 }
 
 type AppIntegration struct {

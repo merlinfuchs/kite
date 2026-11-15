@@ -61,6 +61,14 @@ type AppStore interface {
 	PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
 	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
 	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
+	// MarkAppOverLimit records that the app has more enabled commands or event
+	// listeners than its plan allows, and reports whether it wasn't before.
+	MarkAppOverLimit(ctx context.Context, appID string, now time.Time) (bool, error)
+	// AppsOverLimitSince returns when each of the apps that is marked as over
+	// its limits was first seen over them.
+	AppsOverLimitSince(ctx context.Context, appIDs []string) (map[string]time.Time, error)
+	// ClearAppsOverLimit unmarks every app but the ones in keepAppIDs.
+	ClearAppsOverLimit(ctx context.Context, keepAppIDs []string) error
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)

@@ -146,6 +146,67 @@ func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInsta
 	return items, nil
 }
 
+const disableNewestCommands = `-- name: DisableNewestCommands :execrows
+UPDATE commands SET enabled = FALSE, updated_at = $1
+WHERE id IN (
+    SELECT c.id FROM commands c
+    WHERE c.app_id = $2 AND c.enabled
+    ORDER BY c.created_at, c.id
+    OFFSET $3::INT
+)
+`
+
+type DisableNewestCommandsParams struct {
+	UpdatedAt pgtype.Timestamp
+	AppID     string
+	Keep      int32
+}
+
+// Keeps the oldest enabled ones, so running it again changes nothing.
+func (q *Queries) DisableNewestCommands(ctx context.Context, arg DisableNewestCommandsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, disableNewestCommands, arg.UpdatedAt, arg.AppID, arg.Keep)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const getAppsWithEnabledCommandsOver = `-- name: GetAppsWithEnabledCommandsOver :many
+SELECT c.app_id, COUNT(*) AS count FROM commands c
+JOIN apps a ON a.id = c.app_id AND a.enabled
+WHERE c.enabled
+    AND EXISTS (SELECT 1 FROM entitlements e WHERE e.app_id = c.app_id)
+GROUP BY c.app_id
+HAVING COUNT(*) > $1::INT
+`
+
+type GetAppsWithEnabledCommandsOverRow struct {
+	AppID string
+	Count int64
+}
+
+// Only apps that had a plan count, free apps that were over before the free
+// limits were lowered keep their commands. Stopped apps are left alone too.
+func (q *Queries) GetAppsWithEnabledCommandsOver(ctx context.Context, minCount int32) ([]GetAppsWithEnabledCommandsOverRow, error) {
+	rows, err := q.db.Query(ctx, getAppsWithEnabledCommandsOver, minCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAppsWithEnabledCommandsOverRow
+	for rows.Next() {
+		var i GetAppsWithEnabledCommandsOverRow
+		if err := rows.Scan(&i.AppID, &i.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCommand = `-- name: GetCommand :one
 SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
 `

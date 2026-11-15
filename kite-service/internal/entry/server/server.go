@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/limit"
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
@@ -184,10 +185,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	creditNotifier := notify.NewAppOwnerNotifier(pg, tokenCrypt, notifier, cfg.App.PublicBaseURL)
 	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, pg, planManager, creditNotifier)
+	limitEnforcer := limit.NewEnforcer(pg, pg, pg, pg, planManager, creditNotifier)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
+		limitEnforcer.Run(ctx)
 		commandManager.Run(ctx)
 
 		if cfg.OpenAI.APIKey != "" && cfg.Prescreen.Model != "" {
