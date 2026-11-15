@@ -125,7 +125,7 @@ func (q *Queries) DeleteOldBundleVersions(ctx context.Context, arg DeleteOldBund
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     bundle_versions.content,
     COALESCE(bundle_install_counts.total, 0)::int AS install_count,
     COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
@@ -192,6 +192,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.About,
 		&i.Bundle.Setup,
 		&i.Bundle.StaffPickedAt,
+		&i.Bundle.Featurable,
 		&i.Content,
 		&i.InstallCount,
 		&i.ActiveInstallCount,
@@ -212,7 +213,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 
 const getBundleSummaries = `-- name: GetBundleSummaries :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     bundle_listings.icon AS listing_icon,
     users.display_name AS owner_display_name,
     users.discord_id AS owner_discord_id,
@@ -261,6 +262,7 @@ func (q *Queries) GetBundleSummaries(ctx context.Context, ids []string) ([]GetBu
 			&i.Bundle.About,
 			&i.Bundle.Setup,
 			&i.Bundle.StaffPickedAt,
+			&i.Bundle.Featurable,
 			&i.ListingIcon,
 			&i.OwnerDisplayName,
 			&i.OwnerDiscordID,
@@ -311,7 +313,7 @@ func (q *Queries) GetBundleVersionNotes(ctx context.Context, bundleID string) ([
 
 const getBundlesByOwner = `-- name: GetBundlesByOwner :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
     COALESCE(bundle_install_counts.total, 0)::int AS install_count,
     COALESCE(bundle_install_counts.active, 0)::int AS active_install_count,
@@ -365,6 +367,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 			&i.Bundle.About,
 			&i.Bundle.Setup,
 			&i.Bundle.StaffPickedAt,
+			&i.Bundle.Featurable,
 			&i.Listed,
 			&i.InstallCount,
 			&i.ActiveInstallCount,
@@ -489,7 +492,7 @@ func (q *Queries) GetCreatorStats(ctx context.Context, userIds []string) ([]GetC
 
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.name, bundle_listings.description,
     bundle_versions.content,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at,
@@ -544,6 +547,7 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 			&i.Bundle.About,
 			&i.Bundle.Setup,
 			&i.Bundle.StaffPickedAt,
+			&i.Bundle.Featurable,
 			&i.BundleListing.BundleID,
 			&i.BundleListing.Icon,
 			&i.BundleListing.Category,
@@ -678,7 +682,7 @@ func (q *Queries) GetOfficialBundleVersionNotes(ctx context.Context) ([]GetOffic
 
 const getOfficialBundlesCurrentVersion = `-- name: GetOfficialBundlesCurrentVersion :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.name, bundle_listings.description,
     bundle_versions.content,
     COALESCE(bundle_install_counts.total, 0)::int AS install_count,
@@ -727,6 +731,7 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 			&i.Bundle.About,
 			&i.Bundle.Setup,
 			&i.Bundle.StaffPickedAt,
+			&i.Bundle.Featurable,
 			&i.BundleListing.BundleID,
 			&i.BundleListing.Icon,
 			&i.BundleListing.Category,
@@ -752,6 +757,76 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 	return items, nil
 }
 
+const getUncheckedFeaturableBundles = `-- name: GetUncheckedFeaturableBundles :many
+SELECT
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
+    bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.name, bundle_listings.description,
+    bundle_versions.content
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
+WHERE bundles.owner_user_id IS NOT NULL AND bundles.removed_at IS NULL AND bundles.featurable IS NULL
+ORDER BY bundles.id
+LIMIT $1
+`
+
+type GetUncheckedFeaturableBundlesRow struct {
+	Bundle        Bundle
+	BundleListing BundleListing
+	Content       []byte
+}
+
+// Users' bundles listed in the marketplace that the Featured check didn't
+// check yet, with their approved version.
+func (q *Queries) GetUncheckedFeaturableBundles(ctx context.Context, limit int32) ([]GetUncheckedFeaturableBundlesRow, error) {
+	rows, err := q.db.Query(ctx, getUncheckedFeaturableBundles, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUncheckedFeaturableBundlesRow
+	for rows.Next() {
+		var i GetUncheckedFeaturableBundlesRow
+		if err := rows.Scan(
+			&i.Bundle.ID,
+			&i.Bundle.Name,
+			&i.Bundle.Description,
+			&i.Bundle.OwnerUserID,
+			&i.Bundle.Version,
+			&i.Bundle.CreatedAt,
+			&i.Bundle.UpdatedAt,
+			&i.Bundle.SourceAppID,
+			&i.Bundle.ApprovedVersion,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
+			&i.Bundle.Icon,
+			&i.Bundle.Category,
+			&i.Bundle.About,
+			&i.Bundle.Setup,
+			&i.Bundle.StaffPickedAt,
+			&i.Bundle.Featurable,
+			&i.BundleListing.BundleID,
+			&i.BundleListing.Icon,
+			&i.BundleListing.Category,
+			&i.BundleListing.About,
+			&i.BundleListing.Faq,
+			&i.BundleListing.Setup,
+			&i.BundleListing.Position,
+			&i.BundleListing.UpdatedAt,
+			&i.BundleListing.Name,
+			&i.BundleListing.Description,
+			&i.Content,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockBundleOwner = `-- name: LockBundleOwner :exec
 SELECT pg_advisory_xact_lock(hashtext('bundles:' || $1::text))
 `
@@ -764,7 +839,7 @@ func (q *Queries) LockBundleOwner(ctx context.Context, ownerUserID string) error
 }
 
 const setBundleApprovedVersion = `-- name: SetBundleApprovedVersion :exec
-UPDATE bundles SET approved_version = $1 WHERE id = $2
+UPDATE bundles SET approved_version = $1, featurable = NULL WHERE id = $2
 `
 
 type SetBundleApprovedVersionParams struct {
@@ -772,8 +847,27 @@ type SetBundleApprovedVersionParams struct {
 	ID              string
 }
 
+// The Featured check runs again on what was approved.
 func (q *Queries) SetBundleApprovedVersion(ctx context.Context, arg SetBundleApprovedVersionParams) error {
 	_, err := q.db.Exec(ctx, setBundleApprovedVersion, arg.ApprovedVersion, arg.ID)
+	return err
+}
+
+const setBundleFeaturable = `-- name: SetBundleFeaturable :exec
+UPDATE bundles SET featurable = $1
+WHERE id = $2 AND approved_version = $3
+`
+
+type SetBundleFeaturableParams struct {
+	Featurable      pgtype.Bool
+	ID              string
+	ApprovedVersion pgtype.Int4
+}
+
+// Only if the version is still the approved one, so a check of an older one
+// doesn't count for a newer one.
+func (q *Queries) SetBundleFeaturable(ctx context.Context, arg SetBundleFeaturableParams) error {
+	_, err := q.db.Exec(ctx, setBundleFeaturable, arg.Featurable, arg.ID, arg.ApprovedVersion)
 	return err
 }
 
@@ -853,7 +947,7 @@ UPDATE bundles SET
     version = $1,
     updated_at = $2
 WHERE id = $3 AND version = $4
-RETURNING id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, approved_version, removed_at, removed_reason, icon, category, about, setup, staff_picked_at
+RETURNING id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, approved_version, removed_at, removed_reason, icon, category, about, setup, staff_picked_at, featurable
 `
 
 type UpdateBundleVersionParams struct {
@@ -890,6 +984,7 @@ func (q *Queries) UpdateBundleVersion(ctx context.Context, arg UpdateBundleVersi
 		&i.About,
 		&i.Setup,
 		&i.StaffPickedAt,
+		&i.Featurable,
 	)
 	return i, err
 }

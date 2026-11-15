@@ -276,8 +276,29 @@ LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 LEFT JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.id = ANY(@ids::text[]);
 
+-- The Featured check runs again on what was approved.
 -- name: SetBundleApprovedVersion :exec
-UPDATE bundles SET approved_version = @approved_version WHERE id = @id;
+UPDATE bundles SET approved_version = @approved_version, featurable = NULL WHERE id = @id;
+
+-- Users' bundles listed in the marketplace that the Featured check didn't
+-- check yet, with their approved version.
+-- name: GetUncheckedFeaturableBundles :many
+SELECT
+    sqlc.embed(bundles),
+    sqlc.embed(bundle_listings),
+    bundle_versions.content
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
+WHERE bundles.owner_user_id IS NOT NULL AND bundles.removed_at IS NULL AND bundles.featurable IS NULL
+ORDER BY bundles.id
+LIMIT $1;
+
+-- Only if the version is still the approved one, so a check of an older one
+-- doesn't count for a newer one.
+-- name: SetBundleFeaturable :exec
+UPDATE bundles SET featurable = @featurable
+WHERE id = @id AND approved_version = @approved_version;
 
 -- Only users' bundles that weren't taken down can be picked.
 -- name: SetBundleStaffPickedAt :execrows

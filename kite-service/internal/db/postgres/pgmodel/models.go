@@ -114,6 +114,7 @@ type Bundle struct {
 	About           []byte
 	Setup           []byte
 	StaffPickedAt   pgtype.Timestamp
+	Featurable      pgtype.Bool
 }
 
 type BundleInstall struct {

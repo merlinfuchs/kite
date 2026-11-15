@@ -164,7 +164,8 @@ export function templateCategory(template: Template) {
 
 // featuredTemplates are the templates the marketplace shows first: up to
 // three made by users, one per creator, picked again every day. Kite's own
-// have their own rows, so the community's get the spot. day is the number of
+// have their own rows, so the community's get the spot. Only staff picks and
+// the ones an AI check found good enough are featured. day is the number of
 // days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
   const seen = new Set<string>();
@@ -172,9 +173,7 @@ export function featuredTemplates(templates: Template[], day: number) {
     templates
       .filter(
         (t) =>
-          t.author.kind === "user" &&
-          t.listed &&
-          (t.installs ?? 0) >= minFeaturedInstalls
+          t.author.kind === "user" && t.listed && (t.staffPick || t.featurable)
       )
       // A different order of them every day.
       .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
@@ -189,10 +188,6 @@ export function featuredTemplates(templates: Template[], day: number) {
       .slice(0, 3)
   );
 }
-
-// Users' templates need a few installs to be featured, so the ones nobody
-// tried yet don't get the top of the marketplace.
-const minFeaturedInstalls = 10;
 
 // utcDay is the day featuredTemplates picks for.
 export function utcDay(date = new Date()) {
@@ -510,6 +505,8 @@ export type Template = {
   stars?: number;
   // Whether Kite picked it, which only templates of users can be.
   staffPick?: boolean;
+  // Whether an AI check found a user's template good enough to be featured.
+  featurable?: boolean;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -649,6 +646,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     activeInstalls: bundle.active_install_count,
     stars: bundle.star_count,
     staffPick: bundle.staff_pick,
+    featurable: bundle.featurable,
     createdAt: bundle.created_at,
   };
 }
