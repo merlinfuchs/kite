@@ -590,8 +590,10 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
-// Below this, a star count makes a template look unused, so it isn't shown.
-export const minShownStars = 5;
+// Only a count of zero is hidden, since it says nothing. Any higher threshold
+// made a creator's total (all of their stars) disagree with the cards, where
+// only the templates over it showed theirs.
+export const minShownStars = 1;
 
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing,
