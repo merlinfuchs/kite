@@ -327,6 +327,41 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 	}
 }
 
+// Handlers only get the events shouldHandleEvent lets through for their type,
+// so bots and the app's own reactions don't run listeners, and boost
+// listeners only run on boosts.
+func TestRoutesForEventFilters(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost))
+	app.AddEventListener(testListener("reaction", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageReactionAdd))
+
+	const botID = discord.UserID(42)
+	botMessage := discord.Message{GuildID: 1, Author: discord.User{ID: 7, Bot: true}}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"member message", &gateway.MessageCreateEvent{Message: discord.Message{GuildID: 1}}, []string{"create"}},
+		{"bot message", &gateway.MessageCreateEvent{Message: botMessage}, nil},
+		{"bot message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: botMessage}}, nil},
+		{"boost", testBoostEvent(discord.NitroBoostMessage), []string{"create", "boost"}},
+		{"member reaction", &gateway.MessageReactionAddEvent{UserID: 7}, []string{"reaction"}},
+		{"own reaction", &gateway.MessageReactionAddEvent{UserID: botID}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routes, _ := app.routesForEvent(tt.event, botID)
+			if got := listenerIDs(routes); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // Plugins subscribed to messages must not get the DMs a direct message
 // listener brings in.
 func TestPluginsIgnoreDirectMessages(t *testing.T) {

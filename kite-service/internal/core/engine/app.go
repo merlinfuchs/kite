@@ -334,25 +334,45 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		routes := a.listenersForEvent(event)
-		if len(routes) == 0 {
-			return
-		}
-		// Listeners get Discord's event, so stored triggers and flows don't
-		// need to know MessageEdit.
-		if e, ok := event.(*guildevent.MessageEdit); ok {
-			event = &e.MessageUpdateEvent
-		}
 		var botID discord.UserID
 		if session != nil {
 			botID = session.Ready().User.ID
 		}
+		routes, event := a.routesForEvent(event, botID)
 		for _, route := range routes {
-			if shouldHandleEvent(route.eventType, event, botID) {
-				go route.handler.handleEvent(route.eventType, session, event)
-			}
+			go route.handler.handleEvent(route.eventType, session, event)
 		}
 	}
+}
+
+// routesForEvent returns the handlers that run for an event, after
+// shouldHandleEvent, and the event they get. Handlers get Discord's event, so
+// stored triggers and flows don't need to know MessageEdit. botID is the
+// app's own user, zero if unknown.
+func (a *App) routesForEvent(event gateway.Event, botID discord.UserID) ([]eventRoute, gateway.Event) {
+	routes := a.listenersForEvent(event)
+	if len(routes) == 0 {
+		return nil, event
+	}
+	if e, ok := event.(*guildevent.MessageEdit); ok {
+		event = &e.MessageUpdateEvent
+	}
+
+	// The routes of a type are next to each other, so the filter runs once
+	// per type rather than once per handler.
+	handled := make([]eventRoute, 0, len(routes))
+	var lastType model.EventListenerType
+	var ok bool
+	for i, route := range routes {
+		if i == 0 || route.eventType != lastType {
+			lastType = route.eventType
+			ok = shouldHandleEvent(route.eventType, event, botID)
+		}
+		if ok {
+			handled = append(handled, route)
+		}
+	}
+	return handled, event
 }
 
 // listenersForEvent returns the handlers an event is dispatched to.
