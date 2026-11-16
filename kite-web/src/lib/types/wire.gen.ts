@@ -1262,6 +1262,10 @@ export interface FlowTestRequest {
    */
   flow_source?: FlowData;
   /**
+   * A draft of the message template to test instead of the saved one.
+   */
+  message?: FlowTestMessage;
+  /**
    * The button or select menu of a message to test, by its flow.
    */
   flow_source_id?: string;
@@ -1301,6 +1305,10 @@ export interface FlowTestRequest {
    * What the user does after the flow ran, in order.
    */
   then?: FlowTestAction[];
+}
+export interface FlowTestMessage {
+  data: MessageData;
+  flow_sources: { [key: string]: FlowData};
 }
 export interface FlowTestWebhook {
   body: string;

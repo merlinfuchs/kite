@@ -18,6 +18,8 @@ import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
 import { useFlowParametersStore } from "@/lib/flow/parametersStore";
 import { isNoteNode } from "@/lib/flow/notes";
+import { FlowTestTarget } from "@/lib/flow/flowTest";
+import FlowTestDrawer from "./FlowTestDrawer";
 
 interface Props {
   flowData: FlowData;
@@ -33,6 +35,8 @@ interface Props {
   editorRef?: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the AI's changes.
   saveCount?: number;
+  // What a test runs, flows without one can't be tested.
+  testTarget?: FlowTestTarget;
 }
 
 export default function Flow({
@@ -45,6 +49,7 @@ export default function Flow({
   onChatOpenChange,
   editorRef: outerEditorRef,
   saveCount,
+  testTarget,
 }: Props) {
   const isMobile = useIsMobile();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -52,6 +57,7 @@ export default function Flow({
   const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -139,6 +145,7 @@ export default function Flow({
       store.getState().addSelectedNodes([id]);
       editorRef.current?.showNodes([id]);
       setLogsOpen(false);
+      setTestOpen(false);
     },
     [store, editorRef]
   );
@@ -161,6 +168,7 @@ export default function Flow({
         <FlowMenu
           selectedNodeId={selectedNodeId}
           logs={logs}
+          testTarget={testTarget}
           onShowNode={showNode}
         />
 
@@ -206,13 +214,18 @@ export default function Flow({
         <FlowMobileBottomBar
           selectedNodeId={selectedNodeId}
           hidden={
-            mobileEditorOpen || addBlockOpen || logsOpen || parametersOpen
+            mobileEditorOpen ||
+            addBlockOpen ||
+            logsOpen ||
+            parametersOpen ||
+            testOpen
           }
           onAddBlock={() => setAddBlockOpen(true)}
           onEditNode={() => setMobileEditorOpen(true)}
           onDeselectNode={deselectNode}
           onOpenLogs={() => setLogsOpen(true)}
           onOpenParameters={() => setParametersOpen(true)}
+          onOpenTest={testTarget ? () => setTestOpen(true) : undefined}
           onFitView={handleFitView}
           onUndo={handleUndo}
           onRedo={handleRedo}
@@ -240,6 +253,15 @@ export default function Flow({
           onOpenChange={setLogsOpen}
           onShowNode={showNode}
         />
+
+        {testTarget && (
+          <FlowTestDrawer
+            target={testTarget}
+            open={testOpen}
+            onOpenChange={setTestOpen}
+            onShowNode={showNode}
+          />
+        )}
 
         <FlowParametersDrawer
           open={parametersOpen}

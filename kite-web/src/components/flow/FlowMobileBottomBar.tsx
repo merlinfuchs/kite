@@ -10,6 +10,7 @@ import { useReactFlow } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 import {
+  FlaskConicalIcon,
   ListTreeIcon,
   Maximize2Icon,
   MessageSquareWarningIcon,
@@ -31,6 +32,8 @@ interface Props {
   onDeselectNode: () => void;
   onOpenLogs: () => void;
   onOpenParameters: () => void;
+  // Unset for flows that can't be tested.
+  onOpenTest?: () => void;
   onFitView: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -49,6 +52,7 @@ export default function FlowMobileBottomBar({
   onDeselectNode,
   onOpenLogs,
   onOpenParameters,
+  onOpenTest,
   onFitView,
   onUndo,
   onRedo,
@@ -186,6 +190,12 @@ export default function FlowMobileBottomBar({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end">
+            {onOpenTest && (
+              <DropdownMenuItem onClick={onOpenTest}>
+                <FlaskConicalIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+                Test
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onFormat}>
               <ListTreeIcon className="h-4 w-4 mr-2 text-muted-foreground" />
               Auto arrange layout

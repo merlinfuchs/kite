@@ -5,6 +5,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 // FlowTestRequest runs a flow without changing anything. Reads from Discord
@@ -14,6 +15,8 @@ type FlowTestRequest struct {
 	// A draft of the flow to test instead of the saved one, for commands and
 	// event listeners.
 	FlowSource *flow.FlowData `json:"flow_source,omitempty"`
+	// A draft of the message template to test instead of the saved one.
+	Message *FlowTestMessage `json:"message,omitempty"`
 	// The button or select menu of a message to test, by its flow.
 	FlowSourceID string `json:"flow_source_id,omitempty"`
 
@@ -45,11 +48,23 @@ func (req FlowTestRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		// Drafts are checked like the flows that are saved.
 		validation.Field(&req.FlowSource),
+		validation.Field(&req.Message),
 		validation.Field(&req.Mocks, validation.Length(0, 100)),
 		validation.Field(&req.Variables, validation.Length(0, 100)),
 		validation.Field(&req.Values, validation.Length(0, 25)),
 		validation.Field(&req.Options, validation.Length(0, 25)),
 		validation.Field(&req.Then),
+	)
+}
+
+type FlowTestMessage struct {
+	Data        message.MessageData      `json:"data"`
+	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+}
+
+func (m FlowTestMessage) Validate() error {
+	return validation.ValidateStruct(&m,
+		validation.Field(&m.FlowSources),
 	)
 }
 
