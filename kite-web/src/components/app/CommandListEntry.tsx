@@ -52,6 +52,7 @@ import CommandDuplicateDialog from "./CommandDuplicateDialog";
 import { PlanLimit, PlanLimitGate } from "./PlanLimit";
 import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
+import { useMoveToFolder } from "./ItemFolders";
 
 const commandTypeIcons = {
   chat_input: SlashSquareIcon,
@@ -75,6 +76,7 @@ export default function CommandListEntry({
   const TypeIcon = commandTypeIcons[commandType];
 
   const deleteMutation = useCommandDeleteMutation(appId, command.id);
+  const folder = useMoveToFolder(command);
   const updateEnabledMutation = useCommandUpdateEnabledMutation(
     appId,
     command.id
@@ -194,9 +196,11 @@ export default function CommandListEntry({
                   Export command
                 </DropdownMenuItem>
               </FlowExportDialog>
+              {folder.menu}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        {folder.dialog}
       </CardFooter>
     </Card>
   );

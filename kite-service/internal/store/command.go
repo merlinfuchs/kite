@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 // ItemCounts counts the commands or event listeners of an app. Only the
@@ -23,6 +24,9 @@ type CommandStore interface {
 	// UpdateCommandEnabled changes, so neither reverts the other.
 	UpdateCommand(ctx context.Context, command *model.Command, change ItemChange) (*model.Command, error)
 	UpdateCommandEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.Command, error)
+	// UpdateCommandsFolder moves the app's commands with the IDs into the
+	// folder, or out of any with a null folder. IDs of other apps are skipped.
+	UpdateCommandsFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.Command, error)
 	EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error)
 	EnabledCommandIDs(ctx context.Context) ([]string, error)
 	// DeleteCommand keeps the command's flow in its version history.

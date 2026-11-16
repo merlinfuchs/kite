@@ -1017,6 +1017,7 @@ export interface Command {
   enabled: boolean;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
@@ -1054,6 +1055,7 @@ export interface CommandUpdateEnabledRequest {
   enabled: boolean;
 }
 export type CommandUpdateEnabledResponse = Command;
+export type CommandsUpdateFolderResponse = (Command | undefined)[];
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
 
@@ -1093,6 +1095,7 @@ export interface EventListener {
   enabled: boolean;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
@@ -1132,6 +1135,7 @@ export interface EventListenerUpdateEnabledRequest {
   enabled: boolean;
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
+export type EventListenersUpdateFolderResponse = (EventListener | undefined)[];
 export type EventListenerDeleteResponse = Empty;
 export type EventListenerWebhookSecretRegenerateResponse = EventListener;
 export type EventListenerWebhookResponse = Empty;
@@ -1392,6 +1396,19 @@ export interface FlowTestEffect {
 }
 
 //////////
+// source: folder.go
+
+/**
+ * FolderUpdateRequest moves commands, event listeners or messages into a
+ * folder, or out of any with a null or empty folder. Renaming a folder moves
+ * all of its items.
+ */
+export interface FolderUpdateRequest {
+  ids: string[];
+  folder: null | string;
+}
+
+//////////
 // source: http_request_test_run.go
 
 /**
@@ -1586,6 +1603,7 @@ export interface Message {
   description: null | string;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
@@ -1621,6 +1639,7 @@ export interface MessageUpdateRequest {
   base_version?: string;
 }
 export type MessageUpdateResponse = Message;
+export type MessagesUpdateFolderResponse = (Message | undefined)[];
 export type MessageDeleteResponse = Empty;
 export interface MessageInstance {
   id: number /* uint64 */;

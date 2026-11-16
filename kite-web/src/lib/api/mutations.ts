@@ -141,6 +141,10 @@ import {
   UserBanCreateRequest,
   UserBanCreateResponse,
   UserBanDeleteResponse,
+  FolderUpdateRequest,
+  CommandsUpdateFolderResponse,
+  EventListenersUpdateFolderResponse,
+  MessagesUpdateFolderResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { APIResponse } from "./response";
@@ -367,6 +371,34 @@ export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
       // The dashboard counts the enabled ones.
       client.invalidateQueries({
         queryKey: ["apps", appId, "entities"],
+      });
+    },
+  });
+}
+
+export type FolderItemKind = "commands" | "event-listeners" | "messages";
+
+// useFolderUpdateMutation moves items into a folder, or out of any with a null
+// folder. Renaming a folder moves all of its items.
+export function useFolderUpdateMutation(appId: string, kind: FolderItemKind) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FolderUpdateRequest) =>
+      apiRequest<
+        | CommandsUpdateFolderResponse
+        | EventListenersUpdateFolderResponse
+        | MessagesUpdateFolderResponse
+      >(`/v1/apps/${appId}/${kind}/folder`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, kind],
       });
     },
   });
