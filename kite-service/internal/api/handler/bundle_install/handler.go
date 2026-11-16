@@ -711,8 +711,9 @@ func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code
 // currentBundle returns the version of the bundle apps install, if the user
 // can see the bundle, with the name and description it's shown with. Versions
 // of users' bundles have none, and older ones have the ones they were
-// published with. The app a bundle is made from has the originals of its
-// items, so it can't install it.
+// published with. The app a bundle is made from can install it like any
+// other app: the items it adds are copies linked to the install, and names
+// that are taken get a number.
 func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), id)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -720,9 +721,6 @@ func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bu
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
 		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
-	}
-	if b.SourceAppID.Valid && b.SourceAppID.String == c.App.ID {
-		return nil, handler.ErrBadRequest("bundle_source_app", "the template is made from this app, which has its items already")
 	}
 	content, err := bundle.Parse(b.Content)
 	if err != nil {

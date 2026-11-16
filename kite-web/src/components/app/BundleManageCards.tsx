@@ -63,7 +63,8 @@ export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
       <p className="text-sm text-muted-foreground mb-4">
         This app has the commands, event listeners and messages the template is
         made of. Change them here, then publish an update so apps that added the
-        template get your changes.
+        template get your changes. You can also add the template to this app
+        like to any other, which adds copies of its items.
       </p>
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>

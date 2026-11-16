@@ -248,7 +248,7 @@ func TestChatSendsTemplates(t *testing.T) {
 	assert.Equal(t, []flowai.Template{
 		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
 		{ID: "popular", Name: "Popular", Added: true},
-		{ID: "mine", Name: "Mine", Added: true},
+		{ID: "mine", Name: "Mine"},
 	}, s.assistant.req.Templates)
 }
 

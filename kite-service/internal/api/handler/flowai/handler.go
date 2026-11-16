@@ -313,8 +313,7 @@ func (h *FlowAIHandler) templates(ctx context.Context, appID string) ([]flowai.T
 			Description: b.Listing.Description,
 			Category:    b.Listing.Category,
 			Official:    !b.OwnerUserID.Valid,
-			// The app a user's template is made from can't add it.
-			Added: added[b.ID] || (b.SourceAppID.Valid && b.SourceAppID.String == appID),
+			Added:       added[b.ID],
 		}
 	}
 	return res, nil

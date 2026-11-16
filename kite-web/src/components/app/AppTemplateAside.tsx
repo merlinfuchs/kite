@@ -16,14 +16,13 @@ export default function AppTemplateAside({
   from?: string;
 }) {
   const appId = useAppId();
-  // The app a listed bundle of the user is made from can't add it.
+  // The app a listed bundle of the user is made from can add it too, the
+  // card above says it's where the template is published from.
   const own = useUserBundles()?.find((b) => b?.id === template.id);
-  if (own && own.source_app_id === appId) {
-    return <SourceAppCard bundle={own} />;
-  }
 
   return (
     <div className="space-y-5">
+      {own && own.source_app_id === appId && <SourceAppCard bundle={own} />}
       <TemplateInstalledCard template={template} />
       <TemplateInstallCard template={template} from={from} />
     </div>

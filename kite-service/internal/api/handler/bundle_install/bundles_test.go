@@ -232,10 +232,10 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	id := res["data"].(map[string]any)["id"].(string)
 
 	var current *bundle.Bundle
-	get := func(userID string) error {
+	getIn := func(appID, userID string) error {
 		var err error
 		srv := handler.APIHandler(func(c *handler.Context) error {
-			c.App = &model.App{ID: "other_app"}
+			c.App = &model.App{ID: appID}
 			c.Session = &model.Session{UserID: userID}
 			current, err = h.currentBundle(c, id)
 			return nil
@@ -244,15 +244,15 @@ func TestCurrentBundleOfUser(t *testing.T) {
 		return err
 	}
 
+	get := func(userID string) error { return getIn("other_app", userID) }
+
 	assert.NoError(t, get("user"))
 	assert.NoError(t, get("other_user"))
 	// Installs get the name it's shown with, which the version doesn't have.
 	assert.Equal(t, "Mod", current.Name)
 
-	// The app it's made from has its items already.
-	install := handler.TypedWithBody(h.HandleBundleInstallCreate)
-	code, res = callAs(t, install, "user", "app", "", wire.BundleInstallCreateRequest{BundleID: id, BundleVersion: 1, Items: []string{"cmd0"}})
-	assert.Equal(t, "bundle_source_app", errorCode(res), code)
+	// The app it's made from can add it too.
+	assert.NoError(t, getIn("app", "user"))
 
 	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
 	assert.NoError(t, get("user"))

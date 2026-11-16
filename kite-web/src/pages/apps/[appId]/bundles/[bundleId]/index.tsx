@@ -18,7 +18,7 @@ import { useTemplate } from "@/lib/hooks/templates";
 import { BundleInstall } from "@/lib/types/wire.gen";
 
 // AppBundlePage shows a bundle like a template, so it can be added to the app
-// and updated. The app it's made from has its items already.
+// and updated. The app it's made from can add it too.
 export default function AppBundlePage() {
   const appId = useAppId();
   const bundleId = useBundleId();
@@ -56,12 +56,8 @@ export default function AppBundlePage() {
                 ) : (
                   <OtherSourceAppCard bundle={own} />
                 ))}
-              {!fromHere && (
-                <>
-                  <TemplateInstalledCard template={template} />
-                  <TemplateInstallCard template={template} />
-                </>
-              )}
+              <TemplateInstalledCard template={template} />
+              <TemplateInstallCard template={template} />
               {own && <BundleManageCards bundle={own} />}
             </div>
           }
