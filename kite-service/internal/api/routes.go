@@ -155,6 +155,10 @@ func (s *APIServer) RegisterRoutes(
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
+	usersGroup.Patch("/@me",
+		handler.TypedWithBody(userHandler.HandleUserUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// API token routes. They don't allow API tokens, like every group without
 	// AllowAPIToken, so a leaked token can't make more.

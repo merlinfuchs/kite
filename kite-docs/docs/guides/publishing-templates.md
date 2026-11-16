@@ -62,6 +62,8 @@ New versions and changes to the page are reviewed too. Until they're approved, a
 
 Your listed templates are on your creator page, which your name on their pages links to.
 
+You can add a bio to your creator page to tell people who you are and what you make. Open your creator page while you're logged in and click Add a bio under your name. It's plain text of up to 300 characters on at most 5 lines, and everyone can see it. If Kite banned you from the Marketplace, you can't change your bio.
+
 Your creator page shows your badges, which you also see in the menu of your account in the dashboard. Hover over a badge to see what it's for.
 
 - Template creator, in green once your first template is listed. It turns cyan, purple or gold once 10, 100 or 1,000 different people added any of your listed templates. Your own apps don't count.

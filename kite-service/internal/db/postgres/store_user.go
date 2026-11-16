@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -87,6 +88,25 @@ func (c *Client) UpsertUser(ctx context.Context, user *model.User) (*model.User,
 	return rowToUser(row), nil
 }
 
+func (c *Client) UpdateUserBio(ctx context.Context, userID string, bio string, updatedAt time.Time) (*model.User, error) {
+	row, err := c.Q.UpdateUserBio(ctx, pgmodel.UpdateUserBioParams{
+		ID:  userID,
+		Bio: bio,
+		UpdatedAt: pgtype.Timestamp{
+			Time:  updatedAt.UTC(),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToUser(row), nil
+}
+
 func rowToUser(row pgmodel.User) *model.User {
 	return &model.User{
 		ID:              row.ID,
@@ -95,6 +115,7 @@ func rowToUser(row pgmodel.User) *model.User {
 		DiscordID:       row.DiscordID,
 		DiscordUsername: row.DiscordUsername,
 		DiscordAvatar:   null.NewString(row.DiscordAvatar.String, row.DiscordAvatar.Valid),
+		Bio:             row.Bio,
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
 	}

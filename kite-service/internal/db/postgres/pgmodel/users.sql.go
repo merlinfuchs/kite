@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, bio FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -27,12 +27,13 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bio,
 	)
 	return i, err
 }
 
 const getUserByAppDiscordID = `-- name: GetUserByAppDiscordID :one
-SELECT users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM apps
+SELECT users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio FROM apps
 JOIN users ON users.id = apps.owner_user_id
 WHERE apps.discord_id = $1
 `
@@ -49,12 +50,13 @@ func (q *Queries) GetUserByAppDiscordID(ctx context.Context, discordID string) (
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bio,
 	)
 	return i, err
 }
 
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE discord_id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, bio FROM users WHERE discord_id = $1
 `
 
 func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (User, error) {
@@ -69,12 +71,13 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bio,
 	)
 	return i, err
 }
 
 const getUserByDiscordUsername = `-- name: GetUserByDiscordUsername :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE lower(discord_username) = lower($1)
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, bio FROM users WHERE lower(discord_username) = lower($1)
 ORDER BY updated_at DESC
 LIMIT 1
 `
@@ -91,6 +94,38 @@ func (q *Queries) GetUserByDiscordUsername(ctx context.Context, lower string) (U
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bio,
+	)
+	return i, err
+}
+
+const updateUserBio = `-- name: UpdateUserBio :one
+UPDATE users SET
+    bio = $2,
+    updated_at = $3
+WHERE id = $1
+RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, bio
+`
+
+type UpdateUserBioParams struct {
+	ID        string
+	Bio       string
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpdateUserBio(ctx context.Context, arg UpdateUserBioParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserBio, arg.ID, arg.Bio, arg.UpdatedAt)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.DiscordID,
+		&i.DiscordUsername,
+		&i.DiscordAvatar,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Bio,
 	)
 	return i, err
 }
@@ -115,7 +150,7 @@ DO UPDATE SET
     discord_username = EXCLUDED.discord_username,
     discord_avatar = EXCLUDED.discord_avatar,
     updated_at = EXCLUDED.updated_at
-RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at
+RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, bio
 `
 
 type UpsertUserParams struct {
@@ -150,6 +185,7 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Bio,
 	)
 	return i, err
 }

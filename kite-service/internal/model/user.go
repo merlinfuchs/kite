@@ -13,9 +13,18 @@ type User struct {
 	DiscordID       string
 	DiscordUsername string
 	DiscordAvatar   null.String
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// Bio is the text they show on their creator page, empty if they have
+	// none.
+	Bio       string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
+
+// MaxUserBioLength is how many characters a bio can have.
+const MaxUserBioLength = 300
+
+// MaxUserBioLines is how many lines a bio can have.
+const MaxUserBioLines = 5
 
 // UserBanFeature is a feature Kite can ban users from.
 type UserBanFeature string

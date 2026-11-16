@@ -428,6 +428,7 @@ type User struct {
 	DiscordAvatar   pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Bio             string
 }
 
 type UserBadgeGrant struct {
