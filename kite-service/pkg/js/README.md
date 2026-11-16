@@ -1,15 +1,18 @@
 # pkg/js
 
-`pkg/js` runs the code of the Run JavaScript block. Scripts run in QuickJS-NG compiled to WebAssembly, inside the service through [wazero](https://wazero.io). See `design/javascript.md` for why it's built this way, the measurements behind the limits, and the plans for host functions and modules.
+`pkg/js` runs the code of the Run JavaScript block and of modules. Scripts run in QuickJS-NG compiled to WebAssembly, inside the service through [wazero](https://wazero.io). See `design/javascript.md` for why it's built this way, the measurements behind the limits, and the plans for host functions and modules.
 
 `Run` takes the code and its input, and returns the JSON of what the code returns or an `*Error` with a message for the user. Every run gets a fresh Wasm instance, so nothing a script does carries over to the next one.
+
+A module is the code of a whole app, whose top level registers handlers with `discord.command`, `discord.on` and `discord.component`. `LoadModule` runs the top level and returns what it registered. `RunModule` runs one handler. Loading takes a snapshot of the instance, and every run of a handler starts from it in a fresh instance. The snapshots are cached by the hash of the code, so a module only loads again when it changed or was dropped from the cache. Modules have their own limits, like 100 ms of CPU instead of 25 ms.
 
 The package is made of these files:
 
 - `js.go` has `Run`, the limits and the conversion of errors.
+- `module.go` has `LoadModule`, `RunModule` and the cache of snapshots of modules.
 - `runtime.go` compiles the module, takes the snapshot every run starts from, and has the host functions.
-- `prelude.js` runs once before the snapshot. It defines the globals scripts get, like `formatDate` and `fetch`, which wraps the `http.request` call, and removes `kite.call` so scripts only reach what it wraps.
-- `wasm/kite.c` is the C glue between QuickJS-NG and Go: the imports from Go, `kite_init` and `kite_run`.
+- `prelude.js` runs once before the snapshot. It defines the globals scripts get, like `formatDate` and `fetch`, which wraps the `http.request` call, and removes `kite.call` so scripts only reach what it wraps. It also has what modules register handlers with and the dispatch to them.
+- `wasm/kite.c` is the C glue between QuickJS-NG and Go: the imports from Go, `kite_init`, `kite_limit` and `kite_run`.
 - `kite.wasm` is QuickJS-NG and `kite.c` built by `wasm/build.sh`. It's committed, because building it needs wasi-sdk.
 
 Changes to `prelude.js` and the Go files don't need `kite.wasm` rebuilt, as the prelude is embedded in the service and runs when it starts. Changes to `wasm/kite.c` and upgrades of QuickJS-NG do:
