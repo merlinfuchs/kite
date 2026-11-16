@@ -48,8 +48,10 @@ export default function SearchableList<T>({
 
   const searchable = items.length >= minSearchItems;
   const query = searchable ? search : "";
+  // Searching a group's name finds all of its items.
   const filtered = items.filter(
-    (item): item is T => !!item && matchesSearch(query, fields(item))
+    (item): item is T =>
+      !!item && matchesSearch(query, [...fields(item), groups?.of(item)?.name])
   );
 
   return (
