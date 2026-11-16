@@ -11,7 +11,11 @@ import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { Message, Variable } from "../types/wire.gen";
 import { useMessages, useVariables } from "../hooks/api";
-import { FlowTestState, initialFlowTestState } from "./flowTest";
+import {
+  FlowTestState,
+  flowTestNodeStatus,
+  initialFlowTestState,
+} from "./flowTest";
 
 // Read-only previews, like the flows of a template, don't show the validation
 // markers on blocks. Their parameters are only filled in when the template is
@@ -98,7 +102,13 @@ export interface FlowContextStore {
   // The form and result of the test panel, kept while it's closed.
   test: FlowTestState;
   setTest(update: (test: FlowTestState) => FlowTestState): void;
+  // How the blocks ran in the last test, shown on them until it's cleared.
+  testNodeStatus: Record<string, TestNodeStatus>;
 }
+
+// A block that ran in a test failed, would likely be rejected by Discord, or
+// ran without either.
+export type TestNodeStatus = "ok" | "warning" | "error";
 
 export const createFlowContextStore = () => {
   return create<FlowContextStore>()(
@@ -109,7 +119,16 @@ export const createFlowContextStore = () => {
       aiChangedNodeIds: [],
       setAIChangedNodeIds: (ids) => set({ aiChangedNodeIds: ids }),
       test: initialFlowTestState,
-      setTest: (update) => set({ test: update(get().test) }),
+      setTest: (update) => {
+        const prev = get().test;
+        const test = update(prev);
+        set(
+          test.last?.result === prev.last?.result
+            ? { test }
+            : { test, testNodeStatus: flowTestNodeStatus(test.last?.result) }
+        );
+      },
+      testNodeStatus: {},
     }))
   );
 };
@@ -161,5 +180,13 @@ export function useChangedByAI(nodeId: string) {
   const store = useContext(FlowContextStoreContext);
   return useStore(store ?? emptyContextStore, (s) =>
     s.aiChangedNodeIds.includes(nodeId)
+  );
+}
+
+export function useTestNodeStatus(nodeId: string) {
+  const store = useContext(FlowContextStoreContext);
+  return useStore(
+    store ?? emptyContextStore,
+    (s) => s.testNodeStatus[nodeId] as TestNodeStatus | undefined
   );
 }

@@ -118,6 +118,16 @@ func TestRunErrors(t *testing.T) {
 	}
 }
 
+func TestRunRandom(t *testing.T) {
+	res, err := Run(context.Background(), Options{
+		Code:    `return [Math.random(), Math.random()]`,
+		Random:  func() float64 { return 0.25 },
+		timeout: testTimeout,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, `[0.25,0.25]`, string(res))
+}
+
 func TestRunInputTooLarge(t *testing.T) {
 	_, err := run(t, `return 1`, strings.Repeat("x", MaxInputLength))
 	assert.EqualError(t, err, "the inputs are more than 1 MB")

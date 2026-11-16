@@ -114,6 +114,9 @@ type Options struct {
 	// background while the code waits. Every call has returned when Run does.
 	Host func(name string) HostFunc
 
+	// Random is Math.random, so test runs can pick the same each time.
+	Random func() float64
+
 	// timeout replaces Timeout in tests, which can't rely on getting a busy
 	// CI machine's CPU for 25 ms. wallTime replaces MaxWallTime.
 	timeout  time.Duration
@@ -219,6 +222,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 
 	logged, entries := 0, 0
 	st := &runState{
+		random:  opts.Random,
 		host:    opts.Host,
 		hostCtx: hostCtx,
 		results: make(chan callResult, MaxCalls),

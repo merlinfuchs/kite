@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"runtime/debug"
 	"slices"
 	"sync"
@@ -87,6 +88,9 @@ type Test struct {
 	Webhook *Webhook
 
 	Mocks map[string]flow.TestMock
+	// Seed makes the test pick the same at random each time it runs, see
+	// flow.TestRandom. 0 picks a seed.
+	Seed uint64
 	// Values of stored variables before the test, in place of the stored
 	// ones.
 	Variables []Variable
@@ -129,6 +133,9 @@ type Result struct {
 	Credits int
 	// Mocked blocks that never ran, likely wrong IDs.
 	UnusedMocks []string
+	// The index of the action of Then that couldn't be done, like a click on
+	// a button the flow didn't send. Its error is the last execution.
+	FailedAction *int
 }
 
 // Execution is one run of a flow in a test, like the command or a
@@ -142,6 +149,9 @@ type Execution struct {
 	Notes []string
 	// The error that ended the execution, if no Error Handler caught it.
 	Error string
+	// OtherFlow is set for runs of a flow other than the one tested, like
+	// the flow of a button on a message template the tested flow sent.
+	OtherFlow bool
 }
 
 // Runner runs test runs of flows for the API, see Test. Flows run with the
@@ -187,7 +197,11 @@ func (r *Runner) Run(ctx context.Context, appID string, test Test) (*Result, err
 		return nil, testErrorf("the flow is invalid: %v", err)
 	}
 
-	s := newTestSession(r.env, appID, session, test.Mocks)
+	seed := test.Seed
+	if seed == 0 {
+		seed = rand.Uint64()
+	}
+	s := newTestSession(r.env, appID, session, test.Mocks, flow.NewTestRandom(seed))
 	if err := s.setVariables(ctx, test.Variables); err != nil {
 		return nil, err
 	}
@@ -213,6 +227,7 @@ func (r *Runner) Run(ctx context.Context, appID string, test Test) (*Result, err
 				Trigger: fmt.Sprintf("Step %d", i+1),
 				Error:   testErr.Message,
 			})
+			s.result.FailedAction = &i
 			break
 		}
 	}
@@ -236,11 +251,17 @@ func (r *Runner) Run(ctx context.Context, appID string, test Test) (*Result, err
 // testSession is the state of a test, shared by its executions: what the
 // flows sent and changed, so later steps see it.
 type testSession struct {
-	env     engine.Env
-	appID   string
-	session *state.State
-	botID   discord.UserID
-	mocks   map[string]flow.TestMock
+	// The compiled flows of the tested command, event listener or button,
+	// and the template and flow source of a tested button, see
+	// Execution.OtherFlow.
+	testedRoots map[*flow.CompiledFlowNode]bool
+	testedFlow  string
+	random      *flow.TestRandom
+	env         engine.Env
+	appID       string
+	session     *state.State
+	botID       discord.UserID
+	mocks       map[string]flow.TestMock
 
 	// Where the test runs. guildID is 0 in DMs.
 	guildID   discord.GuildID
@@ -295,8 +316,9 @@ type testVariableValue struct {
 	updatedAt time.Time
 }
 
-func newTestSession(env engine.Env, appID string, session *state.State, mocks map[string]flow.TestMock) *testSession {
+func newTestSession(env engine.Env, appID string, session *state.State, mocks map[string]flow.TestMock, random *flow.TestRandom) *testSession {
 	return &testSession{
+		random:    random,
 		env:       env,
 		appID:     appID,
 		session:   session,
@@ -314,6 +336,7 @@ func newTestSession(env engine.Env, appID string, session *state.State, mocks ma
 		respondedTo:   make(map[discord.InteractionID]bool),
 		originals:     make(map[discord.InteractionID]discord.MessageID),
 		resumePoints:  make(map[string]testResumePoint),
+		testedRoots:   make(map[*flow.CompiledFlowNode]bool),
 		variables:     make(map[testVariableKey]testVariableValue),
 	}
 }
@@ -452,6 +475,13 @@ func (s *testSession) defaultChannel() discord.ChannelID {
 // start runs the flow with the trigger of the test. root is nil for messages.
 func (s *testSession) start(ctx context.Context, test Test, root *flow.CompiledFlowNode) error {
 	switch test.Kind {
+	case KindCommand, KindEventListener:
+		s.testedRoots[root] = true
+	case KindMessage:
+		s.testedFlow = test.Message.ID + "/" + test.FlowSourceID
+	}
+
+	switch test.Kind {
 	case KindCommand:
 		event, err := s.commandEvent(root, test)
 		if err != nil {
@@ -550,6 +580,9 @@ func (s *testSession) runOnce(
 	afterSleep bool,
 ) {
 	exec := Execution{Trigger: trigger}
+	s.mu.Lock()
+	exec.OtherFlow = !s.testedRoots[root]
+	s.mu.Unlock()
 	defer func() {
 		s.result.Executions = append(s.result.Executions, exec)
 	}()
@@ -572,7 +605,7 @@ func (s *testSession) runOnce(
 	s.current = interaction
 	s.mu.Unlock()
 
-	run := flow.NewTestRun(s.mocks)
+	run := flow.NewTestRun(s.mocks, s.random)
 	fCtx := s.env.FlowContextWithProviders(ctx, s.appID, s.session, data, s.testProviders(run), state, node)
 	defer fCtx.Cancel()
 	fCtx.Test = run

@@ -1,5 +1,12 @@
 import { NodeData } from "@/lib/flow/dataSchema";
-import { LinkIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  LinkIcon,
+  LucideIcon,
+  XIcon,
+} from "lucide-react";
+import { TestNodeStatus, useTestNodeStatus } from "@/lib/flow/context";
 import { useMemo } from "react";
 import { useEdges } from "@xyflow/react";
 import { useNodeValues } from "@/lib/flow/nodes";
@@ -37,18 +44,44 @@ export default function FlowNodeMarkers({
     }
   }, [dataSchema, data]);
 
+  const testStatus = useTestNodeStatus(id);
+  const test = testStatus && testStatusMarkers[testStatus];
+
   return (
-    <div className="absolute -top-2 -right-2 flex space-x-1">
-      {!isConnected && (
-        <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
-          <LinkIcon className="h-2.5 w-2.5 text-white" />
+    <>
+      {test && (
+        <div
+          className={`absolute -top-2 -left-2 h-5 w-5 rounded-full flex items-center justify-center text-white ${test.className}`}
+          title={test.title}
+        >
+          <test.Icon className="h-3 w-3" />
         </div>
       )}
-      {hasError && (
-        <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-medium leading-4">
-          !
-        </div>
-      )}
-    </div>
+      <div className="absolute -top-2 -right-2 flex space-x-1">
+        {!isConnected && (
+          <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+            <LinkIcon className="h-2.5 w-2.5 text-white" />
+          </div>
+        )}
+        {hasError && (
+          <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-medium leading-4">
+            !
+          </div>
+        )}
+      </div>
+    </>
   );
 }
+
+const testStatusMarkers: Record<
+  TestNodeStatus,
+  { className: string; Icon: LucideIcon; title: string }
+> = {
+  ok: { className: "bg-green-600", Icon: CheckIcon, title: "Ran in the test" },
+  warning: {
+    className: "bg-amber-500",
+    Icon: AlertTriangleIcon,
+    title: "Ran in the test, Discord would likely reject what it does",
+  },
+  error: { className: "bg-red-500", Icon: XIcon, title: "Failed in the test" },
+};
