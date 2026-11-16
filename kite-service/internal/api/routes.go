@@ -336,6 +336,7 @@ func (s *APIServer) RegisterRoutes(
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
 	commandsGroup.Post("/", handler.TypedWithBody(commandsHandler.HandleCommandCreate))
 	commandsGroup.Post("/import", handler.TypedWithBody(commandsHandler.HandleCommandsImport))
+	commandsGroup.Put("/folder", handler.TypedWithBody(commandsHandler.HandleCommandsUpdateFolder))
 
 	commandGroup := commandsGroup.Group("/{commandID}", accessManager.CommandAccess)
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
@@ -356,6 +357,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
 	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
 	eventListenersGroup.Post("/import", handler.TypedWithBody(eventListenerHandler.HandleEventListenersImport))
+	eventListenersGroup.Put("/folder", handler.TypedWithBody(eventListenerHandler.HandleEventListenersUpdateFolder))
 
 	eventListenerGroup := eventListenersGroup.Group("/{listenerID}", accessManager.EventListenerAccess)
 	eventListenerGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerGet))
@@ -451,6 +453,7 @@ func (s *APIServer) RegisterRoutes(
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
 	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
 	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport))
+	messagesGroup.Put("/folder", handler.TypedWithBody(messageHandler.HandleMessagesUpdateFolder))
 
 	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))

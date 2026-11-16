@@ -1,0 +1,3 @@
+ALTER TABLE messages DROP COLUMN IF EXISTS folder;
+ALTER TABLE event_listeners DROP COLUMN IF EXISTS folder;
+ALTER TABLE commands DROP COLUMN IF EXISTS folder;

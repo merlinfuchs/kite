@@ -145,6 +145,7 @@ import EmojiInsertButton from "../common/EmojiInsertButton";
 import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
+import { GroupableItem, itemGroup, sortByGroup } from "@/lib/flow/itemGroups";
 import JsonEditor from "../common/JsonEditor";
 import HttpRequestTestDialog from "./HttpRequestTestDialog";
 import PlaceholderInput from "../common/PlaceholderInput";
@@ -3341,25 +3342,16 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   const appId = useAppId();
 
-  // The user's own messages come first, then the ones of each template they
-  // added, under the template's name.
-  const options = messages
-    ?.map((m) => {
-      const installId = "bundle_install_id" in m ? m.bundle_install_id : null;
-      const install = installId
-        ? installs?.find((i) => i?.id === installId)
-        : undefined;
-      return { value: m.id, label: m.name, group: install?.name };
-    })
-    .sort((a, b) =>
-      a.group === b.group
-        ? 0
-        : !a.group
-        ? -1
-        : !b.group
-        ? 1
-        : a.group.localeCompare(b.group)
-    );
+  // Grouped like the list of message templates: by folder, or else by the
+  // template they were added with.
+  const options = sortByGroup(
+    messages?.map((m) => ({
+      value: m.id,
+      label: m.name,
+      group: itemGroup(m as GroupableItem, installs)?.name,
+    })) ?? [],
+    (o) => o.group
+  );
 
   return (
     <>

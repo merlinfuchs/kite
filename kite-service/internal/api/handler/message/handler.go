@@ -175,6 +175,19 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 	return wire.MessageToWire(message), nil
 }
 
+func (h *MessageHandler) HandleMessagesUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.MessagesUpdateFolderResponse, error) {
+	messages, err := h.messageStore.UpdateMessagesFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update folder of messages: %w", err)
+	}
+
+	res := make(wire.MessagesUpdateFolderResponse, len(messages))
+	for i, message := range messages {
+		res[i] = wire.MessageToWire(message)
+	}
+	return &res, nil
+}
+
 func (h *MessageHandler) HandleMessageDelete(c *handler.Context) (*wire.MessageDeleteResponse, error) {
 	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID, c.Session.UserID)
 	if err != nil {

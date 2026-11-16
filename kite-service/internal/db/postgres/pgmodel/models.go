@@ -221,6 +221,7 @@ type Command struct {
 	FlowSource      []byte
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type Entitlement struct {
@@ -249,6 +250,7 @@ type EventListener struct {
 	UpdatedAt       pgtype.Timestamp
 	LastRunAt       pgtype.Timestamp
 	WebhookSecret   pgtype.Text
+	Folder          pgtype.Text
 }
 
 type ItemVersion struct {
@@ -291,6 +293,7 @@ type Message struct {
 	CreatorUserID   string
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type MessageInstance struct {

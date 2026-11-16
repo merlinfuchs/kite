@@ -17,6 +17,7 @@ type EventListener struct {
 	Enabled         bool                 `json:"enabled"`
 	AppID           string               `json:"app_id"`
 	BundleInstallID null.String          `json:"bundle_install_id"`
+	Folder          null.String          `json:"folder"`
 	CreatorUserID   string               `json:"creator_user_id"`
 	Filter          *EventListenerFilter `json:"filter"`
 	FlowSource      flow.FlowData        `json:"flow_source"`
@@ -87,6 +88,8 @@ func (req EventListenerUpdateEnabledRequest) Validate() error {
 
 type EventListenerUpdateEnabledResponse = EventListener
 
+type EventListenersUpdateFolderResponse = []*EventListener
+
 type EventListenerDeleteResponse = Empty
 
 type EventListenerWebhookSecretRegenerateResponse = EventListener
@@ -106,6 +109,7 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		Enabled:         eventListener.Enabled,
 		AppID:           eventListener.AppID,
 		BundleInstallID: eventListener.BundleInstallID,
+		Folder:          eventListener.Folder,
 		CreatorUserID:   eventListener.CreatorUserID,
 		Filter:          (*EventListenerFilter)(eventListener.Filter),
 		FlowSource:      eventListener.FlowSource,

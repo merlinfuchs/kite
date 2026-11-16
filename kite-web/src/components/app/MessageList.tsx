@@ -8,11 +8,19 @@ import MessageCreateDialog from "./MessageCreateDialog";
 import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
 import SearchableList, { ListActions } from "./SearchableList";
+import {
+  FolderActions,
+  FolderItemsProvider,
+  useItemGroupOf,
+} from "./ItemFolders";
+import { useAppId } from "@/lib/hooks/params";
 import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function MessageList() {
   const messages = useMessages();
   const limit = usePlanLimit("max_messages", messages?.length);
+  const appId = useAppId();
+  const groupOf = useItemGroupOf();
 
   const messageActions = (
     <PlanLimitGate limit={limit} noun="message templates" from="messages">
@@ -41,22 +49,29 @@ export default function MessageList() {
           action={<ListActions>{messageActions}</ListActions>}
         />
       ) : (
-        <SearchableList
-          items={messages}
-          fields={(message) => [message.name, message.description]}
-          renderItem={(message) => (
-            <MessageListEntry message={message} key={message.id} />
-          )}
-          placeholder="Search message templates"
-          actions={messageActions}
-          status={
-            <PlanLimitCount
-              limit={limit}
-              noun="message templates"
-              from="messages"
-            />
-          }
-        />
+        <FolderItemsProvider kind="messages" items={messages}>
+          <SearchableList
+            items={messages}
+            fields={(message) => [message.name, message.description]}
+            renderItem={(message) => (
+              <MessageListEntry message={message} key={message.id} />
+            )}
+            placeholder="Search message templates"
+            actions={messageActions}
+            status={
+              <PlanLimitCount
+                limit={limit}
+                noun="message templates"
+                from="messages"
+              />
+            }
+            groups={{
+              list: `${appId}:messages`,
+              of: groupOf,
+              actions: (group) => <FolderActions group={group} />,
+            }}
+          />
+        </FolderItemsProvider>
       )}
     </AutoAnimate>
   );
