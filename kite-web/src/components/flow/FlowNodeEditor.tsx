@@ -10,7 +10,11 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
+import {
+  useAppFeature,
+  useBundleInstalls,
+  useFeaturePlan,
+} from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -3329,6 +3333,7 @@ function RobloxJoinRequestActionInput({
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const messages = useFlowMessages();
+  const installs = useBundleInstalls();
   const readOnly = useContext(FlowReadOnlyContext);
   const template = data.message_template_id
     ? messages?.find((m) => m.id === data.message_template_id)
@@ -3336,17 +3341,35 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   const appId = useAppId();
 
+  // The user's own messages come first, then the ones of each template they
+  // added, under the template's name.
+  const options = messages
+    ?.map((m) => {
+      const installId = "bundle_install_id" in m ? m.bundle_install_id : null;
+      const install = installId
+        ? installs?.find((i) => i?.id === installId)
+        : undefined;
+      return { value: m.id, label: m.name, group: install?.name };
+    })
+    .sort((a, b) =>
+      a.group === b.group
+        ? 0
+        : !a.group
+        ? -1
+        : !b.group
+        ? 1
+        : a.group.localeCompare(b.group)
+    );
+
   return (
     <>
       <BaseInput
-        type="select"
+        type="combobox"
         field="message_template_id"
         title="Message template"
         description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
+        placeholder="Select a message template"
+        options={options}
         value={data.message_template_id || ""}
         updateValue={(v) => updateData({ message_template_id: v || undefined })}
         errors={errors}
@@ -5718,9 +5741,11 @@ function BaseInput({
   imageUpload,
   beside,
 }: {
-  type?: "text" | "textarea" | "select";
+  // "combobox" is a select with a search, for long lists.
+  type?: "text" | "textarea" | "select" | "combobox";
   field: string;
-  options?: { value: string; label: string }[];
+  // A group is only shown by a combobox.
+  options?: { value: string; label: string; group?: string }[];
   // Left out for an input beside others, like the value of a header.
   title?: string;
   description?: ReactNode;
@@ -5804,6 +5829,21 @@ function BaseInput({
           ref={textareaRef}
           placeholder={placeholder}
           readOnly={readOnly}
+        />
+      ) : type === "combobox" ? (
+        <EntitySelect
+          items={options?.map((o) => ({
+            id: o.value,
+            name: o.label,
+            group: o.group,
+          }))}
+          value={value || null}
+          onChange={(v) => update(v ?? "")}
+          placeholder={placeholder ?? "Select"}
+          searchPlaceholder="Search..."
+          emptyText="Nothing found."
+          clearable={clearable && !readOnly}
+          wide
         />
       ) : type === "select" ? (
         <Select value={value} onValueChange={(v) => update(v)}>
