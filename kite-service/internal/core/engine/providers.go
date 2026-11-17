@@ -619,11 +619,13 @@ func (p *HTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *htt
 }
 
 type AIProvider struct {
+	appID  string
 	client *openai.Client
 }
 
-func NewAIProvider(client *openai.Client) *AIProvider {
+func NewAIProvider(appID string, client *openai.Client) *AIProvider {
 	return &AIProvider{
+		appID:  appID,
 		client: client,
 	}
 }
@@ -685,6 +687,24 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	if err != nil {
 		return provider.AIResponse{}, fmt.Errorf("failed to create response: %w", err)
 	}
+
+	webSearches := 0
+	for _, item := range resp.Output {
+		if item.Type == "web_search_call" {
+			webSearches++
+		}
+	}
+	// What each app costs in AI, which credits don't tell.
+	slog.Info(
+		"AI block response",
+		slog.String("app_id", p.appID),
+		slog.String("model", opts.Model),
+		slog.String("status", string(resp.Status)),
+		slog.Int("input_tokens", int(resp.Usage.InputTokens)),
+		slog.Int("cached_input_tokens", int(resp.Usage.InputTokensDetails.CachedTokens)),
+		slog.Int("output_tokens", int(resp.Usage.OutputTokens)),
+		slog.Int("web_searches", webSearches),
+	)
 
 	res := provider.AIResponse{
 		Text:         resp.OutputText(),

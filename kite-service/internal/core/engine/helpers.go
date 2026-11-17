@@ -91,7 +91,7 @@ func (s Env) FlowProviders(appID string, session *state.State) flow.FlowProvider
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
 	var aiProvider provider.AIProvider = &provider.MockAIProvider{}
 	if s.OpenaiClient != nil {
-		aiProvider = NewAIProvider(s.OpenaiClient)
+		aiProvider = NewAIProvider(appID, s.OpenaiClient)
 	}
 
 	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
