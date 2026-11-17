@@ -95,7 +95,11 @@ export default function CreatorPage({ creatorId, listed }: Props) {
       description={`Free templates for Discord bots that ${
         owner.display_name
       } made with Kite: ${templates.map((t) => t.name).join(", ")}.`}
-      image={ogImagePath("creators", creatorId, creatorImageVersion(templates))}
+      image={ogImagePath(
+        "creators",
+        creatorId,
+        creatorImageVersion(templates, owner.badges ?? [])
+      )}
       embedButtons={[
         { label: "View templates", path: creatorPath(creatorId) },
         { label: "All templates", path: "/marketplace" },
