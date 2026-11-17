@@ -43,14 +43,16 @@ export default function HomeHeroSection() {
     <section className="relative lg:min-h-[calc(100dvh-3.5rem)] lg:flex lg:items-end">
       <div className="container relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-8 md:py-10 lg:pt-6 lg:pb-16">
         <div className="text-center lg:text-start lg:self-end space-y-6">
-          <h1 className="text-5xl md:text-6xl font-bold">
-            Make{" "}
-            <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold">
+            <span className="inline-block">Make</span>{" "}
+            <span className="inline-block whitespace-nowrap bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
               Discord bots
             </span>{" "}
-            with{" "}
-            <span className="inline bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
-              Kite
+            <span className="inline-block whitespace-nowrap">
+              with{" "}
+              <span className="bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
+                Kite
+              </span>
             </span>
           </h1>
 
@@ -82,7 +84,7 @@ export default function HomeHeroSection() {
 
         <div
           ref={stageRef}
-          className="will-change-transform [&>div]:!h-[clamp(340px,46dvh,420px)] lg:[&>div]:!h-[clamp(420px,calc(100dvh-10rem),620px)]"
+          className="will-change-transform [&>div]:!h-[420px] md:[&>div]:!h-[480px] lg:[&>div]:!h-[clamp(420px,calc(100dvh-10rem),620px)]"
         >
           <ShowcaseVisual
             showcase={{

@@ -241,6 +241,7 @@ export default function HomeSectionDivider({
               stroke={`url(#${haloId})`}
               strokeWidth="6"
               vectorEffect="non-scaling-stroke"
+              className="opacity-40 dark:opacity-100"
             />
             <path
               d={shape.stroke}

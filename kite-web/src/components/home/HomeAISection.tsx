@@ -73,7 +73,7 @@ export default function HomeAISection() {
       <div
         ref={stageRef}
         className={cn(
-          "w-full py-16 sm:py-24 lg:py-0 lg:h-[calc(100vh-3.5rem)] lg:flex lg:items-center",
+          "w-full py-16 sm:py-24 lg:py-10 lg:min-h-[calc(100vh-3.5rem)] lg:flex lg:items-center",
           !reducedMotion &&
             pinState === "before" &&
             "lg:absolute lg:top-0 lg:inset-x-0",

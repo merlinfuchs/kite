@@ -223,7 +223,7 @@ export default function HomeHowItWorksSection() {
       <div
         ref={stageRef}
         className={cn(
-          "w-full py-16 sm:py-24 lg:py-0 lg:h-[calc(100vh-3.5rem)] lg:flex lg:items-center",
+          "w-full py-16 sm:py-24 lg:py-10 lg:min-h-[calc(100vh-3.5rem)] lg:flex lg:items-center",
           !reducedMotion &&
             pinState === "before" &&
             "lg:absolute lg:top-0 lg:inset-x-0",
@@ -242,7 +242,7 @@ export default function HomeHowItWorksSection() {
             </h2>
 
             {!reducedMotion && (
-              <div className="hidden lg:flex items-center gap-4 max-w-md mx-auto mt-6">
+              <div className="hidden lg:flex items-center gap-4 max-w-md mx-auto mt-4">
                 <span className="text-xs font-medium text-muted-foreground tabular-nums w-20">
                   Step {scrollActiveStep + 1} of 3
                 </span>
@@ -255,7 +255,7 @@ export default function HomeHowItWorksSection() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mt-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mt-8">
               {/* Step list with scroll-driven per-step progress tracks */}
               <ol className="lg:col-span-5 space-y-5">
                 {steps.map((step, i) => {
