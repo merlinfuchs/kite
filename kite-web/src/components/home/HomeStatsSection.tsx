@@ -4,6 +4,8 @@ import { useResponseData } from "@/lib/hooks/api";
 
 // Rounds down, so the numbers never claim more than is true.
 function formatCount(value: number) {
+  if (value < 1000)
+    return Math.max(0, Math.floor(value)).toLocaleString("en-US");
   if (value >= 1_000_000) {
     return `${Math.floor(value / 100_000) / 10} million`;
   }
@@ -33,20 +35,20 @@ export default function HomeStatsSection({ initial }: { initial: Stats }) {
   ];
 
   return (
-    <section className="bg-muted/30">
-      <div className="container grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 py-10">
+    <section className="relative bg-muted/30">
+      <div className="container grid grid-cols-2 lg:grid-cols-4 gap-y-8 pt-6 pb-10 md:pt-8 md:pb-12 lg:divide-x lg:divide-border/50">
         {(items ?? Array(4).fill(undefined)).map((item, i) => (
-          <div key={i} className="text-center">
+          <div key={i} className="text-center px-4">
             {item ? (
               <>
                 {/* deploy/indexnow.mjs doesn't count new numbers as a change */}
                 <div
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold"
+                  className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-foreground"
                   data-indexnow-ignore
                 >
                   {formatCount(item.value)}
                 </div>
-                <div className="text-sm md:text-base text-muted-foreground mt-1">
+                <div className="text-sm text-muted-foreground mt-1.5">
                   {item.label}
                 </div>
               </>
@@ -57,6 +59,10 @@ export default function HomeStatsSection({ initial }: { initial: Stats }) {
           </div>
         ))}
       </div>
+      <div
+        aria-hidden="true"
+        className="h-px w-full bg-gradient-to-r from-transparent via-border/60 to-transparent"
+      />
     </section>
   );
 }

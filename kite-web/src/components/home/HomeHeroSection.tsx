@@ -40,9 +40,9 @@ export default function HomeHeroSection() {
   }, []);
 
   return (
-    <section className="relative">
-      <div className="container relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-center py-14 md:py-24">
-        <div className="text-center lg:text-start space-y-6">
+    <section className="relative lg:min-h-[calc(100dvh-3.5rem)] lg:flex lg:items-end">
+      <div className="container relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-8 md:py-10 lg:pt-6 lg:pb-16">
+        <div className="text-center lg:text-start lg:self-end space-y-6">
           <h1 className="text-5xl md:text-6xl font-bold">
             Make{" "}
             <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
@@ -80,7 +80,10 @@ export default function HomeHeroSection() {
           </a>
         </div>
 
-        <div ref={stageRef} className="will-change-transform">
+        <div
+          ref={stageRef}
+          className="will-change-transform [&>div]:!h-[clamp(340px,46dvh,420px)] lg:[&>div]:!h-[clamp(420px,calc(100dvh-10rem),620px)]"
+        >
           <ShowcaseVisual
             showcase={{
               flow: banFlow,

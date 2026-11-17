@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useState } from "react";
 import { StatusMockup } from "./ProfileMockups";
+import { usePinnedScrollProgress } from "./usePinnedScrollProgress";
 
 const banShowcase = {
   flow: banFlow,
@@ -185,72 +186,16 @@ function AddAppStage({ progress }: { progress: number }) {
 }
 
 export default function HomeHowItWorksSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [pinState, setPinState] = useState<"before" | "pinned" | "after">(
-    "before"
-  );
+  const {
+    sectionRef,
+    stageRef,
+    progress: scrollProgress,
+    pinState,
+    isDesktop,
+    reducedMotion,
+    scrollToProgress,
+  } = usePinnedScrollProgress();
   const [mobileStep, setMobileStep] = useState(0);
-  const [isDesktop, setIsDesktop] = useState(true);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    const stage = stageRef.current;
-    if (!section || !stage) return;
-
-    const prefersReduced = !window.matchMedia(
-      "(prefers-reduced-motion: no-preference)"
-    ).matches;
-    setReducedMotion(prefersReduced);
-    setIsDesktop(window.innerWidth >= 1024);
-    if (prefersReduced) {
-      setScrollProgress(1);
-      setPinState("before");
-      return;
-    }
-
-    let rafId = 0;
-    const measure = () => {
-      rafId = 0;
-      const desktop = window.innerWidth >= 1024;
-      setIsDesktop(desktop);
-      if (!desktop) {
-        setPinState("before");
-        return;
-      }
-
-      const rect = section.getBoundingClientRect();
-      const stageH = stage.offsetHeight;
-      const pinTop = 56; // Matches sticky navbar height (h-14)
-      const travel = Math.max(1, rect.height - stageH);
-
-      if (rect.top > pinTop) {
-        setPinState("before");
-        setScrollProgress(0);
-      } else if (rect.bottom < pinTop + stageH) {
-        setPinState("after");
-        setScrollProgress(1);
-      } else {
-        setPinState("pinned");
-        setScrollProgress(clamp01((pinTop - rect.top) / travel));
-      }
-    };
-
-    const schedule = () => {
-      if (!rafId) rafId = window.requestAnimationFrame(measure);
-    };
-
-    measure();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, []);
 
   const stepProgresses = [
     clamp01(scrollProgress / 0.34),
@@ -263,18 +208,7 @@ export default function HomeHowItWorksSection() {
 
   function jumpToStep(index: number) {
     setMobileStep(index);
-    const section = sectionRef.current;
-    const stage = stageRef.current;
-    if (!section || !stage || window.innerWidth < 1024) return;
-
-    const rect = section.getBoundingClientRect();
-    const travel = Math.max(1, rect.height - stage.offsetHeight);
-    const targetProgress = index === 0 ? 0.2 : index === 1 ? 0.56 : 0.92;
-    const targetTop = window.scrollY + rect.top - 56 + targetProgress * travel;
-    window.scrollTo({
-      top: targetTop,
-      behavior: reducedMotion ? "auto" : "smooth",
-    });
+    scrollToProgress(index === 0 ? 0.2 : index === 1 ? 0.56 : 0.92);
   }
 
   return (

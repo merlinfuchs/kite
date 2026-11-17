@@ -30,7 +30,6 @@ import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
 import { GetStaticProps } from "next";
-import { useEffect } from "react";
 
 type Props = {
   stats: Stats;
@@ -70,18 +69,6 @@ export default function Home({
   featuredBundles,
   templateCount,
 }: Props) {
-  useEffect(() => {
-    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
-      return;
-    }
-    const root = document.documentElement;
-    const prev = root.style.scrollBehavior;
-    root.style.scrollBehavior = "smooth";
-    return () => {
-      root.style.scrollBehavior = prev;
-    };
-  }, []);
-
   return (
     <HomeLayout jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}>
       <HomeHeroSection />
