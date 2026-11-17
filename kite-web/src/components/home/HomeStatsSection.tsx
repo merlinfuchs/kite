@@ -35,34 +35,36 @@ export default function HomeStatsSection({ initial }: { initial: Stats }) {
   ];
 
   return (
-    <section className="relative bg-muted/30">
-      <div className="container grid grid-cols-2 lg:grid-cols-4 gap-y-8 pt-6 pb-10 md:pt-8 md:pb-12 lg:divide-x lg:divide-border/50">
-        {(items ?? Array(4).fill(undefined)).map((item, i) => (
-          <div key={i} className="text-center px-4">
-            {item ? (
-              <>
-                {/* deploy/indexnow.mjs doesn't count new numbers as a change */}
-                <div
-                  className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-foreground"
-                  data-indexnow-ignore
-                >
-                  {formatCount(item.value)}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1.5">
-                  {item.label}
-                </div>
-              </>
-            ) : (
-              // Keeps the height while loading, so the page doesn't jump.
-              <div className="h-14 md:h-[4.5rem]" />
-            )}
-          </div>
-        ))}
+    <section className="relative z-10 bg-background">
+      <div className="bg-muted/30">
+        <div className="container grid grid-cols-2 lg:grid-cols-4 gap-y-8 pt-6 pb-10 md:pt-8 md:pb-12 lg:divide-x lg:divide-border/50">
+          {(items ?? Array(4).fill(undefined)).map((item, i) => (
+            <div key={i} className="text-center px-4">
+              {item ? (
+                <>
+                  {/* deploy/indexnow.mjs doesn't count new numbers as a change */}
+                  <div
+                    className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight tabular-nums text-foreground"
+                    data-indexnow-ignore
+                  >
+                    {formatCount(item.value)}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1.5">
+                    {item.label}
+                  </div>
+                </>
+              ) : (
+                // Keeps the height while loading, so the page doesn't jump.
+                <div className="h-14 md:h-[4.5rem]" />
+              )}
+            </div>
+          ))}
+        </div>
+        <div
+          aria-hidden="true"
+          className="h-px w-full bg-gradient-to-r from-transparent via-border/60 to-transparent"
+        />
       </div>
-      <div
-        aria-hidden="true"
-        className="h-px w-full bg-gradient-to-r from-transparent via-border/60 to-transparent"
-      />
     </section>
   );
 }

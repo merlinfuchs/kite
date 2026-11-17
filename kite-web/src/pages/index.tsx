@@ -71,13 +71,15 @@ export default function Home({
 }: Props) {
   return (
     <HomeLayout jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}>
-      <HomeHeroSection />
-      <HomeSectionDivider
-        from="background"
-        to="muted"
-        variant="horizon"
-        accent="primary"
-      />
+      <div className="relative overflow-hidden">
+        <HomeHeroSection />
+        <HomeSectionDivider
+          from="background"
+          to="muted"
+          variant="horizon"
+          accent="primary"
+        />
+      </div>
 
       <HomeStatsSection initial={stats} />
 
