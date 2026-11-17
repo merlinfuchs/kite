@@ -8,7 +8,7 @@ import {
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
@@ -55,6 +57,18 @@ export default function UserMenu({
     }
   }
 
+  const accountInfo = (
+    <>
+      <UserAvatar className="h-8 w-8" />
+      <div className="grid flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-semibold">{user?.display_name}</span>
+        <span className="truncate text-xs">
+          {user && `@${user.discord_username}`}
+        </span>
+      </div>
+    </>
+  );
+
   return (
     <>
       <APITokensDialog
@@ -70,17 +84,18 @@ export default function UserMenu({
           sideOffset={4}
         >
           <DropdownMenuLabel className="p-0 font-normal">
-            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <UserAvatar className="h-8 w-8" />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {user?.display_name}
-                </span>
-                <span className="truncate text-xs">
-                  {user && `@${user.discord_username}`}
-                </span>
+            {user ? (
+              <Link
+                href={creatorPath(user.discord_id)}
+                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
+              >
+                {accountInfo}
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                {accountInfo}
               </div>
-            </div>
+            )}
             <UserBadges
               badges={user?.badges ?? []}
               size="sm"
@@ -121,7 +136,7 @@ export default function UserMenu({
   );
 }
 
-// UserAvatar shows the initials of the logged in user.
+// UserAvatar shows the Discord avatar of the logged in user.
 export function UserAvatar({ className }: { className?: string }) {
   const user = useUser();
   const initials = (user?.display_name ?? "")
@@ -131,6 +146,15 @@ export function UserAvatar({ className }: { className?: string }) {
 
   return (
     <Avatar className={cn("rounded-lg", className)}>
+      {user && (
+        <AvatarImage
+          src={userAvatar({
+            id: user.discord_id,
+            avatar: user.discord_avatar,
+          })}
+          alt=""
+        />
+      )}
       <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
     </Avatar>
   );

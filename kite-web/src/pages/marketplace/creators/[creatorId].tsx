@@ -25,8 +25,11 @@ import {
 } from "@/lib/flow/templates";
 import { cn, formatNumber } from "@/lib/utils";
 import { creatorImageVersion, ogImagePath } from "@/lib/og/path";
-import { Bundle } from "@/lib/types/wire.gen";
+import { useResponseData } from "@/lib/hooks/api";
+import { Bundle, User } from "@/lib/types/wire.gen";
+import { useUserQuery } from "@/lib/api/queries";
 import userAvatar from "@/tools/common/utils/discordCdn";
+import Error from "next/error";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { CheckIcon, LinkIcon } from "lucide-react";
 import Link from "next/link";
@@ -50,10 +53,6 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const creatorId = String(params?.creatorId);
   const bundles = await fetchBundles();
   const listed = creatorBundles(bundles ?? [], creatorId);
-  // Users are only here while they have a template in the marketplace.
-  if (!listed.length) {
-    return { notFound: true, revalidate: 60 };
-  }
   return {
     props: {
       creatorId,
@@ -66,11 +65,29 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 
 // CreatorPage lists the templates a user has in the marketplace.
 export default function CreatorPage({ creatorId, listed }: Props) {
+  const userQuery = useUserQuery();
+  const currentUser = useResponseData(userQuery);
+  const isOwnProfile = currentUser?.discord_id === creatorId;
+  const owner: NonNullable<Bundle["owner"]> | User | undefined =
+    listed[0]?.owner ?? (isOwnProfile ? currentUser : undefined);
   const templates = useMemo(
     () => listed.flatMap((b) => templateFromBundle(b) ?? []),
     [listed]
   );
-  const owner = listed[0].owner!;
+
+  if (!owner) {
+    if (userQuery.isPending) {
+      return (
+        <HomeLayout>
+          <div className="container max-w-5xl py-12 text-muted-foreground">
+            Loading profile...
+          </div>
+        </HomeLayout>
+      );
+    }
+    return <Error statusCode={404} />;
+  }
+
   const avatar = userAvatar({ id: creatorId, avatar: owner.discord_avatar });
   const installs = templates.reduce((sum, t) => sum + (t.installs ?? 0), 0);
   const activeInstalls = templates.reduce(
@@ -180,19 +197,29 @@ export default function CreatorPage({ creatorId, listed }: Props) {
           <h2 className="text-xl font-semibold">
             {more.length ? "Most added" : "Templates"}
           </h2>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">
-            Made by a user of Kite, who is responsible for them. Kite reviews
-            them before they&apos;re listed.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {top.map((template) => (
-              <FeaturedTemplateEntry
-                key={template.id}
-                template={template}
-                href={templatePath(template.id)}
-              />
-            ))}
-          </div>
+          {templates.length ? (
+            <>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                Made by a user of Kite, who is responsible for them. Kite
+                reviews them before they&apos;re listed.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {top.map((template) => (
+                  <FeaturedTemplateEntry
+                    key={template.id}
+                    template={template}
+                    href={templatePath(template.id)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isOwnProfile
+                ? "You haven't listed any templates yet."
+                : "This user hasn't listed any templates yet."}
+            </p>
+          )}
         </section>
         {!!more.length && (
           <section>
