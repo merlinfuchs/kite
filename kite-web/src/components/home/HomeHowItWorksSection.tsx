@@ -1,5 +1,29 @@
-import { ArrowRightIcon } from "lucide-react";
+import ShowcaseVisual from "@/components/landing/ShowcaseVisual";
+import { banFlow } from "@/components/landing/flows";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
+import { memo, useEffect, useRef, useState } from "react";
+import { StatusMockup } from "./ProfileMockups";
+
+const banShowcase = {
+  flow: banFlow,
+  command: "ban",
+  reply: "Banned the user.",
+};
+
+const StepThreeShowcase = memo(function StepThreeShowcase() {
+  return <ShowcaseVisual showcase={banShowcase} />;
+});
+
+const intents = [
+  { label: "Presence Intent", at: 0.14 },
+  { label: "Server Members Intent", at: 0.38 },
+  { label: "Message Content Intent", at: 0.6 },
+];
 
 const steps = [
   {
@@ -19,36 +43,392 @@ const steps = [
   },
 ];
 
+function clamp01(n: number) {
+  return Math.min(1, Math.max(0, n));
+}
+
+function DevPortalStage({ progress }: { progress: number }) {
+  const tokenReady = progress >= 0.78;
+
+  return (
+    <div className="rounded-xl border bg-[#313338] text-white p-6 space-y-6 shadow-sm">
+      <div>
+        <div className="text-xs font-bold uppercase text-gray-400 mb-2">
+          Token
+        </div>
+        <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              "flex-auto rounded bg-[#1e1f22] px-3 py-2 text-sm truncate transition-colors duration-300 border",
+              tokenReady
+                ? "border-[#23a55a]/60 text-gray-200"
+                : "border-transparent text-gray-500"
+            )}
+          >
+            {tokenReady
+              ? "MTI4NzQ5 ••••••••••••••••••••••••"
+              : "Click Reset Token to generate"}
+          </div>
+          <div
+            className={cn(
+              "flex-none whitespace-nowrap rounded px-4 py-2 text-sm font-medium transition-colors duration-300 flex items-center gap-1.5",
+              tokenReady ? "bg-[#23a55a] text-white" : "bg-[#5865F2] text-white"
+            )}
+          >
+            {tokenReady ? (
+              <>
+                <CheckIcon className="h-4 w-4" />
+                Copied
+              </>
+            ) : (
+              "Reset Token"
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs font-bold uppercase text-gray-400 mb-3">
+          Privileged Gateway Intents
+        </div>
+        <div className="space-y-3">
+          {intents.map((intent) => {
+            const on = progress >= intent.at;
+            return (
+              <div
+                key={intent.label}
+                className="flex items-center justify-between"
+              >
+                <div className="text-sm">{intent.label}</div>
+                <div
+                  className={cn(
+                    "w-10 h-6 rounded-full flex items-center px-1 transition-colors duration-300",
+                    on ? "bg-[#23a55a]" : "bg-[#4e5058]"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-4 h-4 rounded-full bg-white transition-transform duration-300",
+                      on ? "translate-x-4" : "translate-x-0"
+                    )}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddAppStage({ progress }: { progress: number }) {
+  const tokenPasted = progress >= 0.25;
+  const created = progress >= 0.65;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-card p-6 space-y-4 shadow-sm">
+        <div>
+          <div className="text-lg font-semibold">Create app</div>
+          <div className="text-sm text-muted-foreground">
+            Kite runs your bot for you. Paste your Discord bot token below to
+            bring it online.
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Bot token</Label>
+          <Input
+            type="password"
+            value={tokenPasted ? "placeholder-token-value" : ""}
+            placeholder="Paste your Discord bot token"
+            readOnly
+            className="transition-colors duration-300"
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button
+            tabIndex={-1}
+            className={cn(
+              "transition-all duration-300",
+              created && "bg-emerald-600 hover:bg-emerald-600 text-white"
+            )}
+          >
+            {created ? (
+              <>
+                <CheckIcon className="mr-1.5 h-4 w-4" />
+                Bot online
+              </>
+            ) : (
+              "Create app"
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div
+        className={cn(
+          "transition-all duration-300",
+          created
+            ? "opacity-100 translate-y-0"
+            : "opacity-40 translate-y-1 pointer-events-none"
+        )}
+      >
+        <StatusMockup
+          statuses={[
+            created ? "🎮 Playing with 1,204 members" : "Connecting...",
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function HomeHowItWorksSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [pinState, setPinState] = useState<"before" | "pinned" | "after">(
+    "before"
+  );
+  const [mobileStep, setMobileStep] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    const stage = stageRef.current;
+    if (!section || !stage) return;
+
+    const prefersReduced = !window.matchMedia(
+      "(prefers-reduced-motion: no-preference)"
+    ).matches;
+    setReducedMotion(prefersReduced);
+    setIsDesktop(window.innerWidth >= 1024);
+    if (prefersReduced) {
+      setScrollProgress(1);
+      setPinState("before");
+      return;
+    }
+
+    let rafId = 0;
+    const measure = () => {
+      rafId = 0;
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (!desktop) {
+        setPinState("before");
+        return;
+      }
+
+      const rect = section.getBoundingClientRect();
+      const stageH = stage.offsetHeight;
+      const pinTop = 56; // Matches sticky navbar height (h-14)
+      const travel = Math.max(1, rect.height - stageH);
+
+      if (rect.top > pinTop) {
+        setPinState("before");
+        setScrollProgress(0);
+      } else if (rect.bottom < pinTop + stageH) {
+        setPinState("after");
+        setScrollProgress(1);
+      } else {
+        setPinState("pinned");
+        setScrollProgress(clamp01((pinTop - rect.top) / travel));
+      }
+    };
+
+    const schedule = () => {
+      if (!rafId) rafId = window.requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  const stepProgresses = [
+    clamp01(scrollProgress / 0.34),
+    clamp01((scrollProgress - 0.34) / 0.34),
+    clamp01((scrollProgress - 0.68) / 0.32),
+  ];
+  const scrollActiveStep =
+    scrollProgress < 0.34 ? 0 : scrollProgress < 0.68 ? 1 : 2;
+  const activeStep = isDesktop ? scrollActiveStep : mobileStep;
+
+  function jumpToStep(index: number) {
+    setMobileStep(index);
+    const section = sectionRef.current;
+    const stage = stageRef.current;
+    if (!section || !stage || window.innerWidth < 1024) return;
+
+    const rect = section.getBoundingClientRect();
+    const travel = Math.max(1, rect.height - stage.offsetHeight);
+    const targetProgress = index === 0 ? 0.2 : index === 1 ? 0.56 : 0.92;
+    const targetTop = window.scrollY + rect.top - 56 + targetProgress * travel;
+    window.scrollTo({
+      top: targetTop,
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }
+
   return (
     <section
       id="how-it-works"
-      className="container py-16 sm:py-24 scroll-mt-16"
+      ref={sectionRef}
+      className={cn(
+        "relative bg-muted/30 scroll-mt-16",
+        !reducedMotion && "lg:h-[280vh]"
+      )}
     >
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Online in three steps
-      </h2>
-      <ol className="relative grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
-        {/* Connects the numbers of the steps. */}
-        <div className="hidden md:block absolute top-6 left-[16.7%] right-[16.7%] border-t-2 border-dashed" />
-        {steps.map((step, i) => (
-          <li key={step.title} className="text-center">
-            <div className="relative w-12 h-12 mx-auto rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold">
-              {i + 1}
+      <div
+        ref={stageRef}
+        className={cn(
+          "w-full py-16 sm:py-24 lg:py-0 lg:h-[calc(100vh-3.5rem)] lg:flex lg:items-center",
+          !reducedMotion &&
+            pinState === "before" &&
+            "lg:absolute lg:top-0 lg:inset-x-0",
+          !reducedMotion &&
+            pinState === "pinned" &&
+            "lg:fixed lg:top-14 lg:inset-x-0 lg:z-20",
+          !reducedMotion &&
+            pinState === "after" &&
+            "lg:absolute lg:bottom-0 lg:inset-x-0"
+        )}
+      >
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center">
+              Online in three steps
+            </h2>
+
+            {!reducedMotion && (
+              <div className="hidden lg:flex items-center gap-4 max-w-md mx-auto mt-6">
+                <span className="text-xs font-medium text-muted-foreground tabular-nums w-20">
+                  Step {scrollActiveStep + 1} of 3
+                </span>
+                <div className="h-1.5 flex-1 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full w-full rounded-full bg-primary origin-left transition-transform duration-150 ease-out"
+                    style={{ transform: `scaleX(${scrollProgress})` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mt-10">
+              {/* Step list with scroll-driven per-step progress tracks */}
+              <ol className="lg:col-span-5 space-y-5">
+                {steps.map((step, i) => {
+                  const isActive = activeStep === i;
+                  const fill = reducedMotion ? 1 : stepProgresses[i];
+
+                  return (
+                    <li key={step.title}>
+                      <button
+                        type="button"
+                        onClick={() => jumpToStep(i)}
+                        className={cn(
+                          "w-full text-left relative pl-6 py-2 transition-opacity duration-300 cursor-pointer",
+                          isActive
+                            ? "opacity-100"
+                            : "opacity-45 hover:opacity-75"
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-border"
+                        >
+                          <span
+                            className="hidden lg:block h-full w-full origin-top rounded-full bg-primary transition-transform duration-150 ease-out"
+                            style={{ transform: `scaleY(${fill})` }}
+                          />
+                          <span
+                            className={cn(
+                              "block lg:hidden h-full w-full rounded-full bg-primary transition-opacity",
+                              isActive ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </span>
+
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={cn(
+                              "flex h-7 w-7 flex-none items-center justify-center rounded-full text-sm font-bold transition-colors",
+                              isActive
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {i + 1}
+                          </span>
+                          <h3 className="text-xl font-semibold">
+                            {step.title}
+                          </h3>
+                        </div>
+                        <p className="text-muted-foreground mt-2 pl-10">
+                          {step.description}
+                        </p>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+
+              <div className="lg:col-span-7">
+                <div className="relative h-[440px]">
+                  {[0, 1, 2].map((stageIndex) => {
+                    const isStageActive = activeStep === stageIndex;
+                    const stageFill = !isDesktop
+                      ? isStageActive
+                        ? 1
+                        : 0
+                      : reducedMotion
+                      ? 1
+                      : stepProgresses[stageIndex];
+
+                    return (
+                      <div
+                        key={stageIndex}
+                        className={cn(
+                          "absolute inset-0 flex items-center justify-center transition-opacity duration-300 ease-out",
+                          isStageActive
+                            ? "opacity-100 z-10 pointer-events-auto"
+                            : "opacity-0 z-0 pointer-events-none"
+                        )}
+                      >
+                        <div className="w-full">
+                          {stageIndex === 0 && (
+                            <DevPortalStage progress={stageFill} />
+                          )}
+                          {stageIndex === 1 && (
+                            <AddAppStage progress={stageFill} />
+                          )}
+                          {stageIndex === 2 && <StepThreeShowcase />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <h3 className="text-xl font-semibold mt-4">{step.title}</h3>
-            <p className="text-muted-foreground mt-2">{step.description}</p>
-          </li>
-        ))}
-      </ol>
-      <div className="text-center mt-10">
-        <Link
-          href="/guides/how-to-make-a-discord-bot"
-          className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
-        >
-          Read the step-by-step guide
-          <ArrowRightIcon className="w-4 h-4" />
-        </Link>
+
+            <div className="text-center mt-8">
+              <Link
+                href="/guides/how-to-make-a-discord-bot"
+                className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
+              >
+                Read the step-by-step guide
+                <ArrowRightIcon className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -1,28 +1,50 @@
 import env from "@/lib/env/client";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 // Simplified versions of what they show, drawn with the site's colors like the
 // Ask AI panel. The features page shows some of them too.
 
 export function MessageMockup() {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
-      <div className="rounded border-l-4 border-primary bg-muted px-3 py-2">
-        <div className="font-semibold">📜 Server rules</div>
-        <div className="mt-1 text-muted-foreground">
-          Be kind, keep it on topic and no spam. Click below to get access to
-          the server.
+    <div className="rounded-xl border bg-white dark:bg-[#313338] p-4 shadow-sm text-sm not-prose">
+      <div className="flex gap-3">
+        <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-emerald-500/20 text-base">
+          <span aria-hidden="true">🐸</span>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded bg-green-600 px-3 py-1 text-xs font-medium text-white">
-          ✅ Accept rules
-        </span>
-        <span className="rounded bg-muted px-3 py-1 text-xs font-medium">
-          🎫 Open a ticket
-        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-[#060607] dark:text-[#f2f3f5]">
+              Froggy
+            </span>
+            <span className="rounded bg-[#5865f2] px-1 text-[10px] font-semibold leading-4 text-white">
+              APP
+            </span>
+            <span className="text-xs text-[#5c5e66] dark:text-[#949ba4]">
+              Today at 20:02
+            </span>
+          </div>
+
+          <div className="mt-1.5 rounded-[4px] border-l-4 border-primary bg-[#f2f3f5] dark:bg-[#2b2d31] px-3.5 py-2.5">
+            <div className="font-semibold text-[#060607] dark:text-[#f2f3f5]">
+              📜 Server rules
+            </div>
+            <div className="mt-1 text-[13px] leading-snug text-[#313338] dark:text-[#dbdee1]">
+              Be kind, keep it on topic and no spam. Click below to get access
+              to the server.
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="inline-flex items-center rounded-[3px] bg-[#248046] px-3 py-1.5 text-xs font-medium text-white">
+              ✅ Accept rules
+            </span>
+            <span className="inline-flex items-center rounded-[3px] bg-[#4e5058] px-3 py-1.5 text-xs font-medium text-white">
+              🎫 Open a ticket
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -36,8 +58,47 @@ const points = [
 
 export function VariableMockup() {
   const max = Math.max(...points.map((p) => p.value));
+  const ref = useRef<HTMLDivElement>(null);
+  const [fill, setFill] = useState(1);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+      setFill(1);
+      return;
+    }
+
+    let rafId = 0;
+    const measure = () => {
+      rafId = 0;
+      const rect = el.getBoundingClientRect();
+      const start = window.innerHeight * 0.95;
+      const end = window.innerHeight * 0.6;
+      const next = Math.min(
+        1,
+        Math.max(0, (start - rect.top) / Math.max(1, start - end))
+      );
+      setFill(next);
+    };
+
+    const schedule = () => {
+      if (!rafId) rafId = window.requestAnimationFrame(measure);
+    };
+
+    measure();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm text-sm">
+    <div ref={ref} className="rounded-xl border bg-card p-4 shadow-sm text-sm">
       <div className="flex items-center justify-between">
         <span className="font-mono font-medium">points</span>
         <span className="text-xs text-muted-foreground">per member</span>
@@ -46,10 +107,13 @@ export function VariableMockup() {
         {points.map((p) => (
           <div key={p.name} className="flex items-center gap-3">
             <span className="w-14 flex-none">{p.name}</span>
-            <div className="h-2 flex-1 rounded-full bg-muted">
+            <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
               <div
-                className="h-2 rounded-full bg-primary"
-                style={{ width: `${(p.value / max) * 100}%` }}
+                className="h-2 rounded-full bg-primary origin-left transition-transform duration-150 ease-out"
+                style={{
+                  width: `${(p.value / max) * 100}%`,
+                  transform: `scaleX(${fill})`,
+                }}
               />
             </div>
             <span className="w-12 flex-none text-right tabular-nums text-muted-foreground">
@@ -175,71 +239,78 @@ const extras: {
 
 export default function HomeFeaturesSection() {
   return (
-    <section id="features" className="scroll-mt-16 container py-16 sm:py-24">
-      <h2 className="text-3xl md:text-4xl font-bold">More than commands</h2>
-      <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
-        Messages with buttons, data that sticks around and bots you can add in
-        one click, all on the free plan.
-      </p>
+    <section id="features" className="scroll-mt-16 bg-muted/30 py-16 sm:py-24">
+      <div className="container">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-bold">More than commands</h2>
+          <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
+            Messages with buttons, data that sticks around and bots you can add
+            in one click, all on the free plan.
+          </p>
+        </div>
 
-      {/* The mockups, titles and descriptions each line up in a row. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10 md:gap-y-0 mt-8 md:mt-12">
-        {features.map((feature) => (
-          <div
-            key={feature.title}
-            className="grid md:row-span-3 md:grid-rows-subgrid"
-          >
-            <div className="[&>*]:h-full">{feature.mockup}</div>
-            <h3 className="text-lg font-semibold mt-5">
-              {feature.href ? (
-                <Link
-                  href={feature.href}
-                  className="inline-flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  {feature.title}
-                  <ArrowRightIcon className="w-4 h-4" />
-                </Link>
-              ) : (
-                feature.title
-              )}
-            </h3>
-            <p className="text-muted-foreground mt-1">{feature.description}</p>
-          </div>
-        ))}
+        {/* The mockups, titles and descriptions each line up in a row. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10 md:gap-y-0 mt-8 md:mt-12">
+          {features.map((feature) => (
+            <div
+              key={feature.title}
+              className="grid md:row-span-3 md:grid-rows-subgrid"
+            >
+              <div className="[&>*]:h-full">{feature.mockup}</div>
+              <h3 className="text-lg font-semibold mt-5">
+                {feature.href ? (
+                  <Link
+                    href={feature.href}
+                    className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    {feature.title}
+                    <ArrowRightIcon className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  feature.title
+                )}
+              </h3>
+              <p className="text-muted-foreground mt-1">
+                {feature.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t pt-10">
+          {extras.map((extra) => (
+            <div key={extra.title}>
+              <div className="flex h-7 items-center">{extra.visual}</div>
+              <h3 className="mt-3 font-semibold">
+                {extra.href ? (
+                  <a
+                    href={extra.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    {extra.title}
+                    <ArrowRightIcon className="w-4 h-4" />
+                  </a>
+                ) : (
+                  extra.title
+                )}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {extra.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <Link
+          href="/features"
+          className="mt-10 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
+        >
+          See every feature and block
+          <ArrowRightIcon className="w-4 h-4" />
+        </Link>
       </div>
-
-      <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 border-t pt-10">
-        {extras.map((extra) => (
-          <div key={extra.title}>
-            <div className="flex h-7 items-center">{extra.visual}</div>
-            <h3 className="mt-3 font-semibold">
-              {extra.href ? (
-                <a
-                  href={extra.href}
-                  target="_blank"
-                  className="inline-flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  {extra.title}
-                  <ArrowRightIcon className="w-4 h-4" />
-                </a>
-              ) : (
-                extra.title
-              )}
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {extra.description}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <Link
-        href="/features"
-        className="mt-10 inline-flex items-center gap-1 font-medium hover:text-primary transition-colors"
-      >
-        See every feature and block
-        <ArrowRightIcon className="w-4 h-4" />
-      </Link>
     </section>
   );
 }

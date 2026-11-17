@@ -1,6 +1,6 @@
 import { useStatsQuery } from "@/lib/api/queries";
-import { useResponseData } from "@/lib/hooks/api";
 import { Stats } from "@/lib/apiData";
+import { useResponseData } from "@/lib/hooks/api";
 
 // Rounds down, so the numbers never claim more than is true.
 function formatCount(value: number) {
@@ -33,7 +33,7 @@ export default function HomeStatsSection({ initial }: { initial: Stats }) {
   ];
 
   return (
-    <section className="border-y bg-muted/30">
+    <section className="bg-muted/30">
       <div className="container grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 py-10">
         {(items ?? Array(4).fill(undefined)).map((item, i) => (
           <div key={i} className="text-center">

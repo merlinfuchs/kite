@@ -2,8 +2,7 @@ import { cn } from "@/lib/utils";
 import { ReactNode, useEffect, useState } from "react";
 import { nameStyleFontFamily } from "@/components/app/nameStyleFonts";
 
-// Simplified Discord UI for the status and profile features, drawn with the
-// site's colors like the Ask AI panel on the homepage.
+// Discord-authentic UI mockups for the status and profile features.
 
 // The bot isn't Kite's, to show that it can look like anything.
 const botName = "Froggy";
@@ -18,7 +17,7 @@ export const rotatingStatuses = [
 
 function AppTag() {
   return (
-    <span className="shrink-0 rounded bg-indigo-500 px-1 text-[10px] font-semibold leading-4 text-white">
+    <span className="shrink-0 rounded bg-[#5865f2] px-1 text-[10px] font-semibold leading-4 text-white">
       APP
     </span>
   );
@@ -39,7 +38,12 @@ function Avatar({
   className?: string;
 }) {
   return (
-    <div className={cn("flex-none rounded-full bg-card", className)}>
+    <div
+      className={cn(
+        "flex-none rounded-full bg-white dark:bg-[#313338]",
+        className
+      )}
+    >
       <div
         className={cn(
           "relative flex h-full w-full items-center justify-center rounded-full",
@@ -56,7 +60,7 @@ function Avatar({
           {emoji}
         </span>
         {online && (
-          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-card bg-green-500" />
+          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-white dark:border-[#313338] bg-[#23a55a]" />
         )}
       </div>
     </div>
@@ -83,7 +87,7 @@ function Status({ statuses }: { statuses: string[] }) {
   return (
     <div
       key={status}
-      className="truncate text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
+      className="truncate text-xs text-[#5c5e66] dark:text-[#949ba4] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-500"
     >
       {status}
     </div>
@@ -105,12 +109,12 @@ function MemberRow({
     <div
       className={cn(
         "flex items-center gap-3 rounded-md px-2 py-1.5",
-        app && "bg-muted"
+        app && "bg-[#f2f3f5] dark:bg-[#2b2d31]"
       )}
     >
       <Avatar emoji={emoji} online className="h-8 w-8 text-sm" />
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-sm font-medium">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-[#060607] dark:text-[#f2f3f5]">
           <span className="truncate">{name}</span>
           {app && <AppTag />}
         </div>
@@ -124,8 +128,8 @@ function MemberRow({
 // rotates when there are several.
 export function StatusMockup({ statuses }: { statuses: string[] }) {
   return (
-    <div className="space-y-1 rounded-xl border bg-card p-3 shadow-sm">
-      <div className="px-2 pb-1 text-xs font-semibold uppercase text-muted-foreground">
+    <div className="space-y-1 rounded-xl border bg-white dark:bg-[#313338] p-3 shadow-sm not-prose">
+      <div className="px-2 pb-1 text-xs font-semibold uppercase text-[#5c5e66] dark:text-[#949ba4]">
         Online — 3
       </div>
       <MemberRow name={botName} app statuses={statuses} />
@@ -138,17 +142,17 @@ export function StatusMockup({ statuses }: { statuses: string[] }) {
 // ProfileMockup is the bot's profile with an animated banner and avatar.
 export function ProfileMockup({ statuses }: { statuses?: string[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-xl border bg-white dark:bg-[#313338] shadow-sm not-prose">
       <div className="h-20 bg-gradient-to-r from-emerald-400 via-lime-300 to-teal-500 bg-[length:200%_200%] motion-safe:animate-banner-shift" />
       <div className="px-4 pb-4">
         <Avatar animated online className="-mt-9 h-16 w-16 p-[5px] text-3xl" />
-        <div className="mt-2 flex items-center gap-1.5 font-semibold">
+        <div className="mt-2 flex items-center gap-1.5 font-semibold text-[#060607] dark:text-[#f2f3f5]">
           {botName}
           <AppTag />
         </div>
-        <div className="text-xs text-muted-foreground">froggy</div>
+        <div className="text-xs text-[#5c5e66] dark:text-[#949ba4]">froggy</div>
         {statuses && (
-          <div className="mt-3 rounded-md bg-muted px-3 py-2">
+          <div className="mt-3 rounded-md bg-[#f2f3f5] dark:bg-[#2b2d31] px-3 py-2">
             <Status statuses={statuses} />
           </div>
         )}
@@ -173,13 +177,20 @@ function ChatMessage({
       <Avatar emoji={emoji} className="h-9 w-9 text-base" />
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-1.5">
-          <span className="font-medium" style={{ fontFamily: nameFont }}>
+          <span
+            className="font-medium text-[#060607] dark:text-[#f2f3f5]"
+            style={{ fontFamily: nameFont }}
+          >
             {name}
           </span>
           <AppTag />
-          <span className="text-xs text-muted-foreground">Today at 20:02</span>
+          <span className="text-xs text-[#5c5e66] dark:text-[#949ba4]">
+            Today at 20:02
+          </span>
         </div>
-        <div className="text-sm">{children}</div>
+        <div className="text-sm text-[#313338] dark:text-[#dbdee1]">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -206,10 +217,13 @@ const serverProfiles = [
 // style in two servers.
 export function ServerProfileMockup() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 not-prose">
       {serverProfiles.map((p) => (
-        <div key={p.server} className="rounded-xl border bg-card p-3 shadow-sm">
-          <div className="mb-2 text-xs font-semibold text-muted-foreground">
+        <div
+          key={p.server}
+          className="rounded-xl border bg-white dark:bg-[#313338] p-3 shadow-sm"
+        >
+          <div className="mb-2 text-xs font-semibold text-[#5c5e66] dark:text-[#949ba4]">
             {p.server}
           </div>
           <ChatMessage name={p.nick} nameFont={p.nameFont} emoji={p.emoji}>
@@ -225,13 +239,13 @@ export function ServerProfileMockup() {
 // avatar of a user.
 export function PersonaMockup() {
   return (
-    <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+    <div className="space-y-4 rounded-xl border bg-white dark:bg-[#313338] p-4 shadow-sm not-prose">
       <ChatMessage name={botName}>Welcome to the server, Alex!</ChatMessage>
       <div>
         <ChatMessage name="Alex" emoji="🦊">
           Movie night starts at 8, bring snacks! 🍿
         </ChatMessage>
-        <div className="mt-1 pl-12 text-xs text-muted-foreground">
+        <div className="mt-1 pl-12 text-xs text-[#5c5e66] dark:text-[#949ba4]">
           Sent by {botName} as Alex
         </div>
       </div>

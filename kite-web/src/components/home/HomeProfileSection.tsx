@@ -41,12 +41,18 @@ export default function HomeProfileSection() {
           </p>
         </div>
 
-        <div className="mx-auto w-full max-w-lg space-y-4">
-          <div className="max-w-xs">
-            <ProfileMockup statuses={rotatingStatuses} />
-          </div>
-          <div className="ml-auto max-w-sm">
-            <PersonaMockup />
+        <div className="relative mx-auto w-full max-w-lg">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-4 rounded-3xl bg-[radial-gradient(60%_60%_at_40%_40%,hsl(var(--primary)/0.14),transparent)] blur-2xl"
+          />
+          <div className="relative space-y-4">
+            <div className="max-w-xs">
+              <ProfileMockup statuses={rotatingStatuses} />
+            </div>
+            <div className="ml-auto max-w-sm">
+              <PersonaMockup />
+            </div>
           </div>
         </div>
       </div>
