@@ -343,7 +343,17 @@ export default function HomeHowItWorksSection() {
                           {stageIndex === 1 && (
                             <AddAppStage progress={stageFill} />
                           )}
-                          {stageIndex === 2 && <StepThreeShowcase />}
+                          {stageIndex === 2 && (
+                            <StepThreeShowcase
+                              key={
+                                isDesktop
+                                  ? "desktop"
+                                  : isStageActive
+                                  ? "mobile-active"
+                                  : "mobile-idle"
+                              }
+                            />
+                          )}
                         </div>
                       </div>
                     );
