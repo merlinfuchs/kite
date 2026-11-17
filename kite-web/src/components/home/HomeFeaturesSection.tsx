@@ -127,9 +127,21 @@ export function VariableMockup() {
 }
 
 const templates = [
-  { name: "Giveaways", description: "Enter button, random winners" },
-  { name: "Modmail", description: "Members DM your staff" },
-  { name: "Verification", description: "A role for clicking Verify" },
+  {
+    name: "Giveaways",
+    description: "Enter button, random winners",
+    href: "/marketplace/giveaway",
+  },
+  {
+    name: "Modmail",
+    description: "Members DM your staff",
+    href: "/marketplace/modmail",
+  },
+  {
+    name: "Verification",
+    description: "A role for clicking Verify",
+    href: "/marketplace/verification",
+  },
 ];
 
 function TemplateMockup() {
@@ -143,9 +155,12 @@ function TemplateMockup() {
               {t.description}
             </div>
           </div>
-          <span className="flex-none rounded-md border px-2.5 py-1 text-xs font-medium">
+          <Link
+            href={t.href}
+            className="flex-none rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
             Add
-          </span>
+          </Link>
         </div>
       ))}
     </div>
