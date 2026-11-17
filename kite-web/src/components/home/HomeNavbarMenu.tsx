@@ -87,6 +87,17 @@ export default function HomeNavbarMenu({ className }: { className?: string }) {
           </NavigationMenuContent>
         </NavigationMenuItem>
 
+        <NavigationMenuItem>
+          <NavigationMenuLink asChild>
+            <Link
+              href="/marketplace"
+              className={cn(navigationMenuTriggerStyle(), triggerClass)}
+            >
+              Marketplace
+            </Link>
+          </NavigationMenuLink>
+        </NavigationMenuItem>
+
         <NavigationMenuItem value="tools">
           <NavigationMenuTrigger
             className={triggerClass}
