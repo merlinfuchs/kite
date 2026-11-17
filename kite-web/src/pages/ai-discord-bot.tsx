@@ -97,7 +97,7 @@ const content: LandingPageContent = {
     {
       question: "How many credits does the AI use?",
       answer:
-        "An answer from the Ask AI block costs 5 credits with the Fast model, 20 with Balanced, and 100 with Smartest. A web search costs 25 credits with the Fast model. AI Check, AI Choice, and AI Score cost 1 credit each. The free plan includes 10,000 credits per month.",
+        "An answer from the Ask AI block costs 5 credits with the Fast model, 20 with Balanced, and 100 with Smartest. A web search costs 250 credits with the Fast model. AI Check, AI Choice, and AI Score cost 1 credit each. The free plan includes 10,000 credits per month.",
     },
     {
       question: "Can I change how the AI answers?",
