@@ -45,6 +45,8 @@ import {
   EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
+  HTTPRequestTestRequest,
+  HTTPRequestTestResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -108,6 +110,8 @@ import {
   BundleListingSubmitResponse,
   BundleRemoveRequest,
   BundleRemoveResponse,
+  BundleStaffPickDeleteResponse,
+  BundleStaffPickResponse,
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
@@ -131,9 +135,16 @@ import {
   OAuthAuthorizeResponse,
   APITokenCreateResponse,
   APITokenDeleteResponse,
+  UserBadgeGrantCreateRequest,
+  UserBadgeGrantCreateResponse,
+  UserBadgeGrantDeleteResponse,
   UserBanCreateRequest,
   UserBanCreateResponse,
   UserBanDeleteResponse,
+  FolderUpdateRequest,
+  CommandsUpdateFolderResponse,
+  EventListenersUpdateFolderResponse,
+  MessagesUpdateFolderResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { APIResponse } from "./response";
@@ -356,6 +367,38 @@ export function useCommandUpdateEnabledMutation(appId: string, cmdId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
+      });
+      // The dashboard counts the enabled ones.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "entities"],
+      });
+    },
+  });
+}
+
+export type FolderItemKind = "commands" | "event-listeners" | "messages";
+
+// useFolderUpdateMutation moves items into a folder, or out of any with a null
+// folder. Renaming a folder moves all of its items.
+export function useFolderUpdateMutation(appId: string, kind: FolderItemKind) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FolderUpdateRequest) =>
+      apiRequest<
+        | CommandsUpdateFolderResponse
+        | EventListenersUpdateFolderResponse
+        | MessagesUpdateFolderResponse
+      >(`/v1/apps/${appId}/${kind}/folder`, {
+        method: "PUT",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, kind],
       });
     },
   });
@@ -797,6 +840,51 @@ export function useBundleRemoveMutation() {
   });
 }
 
+// useBundleStaffPickMutation picks a template of a user, or unpicks it.
+export function useBundleStaffPickMutation() {
+  return useMutation({
+    mutationFn: ({ bundleId, picked }: { bundleId: string; picked: boolean }) =>
+      apiRequest<BundleStaffPickResponse | BundleStaffPickDeleteResponse>(
+        `/v1/admin/bundles/${bundleId}/staff-pick`,
+        { method: picked ? "POST" : "DELETE" }
+      ),
+  });
+}
+
+// useUserBadgeGrantCreateMutation gives a user a badge by hand.
+export function useUserBadgeGrantCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserBadgeGrantCreateRequest) =>
+      apiRequest<UserBadgeGrantCreateResponse>(`/v1/admin/user-badges`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-badges"] });
+    },
+  });
+}
+
+export function useUserBadgeGrantDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, kind }: { userId: string; kind: string }) =>
+      apiRequest<UserBadgeGrantDeleteResponse>(
+        `/v1/admin/user-badges/${userId}/${kind}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-badges"] });
+    },
+  });
+}
+
 // useUserBanCreateMutation bans a user from a feature. A ban from the
 // marketplace or Kite rejects what they have in review, and one from Kite
 // stops their apps.
@@ -954,6 +1042,10 @@ export function useEventListenerUpdateEnabledMutation(
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+      // The dashboard counts the enabled ones.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "entities"],
       });
     },
   });
@@ -1729,6 +1821,22 @@ export function useShareCodeResolveMutation() {
     mutationFn: (code: string) =>
       apiRequest<ShareCodeGetResponse>(
         `/v1/share-codes/${encodeURIComponent(code)}`
+      ),
+  });
+}
+
+export function useHTTPRequestTestMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: HTTPRequestTestRequest) =>
+      apiRequest<HTTPRequestTestResponse>(
+        `/v1/apps/${appId}/test-http-request`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       ),
   });
 }

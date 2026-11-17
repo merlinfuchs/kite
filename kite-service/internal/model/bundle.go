@@ -22,6 +22,13 @@ type Bundle struct {
 	// rules, with the reason its owner sees. It's final.
 	RemovedAt     null.Time
 	RemovedReason string
+	// StaffPickedAt is when Kite picked a user's bundle, which the
+	// marketplace shows with a badge. It's null if it isn't picked.
+	StaffPickedAt null.Time
+	// Featurable is whether an AI check found the listed version of a user's
+	// bundle good enough for the Featured row of the marketplace. It's null
+	// while it wasn't checked.
+	Featurable null.Bool
 	// Version is the version of Content. Loaders with
 	// the content load InstallVersion, the others the newest. Use
 	// InstallVersion and LatestVersion to know which version is which.

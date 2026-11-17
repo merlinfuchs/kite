@@ -16,9 +16,9 @@ Blocks of an integration you haven't enabled still show in the block explorer, m
 
 ## Roblox Open Cloud
 
-The Roblox group blocks use an API key from [Roblox's Creator Hub](https://create.roblox.com/dashboard/credentials). Create it on the account that manages the group, as the key can only do what that account can:
+The Roblox group blocks use an API key from Roblox's Creator Hub. Create it on the account that manages the group, as the key can only do what that account can:
 
-1. Open _Credentials_ of your own account, not the group's, and create an API key.
-2. Under _Access Permissions_, add _groups_ with the _group:read_ and _group:write_ permissions.
-3. Allow any IP address under _Accepted IP Addresses_ by adding `0.0.0.0/0`.
+1. Open [API keys](https://create.roblox.com/dashboard/credentials?activeTab=ApiKeysTab) of your own account, not the group's, and create an API key. Keys owned by a group can't use the Groups API. If Roblox shows "Group API Keys do not support all Open Cloud APIs", you're on the group's page.
+2. Under _Access Permissions_, select the _groups_ API system and add the _group:read_ and _group:write_ operations.
+3. Don't restrict the key to IP addresses. If Roblox asks for accepted IP addresses, add `0.0.0.0/0`.
 4. Copy the key and enter it when you enable Roblox Open Cloud in Kite.

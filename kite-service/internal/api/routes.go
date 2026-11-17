@@ -26,6 +26,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/lookup"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -33,6 +34,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	userbadge "github.com/kitecloud/kite/kite-service/internal/api/handler/user_badge"
 	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
@@ -129,7 +131,7 @@ func (s *APIServer) RegisterRoutes(
 
 	// Bundles are public, like the templates on the website. A token gets the
 	// user's own ones too, so the MCP server can add them.
-	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore, planManager)
 	v1Group.AllowAPIToken().Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
 	v1Group.AllowAPIToken().Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
@@ -149,7 +151,7 @@ func (s *APIServer) RegisterRoutes(
 	authGroup.Post("/logout", handler.Typed(authHandler.HandleAuthLogout))
 
 	// User routes
-	userHandler := user.NewUserHandler(userStore, s.config.AdminUserIDs)
+	userHandler := user.NewUserHandler(userStore, s.config.AdminUserIDs, planManager)
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
@@ -189,6 +191,18 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(oauthHandler.HandleOAuthAuthorize),
 		sessionManager.RequireSession,
 		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// For the user lookup tool on the website. Discord doesn't allow showing
+	// the profiles to anyone, so it needs a login.
+	lookupHandler, err := lookup.NewLookupHandler(s.config.DiscordBotToken)
+	if err != nil {
+		panic(err)
+	}
+	lookupGroup := v1Group.Group("/lookup", sessionManager.RequireSession)
+	lookupGroup.Get("/users/{userID}",
+		handler.Typed(lookupHandler.HandleUserGet),
+		handler.RateLimitByUser(20, time.Minute),
 	)
 
 	// Share code routes
@@ -322,6 +336,7 @@ func (s *APIServer) RegisterRoutes(
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
 	commandsGroup.Post("/", handler.TypedWithBody(commandsHandler.HandleCommandCreate))
 	commandsGroup.Post("/import", handler.TypedWithBody(commandsHandler.HandleCommandsImport))
+	commandsGroup.Put("/folder", handler.TypedWithBody(commandsHandler.HandleCommandsUpdateFolder))
 
 	commandGroup := commandsGroup.Group("/{commandID}", accessManager.CommandAccess)
 	commandGroup.Get("/", handler.Typed(commandsHandler.HandleCommandGet))
@@ -342,6 +357,7 @@ func (s *APIServer) RegisterRoutes(
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
 	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
 	eventListenersGroup.Post("/import", handler.TypedWithBody(eventListenerHandler.HandleEventListenersImport))
+	eventListenersGroup.Put("/folder", handler.TypedWithBody(eventListenerHandler.HandleEventListenersUpdateFolder))
 
 	eventListenerGroup := eventListenersGroup.Group("/{listenerID}", accessManager.EventListenerAccess)
 	eventListenerGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerGet))
@@ -437,6 +453,7 @@ func (s *APIServer) RegisterRoutes(
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
 	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
 	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport))
+	messagesGroup.Put("/folder", handler.TypedWithBody(messageHandler.HandleMessagesUpdateFolder))
 
 	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
@@ -524,11 +541,18 @@ func (s *APIServer) RegisterRoutes(
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
+	adminGroup.Post("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPick))
+	adminGroup.Delete("/bundles/{bundleID}/staff-pick", handler.Typed(bundleReviewHandler.HandleBundleStaffPickDelete))
 
 	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
 	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))
 	adminGroup.Post("/user-bans", handler.TypedWithBody(userBanHandler.HandleUserBanCreate))
 	adminGroup.Delete("/user-bans/{userID}/{feature}", handler.Typed(userBanHandler.HandleUserBanDelete))
+
+	userBadgeHandler := userbadge.NewUserBadgeHandler(userStore)
+	adminGroup.Get("/user-badges", handler.Typed(userBadgeHandler.HandleUserBadgeGrantList))
+	adminGroup.Post("/user-badges", handler.TypedWithBody(userBadgeHandler.HandleUserBadgeGrantCreate))
+	adminGroup.Delete("/user-badges/{userID}/{kind}", handler.Typed(userBadgeHandler.HandleUserBadgeGrantDelete))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
@@ -586,6 +610,12 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleCommandTest), flowTestRateLimit)
 	eventListenerGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleEventListenerTest), flowTestRateLimit)
 	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit)
+
+	// Sends a request with the app's secrets, so it's only for the editor.
+	appGroup.Post("/test-http-request",
+		handler.TypedWithBody(flowTestHandler.HandleHTTPRequestTest),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Discord API routes. The handler checks the discord scope, as the access
 	// a request needs depends on the endpoint it calls. Limited more than the

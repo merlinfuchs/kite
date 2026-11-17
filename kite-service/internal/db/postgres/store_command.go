@@ -36,12 +36,12 @@ func (c *Client) CommandsByApp(ctx context.Context, appID string) ([]*model.Comm
 	return commands, nil
 }
 
-func (c *Client) CountCommandsByApp(ctx context.Context, appID string) (int, error) {
+func (c *Client) CountCommandsByApp(ctx context.Context, appID string) (store.ItemCounts, error) {
 	res, err := c.Q.CountCommandsByApp(ctx, appID)
 	if err != nil {
-		return 0, err
+		return store.ItemCounts{}, err
 	}
-	return int(res), nil
+	return store.ItemCounts{Total: int(res.Total), Enabled: int(res.Enabled)}, nil
 }
 
 func (c *Client) Command(ctx context.Context, id string) (*model.Command, error) {
@@ -223,6 +223,27 @@ func recordCommandDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Co
 	return recordItemDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
 }
 
+func (c *Client) UpdateCommandsFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.Command, error) {
+	rows, err := c.Q.UpdateCommandsFolder(ctx, pgmodel.UpdateCommandsFolderParams{
+		Folder: pgtype.Text{String: folder.String, Valid: folder.Valid},
+		AppID:  appID,
+		Ids:    ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*model.Command, len(rows))
+	for i, row := range rows {
+		item, err := rowToCommand(row)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = item
+	}
+	return res, nil
+}
+
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
@@ -236,6 +257,7 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 		Enabled:         row.Enabled,
 		AppID:           row.AppID,
 		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		Folder:          null.NewString(row.Folder.String, row.Folder.Valid),
 		CreatorUserID:   row.CreatorUserID,
 		FlowSource:      flowSource,
 		CreatedAt:       row.CreatedAt.Time,

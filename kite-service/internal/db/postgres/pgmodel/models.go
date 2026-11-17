@@ -113,6 +113,8 @@ type Bundle struct {
 	Category        string
 	About           []byte
 	Setup           []byte
+	StaffPickedAt   pgtype.Timestamp
+	Featurable      pgtype.Bool
 }
 
 type BundleInstall struct {
@@ -219,6 +221,7 @@ type Command struct {
 	FlowSource      []byte
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type Entitlement struct {
@@ -247,6 +250,7 @@ type EventListener struct {
 	UpdatedAt       pgtype.Timestamp
 	LastRunAt       pgtype.Timestamp
 	WebhookSecret   pgtype.Text
+	Folder          pgtype.Text
 }
 
 type ItemVersion struct {
@@ -289,6 +293,7 @@ type Message struct {
 	CreatorUserID   string
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type MessageInstance struct {
@@ -426,6 +431,13 @@ type User struct {
 	DiscordAvatar   pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+}
+
+type UserBadgeGrant struct {
+	UserID          string
+	Badge           string
+	GrantedByUserID pgtype.Text
+	CreatedAt       pgtype.Timestamp
 }
 
 type UserBan struct {

@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -33,7 +34,7 @@ func TestCheckCommandNames(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := checkCommandNames(nil, test.names)
+		err := checkCommandNames(nil, slashKeys(test.names...))
 		if test.message == "" {
 			if err != nil {
 				t.Errorf("%v: unexpected error: %v", test.names, err)
@@ -48,6 +49,63 @@ func TestCheckCommandNames(t *testing.T) {
 		}
 		if deployErr.Message != test.message || deployErr.Command != test.command {
 			t.Errorf("%v: got %q (%q), want %q (%q)", test.names, deployErr.Message, deployErr.Command, test.message, test.command)
+		}
+	}
+}
+
+func slashKeys(names ...string) []Key {
+	res := make([]Key, len(names))
+	for i, name := range names {
+		res[i] = NewKey(discord.ChatInputCommand, name)
+	}
+	return res
+}
+
+func TestCheckContextMenuCommands(t *testing.T) {
+	user := func(name string) Key { return NewKey(discord.UserCommand, name) }
+	message := func(name string) Key { return NewKey(discord.MessageCommand, name) }
+
+	type nameTest struct {
+		name     string
+		existing []Key
+		added    []Key
+		message  string
+		command  string
+	}
+	tests := []nameTest{
+		{name: "same name as slash command", existing: slashKeys("report"), added: []Key{user("report"), message("report")}},
+		{name: "spaces aren't subcommands", existing: slashKeys("user"), added: []Key{user("user info"), message("user")}},
+		{name: "duplicate", existing: []Key{user("User Info")}, added: []Key{user("User Info")}, message: `There is more than one User command named "User Info".`, command: "User Info"},
+	}
+
+	var fifteen []Key
+	for i := range maxContextMenuCommands {
+		fifteen = append(fifteen, user(fmt.Sprintf("Info %d", i)))
+	}
+	tests = append(tests,
+		nameTest{name: "limit of other type", existing: fifteen, added: []Key{message("Info")}},
+		nameTest{name: "over limit", existing: fifteen, added: []Key{user("Info")}, message: "Discord allows at most 15 User commands.", command: "Info"},
+	)
+
+	for _, test := range tests {
+		err := checkCommandNames(test.existing, test.added)
+		if err == nil {
+			err = checkCommandLimits(test.existing, test.added)
+		}
+		if test.message == "" {
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", test.name, err)
+			}
+			continue
+		}
+
+		deployErr, ok := err.(*DeployError)
+		if !ok {
+			t.Errorf("%s: expected DeployError, got %v", test.name, err)
+			continue
+		}
+		if deployErr.Message != test.message || deployErr.Command != test.command || deployErr.CommandType != "user" {
+			t.Errorf("%s: got %+v, want %q (%q)", test.name, deployErr, test.message, test.command)
 		}
 	}
 }
@@ -95,6 +153,24 @@ func TestMergeCommandsKeepsOrder(t *testing.T) {
 		}
 		if hash != first {
 			t.Fatal("hash changed for the same commands")
+		}
+	}
+}
+
+func TestMergeCommandsKeepsCommandTypesSeparate(t *testing.T) {
+	commands := []api.CreateCommandData{
+		{Name: "inspect", Type: discord.ChatInputCommand, Description: "Inspect"},
+		{Name: "inspect", Type: discord.UserCommand},
+		{Name: "inspect", Type: discord.MessageCommand},
+	}
+
+	merged := mergeCommands(commands)
+	if len(merged) != len(commands) {
+		t.Fatalf("got %d commands, want %d", len(merged), len(commands))
+	}
+	for i, command := range merged {
+		if command.Type != commands[i].Type {
+			t.Errorf("command %d has type %d, want %d", i, command.Type, commands[i].Type)
 		}
 	}
 }

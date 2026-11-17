@@ -284,16 +284,49 @@ function commandPlaceholders(
   return [
     {
       label: "Command",
-      placeholders: nodes
-        .filter((n) => n.type === "option_command_argument" && argIds.has(n.id))
-        .map((n) => {
-          const label = `Command Arg '${n.data.name}'`;
-          const value = `arg('${n.data.name}')`;
-          const type = argTypes[n.data.command_argument_type ?? ""];
-          return typedPlaceholder(label, value, type);
-        }),
+      placeholders: [
+        ...nodes
+          .filter(
+            (n) => n.type === "option_command_argument" && argIds.has(n.id)
+          )
+          .map((n) => {
+            const label = `Command Arg '${n.data.name}'`;
+            const value = `arg('${n.data.name}')`;
+            const type = argTypes[n.data.command_argument_type ?? ""];
+            return typedPlaceholder(label, value, type);
+          }),
+        ...commandTargetPlaceholders(nodes, "", ""),
+      ],
     },
   ];
+}
+
+// The user or message a User or Message command was used on.
+function commandTargetPlaceholders(
+  nodes: Node<NodeData>[],
+  prefix: string,
+  labelPrefix: string
+): Placeholder[] {
+  const entry = nodes.find((n) => n.type === "entry_command");
+  switch (entry?.data.command_type) {
+    case "user":
+      return [
+        typedPlaceholder(
+          `${labelPrefix}Target User`,
+          `${prefix}interaction.command.target_user`,
+          "user"
+        ),
+      ];
+    case "message":
+      return [
+        typedPlaceholder(
+          `${labelPrefix}Target Message`,
+          `${prefix}interaction.command.target_message`,
+          "message"
+        ),
+      ];
+  }
+  return [];
 }
 
 // What arg() returns for each argument type that isn't a plain value. A
@@ -407,6 +440,10 @@ function resumePlaceholders(
     "Original ",
     getEventType(nodes)
   );
+  const targets = commandTargetPlaceholders(nodes, "origin.", "Original ");
+  if (contextType === "command" && targets.length > 0) {
+    res.push({ label: "Original Command", placeholders: targets });
+  }
   if (depth === 1) return res;
   // Whether previous was a button, select menu or modal isn't tracked here.
   return [

@@ -19,6 +19,8 @@ export interface LandingPageContent {
   sections: {
     heading: string;
     body?: string;
+    // A link below the body, like to the template the section is about.
+    link?: { label: string; href: string };
     // Points with an href link to a page that tells more, like a guide.
     points?: { title: string; description: string; href?: string }[];
   }[];
@@ -96,6 +98,15 @@ export default function LandingPage({
               <p className="text-lg text-muted-foreground mt-4 max-w-2xl">
                 {section.body}
               </p>
+            )}
+            {section.link && (
+              <Link
+                href={section.link.href}
+                className="inline-flex items-center gap-1 mt-4 font-medium text-primary hover:underline"
+              >
+                {section.link.label}
+                <ArrowRightIcon className="w-4 h-4" />
+              </Link>
             )}
           </>
         );

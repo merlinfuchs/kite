@@ -7,6 +7,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
@@ -40,7 +41,11 @@ func NewCommand(
 	}, nil
 }
 
-func (c *Command) HandleEvent(appID string, session *state.State, event gateway.Event) {
+func (c *Command) commandKeys() []command.Key {
+	return []command.Key{command.ModelKey(c.cmd)}
+}
+
+func (c *Command) handleCommand(session *state.State, event *gateway.InteractionCreateEvent) {
 	links := entityLinks{
 		CommandID: null.NewString(c.cmd.ID, true),
 	}

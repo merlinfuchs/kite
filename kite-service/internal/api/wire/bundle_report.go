@@ -61,3 +61,7 @@ func (req BundleRemoveRequest) Validate() error {
 }
 
 type BundleRemoveResponse struct{}
+
+type BundleStaffPickResponse struct{}
+
+type BundleStaffPickDeleteResponse struct{}

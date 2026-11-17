@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import PlaceholderExplorer from "../common/PlaceholderExplorer";
 import { VariableIcon } from "lucide-react";
+import InputActionButton from "../common/InputActionButton";
 import {
   interactionPlaceholders,
   PlaceholderGroup,
@@ -84,106 +85,101 @@ export default function MessagePlaceholderExplorer({
   ]);
 
   return (
-    <div className="absolute top-10 right-1.5 z-20">
-      <PlaceholderExplorer
-        onSelect={onSelect}
-        placeholders={placeholders}
-        tab={context}
-        tabs={[
-          ...(noPlaceholders
-            ? []
-            : [
-                {
-                  label: "Interaction",
-                  value: "interaction",
-                },
-                {
-                  label: "Event",
-                  value: "event",
-                },
-              ]),
-          {
-            label: "Time",
-            value: "time",
-          },
-        ]}
-        onTabChange={(tab) => {
-          setContext(tab as Context);
-        }}
-        onOpenChange={(open) => {
-          if (open) setOpenedAt(Math.floor(Date.now() / 1000));
-        }}
-        header={
-          context === "time" && (
-            <div className="px-3 pt-2 pb-2 space-y-2">
-              {!noPlaceholders && (
+    <PlaceholderExplorer
+      onSelect={onSelect}
+      placeholders={placeholders}
+      tab={context}
+      tabs={[
+        ...(noPlaceholders
+          ? []
+          : [
+              {
+                label: "Interaction",
+                value: "interaction",
+              },
+              {
+                label: "Event",
+                value: "event",
+              },
+            ]),
+        {
+          label: "Time",
+          value: "time",
+        },
+      ]}
+      onTabChange={(tab) => {
+        setContext(tab as Context);
+      }}
+      onOpenChange={(open) => {
+        if (open) setOpenedAt(Math.floor(Date.now() / 1000));
+      }}
+      header={
+        context === "time" && (
+          <div className="px-3 pt-2 pb-2 space-y-2">
+            {!noPlaceholders && (
+              <Select
+                value={timeSource}
+                onValueChange={(v) => setTimeSource(v as TimeSource)}
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(timeSources).map(([source, s]) => (
+                    <SelectItem value={source} key={source}>
+                      {s.option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {timeSource === "custom" && (
+              <Input
+                type="datetime-local"
+                className="h-8 dark:[color-scheme:dark]"
+                value={customTime}
+                onChange={(e) => setCustomTime(e.target.value)}
+              />
+            )}
+            {timeSource === "countdown" && (
+              <div className="flex space-x-2">
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-8 w-24 flex-none"
+                  value={countdownAmount}
+                  onChange={(e) => setCountdownAmount(e.target.value)}
+                />
                 <Select
-                  value={timeSource}
-                  onValueChange={(v) => setTimeSource(v as TimeSource)}
+                  value={countdownUnit}
+                  onValueChange={(v) => setCountdownUnit(v as CountdownUnit)}
                 >
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(timeSources).map(([source, s]) => (
-                      <SelectItem value={source} key={source}>
-                        {s.option}
+                    {Object.entries(countdownUnits).map(([unit, u]) => (
+                      <SelectItem value={unit} key={unit}>
+                        {u.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-              {timeSource === "custom" && (
-                <Input
-                  type="datetime-local"
-                  className="h-8 dark:[color-scheme:dark]"
-                  value={customTime}
-                  onChange={(e) => setCustomTime(e.target.value)}
-                />
-              )}
-              {timeSource === "countdown" && (
-                <div className="flex space-x-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    className="h-8 w-24 flex-none"
-                    value={countdownAmount}
-                    onChange={(e) => setCountdownAmount(e.target.value)}
-                  />
-                  <Select
-                    value={countdownUnit}
-                    onValueChange={(v) => setCountdownUnit(v as CountdownUnit)}
-                  >
-                    <SelectTrigger className="h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(countdownUnits).map(([unit, u]) => (
-                        <SelectItem value={unit} key={unit}>
-                          {u.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {openedAt !== undefined && placeholders.length === 0 && (
-                <div className="text-muted-foreground text-xs">
-                  {timeSource === "custom"
-                    ? "Pick a date and time."
-                    : "Enter a number from 1 to 100 years."}
-                </div>
-              )}
-            </div>
-          )
-        }
-      >
-        <VariableIcon
-          className="h-5.5 w-5.5 text-muted-foreground hover:text-foreground cursor-pointer"
-          role="button"
-        />
-      </PlaceholderExplorer>
-    </div>
+              </div>
+            )}
+            {openedAt !== undefined && placeholders.length === 0 && (
+              <div className="text-muted-foreground text-xs">
+                {timeSource === "custom"
+                  ? "Pick a date and time."
+                  : "Enter a number from 1 to 100 years."}
+              </div>
+            )}
+          </div>
+        )
+      }
+    >
+      <InputActionButton label="Insert placeholder" icon={VariableIcon} />
+    </PlaceholderExplorer>
   );
 }
 

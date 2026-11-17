@@ -74,6 +74,16 @@ func (d FlowData) WithCommandName(name string) FlowData {
 	return d
 }
 
+// CommandType is the type in Discord of the flow's command.
+func (d FlowData) CommandType() discord.CommandType {
+	for _, node := range d.Nodes {
+		if node.Type == FlowNodeTypeEntryCommand {
+			return node.Data.CommandType.Discord()
+		}
+	}
+	return discord.ChatInputCommand
+}
+
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),
@@ -111,14 +121,16 @@ const (
 	FlowParameterTypeTextarea FlowParameterType = "textarea"
 	FlowParameterTypeChannel  FlowParameterType = "channel"
 	FlowParameterTypeRole     FlowParameterType = "role"
+	// A channel category, like the one tickets are created in.
+	FlowParameterTypeCategory FlowParameterType = "category"
 	// Yes or no, picked from a menu. The value is true or false.
 	FlowParameterTypeBoolean FlowParameterType = "boolean"
 )
 
-// Picked is whether the value is picked from a server, as the ID of a channel
-// or role.
+// Picked is whether the value is picked from a server, as the ID of a channel,
+// category or role.
 func (t FlowParameterType) Picked() bool {
-	return t == FlowParameterTypeChannel || t == FlowParameterTypeRole
+	return t == FlowParameterTypeChannel || t == FlowParameterTypeCategory || t == FlowParameterTypeRole
 }
 
 // FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
@@ -128,7 +140,7 @@ type FlowParameter struct {
 	Description string            `json:"description,omitempty"`
 	Type        FlowParameterType `json:"type"`
 	Required    bool              `json:"required,omitempty"`
-	// Value is the ID of the channel or role for those types.
+	// Value is the ID of the channel, category or role for those types.
 	Value string `json:"value"`
 }
 
@@ -142,6 +154,7 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeTextarea,
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
+			FlowParameterTypeCategory,
 			FlowParameterTypeBoolean,
 		)),
 		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
@@ -315,7 +328,8 @@ type FlowNodeData struct {
 	TemporaryName string `json:"temporary_name,omitempty"`
 
 	// Command Entry
-	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+	CommandType          CommandType `json:"command_type,omitempty"`
+	CommandArgumentOrder []string    `json:"command_argument_order,omitempty"`
 
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
@@ -630,11 +644,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// Command Entry
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 32),
-			validation.Match(commandNameRe).
-				Error("must be lowercase without special characters and up to two spaces"),
+			validation.When(
+				d.CommandType.Discord() == discord.ChatInputCommand,
+				validation.Match(commandNameRe).
+					Error("must be lowercase without special characters and up to two spaces"),
+			),
 		)),
-		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
+		validation.Field(&d.CommandType, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.In("", CommandTypeChatInput, CommandTypeUser, CommandTypeMessage),
+		)),
+		validation.Field(&d.Description, validation.When(
+			nodeType == FlowNodeTypeEntryCommand &&
+				d.CommandType.Discord() == discord.ChatInputCommand,
 			validation.Required,
 			notBlank,
 			validation.Length(1, 100),
@@ -866,6 +889,27 @@ const (
 	CommandContextTypeBotDM          CommandContextType = "bot_dm"
 	CommandContextTypePrivateChannel CommandContextType = "private_channel"
 )
+
+type CommandType string
+
+const (
+	CommandTypeChatInput CommandType = "chat_input"
+	CommandTypeUser      CommandType = "user"
+	CommandTypeMessage   CommandType = "message"
+)
+
+// Discord is the type of the command in Discord. Commands saved before there
+// were types have none and are slash commands.
+func (t CommandType) Discord() discord.CommandType {
+	switch t {
+	case CommandTypeUser:
+		return discord.UserCommand
+	case CommandTypeMessage:
+		return discord.MessageCommand
+	default:
+		return discord.ChatInputCommand
+	}
+}
 
 type CommandDisabledIntegrationType string
 

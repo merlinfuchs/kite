@@ -3,6 +3,7 @@ import {
   ArrowUp10Icon,
   BotOffIcon,
   BrainCircuitIcon,
+  ChevronsUpIcon,
   CoinsIcon,
   GavelIcon,
   GiftIcon,
@@ -49,6 +50,7 @@ export const templateIcons: Record<string, LucideIcon> = {
   languages: LanguagesIcon,
   trophy: TrophyIcon,
   coins: CoinsIcon,
+  "chevrons-up": ChevronsUpIcon,
 };
 
 // lucideName is the name of the Lucide component of the icon, like
@@ -160,37 +162,32 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplates are the templates the marketplace shows first, two of
-// Kite's and one a user made, picked again every day. day is the number of
+// featuredTemplates are the templates the marketplace shows first: up to
+// three made by users, one per creator, picked again every day. Kite's own
+// have their own rows, so the community's get the spot. Only staff picks and
+// the ones an AI check found good enough are featured. day is the number of
 // days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
-  // A different order of them every day.
-  const pick = (pool: Template[], count: number) =>
-    pool
+  const seen = new Set<string>();
+  return (
+    templates
+      .filter(
+        (t) =>
+          t.author.kind === "user" && t.listed && (t.staffPick || t.featurable)
+      )
+      // A different order of them every day.
       .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
       .sort((a, b) => a.rank - b.rank)
-      .slice(0, count)
-      .map(({ t }) => t);
-
-  const community = pick(
-    templates.filter(
-      (t) =>
-        t.author.kind === "user" &&
-        t.listed &&
-        (t.installs ?? 0) >= minFeaturedInstalls
-    ),
-    1
+      .map(({ t }) => t)
+      .filter((t) => {
+        const creator = t.author.kind === "user" ? t.author.discordId : "";
+        if (seen.has(creator)) return false;
+        seen.add(creator);
+        return true;
+      })
+      .slice(0, 3)
   );
-  const official = pick(
-    templates.filter((t) => t.author.kind === "kite"),
-    3 - community.length
-  );
-  return [...official.slice(0, 1), ...community, ...official.slice(1)];
 }
-
-// Users' templates need a few installs to be featured, so the ones nobody
-// tried yet don't get the top of the marketplace.
-const minFeaturedInstalls = 5;
 
 // utcDay is the day featuredTemplates picks for.
 export function utcDay(date = new Date()) {
@@ -237,12 +234,12 @@ export const templateParameterSchema = z.object({
   key: z.string().regex(parameterKeyPattern),
   label: z.string().min(1),
   description: z.string().min(1),
-  // channel and role are picked from a server the app is in, and their ID is
-  // the value. boolean is yes or no, picked from a menu, as true or false.
-  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
+  // channel, category and role are picked from a server the app is in, and
+  // their ID is the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "category", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Channels and roles
-  // don't have one.
+  // The value it starts with when the template is added. Channels, categories
+  // and roles don't have one.
   default: z.string().optional(),
 });
 
@@ -252,6 +249,7 @@ export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
   text: "Text",
   textarea: "Long text",
   channel: "Channel",
+  category: "Category",
   role: "Role",
   boolean: "Yes/No",
 };
@@ -505,6 +503,10 @@ export type Template = {
   activeInstalls?: number;
   // How many users starred it, unknown for the official ones from the files.
   stars?: number;
+  // Whether Kite picked it, which only templates of users can be.
+  staffPick?: boolean;
+  // Whether an AI check found a user's template good enough to be featured.
+  featurable?: boolean;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -643,6 +645,8 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     installs: bundle.install_count,
     activeInstalls: bundle.active_install_count,
     stars: bundle.star_count,
+    staffPick: bundle.staff_pick,
+    featurable: bundle.featurable,
     createdAt: bundle.created_at,
   };
 }

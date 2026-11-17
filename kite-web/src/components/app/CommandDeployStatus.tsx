@@ -2,6 +2,7 @@ import { useCommandsDeployMutation } from "@/lib/api/mutations";
 import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { App, Command } from "@/lib/types/wire.gen";
+import { commandTypeOf } from "@/lib/flow/commandTypes";
 import {
   AlertCircleIcon,
   CheckIcon,
@@ -34,10 +35,14 @@ export function commandDeployState(
   return app.commands_deploy_error ? "error" : "deployed";
 }
 
-// Whether Discord rejected the commands because of the command with this name.
-// Subcommands are deployed as part of their root command.
-export function isCommandDeployErrorCause(app: App, commandName: string) {
-  return app.commands_deploy_error?.command === commandName.split(" ")[0];
+// Whether Discord rejected the commands because of this command. Subcommands
+// are deployed as part of their root command.
+export function isCommandDeployErrorCause(app: App, command: Command) {
+  const err = app.commands_deploy_error;
+  const type = commandTypeOf(command.flow_source);
+  if (!err || (err.command_type || "chat_input") !== type) return false;
+  if (type !== "chat_input") return err.command === command.name;
+  return err.command === command.name.split(" ")[0];
 }
 
 // Sends the commands to Discord again, even if they look unchanged.

@@ -42,6 +42,7 @@ import {
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
+import { PlanLimit, PlanLimitGate } from "./PlanLimit";
 import FlowExportDialog from "./FlowExportDialog";
 import {
   capitalize,
@@ -50,11 +51,18 @@ import {
   schedulePresets,
 } from "@/lib/flow/eventTypes";
 import { describeSchedule } from "@/lib/flow/schedule";
+import { useMoveToFolder } from "./ItemFolders";
 
 export default function EventListenerListEntry({
   listener,
+  limit,
+  noun,
+  from,
 }: {
   listener: EventListener;
+  limit?: PlanLimit;
+  noun: string;
+  from: string;
 }) {
   const router = useRouter();
 
@@ -98,6 +106,7 @@ export default function EventListenerListEntry({
   }, [webhookUrl]);
 
   const deleteMutation = useEventListenerDeleteMutation(appId, listener.id);
+  const folder = useMoveToFolder(listener);
 
   const updateEnabledMutation = useEventListenerUpdateEnabledMutation(
     appId,
@@ -119,8 +128,19 @@ export default function EventListenerListEntry({
   }, [deleteMutation, name]);
 
   const toggleEnabled = useCallback(() => {
-    updateEnabledMutation.mutate({ enabled: !listener.enabled });
-  }, [updateEnabledMutation, listener.enabled]);
+    updateEnabledMutation.mutate(
+      { enabled: !listener.enabled },
+      {
+        onSuccess(res) {
+          if (!res.success) {
+            toast.error(
+              `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }, [updateEnabledMutation, listener.enabled, name]);
 
   return (
     <Card className="relative">
@@ -141,7 +161,17 @@ export default function EventListenerListEntry({
           </div>
         </div>
         <div className="flex justify-end">
-          <Switch checked={listener.enabled} onCheckedChange={toggleEnabled} />
+          {/* Enabling one more would go over the limit. */}
+          <PlanLimitGate
+            limit={listener.enabled ? undefined : limit}
+            noun={noun}
+            from={from}
+          >
+            <Switch
+              checked={listener.enabled}
+              onCheckedChange={toggleEnabled}
+            />
+          </PlanLimitGate>
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
@@ -222,9 +252,11 @@ export default function EventListenerListEntry({
                   Export {name.title}
                 </DropdownMenuItem>
               </FlowExportDialog>
+              {folder.menu}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        {folder.dialog}
       </CardFooter>
     </Card>
   );

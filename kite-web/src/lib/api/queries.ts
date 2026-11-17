@@ -19,6 +19,7 @@ import {
   PendingBundleReviewListResponse,
   AutoRejectedBundleReviewListResponse,
   PendingBundleReview,
+  UserBadgeGrantListResponse,
   UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
@@ -309,6 +310,16 @@ export function useUserBansQuery() {
   return useQuery({
     queryKey: ["admin", "user-bans"],
     queryFn: () => apiRequest<UserBanListResponse>(`/v1/admin/user-bans`),
+  });
+}
+
+// useUserBadgeGrantsQuery are the badges admins gave by hand, which only
+// admins can see.
+export function useUserBadgeGrantsQuery() {
+  return useQuery({
+    queryKey: ["admin", "user-badges"],
+    queryFn: () =>
+      apiRequest<UserBadgeGrantListResponse>(`/v1/admin/user-badges`),
   });
 }
 

@@ -2,6 +2,7 @@ import { MessageData } from "../types/message.gen";
 import { BundleInstall, BundleInstallCreateRequest } from "../types/wire.gen";
 import { eventListenerLabel } from "./eventTypes";
 import { Template } from "./templates";
+import { commandLabel } from "./commandTypes";
 
 // installSelection is what adding a template adds to an app: the items that
 // aren't skipped and that the app doesn't have yet, and the parameters to ask
@@ -127,7 +128,12 @@ export function updateSelection(
 
 export function templateItem(template: Template, key: string) {
   const command = template.commands.find((c) => c.key === key);
-  if (command) return { label: `/${command.name}`, ...command };
+  if (command) {
+    return {
+      label: commandLabel(command.name, command.flowSource),
+      ...command,
+    };
+  }
   const listener = template.eventListeners.find((l) => l.key === key);
   if (listener) {
     return {

@@ -18,6 +18,12 @@ import {
 } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
 import {
+  FolderActions,
+  FolderItemsProvider,
+  useItemGroupOf,
+} from "./ItemFolders";
+import { useAppId } from "@/lib/hooks/params";
+import {
   PlanLimitCount,
   PlanLimitGate,
   sourceLimitKeys,
@@ -54,11 +60,16 @@ export default function EventListenerList({
     () => allListeners?.filter((l) => l?.source === source),
     [allListeners, source]
   );
+  const appId = useAppId();
+  const groupOf = useItemGroupOf();
 
   const name = eventSourceName(source);
   const noun = name.plural.toLowerCase();
   const from = noun.replace(" ", "_");
-  const limit = usePlanLimit(sourceLimitKeys[source], listeners?.length);
+  const limit = usePlanLimit(
+    sourceLimitKeys[source],
+    listeners?.filter((l) => l?.enabled).length
+  );
 
   const listenerActions = (
     <PlanLimitGate limit={limit} noun={noun} from={from}>
@@ -88,20 +99,33 @@ export default function EventListenerList({
           footer={<AppEmptyTemplatesLink />}
         />
       ) : (
-        <SearchableList
-          items={listeners}
-          fields={(listener) => [
-            listener.type,
-            listener.description,
-            listener.source,
-          ]}
-          renderItem={(listener) => (
-            <EventListenerListEntry listener={listener} key={listener.id} />
-          )}
-          placeholder={`Search ${name.singular}s`}
-          actions={listenerActions}
-          status={<PlanLimitCount limit={limit} noun={noun} from={from} />}
-        />
+        <FolderItemsProvider kind="event-listeners" items={listeners}>
+          <SearchableList
+            items={listeners}
+            fields={(listener) => [
+              listener.type,
+              listener.description,
+              listener.source,
+            ]}
+            renderItem={(listener) => (
+              <EventListenerListEntry
+                listener={listener}
+                limit={limit}
+                noun={noun}
+                from={from}
+                key={listener.id}
+              />
+            )}
+            placeholder={`Search ${name.singular}s`}
+            actions={listenerActions}
+            status={<PlanLimitCount limit={limit} noun={noun} from={from} />}
+            groups={{
+              list: `${appId}:event-listeners:${source}`,
+              of: groupOf,
+              actions: (group) => <FolderActions group={group} />,
+            }}
+          />
+        </FolderItemsProvider>
       )}
     </AutoAnimate>
   );

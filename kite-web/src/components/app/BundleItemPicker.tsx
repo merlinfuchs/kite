@@ -2,6 +2,7 @@ import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
 import { eventListenerLabel } from "@/lib/flow/eventTypes";
 import { BundleExportRequest } from "@/lib/types/wire.gen";
 import { Checkbox } from "../ui/checkbox";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 type ItemSection = {
   title: string;
@@ -24,7 +25,13 @@ export function useBundleItemSections(): ItemSection[] | undefined {
         field: "command_ids",
         items: commands.flatMap((c) =>
           c
-            ? [{ id: c.id, label: `/${c.name}`, description: c.description }]
+            ? [
+                {
+                  id: c.id,
+                  label: commandLabel(c.name, c.flow_source),
+                  description: c.description,
+                },
+              ]
             : []
         ),
       },

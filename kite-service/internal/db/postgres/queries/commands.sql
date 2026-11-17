@@ -5,7 +5,10 @@ SELECT * FROM commands WHERE id = $1;
 SELECT * FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id;
 
 -- name: CountCommandsByApp :one
-SELECT COUNT(*) FROM commands WHERE app_id = $1;
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM commands WHERE app_id = $1;
 
 -- name: CreateCommand :one
 INSERT INTO commands (
@@ -36,6 +39,11 @@ UPDATE commands SET
     enabled = $2,
     updated_at = $3
 WHERE id = $1 RETURNING *;
+
+-- name: UpdateCommandsFolder :many
+-- Doesn't change updated_at, the folder is only how the dashboard lists them.
+UPDATE commands SET folder = sqlc.narg(folder)
+WHERE app_id = @app_id AND id = ANY(@ids::text[]) RETURNING *;
 
 -- name: GetEnabledCommandsUpdatesSince :many
 SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;

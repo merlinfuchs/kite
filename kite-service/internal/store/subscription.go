@@ -10,6 +10,9 @@ type SubscriptionStore interface {
 	Subscriptions(ctx context.Context, userID string) ([]*model.Subscription, error)
 	SubscriptionsByAppID(ctx context.Context, appID string) ([]*model.Subscription, error)
 	AllSubscriptions(ctx context.Context) ([]*model.Subscription, error)
+	// SubscriptionsByUserIDs returns all subscriptions of the users, also
+	// ended ones.
+	SubscriptionsByUserIDs(ctx context.Context, userIDs []string) ([]*model.Subscription, error)
 	Subscription(ctx context.Context, subscriptionID string) (*model.Subscription, error)
 	// SubscriptionByLemonSqueezyID returns ErrNotFound if we have never seen the
 	// subscription before.

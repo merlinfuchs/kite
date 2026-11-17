@@ -156,6 +156,64 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 	return bundles, nil
 }
 
+func (c *Client) SetBundleStaffPick(ctx context.Context, id string, at null.Time) error {
+	rows, err := c.Q.SetBundleStaffPickedAt(ctx, pgmodel.SetBundleStaffPickedAtParams{
+		ID:            id,
+		StaffPickedAt: pgtype.Timestamp{Time: at.Time.UTC(), Valid: at.Valid},
+	})
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+func (c *Client) UncheckedFeaturableBundles(ctx context.Context, count int) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetUncheckedFeaturableBundles(ctx, int32(count))
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		b, err := rowToBundle(row.Bundle, &row.BundleListing, row.Content)
+		if err != nil {
+			return nil, err
+		}
+		b.Version = b.ApprovedVersion
+		bundles[i] = b
+	}
+	return bundles, nil
+}
+
+func (c *Client) SetBundleFeaturable(ctx context.Context, id string, version int, featurable bool) error {
+	return c.Q.SetBundleFeaturable(ctx, pgmodel.SetBundleFeaturableParams{
+		ID:              id,
+		ApprovedVersion: pgtype.Int4{Int32: int32(version), Valid: true},
+		Featurable:      pgtype.Bool{Bool: featurable, Valid: true},
+	})
+}
+
+func (c *Client) CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error) {
+	rows, err := c.Q.GetCreatorStats(ctx, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := make([]*model.CreatorStats, len(rows))
+	for i, row := range rows {
+		stats[i] = &model.CreatorStats{
+			UserID:         row.UserID,
+			FirstListedAt:  row.FirstListedAt.Time,
+			InstallerCount: int(row.InstallerCount),
+			StarCount:      int(row.StarCount),
+		}
+	}
+	return stats, nil
+}
+
 func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
 	rows, err := c.Q.GetMarketplaceTemplates(ctx, int32(limit))
 	if err != nil {
@@ -559,6 +617,8 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 		RemovedAt:     null.NewTime(row.RemovedAt.Time, row.RemovedAt.Valid),
 		RemovedReason: row.RemovedReason,
+		StaffPickedAt: null.NewTime(row.StaffPickedAt.Time, row.StaffPickedAt.Valid),
+		Featurable:    null.NewBool(row.Featurable.Bool, row.Featurable.Valid),
 		Version:       int(row.Version),
 		LatestVersion: int(row.Version),
 		// Official bundles are never reviewed.

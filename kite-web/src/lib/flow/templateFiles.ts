@@ -12,6 +12,7 @@ import leveling from "../templates/leveling.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import reminders from "../templates/reminders.json";
+import robloxRanking from "../templates/roblox-ranking.json";
 import serverInfo from "../templates/server-info.json";
 import starboard from "../templates/starboard.json";
 import stickyMessage from "../templates/sticky-message.json";
@@ -36,6 +37,7 @@ export const templateFiles: unknown[] = [
   modmail,
   counting,
   erlc,
+  robloxRanking,
   afk,
   giveaway,
   stickyMessage,

@@ -32,6 +32,7 @@ export default function MessageEmbedAuthor({ embedId }: { embedId: NodeId }) {
         onChange={(name) => setAuthor({ name })}
         validation={nodeField<EmbedNode>(embedId, "author.name")}
         placeholders
+        emojis="native"
       />
       <div className="flex flex-col gap-3 sm:flex-row">
         <MessageInput

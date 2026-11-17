@@ -119,6 +119,22 @@ func (s *testSession) messageIndex(id discord.MessageID) int {
 	return slices.IndexFunc(s.messages, func(m discord.Message) bool { return m.ID == id })
 }
 
+// addTargetMessage stores the message a Message command is used on in a test,
+// which someone else sent, so blocks can read it.
+func (s *testSession) addTargetMessage(msg discord.Message) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.messages = append(s.messages, msg)
+}
+
+// message is a message sent in the test, or else the one in Discord.
+func (s *testSession) message(channelID discord.ChannelID, id discord.MessageID) (*discord.Message, error) {
+	if msg, ok := s.fakeMessage(id); ok {
+		return &msg, nil
+	}
+	return s.session.Message(channelID, id)
+}
+
 func (s *testSession) fakeMessage(id discord.MessageID) (discord.Message, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

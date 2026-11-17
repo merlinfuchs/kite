@@ -1,0 +1,74 @@
+package plan
+
+import (
+	"testing"
+	"time"
+
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
+)
+
+func TestUserBadges(t *testing.T) {
+	before := earlySupporterCutoff.Add(-24 * time.Hour)
+	after := earlyCreatorCutoff.Add(24 * time.Hour)
+	sub := func(userID, product, status string, createdAt time.Time) *model.Subscription {
+		return &model.Subscription{UserID: userID, LemonsqueezyProductID: null.StringFrom(product), Status: status, CreatedAt: createdAt}
+	}
+	titles := map[string]string{"premium": "Premium", "plus": "Plus"}
+
+	got := userBadges(
+		[]*model.UserBadgeGrant{
+			{UserID: "dev", Kind: model.UserBadgeContributor},
+			{UserID: "dev", Kind: model.UserBadgeStaff},
+			{UserID: "mod", Kind: model.UserBadgeStaff},
+		},
+		[]*model.Subscription{
+			// Newest first, like the store returns them.
+			sub("fan", "plus", model.SubscriptionStatusActive, after),
+			sub("fan", "premium", "expired", before),
+			sub("gone", "premium", "expired", before),
+			sub("new", "premium", model.SubscriptionStatusActive, after),
+			sub("donor", "donation", model.SubscriptionStatusActive, before),
+		},
+		[]*model.CreatorStats{
+			{UserID: "dev", FirstListedAt: before, InstallerCount: 100, StarCount: 24},
+			{UserID: "late", FirstListedAt: after, InstallerCount: 9, StarCount: 4},
+			{UserID: "big", FirstListedAt: after, InstallerCount: 1000, StarCount: 5000},
+			{UserID: "liked", FirstListedAt: after, StarCount: 5},
+		},
+		func(productID string) string { return titles[productID] },
+	)
+
+	want := map[string][]model.UserBadge{
+		"dev": {
+			{Kind: model.UserBadgeStaff},
+			{Kind: model.UserBadgeContributor},
+			{Kind: model.UserBadgeEarlyCreator},
+			{Kind: model.UserBadgeCreator, Milestone: 100},
+			{Kind: model.UserBadgeStar, Milestone: 20},
+		},
+		"fan": {
+			{Kind: model.UserBadgeEarlySupporter},
+			{Kind: model.UserBadgeSubscriber, Plan: "Plus"},
+		},
+		"mod":   {{Kind: model.UserBadgeStaff}},
+		"gone":  {{Kind: model.UserBadgeEarlySupporter}},
+		"new":   {{Kind: model.UserBadgeSubscriber, Plan: "Premium"}},
+		"big":   {{Kind: model.UserBadgeCreator, Milestone: 1000}, {Kind: model.UserBadgeStar, Milestone: 50}},
+		"late":  {{Kind: model.UserBadgeCreator}},
+		"liked": {{Kind: model.UserBadgeCreator}, {Kind: model.UserBadgeStar, Milestone: 5}},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got badges for %d users, want %d: %v", len(got), len(want), got)
+	}
+	for userID, badges := range want {
+		if len(got[userID]) != len(badges) {
+			t.Fatalf("%s: got %v, want %v", userID, got[userID], badges)
+		}
+		for i := range badges {
+			if got[userID][i] != badges[i] {
+				t.Errorf("%s: got %v, want %v", userID, got[userID], badges)
+			}
+		}
+	}
+}

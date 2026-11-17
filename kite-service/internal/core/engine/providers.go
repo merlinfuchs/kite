@@ -377,6 +377,9 @@ func (p *DiscordProvider) BotToken() string {
 }
 
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	if res, ok := p.cachedAPIResponse(req); ok {
+		return res, nil
+	}
 	return util.DiscordAPIRequest(ctx, p.session.Client, req)
 }
 

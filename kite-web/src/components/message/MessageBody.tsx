@@ -18,6 +18,7 @@ export default function MessageBody() {
         maxLength={2000}
         validation={nodeField<MessageNode>(rootId, "content")}
         placeholders
+        emojis
       />
     </div>
   );

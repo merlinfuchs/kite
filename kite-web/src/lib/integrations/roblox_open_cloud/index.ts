@@ -14,7 +14,8 @@ export const robloxOpenCloud: Integration = {
     type: "header",
     name: "x-api-key",
     label: "API key",
-    help_url: "https://create.roblox.com/docs/cloud/auth/api-keys",
+    help_url:
+      "https://docs.kite.onl/guides/roblox-ranking#connecting-your-group",
   },
   availability: "opt_in",
   data_shared:

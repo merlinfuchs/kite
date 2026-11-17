@@ -20,6 +20,10 @@ export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
 export const FlowParameterTypeChannel: FlowParameterType = "channel";
 export const FlowParameterTypeRole: FlowParameterType = "role";
 /**
+ * A channel category, like the one tickets are created in.
+ */
+export const FlowParameterTypeCategory: FlowParameterType = "category";
+/**
  * Yes or no, picked from a menu. The value is true or false.
  */
 export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
@@ -33,7 +37,7 @@ export interface FlowParameter {
   type: FlowParameterType;
   required?: boolean;
   /**
-   * Value is the ID of the channel or role for those types.
+   * Value is the ID of the channel, category or role for those types.
    */
   value: string;
 }
@@ -175,6 +179,7 @@ export interface FlowNodeData {
   /**
    * Command Entry
    */
+  command_type?: CommandType;
   command_argument_order?: string[];
   /**
    * Command Argument
@@ -443,6 +448,10 @@ export type CommandContextType = string;
 export const CommandContextTypeGuild: CommandContextType = "guild";
 export const CommandContextTypeBotDM: CommandContextType = "bot_dm";
 export const CommandContextTypePrivateChannel: CommandContextType = "private_channel";
+export type CommandType = string;
+export const CommandTypeChatInput: CommandType = "chat_input";
+export const CommandTypeUser: CommandType = "user";
+export const CommandTypeMessage: CommandType = "message";
 export type CommandDisabledIntegrationType = string;
 export const CommandDisabledIntegrationTypeGuildInstall: CommandDisabledIntegrationType = "guild_install";
 export const CommandDisabledIntegrationTypeUserInstall: CommandDisabledIntegrationType = "user_install";

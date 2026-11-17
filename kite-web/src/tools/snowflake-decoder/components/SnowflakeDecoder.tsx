@@ -2,12 +2,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import CopyButton from "@/tools/common/components/CopyButton";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
 import { decodeSnowflake } from "../snowflake";
 import { formatRelative } from "@/tools/common/utils/time";
 
 export default function SnowflakeDecoder() {
+  const router = useRouter();
   const [value, setValue] = useState("");
+
+  // Links like ?id=123 open with the ID decoded.
+  useEffect(() => {
+    if (!router.isReady) return;
+    const id = router.query.id;
+    if (typeof id === "string") setValue(id.trim().replace(/^\/+|\/+$/g, ""));
+  }, [router.isReady, router.query.id]);
+
   const decoded = useMemo(() => decodeSnowflake(value), [value]);
 
   const unix = decoded && Math.floor(decoded.timestamp / 1000);

@@ -8,6 +8,7 @@ import { eventFlowContext } from "../flow/bundleExport";
 import { buildFlowCatalog } from "../flow/catalog";
 import { flowContextTypes } from "../flow/context";
 import { codeOperations, codeSignature } from "../integrations/sdk";
+import { codeTypeDeclarations } from "../integrations/sdkDeclarations";
 import { matchesSearch } from "../search";
 import {
   App,
@@ -308,7 +309,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     {
       title: "Get credit usage",
       description:
-        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
+        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners, scheduled tasks, webhooks, and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
       inputSchema: { app_id: appId },
       annotations: read,
     },
@@ -579,7 +580,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     {
       title: "Get code calls",
       description:
-        "Gets calls the code of a Run JavaScript block can make as TypeScript: what each does and costs, and the parameters of the one object it takes. Calls return promises.",
+        "Gets calls the code of a Run JavaScript block can make as TypeScript: what each does and costs, and the parameters of the one object it takes. Calls return promises. types declares the Discord objects they take and return, and the discord types those use are the objects of Discord's API with the same name.",
       inputSchema: {
         names: z
           .array(z.string())
@@ -610,6 +611,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
           // A method of the namespace, in TypeScript.
           signature: codeSignature(op),
         })),
+        types: codeTypeDeclarations(found, false),
         unknown_calls: unknown.length ? unknown : undefined,
       });
     }

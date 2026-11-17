@@ -24,6 +24,8 @@ A subscription belongs to one app. If you have several apps, each one needs its 
 - Schedules that run as often as once a minute instead of every 5 minutes
 - Priority support
 
+Only enabled commands and event listeners count toward the limit, so you can keep ones you don't need right now disabled instead of deleting them. An app can have up to 3 times its limit of each, enabled or not. Scheduled tasks and webhooks count the same way.
+
 Kite Plus raises the limits and includes the rotating status, the `Set status` block, an animated avatar and banner, and the `Play audio` block. Profiles per server, the `Send message as` block, schedules every minute, and priority support need Kite Premium or Kite Ultimate.
 
 ## Subscribing
@@ -38,4 +40,4 @@ You can get a full refund of the first payment of a subscription within 14 days 
 
 ## When a plan ends {#when-premium-ends}
 
-Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more commands, variables, message templates, or event listeners than the free plan allows. The rotating status and the `Set status`, `Play audio`, `Edit server profile`, and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.
+Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more variables or message templates than the free plan allows, or enable more commands or event listeners than it allows. The rotating status and the `Set status`, `Play audio`, `Edit server profile`, and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.

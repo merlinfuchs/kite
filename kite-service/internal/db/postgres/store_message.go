@@ -236,6 +236,27 @@ func recordMessageDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Me
 	return recordItemDelete(ctx, q, target, content, data, userID)
 }
 
+func (c *Client) UpdateMessagesFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.Message, error) {
+	rows, err := c.Q.UpdateMessagesFolder(ctx, pgmodel.UpdateMessagesFolderParams{
+		Folder: pgtype.Text{String: folder.String, Valid: folder.Valid},
+		AppID:  appID,
+		Ids:    ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*model.Message, len(rows))
+	for i, row := range rows {
+		item, err := rowToMessage(row)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = item
+	}
+	return res, nil
+}
+
 func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 	var flowSources map[string]flow.FlowData
 	if err := json.Unmarshal(row.FlowSources, &flowSources); err != nil {
@@ -253,6 +274,7 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 		Description:     null.NewString(row.Description.String, row.Description.Valid),
 		AppID:           row.AppID,
 		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		Folder:          null.NewString(row.Folder.String, row.Folder.Valid),
 		CreatorUserID:   row.CreatorUserID,
 		FlowSources:     flowSources,
 		Data:            data,

@@ -12,14 +12,22 @@ import (
 )
 
 const countCommandsByApp = `-- name: CountCommandsByApp :one
-SELECT COUNT(*) FROM commands WHERE app_id = $1
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM commands WHERE app_id = $1
 `
 
-func (q *Queries) CountCommandsByApp(ctx context.Context, appID string) (int64, error) {
+type CountCommandsByAppRow struct {
+	Total   int64
+	Enabled int64
+}
+
+func (q *Queries) CountCommandsByApp(ctx context.Context, appID string) (CountCommandsByAppRow, error) {
 	row := q.db.QueryRow(ctx, countCommandsByApp, appID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+	var i CountCommandsByAppRow
+	err := row.Scan(&i.Total, &i.Enabled)
+	return i, err
 }
 
 const createCommand = `-- name: CreateCommand :one
@@ -36,7 +44,7 @@ INSERT INTO commands (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+) RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
 `
 
 type CreateCommandParams struct {
@@ -77,12 +85,13 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
 
 const deleteCommand = `-- name: DeleteCommand :one
-DELETE FROM commands WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+DELETE FROM commands WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
 `
 
 func (q *Queries) DeleteCommand(ctx context.Context, id string) (Command, error) {
@@ -99,12 +108,13 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) (Command, error)
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
 
 const deleteCommandsByBundleInstall = `-- name: DeleteCommandsByBundleInstall :many
-DELETE FROM commands WHERE bundle_install_id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+DELETE FROM commands WHERE bundle_install_id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
 `
 
 func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]Command, error) {
@@ -127,6 +137,7 @@ func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInsta
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -139,7 +150,7 @@ func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInsta
 }
 
 const getCommand = `-- name: GetCommand :one
-SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder FROM commands WHERE id = $1
 `
 
 func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
@@ -156,12 +167,13 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
 
 const getCommandForUpdate = `-- name: GetCommandForUpdate :one
-SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1 FOR UPDATE
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder FROM commands WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetCommandForUpdate(ctx context.Context, id string) (Command, error) {
@@ -178,12 +190,13 @@ func (q *Queries) GetCommandForUpdate(ctx context.Context, id string) (Command, 
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
 
 const getCommandsByApp = `-- name: GetCommandsByApp :many
-SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
@@ -206,6 +219,7 @@ func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -242,7 +256,7 @@ func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledCommandsUpdatesSince = `-- name: GetEnabledCommandsUpdatesSince :many
-SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder FROM commands WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]Command, error) {
@@ -265,6 +279,7 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -282,7 +297,7 @@ UPDATE commands SET
     description = $3,
     flow_source = $4,
     updated_at = $5
-WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
 `
 
 type UpdateCommandParams struct {
@@ -313,6 +328,7 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
@@ -321,7 +337,7 @@ const updateCommandEnabled = `-- name: UpdateCommandEnabled :one
 UPDATE commands SET
     enabled = $2,
     updated_at = $3
-WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
 `
 
 type UpdateCommandEnabledParams struct {
@@ -344,6 +360,51 @@ func (q *Queries) UpdateCommandEnabled(ctx context.Context, arg UpdateCommandEna
 		&i.FlowSource,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
+}
+
+const updateCommandsFolder = `-- name: UpdateCommandsFolder :many
+UPDATE commands SET folder = $1
+WHERE app_id = $2 AND id = ANY($3::text[]) RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder
+`
+
+type UpdateCommandsFolderParams struct {
+	Folder pgtype.Text
+	AppID  string
+	Ids    []string
+}
+
+// Doesn't change updated_at, the folder is only how the dashboard lists them.
+func (q *Queries) UpdateCommandsFolder(ctx context.Context, arg UpdateCommandsFolderParams) ([]Command, error) {
+	rows, err := q.db.Query(ctx, updateCommandsFolder, arg.Folder, arg.AppID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Command
+	for rows.Next() {
+		var i Command
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Folder,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

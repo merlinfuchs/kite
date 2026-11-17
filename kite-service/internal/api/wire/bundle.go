@@ -39,6 +39,11 @@ type Bundle struct {
 	ActiveInstallCount int `json:"active_install_count"`
 	// StarCount is how many users starred it.
 	StarCount int `json:"star_count"`
+	// StaffPick is whether Kite picked it.
+	StaffPick bool `json:"staff_pick"`
+	// Featurable is whether an AI check found it good enough for the Featured
+	// row of the marketplace.
+	Featurable bool `json:"featurable"`
 	// CreatedAt is when it was made, which the marketplace shows the newest
 	// by.
 	CreatedAt time.Time `json:"created_at"`
@@ -56,6 +61,9 @@ type BundleOwner struct {
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
 	DiscordAvatar   null.String `json:"discord_avatar"`
+	// Badges are the badges of the user, only set in the list of all
+	// templates.
+	Badges []UserBadge `json:"badges,omitempty"`
 }
 
 func BundleOwnerToWire(user *model.User) *BundleOwner {
@@ -100,6 +108,8 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		InstallCount:       bundle.InstallCount,
 		ActiveInstallCount: bundle.ActiveInstallCount,
 		StarCount:          bundle.StarCount,
+		StaffPick:          bundle.StaffPickedAt.Valid,
+		Featurable:         bundle.Listed && bundle.Featurable.Bool,
 		CreatedAt:          bundle.CreatedAt,
 	}
 	for i, n := range bundle.VersionNotes {

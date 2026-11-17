@@ -28,6 +28,9 @@ type FlowContext struct {
 	ended bool
 }
 
+// Timeout is how long a flow execution can run.
+const Timeout = 30 * time.Second
+
 func NewContext(
 	ctx context.Context,
 	timeout time.Duration,

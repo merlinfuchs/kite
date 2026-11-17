@@ -14,6 +14,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -38,8 +39,8 @@ type App struct {
 	// than patched, so renames and type changes can't leave stale entries,
 	// and always replaced rather than mutated in place so readers can take a
 	// reference and drop the lock before dispatching.
-	commandsByName  map[string]*Command
-	listenersByType map[model.EventListenerType][]*EventListener
+	commandsByKey   map[command.Key]commandHandler
+	listenersByType map[model.EventListenerType][]eventRoute
 	scheduled       []*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
 }
@@ -54,32 +55,34 @@ func NewApp(
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
 		pluginInstances: make(map[string]*pluginInstance),
-		commandsByName:  make(map[string]*Command),
-		listenersByType: make(map[model.EventListenerType][]*EventListener),
+		commandsByKey:   make(map[command.Key]commandHandler),
+		listenersByType: make(map[model.EventListenerType][]eventRoute),
 	}
 }
 
 // rebuildCommandIndex regenerates the name lookup from a.commands. Callers
 // must hold the write lock.
 func (a *App) rebuildCommandIndex() {
-	index := make(map[string]*Command, len(a.commands))
-	for _, command := range a.commands {
-		index[command.cmd.Name] = command
+	index := make(map[command.Key]commandHandler, len(a.commands))
+	for _, cmd := range a.commands {
+		for _, key := range cmd.commandKeys() {
+			index[key] = cmd
+		}
 	}
-	a.commandsByName = index
+	a.commandsByKey = index
 }
 
 // rebuildListenerIndex regenerates the event type lookup of Discord listeners
 // and the list of scheduled listeners from a.listeners. Webhook listeners are
 // looked up by ID and need no index. Callers must hold the write lock.
 func (a *App) rebuildListenerIndex() {
-	index := make(map[model.EventListenerType][]*EventListener, len(a.listeners))
+	index := make(map[model.EventListenerType][]eventRoute, len(a.listeners))
 	var scheduled []*EventListener
 	for _, listener := range a.listeners {
-		switch listener.listener.Source {
-		case model.EventSourceDiscord:
-			index[listener.listener.Type] = append(index[listener.listener.Type], listener)
-		case model.EventSourceSchedule:
+		for _, eventType := range listener.eventTypes() {
+			index[eventType] = append(index[eventType], eventRoute{eventType: eventType, handler: listener})
+		}
+		if listener.listener.Source == model.EventSourceSchedule {
 			scheduled = append(scheduled, listener)
 		}
 	}
@@ -269,11 +272,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
-			fullName := getFullCommandName(d)
+			key := interactionCommandKey(d)
 
 			lockStart := time.Now()
 			a.RLock()
-			command := a.commandsByName[fullName]
+			command := a.commandsByKey[key]
 			a.RUnlock()
 
 			lockDiff := time.Since(lockStart)
@@ -288,7 +291,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			}
 
 			if command != nil {
-				go command.HandleEvent(appID, session, event)
+				go command.handleCommand(session, e)
 			}
 		case discord.ComponentInteraction:
 			customID := string(d.ID())
@@ -331,19 +334,48 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		listeners := a.listenersForEvent(event)
-		// Listeners get Discord's event, so stored triggers and flows don't
-		// need to know MessageEdit.
-		if e, ok := event.(*guildevent.MessageEdit); ok {
-			event = &e.MessageUpdateEvent
+		var botID discord.UserID
+		if session != nil {
+			botID = session.Ready().User.ID
 		}
-		for _, listener := range listeners {
-			go listener.HandleEvent(appID, session, event)
+		routes, event := a.routesForEvent(event, botID)
+		for _, route := range routes {
+			go route.handler.handleEvent(route.eventType, session, event)
 		}
 	}
 }
 
-// listenersForEvent returns the event listeners an event is dispatched to.
+// routesForEvent returns the handlers that run for an event, after
+// shouldHandleEvent, and the event they get. Handlers get Discord's event, so
+// stored triggers and flows don't need to know MessageEdit. botID is the
+// app's own user, zero if unknown.
+func (a *App) routesForEvent(event gateway.Event, botID discord.UserID) ([]eventRoute, gateway.Event) {
+	routes := a.listenersForEvent(event)
+	if len(routes) == 0 {
+		return nil, event
+	}
+	if e, ok := event.(*guildevent.MessageEdit); ok {
+		event = &e.MessageUpdateEvent
+	}
+
+	// The routes of a type are next to each other, so the filter runs once
+	// per type rather than once per handler.
+	handled := make([]eventRoute, 0, len(routes))
+	var lastType model.EventListenerType
+	var ok bool
+	for i, route := range routes {
+		if i == 0 || route.eventType != lastType {
+			lastType = route.eventType
+			ok = shouldHandleEvent(route.eventType, event, botID)
+		}
+		if ok {
+			handled = append(handled, route)
+		}
+	}
+	return handled, event
+}
+
+// listenersForEvent returns the handlers an event is dispatched to.
 // Messages in DMs only go to direct message listeners: message listeners
 // were written for servers, and running them, and spending credits, on every
 // DM once an app has the direct messages intent would change what existing
@@ -352,7 +384,7 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // goes to no listeners, they get guildevent.MessageDelete instead, which has
 // the same type. The same goes for MESSAGE_UPDATE and guildevent.MessageEdit,
 // so link previews and pins don't run Message Update listeners.
-func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+func (a *App) listenersForEvent(event gateway.Event) []eventRoute {
 	switch event.(type) {
 	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent, *gateway.VoiceStateUpdateEvent:
 		return nil
@@ -367,22 +399,22 @@ func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 		eventType = model.EventListenerTypeDiscordDirectMessageCreate
 	}
 
-	// The index is replaced rather than mutated on rebuild, so this slice
-	// stays valid after the lock is released.
+	// The index is replaced rather than mutated on rebuild, so its slices
+	// stay valid after the lock is released.
 	a.RLock()
 	defer a.RUnlock()
 
-	listeners := a.listenersByType[eventType]
+	routes := a.listenersByType[eventType]
 
 	if e, ok := event.(*gateway.MessageCreateEvent); ok && isBoostMessage(e.Message) {
-		boostListeners := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
-		if len(boostListeners) > 0 {
+		boostRoutes := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
+		if len(boostRoutes) > 0 {
 			// Clip so the append can't write into the index's backing array.
-			listeners = append(slices.Clip(listeners), boostListeners...)
+			routes = append(slices.Clip(routes), boostRoutes...)
 		}
 	}
 
-	return listeners
+	return routes
 }
 
 // isDirectMessageEvent reports whether an event is a message create, update
@@ -448,7 +480,7 @@ func (a *App) resumeFlow(
 		node,
 		session,
 		event,
-		entityLinksFromResumePoint(resumePoint),
+		a.entityLinksFromResumePoint(resumePoint),
 		&resumePoint.FlowState,
 	)
 	return true
@@ -525,7 +557,7 @@ func (a *App) resumeFlowAfterSleep(resumePoint *model.ResumePoint, session *stat
 		node,
 		session,
 		event,
-		entityLinksFromResumePoint(resumePoint),
+		a.entityLinksFromResumePoint(resumePoint),
 		&state,
 	)
 }
@@ -614,8 +646,20 @@ func (a *App) resumeFlowOrRespondExpired(resumePointID string, session *state.St
 // entityLinksFromResumePoint recovers the links the flow was running with when
 // it suspended. CreateResumePoint stores them verbatim, so attribution of logs
 // and usage survives the suspend rather than being guessed on the way back in.
-func entityLinksFromResumePoint(resumePoint *model.ResumePoint) entityLinks {
+// Only the event source isn't stored, so it's taken from the loaded listener.
+func (a *App) entityLinksFromResumePoint(resumePoint *model.ResumePoint) entityLinks {
+	var eventSource model.EventSource
+	if resumePoint.EventListenerID.Valid {
+		a.RLock()
+		listener, ok := a.listeners[resumePoint.EventListenerID.String]
+		a.RUnlock()
+		if ok {
+			eventSource = listener.listener.Source
+		}
+	}
+
 	return entityLinks{
+		EventSource:       eventSource,
 		CommandID:         resumePoint.CommandID,
 		EventListenerID:   resumePoint.EventListenerID,
 		MessageID:         resumePoint.MessageID,
@@ -729,6 +773,15 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 			)
 		}
 	}()
+}
+
+// interactionCommandKey is the command the interaction is for. Only slash
+// commands have subcommands, which are part of their name.
+func interactionCommandKey(d *discord.CommandInteraction) command.Key {
+	if d.Type == discord.UserCommand || d.Type == discord.MessageCommand {
+		return command.NewKey(d.Type, d.Name)
+	}
+	return command.NewKey(discord.ChatInputCommand, getFullCommandName(d))
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

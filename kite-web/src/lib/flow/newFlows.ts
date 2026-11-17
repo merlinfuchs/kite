@@ -1,16 +1,24 @@
 import { getUniqueId } from "../utils";
 import { getNodeId } from "./nodes";
+import { CommandType } from "./commandTypes";
 
 // The flows new commands, event listeners, buttons and select menus start
 // with: only the entry block.
 
-export function newCommandFlow(name: string, description: string) {
+export function newCommandFlow(
+  name: string,
+  description: string,
+  commandType: CommandType = "chat_input"
+) {
   return {
     nodes: [
       {
         id: getNodeId("entry_command"),
         position: { x: 0, y: 0 },
-        data: { name, description },
+        data:
+          commandType === "chat_input"
+            ? { name, description }
+            : { name, command_type: commandType },
         type: "entry_command",
       },
     ],

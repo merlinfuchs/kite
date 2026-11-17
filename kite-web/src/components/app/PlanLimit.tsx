@@ -45,6 +45,9 @@ export interface PlanLimit {
   limit: number;
   reached: boolean;
   near: boolean;
+  // Only enabled commands and event listeners count. Message templates and
+  // variables can't be disabled, so all of them count.
+  countsEnabled: boolean;
   // The cheapest plan with a higher limit, and that limit (0 is unlimited).
   nextPlan?: BillingPlan;
   nextLimit: number;
@@ -82,6 +85,7 @@ function planLimit(
     limit,
     reached: count >= limit,
     near: count >= limit * nearLimitRatio,
+    countsEnabled: key !== "max_messages" && key !== "max_variables",
     nextPlan,
     nextLimit: nextPlan?.[planKey] ?? 0,
   };
@@ -163,13 +167,15 @@ export function PlanLimitCount({
 }) {
   if (!limit) return null;
 
+  const used = limit.countsEnabled ? "enabled" : "used";
+
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
       <LimitMeter limit={limit} className="w-16" />
       <span className="whitespace-nowrap">
         {limit.count > limit.limit
-          ? `${limit.count} ${noun}, your plan allows ${limit.limit}`
-          : `${limit.count} of ${limit.limit} ${noun} used`}
+          ? `${limit.count} ${noun} ${used}, your plan allows ${limit.limit}`
+          : `${limit.count} of ${limit.limit} ${noun} ${used}`}
       </span>
       {limit.near && limit.nextPlan && (
         <PlansLink
@@ -220,12 +226,19 @@ export function PlanLimitGate({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              You&apos;ve used all {limit.limit} {noun}
+              {limit.countsEnabled
+                ? `You've enabled all ${limit.limit} ${noun} your plan allows`
+                : `You've used all ${limit.limit} ${noun}`}
             </DialogTitle>
             <DialogDescription>
               {limit.nextPlan
-                ? `Upgrade to Kite ${limit.nextPlan.title} to keep building, or delete ${noun} you don't need.`
-                : `Delete ${noun} you don't need to make room for new ones.`}
+                ? `Upgrade to Kite ${
+                    limit.nextPlan.title
+                  } to keep building, or ${makeRoom(
+                    noun,
+                    limit.countsEnabled
+                  )}.`
+                : `To make room, ${makeRoom(noun, limit.countsEnabled)}.`}
             </DialogDescription>
           </DialogHeader>
           {limit.nextPlan && (
@@ -255,6 +268,12 @@ export function PlanLimitGate({
       </Dialog>
     </>
   );
+}
+
+function makeRoom(noun: string, countsEnabled: boolean) {
+  return countsEnabled
+    ? `disable or delete ${noun} you don't need`
+    : `delete ${noun} you don't need`;
 }
 
 const limitNouns: Record<LimitKey, string> = {
@@ -294,12 +313,17 @@ export function useExceededLimit(adding: {
   const messages = useMessages();
   const variables = useVariables();
 
+  // Only enabled ones count, and everything added is enabled.
   const existingOf = (source: string) =>
-    listeners?.filter((l) => l?.source === source).length;
+    listeners?.filter((l) => l?.source === source && l.enabled).length;
   const addedOf = (source: string) =>
     adding.eventListenerSources.filter((s) => s === source).length;
   const checks: [LimitKey, number | undefined, number][] = [
-    ["max_commands", commands?.length, adding.commands],
+    [
+      "max_commands",
+      commands?.filter((c) => c?.enabled).length,
+      adding.commands,
+    ],
     ...Object.entries(sourceLimitKeys).map(
       ([source, key]): [LimitKey, number | undefined, number] => [
         key,
@@ -339,11 +363,11 @@ export function PlanLimitNotice({
   }, [from, key]);
 
   // Message templates and variables are always added, the blocks use them.
-  const canLeaveOut =
-    room > 0 && key !== "max_messages" && key !== "max_variables";
+  const canLeaveOut = room > 0 && limit.countsEnabled;
   const leaveOut = canLeaveOut
     ? "leave some out"
-    : `delete ${noun} you don't need`;
+    : makeRoom(noun, limit.countsEnabled);
+  const has = limit.countsEnabled ? `${limit.count} enabled` : `${limit.count}`;
 
   return (
     <div
@@ -357,8 +381,8 @@ export function PlanLimitNotice({
         <div>
           <span className="font-semibold">Too many {noun}: </span>
           {room > 0
-            ? `your plan allows ${limit.limit} and your app has ${limit.count}, so ${room} more fit.`
-            : `your app already has ${limit.count} of the ${limit.limit} your plan allows.`}{" "}
+            ? `your plan allows ${limit.limit} and your app has ${has}, so ${room} more fit.`
+            : `your app already has ${has} of the ${limit.limit} your plan allows.`}{" "}
           {limit.nextPlan
             ? `Get ${nextLimitText(limit, noun).toLowerCase()} with Kite ${
                 limit.nextPlan.title

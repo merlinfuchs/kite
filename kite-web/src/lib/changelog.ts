@@ -6,13 +6,99 @@ export interface ChangelogEntry {
   // YYYY-MM-DD, the day the change went live.
   date: string;
   title: string;
-  description: string;
+  // Left out for small changes, which the page lists in one line each, so
+  // their title has to say what changed.
+  description?: string;
   // A page with more about the change, like a landing page, a template, or
   // the docs.
   href?: string;
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    date: "2026-11-16",
+    title: "Folders for commands, event listeners, and message templates",
+    description:
+      "Put items into folders with Move to folder in their menu, and fold the folders you don't need right now. Items you added with a template are listed under the template's name until you move them, and they still get the template's updates.",
+  },
+  {
+    date: "2026-11-16",
+    title: "Search message templates when you pick one in a block",
+  },
+  {
+    date: "2026-11-15",
+    title: "Star creator badge",
+    description:
+      "Your creator page and the account menu show the Star creator badge once other users gave your listed templates 5, 20, or 50 stars in total.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates#after-its-listed`,
+  },
+  {
+    date: "2026-11-15",
+    title: "Community templates in the Featured row of the Marketplace",
+    description:
+      "The Featured row shows a few templates from the community each day. They're staff picks and listed templates an AI check found worth featuring, one per creator.",
+    href: "/marketplace",
+  },
+  {
+    date: "2026-11-15",
+    title: "Category parameters",
+    description:
+      "A parameter can be a category, like the one tickets are created in. It's picked from a server your bot is in, so nobody has to copy its ID.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/parameters`,
+  },
+  {
+    date: "2026-11-14",
+    title: "User lookup, invite resolver, and application lookup",
+    description:
+      "Look up a Discord user by ID, see the server behind an invite before you join, or check the permissions a bot asks for before you add it. User lookup needs you to log in with Discord. Links to dis.wtf open these tools now.",
+    href: "/tools",
+  },
+  {
+    date: "2026-11-14",
+    title: "Run JavaScript can use AI",
+    description:
+      "The code of a Run JavaScript block can ask AI, check, choose, score, and translate like the AI blocks, for the same credits. Sort a list of messages with AI in one block instead of a loop of blocks.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#ai`,
+  },
+  {
+    date: "2026-11-14",
+    title: "Run JavaScript can change things in Discord",
+    description:
+      "The code of a Run JavaScript block can send messages, give roles, create channels, and make the other changes the Discord API Request block can. Each change costs 1 credit.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#changing-things-in-discord`,
+  },
+  {
+    date: "2026-11-13",
+    title: "Disabled commands and event listeners don't count toward your plan",
+    description:
+      "Keep commands and event listeners you don't need right now disabled instead of deleting them. Only enabled ones count toward your plan's limits.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/premium#what-premium-changes`,
+  },
+  {
+    date: "2026-11-13",
+    title: "User and Message commands",
+    description:
+      "Create commands that show in the Apps menu when someone right-clicks a user or a message, like Report message or User info. Pick the type when you create a command. The flow can read the user or message it was used on.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/command#user-and-message-commands`,
+  },
+  {
+    date: "2026-11-13",
+    title: "Test requests in Send API Request",
+    description:
+      "Click Send test request in the block's settings to see what the API answers before you save the flow. Test requests don't cost credits.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_http_request`,
+  },
+  {
+    date: "2026-11-13",
+    title: "Emoji picker in text fields",
+  },
+  {
+    date: "2026-11-13",
+    title: "Roblox Ranking template",
+    description:
+      "Staff with Manage Roles rank members of your Roblox group with /setrank, and /getrank shows anyone's rank. Members verified with Bloxlink use /joingroup to get their join request accepted. It uses an Open Cloud API key, not your cookie.",
+    href: "/marketplace/roblox-ranking",
+  },
   {
     date: "2026-11-11",
     title: "Name styles for your bot in each server",
@@ -30,10 +116,15 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-09",
-    title: "Append and Prepend add to lists",
-    description:
-      "Set stored variable in Append or Prepend mode adds the value as one item when the variable holds a list, instead of turning the list into text. Changes from runs at the same time no longer overwrite each other, also for the first value of a variable.",
+    title: "Append and Prepend add items to lists in stored variables",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_variable_set`,
+  },
+  {
+    date: "2026-11-08",
+    title: "Roblox group and Bloxlink blocks",
+    description:
+      "Get Roblox group member, Change Roblox group role, and Answer Roblox join request manage your Roblox group with an Open Cloud API key. Get Bloxlink user finds the Roblox account a Discord member verified with Bloxlink.",
+    href: "/roblox-ranking-bot",
   },
   {
     date: "2026-11-08",
@@ -52,29 +143,21 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-08",
     title: "Server boost remove event",
-    description:
-      "Run a flow when a member stops boosting your server, like to take back a booster reward role.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/event`,
   },
   {
     date: "2026-11-08",
-    title: "Tags in Edit channel",
-    description:
-      "The Edit channel block changes the tags of a forum post, like marking a ticket as Resolved.",
+    title: "Edit channel changes the tags of forum posts",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_channel_edit`,
   },
   {
     date: "2026-11-08",
-    title: "Install Kite as an app",
-    description:
-      "Install the dashboard on your computer or phone from Chrome, Edge, or Safari on iPhone, so it opens in its own window.",
+    title: "Install the dashboard as an app",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#installing-kite`,
   },
   {
     date: "2026-11-08",
     title: "Duplicate blocks with Ctrl+D",
-    description:
-      "Press Ctrl+D or Cmd+D to duplicate the selected blocks. When a block needs an integration your app hasn't enabled, you can enable it from the block.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-editor#keyboard-shortcuts`,
   },
   {
@@ -101,14 +184,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-11-05",
     title: "List stored variable values block",
-    description:
-      "Read many values of a stored variable at once, sorted by value or by when they changed. Leaderboards use it.",
   },
   {
     date: "2026-11-05",
     title: "Flow AI fixes more of its own mistakes",
-    description:
-      "Flow AI repairs common mistakes in the block settings it writes, so fewer prompts end in an error.",
     href: "/ai-discord-bot-maker",
   },
   {
@@ -133,9 +212,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-30",
-    title: "Animated avatar and banner",
-    description:
-      "Set your bot's avatar and banner in its settings, and use GIFs or animated WebPs on Kite Plus and up.",
+    title: "Animated avatar and banner on Kite Plus and up",
   },
   {
     date: "2026-10-30",
@@ -146,8 +223,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-30",
     title: "Integration blocks get their own tab",
-    description:
-      "ER:LC, Roblox, and Cookie API blocks have their own tab in the block list, and search finds blocks in every tab.",
   },
   {
     date: "2026-10-29",
@@ -165,8 +240,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-29",
     title: "Templates show the permissions they need",
-    description:
-      "Before you add a template, it lists the Discord permissions your bot needs for it and warns about the ones it doesn't have.",
     href: "/marketplace",
   },
   {
@@ -178,9 +251,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-28",
-    title: "Guides for Claude and ChatGPT",
-    description:
-      "Step by step guides to make a Discord bot from Claude or ChatGPT with Kite's MCP server.",
+    title: "Guides to make a bot from Claude or ChatGPT",
     href: "/guides",
   },
   {
@@ -212,9 +283,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-26",
-    title: "Notes and faster editing in the flow editor",
-    description:
-      "Add notes to a flow, insert a block into a connection, and open a menu with a right click or a long press.",
+    title: "Notes and right-click menus in the flow editor",
   },
   {
     date: "2026-10-26",
@@ -226,7 +295,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-26",
     title: "10 event listeners on the free plan",
-    description: "The free plan has 10 event listeners instead of 5.",
     href: "/pricing",
   },
   {
@@ -267,8 +335,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-24",
     title: "Keep or undo Flow AI changes",
-    description:
-      "Review what Flow AI changed in your flow, then keep it or undo it.",
   },
   {
     date: "2026-10-23",
@@ -286,14 +352,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-10-22",
     title: "Leave server and Publish message blocks",
-    description:
-      "Your bot can leave a server and publish messages in announcement channels.",
   },
   {
     date: "2026-10-21",
-    title: "Reply to a message",
-    description:
-      "Create channel message can reply to another message, and you choose who gets pinged.",
+    title: "Create channel message can reply to a message",
   },
   {
     date: "2026-10-20",
@@ -304,15 +366,11 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-10-20",
-    title: "Respond to webhooks",
-    description:
-      "Answer the website that called your webhook, and check that a request really comes from it.",
+    title: "Answer and verify webhook requests",
   },
   {
     date: "2026-10-18",
     title: "File uploads in modals",
-    description:
-      "Modals can ask members for a file, and the flow gets it with their other answers.",
   },
   {
     date: "2026-10-16",
@@ -354,7 +412,6 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-28",
     title: "Events for joining and leaving servers",
-    description: "Run a flow when your bot joins or leaves a server.",
   },
   {
     date: "2026-09-25",
@@ -377,13 +434,10 @@ export const changelog: ChangelogEntry[] = [
   {
     date: "2026-09-25",
     title: "Undo, redo, and copy and paste in the flow editor",
-    description:
-      "Undo and redo your changes, and copy and paste blocks within a flow or into another one.",
   },
   {
     date: "2026-09-24",
     title: "Join and leave voice channels",
-    description: "Your bot can join a voice channel and leave it again.",
   },
   {
     date: "2026-09-23",
@@ -393,9 +447,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-09-23",
-    title: "Share commands and event listeners",
-    description:
-      "Export a command or event listener and import it into another bot.",
+    title: "Export and import commands and event listeners",
   },
   {
     date: "2026-01-08",

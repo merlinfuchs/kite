@@ -443,7 +443,9 @@ export default function FeaturesPage({
         {
           title: "Roblox",
           icon: Gamepad2Icon,
-          description: "Look up a Roblox user by name or ID.",
+          description:
+            "Look up Roblox users, rank members of your Roblox group, answer join requests, and find who verified with Bloxlink.",
+          href: "/roblox-ranking-bot",
         },
         {
           title: "Cookie API",

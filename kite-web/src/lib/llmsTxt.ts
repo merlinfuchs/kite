@@ -120,7 +120,7 @@ export function llmsTxt(data: LlmsTxtData) {
     "- The Leveling template adds XP for chatting, level-up messages, a reward role, /rank, and /leaderboard. The Economy template adds coins with /daily, /work, /pay, and /richest.",
     "- Flow AI, the AI assistant in the editor, builds and changes commands from a description.",
     "- AI blocks: Ask AI, Search the Web, AI Check, AI Choice, AI Score, and AI Translate.",
-    "- Integrations with ER:LC, Roblox, and Cookie API.",
+    "- Integrations with ER:LC, Roblox, Roblox Open Cloud, Bloxlink, and Cookie API. The Roblox Ranking template ranks Roblox group members from Discord.",
     `- An MCP server at ${site}/api/mcp, to build and change bots from Claude, ChatGPT, Codex, Cursor, or VS Code.`
   );
 
@@ -196,6 +196,7 @@ export function llmsTxt(data: LlmsTxtData) {
     `- [Marketplace](${site}/marketplace): Templates to add to a bot.`,
     `- [Free Discord bot hosting](${site}/discord-bot-hosting): How Kite hosts bots 24/7.`,
     `- [Discord leveling bot](${site}/discord-leveling-bot): XP, levels, reward roles, /rank, and /leaderboard from the Leveling template.`,
+    `- [Roblox ranking bot](${site}/roblox-ranking-bot): /setrank, /getrank, and /joingroup for a Roblox group from the Roblox Ranking template.`,
     `- [AI Discord bot maker](${site}/ai-discord-bot-maker): Building a bot with Flow AI.`,
     `- [Discord MCP server](${site}/discord-mcp-server): Building a bot from Claude, ChatGPT, and other AI apps.`,
     `- [How to make a Discord bot](${site}/guides/how-to-make-a-discord-bot): A step by step guide.`,

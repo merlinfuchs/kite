@@ -322,9 +322,10 @@ func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEnt
 	var entities []*model.AppEntity
 	for _, row := range rows {
 		entities = append(entities, &model.AppEntity{
-			ID:   row.ID,
-			Type: model.AppEntityType(row.Type),
-			Name: row.Name,
+			ID:      row.ID,
+			Type:    model.AppEntityType(row.Type),
+			Name:    row.Name,
+			Enabled: row.Enabled,
 		})
 	}
 

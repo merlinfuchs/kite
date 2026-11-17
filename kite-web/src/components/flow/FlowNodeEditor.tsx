@@ -10,13 +10,22 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
+import {
+  useAppFeature,
+  useBundleInstalls,
+  useFeaturePlan,
+} from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
+import {
+  commandTypeOptions,
+  isContextMenuCommand,
+} from "@/lib/flow/commandTypes";
 import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
+import { insertAtCursor } from "@/lib/insertText";
 import {
   aiAnswerLimits,
   aiModelTiers,
@@ -97,6 +106,7 @@ import {
 import {
   CheckIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
@@ -131,10 +141,13 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
+import EmojiInsertButton from "../common/EmojiInsertButton";
 import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
+import { GroupableItem, itemGroup, sortByGroup } from "@/lib/flow/itemGroups";
 import JsonEditor from "../common/JsonEditor";
+import HttpRequestTestDialog from "./HttpRequestTestDialog";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
 import {
@@ -150,12 +163,15 @@ import ScheduleCronPreview, {
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
+import { z } from "zod";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -187,12 +203,14 @@ import {
 import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import FlowDialogTrigger from "./FlowDialogTrigger";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowCodeInput from "./FlowCodeInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import MessageCollapsibleSection from "../message/MessageCollapsibleSection";
 import { cn } from "@/lib/utils";
 import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
@@ -219,6 +237,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_type: CommandTypeInput,
   command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
@@ -327,6 +346,17 @@ export const settingInputs: Record<string, any> = {
   sleep_duration_seconds: ControlSleepDurationInput,
 };
 
+// A setting that fails every option of a union, like an ID or a placeholder,
+// only says "Invalid input". Its options usually share one message that says
+// what's allowed, so that is shown instead.
+function issueMessage(issue: z.core.$ZodIssue) {
+  if (issue.code === "invalid_union") {
+    const messages = new Set(issue.errors.flat().map((i) => i.message));
+    if (messages.size === 1) return [...messages][0];
+  }
+  return issue.message;
+}
+
 function nodeTypeDocsPage(nodeType: string) {
   let group: string | null = null;
   if (nodeType.startsWith("action_")) {
@@ -430,7 +460,10 @@ export default function FlowNodeEditor({
     }
 
     return Object.fromEntries(
-      res.error.issues.map((issue) => [issue.path.join("."), issue.message])
+      res.error.issues.map((issue) => [
+        issue.path.join("."),
+        issueMessage(issue),
+      ])
     );
   }, [values.dataSchema, data]);
 
@@ -617,7 +650,10 @@ function NameInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function DescriptionInput({ data, updateData, errors }: InputProps) {
+function DescriptionInput({ type, data, updateData, errors }: InputProps) {
+  // Only slash commands have a description in Discord.
+  if (type === "entry_command" && isContextMenuCommand(data)) return null;
+
   return (
     <BaseInput
       field="description"
@@ -721,6 +757,21 @@ function CommandArgumentTypeInput({ data, updateData, errors }: InputProps) {
       ]}
       value={data.command_argument_type || ""}
       updateValue={(v) => updateData({ command_argument_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_type"
+      title="Type"
+      description="User and Message commands show in the Apps menu when someone right-clicks a user or message."
+      type="select"
+      options={commandTypeOptions}
+      value={data.command_type || "chat_input"}
+      updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />
   );
@@ -986,6 +1037,7 @@ function CooldownMessageInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ cooldown_message: v || undefined })}
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -1555,6 +1607,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -1747,6 +1800,11 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             )}
           </div>
         </div>
+        <EditOnly>
+          <DialogFooter>
+            <HttpRequestTestDialog data={data.http_request_data || {}} />
+          </DialogFooter>
+        </EditOnly>
       </DialogContent>
     </Dialog>
   );
@@ -2059,32 +2117,33 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             />
           ))}
           {request?.query?.map((q) => (
-            <div className="flex gap-2 items-end" key={q.key}>
-              <BaseInput
-                type="text"
-                field={`discord_api_request_data.query.${q.key}`}
-                title={q.key}
-                description="Query parameter"
-                value={q.value}
-                updateValue={(v) => setParam("query", q.key, v)}
-                errors={errors}
-                placeholders
-              />
-              <EditOnly>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() =>
-                    updateRequest({
-                      query: request.query?.filter((v) => v.key !== q.key),
-                    })
-                  }
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </EditOnly>
-            </div>
+            <BaseInput
+              key={q.key}
+              type="text"
+              field={`discord_api_request_data.query.${q.key}`}
+              title={q.key}
+              description="Query parameter"
+              value={q.value}
+              updateValue={(v) => setParam("query", q.key, v)}
+              errors={errors}
+              placeholders
+              beside={
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() =>
+                      updateRequest({
+                        query: request.query?.filter((v) => v.key !== q.key),
+                      })
+                    }
+                  >
+                    <MinusIcon className="h-5 w-5" />
+                  </Button>
+                </EditOnly>
+              }
+            />
           ))}
           {unusedQueryParams.length > 0 && (
             <EditOnly>
@@ -3170,6 +3229,7 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -3274,6 +3334,7 @@ function RobloxJoinRequestActionInput({
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const messages = useFlowMessages();
+  const installs = useBundleInstalls();
   const readOnly = useContext(FlowReadOnlyContext);
   const template = data.message_template_id
     ? messages?.find((m) => m.id === data.message_template_id)
@@ -3281,26 +3342,32 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   const appId = useAppId();
 
+  // Grouped like the list of message templates: by folder, or else by the
+  // template they were added with.
+  const options = sortByGroup(
+    messages?.map((m) => ({
+      value: m.id,
+      label: m.name,
+      group: itemGroup(m as GroupableItem, installs)?.name,
+    })) ?? [],
+    (o) => o.group
+  );
+
   return (
     <>
-      <div className="flex space-x-2 items-end">
-        <BaseInput
-          type="select"
-          field="message_template_id"
-          title="Message template"
-          description="Select a message template to use for the response."
-          options={messages?.map((m) => ({
-            value: m!.id,
-            label: m!.name,
-          }))}
-          value={data.message_template_id || ""}
-          updateValue={(v) =>
-            updateData({ message_template_id: v || undefined })
-          }
-          errors={errors}
-          clearable
-        />
-        {!readOnly &&
+      <BaseInput
+        type="combobox"
+        field="message_template_id"
+        title="Message template"
+        description="Select a message template to use for the response."
+        placeholder="Select a message template"
+        options={options}
+        value={data.message_template_id || ""}
+        updateValue={(v) => updateData({ message_template_id: v || undefined })}
+        errors={errors}
+        clearable
+        beside={
+          !readOnly &&
           (data.message_template_id ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -3329,8 +3396,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
                 <PlusIcon className="h-5 w-5" />
               </Button>
             </MessageCreateDialog>
-          ))}
-      </div>
+          ))
+        }
+      />
       {readOnly && template && (
         <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
@@ -3367,6 +3435,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
           }
           errors={errors}
           placeholders
+          emojis
         />
       )}
 
@@ -3643,6 +3712,7 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ question: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       <div>
         <div className="font-medium text-foreground mb-1">Answers</div>
@@ -3803,375 +3873,509 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
+// Public first, it's the default.
+const threadTypes = ["11", "12", "10"];
+const channelOnlyTypeOptions = channelTypeOptions.filter(
+  (o) => !threadTypes.includes(o.value)
+);
+const threadTypeOptions = threadTypes.map(
+  (value) => channelTypeOptions.find((o) => o.value === value)!
+);
+
+function channelTypeLabel(type: number) {
+  return channelTypeOptions.find((o) => o.value === type.toString())?.label;
+}
+
+// How many errors the settings with one of the prefixes have.
+function countErrors(errors: Record<string, string>, ...prefixes: string[]) {
+  return Object.keys(errors).filter((k) =>
+    prefixes.some((p) => k.startsWith(p))
+  ).length;
+}
+
+// The indexes of the permission overwrites that have an error.
+function overwriteErrorIndexes(errors: Record<string, string>) {
+  const res = new Set<number>();
+  for (const key of Object.keys(errors)) {
+    const m = key.match(/^channel_data\.permission_overwrites\.(\d+)/);
+    if (m) res.add(parseInt(m[1]));
+  }
+  return res;
+}
+
+function plural(n: number, word: string) {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+// The dialog of the channel and thread blocks.
+function ChannelDialog({
+  title,
+  description,
+  summary,
+  errorCount,
+  children,
+}: {
+  title: string;
+  description: string;
+  // The parts that are set, joined with dots.
+  summary: (string | false | undefined)[];
+  errorCount: number;
+  children: ReactNode;
+}) {
+  return (
+    <Dialog>
+      <FlowDialogTrigger
+        label={title}
+        summary={summary.filter(Boolean).join(" · ")}
+        errorCount={errorCount}
+      />
+      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        {/* min-w-0 lets long IDs truncate instead of widening the dialog. */}
+        <div className="space-y-6 min-w-0">{children}</div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Placeholders aren't counted, they're only known when the block runs.
+function permissionCount(bitset?: string) {
+  const value = bitset || "0";
+  if (!/^[0-9]+$/.test(value)) return "?";
+  return decodePermissionsBitset(value).length;
+}
+
+// The @everyone role has the ID of the server. Saving "Everyone" as a role
+// with the placeholder keeps the data as it was, so older flows that use the
+// placeholder show up as Everyone too.
+const everyoneOverwriteId = "{{guild.id}}";
+
+function isEveryoneOverwrite(overwrite: PermissionOverwriteData) {
+  return (
+    overwrite.type !== 1 && /^\{\{\s*guild\.id\s*\}\}$/.test(overwrite.id ?? "")
+  );
+}
+
+const overwriteKindOptions = [
+  { label: "Role", value: "role" },
+  { label: "User", value: "user" },
+  { label: "Everyone", value: "everyone" },
+];
+
+// One permission overwrite. Closed it shows who it's for and how many
+// permissions it allows and denies, like the cards of the modal editor.
+function OverwriteCard({
+  index,
+  overwrite,
+  open,
+  hasError,
+  onToggle,
+  onRemove,
+  onChange,
+  errors,
+}: {
+  index: number;
+  overwrite: PermissionOverwriteData;
+  open: boolean;
+  hasError: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+  onChange: (data: Partial<PermissionOverwriteData>) => void;
+  errors: Record<string, string>;
+}) {
+  const field = `channel_data.permission_overwrites.${index}`;
+  const kind = isEveryoneOverwrite(overwrite)
+    ? "everyone"
+    : overwrite.type === 1
+    ? "user"
+    : "role";
+  const label = overwriteKindOptions.find((o) => o.value === kind)!.label;
+
+  return (
+    <Card className="px-4 py-3">
+      <div className="flex items-center">
+        <button
+          type="button"
+          className="flex items-center space-x-1 flex-auto min-w-0 text-lg text-foreground/90 text-left"
+          onClick={onToggle}
+          aria-expanded={open}
+        >
+          <ChevronRightIcon
+            className={cn(
+              "h-6 w-6 flex-none transition-transform text-muted-foreground",
+              open && "rotate-90"
+            )}
+          />
+          <div className="flex-none">{label}</div>
+          {kind !== "everyone" && (
+            <div className="pl-1 text-sm italic font-light text-muted-foreground truncate">
+              {overwrite.id || "No ID yet"}
+            </div>
+          )}
+          {!open && (
+            <div className="pl-2 flex-none text-sm space-x-2">
+              <span className="text-green-600 dark:text-green-400">
+                +{permissionCount(overwrite.allow)}
+              </span>
+              <span className="text-red-600 dark:text-red-400">
+                −{permissionCount(overwrite.deny)}
+              </span>
+            </div>
+          )}
+          {hasError && (
+            <div className="pl-1 flex-none">
+              <CircleAlertIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+          )}
+        </button>
+        <EditOnly>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 flex-none"
+            onClick={onRemove}
+            aria-label="Remove overwrite"
+          >
+            <TrashIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-none sm:w-40">
+              <BaseInput
+                type="select"
+                field={`${field}.type`}
+                title="Type"
+                value={kind}
+                options={overwriteKindOptions}
+                updateValue={(v) => {
+                  if (v === "everyone") {
+                    onChange({ type: 0, id: everyoneOverwriteId });
+                  } else {
+                    // The server ID is neither a role nor a user to keep.
+                    onChange({
+                      type: v === "user" ? 1 : 0,
+                      id: kind === "everyone" ? undefined : overwrite.id,
+                    });
+                  }
+                }}
+                errors={errors}
+              />
+            </div>
+            {kind === "everyone" ? (
+              <div className="flex-auto text-sm text-muted-foreground sm:pt-9">
+                Applies to every member of the server.
+              </div>
+            ) : (
+              <BaseInput
+                type="text"
+                field={`${field}.id`}
+                title={label}
+                value={overwrite.id || ""}
+                updateValue={(v) => onChange({ id: v || undefined })}
+                errors={errors}
+                placeholders
+              />
+            )}
+          </div>
+          <BasePermissionInput
+            field={`${field}.allow`}
+            title="Allow"
+            value={overwrite.allow || ""}
+            updateValue={(v) => onChange({ allow: v || undefined })}
+            errors={errors}
+            searchable
+          />
+          <BasePermissionInput
+            field={`${field}.deny`}
+            title="Deny"
+            value={overwrite.deny || ""}
+            updateValue={(v) => onChange({ deny: v || undefined })}
+            errors={errors}
+            searchable
+          />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function ChannelDataInput({
   data,
   updateData,
   errors,
   children,
-}: InputProps & { children?: ReactNode }) {
-  const addOverwrite = useCallback(() => {
-    updateData({
-      channel_data: {
-        ...data.channel_data,
-        permission_overwrites: [
-          ...(data.channel_data?.permission_overwrites || []),
-          { type: 0, allow: "0", deny: "0" },
-        ],
-      },
-    });
-  }, [updateData, data]);
+  edit,
+}: InputProps & { children?: ReactNode; edit?: boolean }) {
+  const channel = data.channel_data;
+  const overwrites = channel?.permission_overwrites ?? [];
+  const type = channel?.type ?? 0;
 
-  const clearOverwrites = useCallback(() => {
-    updateData({
-      channel_data: { ...data.channel_data, permission_overwrites: [] },
-    });
-  }, [updateData, data]);
+  // The overwrite that is open. They start closed, the list can get long.
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const errorIndexes = overwriteErrorIndexes(errors);
 
-  const removeOverwrite = useCallback(
-    (i: number) => {
-      updateData({
-        channel_data: {
-          ...data.channel_data,
-          permission_overwrites:
-            data.channel_data?.permission_overwrites?.filter((_, j) => j !== i),
-        },
-      });
-    },
-    [updateData, data]
-  );
+  const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
+    updateData({ channel_data: { ...channel, ...newData } });
 
-  const updateOverwrite = useCallback(
-    (i: number, newData: Partial<PermissionOverwriteData>) => {
-      updateData({
-        channel_data: {
-          ...data.channel_data,
-          permission_overwrites: data.channel_data?.permission_overwrites?.map(
-            (o, j) => (j === i ? { ...o, ...newData } : o)
-          ),
-        },
-      });
-    },
-    [updateData, data]
-  );
+  const setOverwrites = (permission_overwrites: PermissionOverwriteData[]) =>
+    updateChannel({ permission_overwrites });
+
+  const addOverwrite = () => {
+    setOverwrites([...overwrites, { type: 0, allow: "0", deny: "0" }]);
+    setOpenIndex(overwrites.length);
+  };
+
+  const clearOverwrites = () => {
+    setOverwrites([]);
+    setOpenIndex(null);
+  };
+
+  const removeOverwrite = (i: number) => {
+    setOverwrites(overwrites.filter((_, j) => j !== i));
+    setOpenIndex((open) =>
+      open === null || open === i ? null : open > i ? open - 1 : open
+    );
+  };
+
+  const updateOverwrite = (
+    i: number,
+    newData: Partial<PermissionOverwriteData>
+  ) =>
+    setOverwrites(
+      overwrites.map((o, j) => (j === i ? { ...o, ...newData } : o))
+    );
 
   // Changing the type only hides the inputs that don't apply to it. Without
   // also dropping their values, a topic entered while the type was "Text"
   // would still be sent for a voice channel, which Discord rejects.
-  const updateType = useCallback(
-    (type: number) => {
-      const channelData = { ...data.channel_data, type };
+  const updateType = (newType: number) => {
+    const channelData = { ...channel, type: newType };
 
-      if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
-      if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
-      if (!channelTypeSupportsRateLimitPerUser(type))
-        channelData.rate_limit_per_user = undefined;
-      if (!channelTypeSupportsVoice(type)) {
-        channelData.bitrate = undefined;
-        channelData.user_limit = undefined;
-      }
+    if (!channelTypeSupportsNSFW(newType)) channelData.nsfw = undefined;
+    if (!channelTypeSupportsTopic(newType)) channelData.topic = undefined;
+    if (!channelTypeSupportsRateLimitPerUser(newType))
+      channelData.rate_limit_per_user = undefined;
+    if (!channelTypeSupportsVoice(newType)) {
+      channelData.bitrate = undefined;
+      channelData.user_limit = undefined;
+    }
+    // Categories can't be in a category.
+    if (newType === 4) channelData.parent = undefined;
 
-      updateData({ channel_data: channelData });
-    },
-    [updateData, data]
-  );
+    updateData({ channel_data: channelData });
+  };
+
+  const summary = [
+    // Edits don't change the type, it only picks the settings to show.
+    (!edit || channel?.type !== undefined) &&
+      (channelTypeLabel(type) ?? "Channel"),
+    channel?.name,
+    overwrites.length > 0 && plural(overwrites.length, "overwrite"),
+  ];
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure channel</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure channel</DialogTitle>
-          <DialogDescription>
-            Configure your channel here. A channel must have one of the
-            available types and a name. All other fields are optional.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="flex space-x-3">
+    <ChannelDialog
+      title="Configure channel"
+      description={
+        edit
+          ? "All settings are optional."
+          : "A channel needs a type and a name. Everything else is optional."
+      }
+      summary={summary}
+      errorCount={countErrors(errors, "channel_data")}
+    >
+      <MessageCollapsibleSection
+        title="General"
+        className="space-y-4"
+        animate={false}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex-none sm:w-56">
             <BaseInput
               type="select"
-              field={`channel_data.type`}
+              field="channel_data.type"
               title="Type"
-              value={data.channel_data?.type?.toString() || "0"}
-              options={[
-                {
-                  label: "Text",
-                  value: "0",
-                },
-                {
-                  label: "Voice",
-                  value: "2",
-                },
-                {
-                  label: "Category",
-                  value: "4",
-                },
-                {
-                  label: "Announcement",
-                  value: "5",
-                },
-                {
-                  label: "Stage",
-                  value: "13",
-                },
-                {
-                  label: "Forum",
-                  value: "15",
-                },
-                {
-                  label: "Media",
-                  value: "16",
-                },
-              ]}
+              value={type.toString()}
+              options={channelOnlyTypeOptions}
               updateValue={(v) => updateType(parseInt(v) || 0)}
               errors={errors}
             />
-
-            {channelTypeSupportsNSFW(data.channel_data?.type) && (
-              <BaseCheckbox
-                field="channel_data.nsfw"
-                title="NSFW"
-                value={data.channel_data?.nsfw || false}
-                updateValue={(v) =>
-                  updateData({
-                    channel_data: {
-                      ...data.channel_data,
-                      nsfw: v,
-                    },
-                  })
-                }
-                errors={errors}
-              />
-            )}
           </div>
-
           <BaseInput
             type="text"
             field="channel_data.name"
             title="Name"
-            description="The name for the channel."
-            value={data.channel_data?.name || ""}
-            updateValue={(v) =>
-              updateData({
-                channel_data: { ...data.channel_data, name: v || undefined },
-              })
-            }
+            value={channel?.name || ""}
+            updateValue={(v) => updateChannel({ name: v || undefined })}
             errors={errors}
             placeholders
+            emojis="native"
           />
+        </div>
 
-          {channelTypeSupportsTopic(data.channel_data?.type) && (
+        {channelTypeSupportsTopic(type) && (
+          <div className="flex flex-col gap-3 sm:flex-row">
             <BaseInput
               type="text"
               field="channel_data.topic"
               title="Topic"
               description="The topic for the channel."
-              value={data.channel_data?.topic || ""}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    topic: v || undefined,
-                  },
-                })
-              }
+              value={channel?.topic || ""}
+              updateValue={(v) => updateChannel({ topic: v || undefined })}
               errors={errors}
               placeholders
+              emojis="native"
             />
-          )}
-
-          {channelTypeSupportsRateLimitPerUser(data.channel_data?.type) && (
-            <BaseInput
-              type="text"
-              field="channel_data.rate_limit_per_user"
-              title="Slowmode"
-              description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
-              value={data.channel_data?.rate_limit_per_user || ""}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    rate_limit_per_user: v || undefined,
-                  },
-                })
-              }
-              errors={errors}
-              placeholders
-            />
-          )}
-
-          {channelTypeSupportsVoice(data.channel_data?.type) && (
-            <>
-              <BaseInput
-                type="text"
-                field="channel_data.bitrate"
-                title="Bitrate"
-                description="The bitrate for the channel."
-                value={data.channel_data?.bitrate || ""}
-                updateValue={(v) =>
-                  updateData({
-                    channel_data: {
-                      ...data.channel_data,
-                      bitrate: v || undefined,
-                    },
-                  })
-                }
+            {channelTypeSupportsNSFW(type) && (
+              <BaseCheckbox
+                field="channel_data.nsfw"
+                title="NSFW"
+                description="Age-restricted."
+                value={channel?.nsfw || false}
+                updateValue={(v) => updateChannel({ nsfw: v })}
                 errors={errors}
-                placeholders
               />
-              <BaseInput
-                type="text"
-                field="channel_data.user_limit"
-                title="User limit"
-                description="The user limit for the channel."
-                value={data.channel_data?.user_limit?.toString() || ""}
-                updateValue={(v) =>
-                  updateData({
-                    channel_data: {
-                      ...data.channel_data,
-                      user_limit: v || undefined,
-                    },
-                  })
-                }
-                errors={errors}
-                placeholders
-              />
-            </>
-          )}
+            )}
+          </div>
+        )}
+      </MessageCollapsibleSection>
 
-          {data.channel_data?.type !== 4 && (
-            <BaseInput
-              type="text"
-              field="channel_data.parent"
-              title="Category"
-              description="The category that the channel will be created in."
-              value={data.channel_data?.parent || ""}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    parent: v || undefined,
-                  },
-                })
-              }
-              errors={errors}
-              placeholders
-            />
-          )}
-
+      <MessageCollapsibleSection
+        title="Placement and limits"
+        className="space-y-4"
+        animate={false}
+      >
+        {type !== 4 && (
           <BaseInput
             type="text"
-            field="channel_data.position"
-            title="Position"
-            description="The position for the channel."
-            value={data.channel_data?.position?.toString() || ""}
+            field="channel_data.parent"
+            title="Category"
+            description={
+              edit
+                ? "The category to move the channel to. Leave empty to keep its current category."
+                : "The category to create the channel in. Leave empty for no category."
+            }
+            value={channel?.parent || ""}
+            updateValue={(v) => updateChannel({ parent: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        )}
+
+        <BaseInput
+          type="text"
+          field="channel_data.position"
+          title="Position"
+          description="Where the channel sits in its category, from 0 at the top. Text and voice channels are counted separately."
+          placeholder="e.g. 0"
+          value={channel?.position?.toString() || ""}
+          updateValue={(v) => updateChannel({ position: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+
+        {channelTypeSupportsRateLimitPerUser(type) && (
+          <BaseInput
+            type="text"
+            field="channel_data.rate_limit_per_user"
+            title="Slowmode"
+            description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+            value={channel?.rate_limit_per_user || ""}
             updateValue={(v) =>
-              updateData({
-                channel_data: {
-                  ...data.channel_data,
-                  position: v || undefined,
-                },
-              })
+              updateChannel({ rate_limit_per_user: v || undefined })
             }
             errors={errors}
             placeholders
           />
+        )}
 
-          <div className="space-y-3">
-            <div className="font-medium text-foreground">
-              Permission overwrites
-            </div>
-
-            {data.channel_data?.permission_overwrites?.map((overwrite, i) => (
-              <Card className="space-y-3 p-3 -mx-1" key={i}>
-                <BaseInput
-                  type="select"
-                  field={`channel_data.permission_overwrites.${i}.type`}
-                  title="Type"
-                  value={overwrite.type?.toString() || "0"}
-                  options={[
-                    {
-                      label: "Role",
-                      value: "0",
-                    },
-                    {
-                      label: "User",
-                      value: "1",
-                    },
-                  ]}
-                  updateValue={(v) =>
-                    updateOverwrite(i, {
-                      type: parseInt(v) || 0,
-                    })
-                  }
-                  errors={errors}
-                />
-                <BaseInput
-                  type="text"
-                  field={`channel_data.permission_overwrites.${i}.id`}
-                  title={overwrite.type === 0 ? "Role" : "User"}
-                  description="Used to identify the input in your flow."
-                  value={overwrite.id || ""}
-                  updateValue={(v) =>
-                    updateOverwrite(i, {
-                      id: v || undefined,
-                    })
-                  }
-                  errors={errors}
-                  placeholders
-                />
-                <BasePermissionInput
-                  field={`channel_data.permission_overwrites.${i}.allow`}
-                  title="Allow"
-                  value={overwrite.allow || ""}
-                  updateValue={(v) =>
-                    updateOverwrite(i, {
-                      allow: v || undefined,
-                    })
-                  }
-                  errors={errors}
-                />
-                <BasePermissionInput
-                  field={`channel_data.permission_overwrites.${i}.deny`}
-                  title="Deny"
-                  value={overwrite.deny || ""}
-                  updateValue={(v) =>
-                    updateOverwrite(i, {
-                      deny: v || undefined,
-                    })
-                  }
-                  errors={errors}
-                />
-                <EditOnly>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex gap-2"
-                    onClick={() => removeOverwrite(i)}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                    <div>Remove overwrite</div>
-                  </Button>
-                </EditOnly>
-              </Card>
-            ))}
+        {channelTypeSupportsVoice(type) && (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <BaseInput
+              type="text"
+              field="channel_data.bitrate"
+              title="Bitrate"
+              description="The bitrate for the channel."
+              value={channel?.bitrate || ""}
+              updateValue={(v) => updateChannel({ bitrate: v || undefined })}
+              errors={errors}
+              placeholders
+            />
+            <BaseInput
+              type="text"
+              field="channel_data.user_limit"
+              title="User limit"
+              description="The user limit for the channel."
+              value={channel?.user_limit?.toString() || ""}
+              updateValue={(v) => updateChannel({ user_limit: v || undefined })}
+              errors={errors}
+              placeholders
+            />
           </div>
+        )}
+      </MessageCollapsibleSection>
 
-          <EditOnly>
-            <div className="flex space-x-3">
-              <Button onClick={addOverwrite}>Add overwrite</Button>
-              <Button variant="outline" onClick={clearOverwrites}>
-                Clear overwrites
-              </Button>
-            </div>
-          </EditOnly>
+      {children}
 
-          {children}
-        </div>
-      </DialogContent>
-    </Dialog>
+      <MessageCollapsibleSection
+        title="Permission overwrites"
+        defaultOpen={false}
+        className="space-y-4"
+        animate={false}
+        count={
+          <span className="inline-flex items-center gap-1">
+            {overwrites.length}
+            {errorIndexes.size > 0 && (
+              <CircleAlertIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
+            )}
+          </span>
+        }
+      >
+        {edit && (
+          <div className="text-sm text-muted-foreground">
+            Leave empty to keep the channel&apos;s overwrites. The ones you add
+            replace all of them.
+          </div>
+        )}
+
+        {overwrites.map((overwrite, i) => (
+          <OverwriteCard
+            key={i}
+            index={i}
+            overwrite={overwrite}
+            open={openIndex === i}
+            hasError={errorIndexes.has(i)}
+            onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            onRemove={() => removeOverwrite(i)}
+            onChange={(d) => updateOverwrite(i, d)}
+            errors={errors}
+          />
+        ))}
+
+        <EditOnly>
+          <div className="space-x-3">
+            <Button onClick={addOverwrite}>Add overwrite</Button>
+            {overwrites.length > 0 && (
+              <ConfirmDialog
+                title="Are you sure that you want to clear the overwrites?"
+                description="This removes all permission overwrites of the channel."
+                onConfirm={clearOverwrites}
+              >
+                <Button variant="outline">Clear overwrites</Button>
+              </ConfirmDialog>
+            )}
+          </div>
+        </EditOnly>
+      </MessageCollapsibleSection>
+    </ChannelDialog>
   );
 }
 
@@ -4231,163 +4435,165 @@ const threadEditSettings = [
 function ChannelEditDataInput(props: InputProps) {
   const { data, updateData, errors } = props;
   return (
-    <ChannelDataInput {...props}>
-      <div className="flex space-x-3">
-        {threadEditSettings.map(({ field, title, description }) => (
-          <BaseKeepSelect
-            key={field}
-            field={`channel_data.${field}`}
-            title={title}
-            description={description}
-            value={data.channel_data?.[field]?.toString() ?? ""}
-            updateValue={(v) =>
-              updateData({
-                channel_data: {
-                  ...data.channel_data,
-                  [field]: v ? v === "true" : undefined,
-                },
-              })
-            }
-            errors={errors}
-          />
-        ))}
-      </div>
-      <BaseInput
-        type="text"
-        field="channel_data.applied_tags"
-        title="Post tags"
-        description="Only for forum and media posts. Names or IDs of up to 5 of the forum's tags, separated by commas. Leave empty to keep the post's current tags."
-        value={data.channel_data?.applied_tags || ""}
-        updateValue={(v) =>
-          updateData({
-            channel_data: {
-              ...data.channel_data,
-              applied_tags: v || undefined,
-            },
-          })
+    <ChannelDataInput {...props} edit>
+      <MessageCollapsibleSection
+        title="Threads and posts"
+        defaultOpen={false}
+        className="space-y-4"
+        animate={false}
+        count={
+          countErrors(
+            errors,
+            "channel_data.archived",
+            "channel_data.locked",
+            "channel_data.applied_tags"
+          ) > 0 ? (
+            <CircleAlertIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
+          ) : undefined
         }
-        errors={errors}
-        placeholders
-      />
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {threadEditSettings.map(({ field, title, description }) => (
+            <BaseKeepSelect
+              key={field}
+              field={`channel_data.${field}`}
+              title={title}
+              description={description}
+              value={data.channel_data?.[field]?.toString() ?? ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    [field]: v ? v === "true" : undefined,
+                  },
+                })
+              }
+              errors={errors}
+            />
+          ))}
+        </div>
+        <BaseInput
+          type="text"
+          field="channel_data.applied_tags"
+          title="Post tags"
+          description="Only for forum and media posts. Names or IDs of up to 5 of the forum's tags, separated by commas. Leave empty to keep the post's current tags."
+          value={data.channel_data?.applied_tags || ""}
+          updateValue={(v) =>
+            updateData({
+              channel_data: {
+                ...data.channel_data,
+                applied_tags: v || undefined,
+              },
+            })
+          }
+          errors={errors}
+          placeholders
+        />
+      </MessageCollapsibleSection>
     </ChannelDataInput>
   );
 }
 
 function ThreadDataInput({ data, updateData, errors }: InputProps) {
+  const channel = data.channel_data;
+  // The service creates a public thread without a type.
+  const type = channel?.type || 11;
+  const updateChannel = (newData: Partial<NonNullable<typeof channel>>) =>
+    updateData({ channel_data: { ...channel, ...newData } });
+
+  // A thread started from a message takes its type from the message's channel.
+  const summary = [
+    data.message_target
+      ? "Thread from a message"
+      : channelTypeLabel(type) ?? "Thread",
+    channel?.name,
+  ];
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure thread</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure thread</DialogTitle>
-          <DialogDescription>
-            Configure your thread here. A thread must have a name and can be
-            associated with a message or be independent.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="text"
-            field="channel_data.parent"
-            title="Parent channel"
-            description="The parent channel that the thread will be created in."
-            value={data.channel_data?.parent || ""}
-            updateValue={(v) =>
-              updateData({
-                channel_data: {
-                  ...data.channel_data,
-                  parent: v || undefined,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
-          <BaseInput
-            type="text"
-            field="message_target"
-            title="Message target"
-            description="The message to start the thread from. Leave blank to create an independent thread."
-            value={data.message_target || ""}
-            updateValue={(v) =>
-              updateData({
-                message_target: v || undefined,
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
+    <ChannelDialog
+      title="Configure thread"
+      description="A thread needs a name. It can start from a message or on its own."
+      summary={summary}
+      errorCount={countErrors(errors, "channel_data", "message_target")}
+    >
+      <MessageCollapsibleSection
+        title="General"
+        className="space-y-4"
+        animate={false}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row">
           {!data.message_target && (
-            <BaseInput
-              type="select"
-              field={`channel_data.type`}
-              title="Type"
-              value={data.channel_data?.type?.toString() || "11"}
-              options={[
-                {
-                  label: "Public thread",
-                  value: "11",
-                },
-                {
-                  label: "Private thread",
-                  value: "12",
-                },
-                {
-                  label: "Announcement thread",
-                  value: "10 ",
-                },
-              ]}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    type: parseInt(v) || undefined,
-                  },
-                })
-              }
-              errors={errors}
-            />
+            <div className="flex-none sm:w-56">
+              <BaseInput
+                type="select"
+                field="channel_data.type"
+                title="Type"
+                value={type.toString()}
+                options={threadTypeOptions}
+                updateValue={(v) => {
+                  const newType = parseInt(v) || undefined;
+                  updateChannel({
+                    type: newType,
+                    // Only private threads can be invitable.
+                    invitable: newType === 12 ? channel?.invitable : undefined,
+                  });
+                }}
+                errors={errors}
+              />
+            </div>
           )}
-
           <BaseInput
             type="text"
             field="channel_data.name"
             title="Name"
-            description="The name for the channel."
-            value={data.channel_data?.name || ""}
-            updateValue={(v) =>
-              updateData({
-                channel_data: { ...data.channel_data, name: v || undefined },
-              })
-            }
+            value={channel?.name || ""}
+            updateValue={(v) => updateChannel({ name: v || undefined })}
             errors={errors}
             placeholders
+            emojis="native"
           />
-
-          {data.channel_data?.type === 12 && (
-            <BaseCheckbox
-              field="channel_data.invitable"
-              title="Invitable"
-              description="Whether non-moderators can add new members to the thread."
-              value={data.channel_data?.invitable ?? true}
-              updateValue={(v) =>
-                updateData({
-                  channel_data: {
-                    ...data.channel_data,
-                    invitable: v,
-                  },
-                })
-              }
-              errors={errors}
-            />
-          )}
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <BaseInput
+          type="text"
+          field="channel_data.parent"
+          title="Parent channel"
+          description="The channel to create the thread in."
+          value={channel?.parent || ""}
+          updateValue={(v) => updateChannel({ parent: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+
+        {type === 12 && !data.message_target && (
+          <BaseCheckbox
+            field="channel_data.invitable"
+            title="Invitable"
+            description="Members who aren't moderators can add others to the thread."
+            value={channel?.invitable ?? true}
+            updateValue={(v) => updateChannel({ invitable: v })}
+            errors={errors}
+          />
+        )}
+      </MessageCollapsibleSection>
+
+      <MessageCollapsibleSection
+        title="Starter message"
+        className="space-y-4"
+        animate={false}
+      >
+        <BaseInput
+          type="text"
+          field="message_target"
+          title="Message target"
+          description="The message to start the thread from. Leave empty to create a thread on its own."
+          value={data.message_target || ""}
+          updateValue={(v) => updateData({ message_target: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      </MessageCollapsibleSection>
+    </ChannelDialog>
   );
 }
 
@@ -4684,6 +4890,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ activity_name: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       {data.status_data?.activity_type !== 4 && (
         <BaseInput
@@ -4863,6 +5070,7 @@ function RoleDataInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -5520,12 +5728,16 @@ function BaseInput({
   updateValue,
   placeholders,
   disablePlaceholderBrackets,
+  emojis,
   clearable,
   imageUpload,
+  beside,
 }: {
-  type?: "text" | "textarea" | "select";
+  // "combobox" is a select with a search, for long lists.
+  type?: "text" | "textarea" | "select" | "combobox";
   field: string;
-  options?: { value: string; label: string }[];
+  // A group is only shown by a combobox.
+  options?: { value: string; label: string; group?: string }[];
   // Left out for an input beside others, like the value of a header.
   title?: string;
   description?: ReactNode;
@@ -5536,9 +5748,14 @@ function BaseInput({
   // "parameters" offers only the flow's parameters.
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
+  // Adds an emoji picker, "native" without custom emojis for fields that
+  // Discord shows as plain text.
+  emojis?: boolean | "native";
   clearable?: boolean;
   // Shows a button that uploads an image as an asset and puts in its URL.
   imageUpload?: boolean;
+  // Buttons next to the input, like one that creates what it selects.
+  beside?: ReactNode;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -5549,33 +5766,54 @@ function BaseInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const onPlaceholderSelect = useCallback(
-    (placeholder: string) => {
-      const value = disablePlaceholderBrackets
-        ? placeholder
-        : `{{${placeholder}}}`;
-
+  const insertText = useCallback(
+    (text: string) => {
       const element =
         type === "textarea" ? textareaRef.current : inputRef.current;
 
-      if (!element) return;
-
-      const start = element.selectionStart ?? 0;
-      const end = element.selectionEnd ?? 0;
-
-      const newValue =
-        element.value.substring(0, start) +
-        value +
-        element.value.substring(end);
-
-      updateValue(newValue);
+      insertAtCursor(element, text, updateValue);
     },
-    [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
+    [inputRef, textareaRef, type, updateValue]
+  );
+
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) =>
+      insertText(
+        disablePlaceholderBrackets ? placeholder : `{{${placeholder}}}`
+      ),
+    [insertText, disablePlaceholderBrackets]
+  );
+
+  const showEmojis = !!emojis && type !== "select" && !readOnly;
+  const actions = (showPlaceholders || showEmojis) && (
+    <div className="flex flex-none items-center gap-1">
+      {showEmojis && (
+        <EmojiInsertButton
+          onSelect={insertText}
+          nativeOnly={emojis === "native"}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
   );
 
   const withUpload = imageUpload && !readOnly;
+  const sideBySide = withUpload || !!beside;
   const control = (
-    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+    <div
+      className={cn(
+        // Without a title the buttons sit beside the input.
+        !title && actions && "flex items-center gap-1",
+        sideBySide ? "flex-auto" : title && "mt-2"
+      )}
+    >
       {type === "textarea" ? (
         <Textarea
           value={value}
@@ -5583,8 +5821,21 @@ function BaseInput({
           ref={textareaRef}
           placeholder={placeholder}
           readOnly={readOnly}
-          // Room for the placeholder explorer in the corner.
-          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "combobox" ? (
+        <EntitySelect
+          items={options?.map((o) => ({
+            id: o.value,
+            name: o.label,
+            group: o.group,
+          }))}
+          value={value || null}
+          onChange={(v) => update(v ?? "")}
+          placeholder={placeholder ?? "Select"}
+          searchPlaceholder="Search..."
+          emptyText="Nothing found."
+          clearable={clearable && !readOnly}
+          wide
         />
       ) : type === "select" ? (
         <Select value={value} onValueChange={(v) => update(v)}>
@@ -5632,31 +5883,28 @@ function BaseInput({
           readOnly={readOnly}
         />
       )}
-      {showPlaceholders && (
-        <FlowPlaceholderExplorer
-          onSelect={onPlaceholderSelect}
-          hideBrackets={disablePlaceholderBrackets}
-          field={field}
-          onlyParameters={placeholders === "parameters"}
-        />
-      )}
+      {!title && actions}
     </div>
   );
 
   return (
     <div className="flex-auto">
-      {title && <div className="font-medium text-foreground">{title}</div>}
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
-      {withUpload ? (
+      {title && (
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-medium text-foreground">{title}</div>
+          {actions}
+        </div>
+      )}
+      {sideBySide ? (
         <div className={cn("flex gap-2", title && "mt-2")}>
           {control}
-          <ImageUploadButton onImageUploaded={updateValue} />
+          {withUpload && <ImageUploadButton onImageUploaded={updateValue} />}
+          {beside}
         </div>
       ) : (
         control
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5665,6 +5913,12 @@ function BaseInput({
       )}
     </div>
   );
+}
+
+// Help text of a field, under its input.
+function FieldDescription({ children }: { children?: ReactNode }) {
+  if (!children) return null;
+  return <div className="text-muted-foreground text-sm mt-2">{children}</div>;
 }
 
 function BaseCheckbox({
@@ -5687,12 +5941,10 @@ function BaseCheckbox({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <PreviewInert>
         <Switch checked={value} onCheckedChange={updateValue} />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5743,9 +5995,6 @@ function BaseMultiSelect({
   return (
     <div>
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       {searchable ? (
         <Popover modal>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
@@ -5794,6 +6043,7 @@ function BaseMultiSelect({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5866,15 +6116,13 @@ function BaseColorInput({
   return (
     <div className="flex-auto">
       <div className="font-medium text-foreground">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mt-1">{description}</div>
-      ) : null}
       <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
       </PreviewInert>
+      <FieldDescription>{description}</FieldDescription>
       <EditOnly>
         <Button
           variant="link"
@@ -5969,9 +6217,6 @@ function BaseEmojiPicker({
   return (
     <div className="flex-none">
       <div className="font-medium text-foreground mb-2">{title}</div>
-      {description ? (
-        <div className="text-muted-foreground text-sm mb-2">{description}</div>
-      ) : null}
       <div className="flex">
         <PreviewInert>
           <EmojiPicker onEmojiSelect={onChange}>
@@ -6007,6 +6252,7 @@ function BaseEmojiPicker({
           </EditOnly>
         )}
       </div>
+      <FieldDescription>{description}</FieldDescription>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

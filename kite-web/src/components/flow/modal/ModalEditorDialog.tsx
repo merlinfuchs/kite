@@ -78,6 +78,7 @@ import ConfirmDialog from "../../common/ConfirmDialog";
 import MessageCollapsibleSection from "../../message/MessageCollapsibleSection";
 import MessageControlsButton from "../../message/MessageControlsButton";
 import { ChannelTypesInput } from "../../message/MessageComponentSelectMenu";
+import FlowDialogTrigger from "../FlowDialogTrigger";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import {
@@ -85,7 +86,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  DialogTrigger,
 } from "../../ui/dialog";
 import { Drawer, DrawerContent, DrawerTrigger } from "../../ui/drawer";
 import {
@@ -108,6 +108,8 @@ import { Switch } from "../../ui/switch";
 import { Textarea } from "../../ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "../../ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../../ui/tooltip";
+import EmojiInsertButton from "@/components/common/EmojiInsertButton";
+import { insertAtCursor } from "@/lib/insertText";
 import FlowPlaceholderExplorer from "../FlowPlaceholderExplorer";
 import ModalJSONDialog from "./ModalJSONDialog";
 import ModalPreview from "./ModalPreview";
@@ -206,24 +208,17 @@ export default function ModalEditorDialog({
 
   return (
     <Dialog>
-      <div className="space-y-2">
-        <DialogTrigger asChild>
-          <Button className="w-full">Configure modal</Button>
-        </DialogTrigger>
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <div className="truncate flex-auto">
+      <FlowDialogTrigger
+        label="Configure modal"
+        summary={
+          <>
             {inputCount} {inputCount === 1 ? "input" : "inputs"}
             {textCount > 0 &&
               `, ${textCount} ${textCount === 1 ? "text" : "texts"}`}
-          </div>
-          {errorCount > 0 && (
-            <div className="flex items-center gap-1 text-red-600 dark:text-red-400 flex-none">
-              <CircleAlertIcon className="h-4 w-4" />
-              {errorCount} {errorCount === 1 ? "issue" : "issues"}
-            </div>
-          )}
-        </div>
-      </div>
+          </>
+        }
+        errorCount={errorCount}
+      />
       <DialogContent
         className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none overflow-hidden"
         // Opening shouldn't select the title, so typing doesn't replace it.
@@ -752,6 +747,7 @@ function ComponentCard({
             <TextField
               type="textarea"
               title="Content"
+              emojis
               field={`${componentField(index)}.content`}
               value={component.content || ""}
               onChange={(v) => updateComponent({ content: v || undefined })}
@@ -1326,7 +1322,16 @@ function IconButton({
 }
 
 // The label of an input, styled like the inputs of the message editor.
-function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
+function FieldLabel({
+  title,
+  count,
+  actions,
+}: {
+  title: string;
+  count?: ReactNode;
+  // Buttons on the right, like the placeholder explorer.
+  actions?: ReactNode;
+}) {
   return (
     <div className="flex space-x-2 mb-2 items-center">
       <Label className="text-base text-slate-800 dark:text-slate-200">
@@ -1336,6 +1341,9 @@ function FieldLabel({ title, count }: { title: string; count?: ReactNode }) {
         <div className="text-sm italic font-light text-muted-foreground">
           {count}
         </div>
+      )}
+      {actions && (
+        <div className="flex items-center gap-1 !ml-auto">{actions}</div>
       )}
     </div>
   );
@@ -1349,6 +1357,7 @@ function TextField({
   onChange,
   errors,
   limit,
+  emojis = "native",
 }: {
   type?: "text" | "textarea";
   title: string;
@@ -1357,26 +1366,20 @@ function TextField({
   onChange: (value: string) => void;
   errors: Record<string, string>;
   limit?: number;
+  // Discord shows most modal texts as plain text, which can't render custom
+  // emojis.
+  emojis?: true | "native";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Inserts the picked placeholder at the cursor, like BaseInput in
-  // FlowNodeEditor does.
-  const onPlaceholderSelect = useCallback(
-    (p: string) => {
-      const element =
-        type === "textarea" ? textareaRef.current : inputRef.current;
-      if (!element) return;
-
-      const start = element.selectionStart ?? element.value.length;
-      const end = element.selectionEnd ?? element.value.length;
-      onChange(
-        element.value.substring(0, start) +
-          `{{${p}}}` +
-          element.value.substring(end)
-      );
-    },
+  const insertText = useCallback(
+    (text: string) =>
+      insertAtCursor(
+        type === "textarea" ? textareaRef.current : inputRef.current,
+        text,
+        onChange
+      ),
     [type, onChange]
   );
 
@@ -1385,19 +1388,25 @@ function TextField({
       <FieldLabel
         title={title}
         count={limit !== undefined ? `${value.length} / ${limit}` : undefined}
+        actions={
+          <>
+            <EmojiInsertButton
+              onSelect={insertText}
+              nativeOnly={emojis === "native"}
+            />
+            <FlowPlaceholderExplorer onSelect={(p) => insertText(`{{${p}}}`)} />
+          </>
+        }
       />
-      <div className="relative">
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            ref={textareaRef}
-          />
-        ) : (
-          <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
-        )}
-        <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
-      </div>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          ref={textareaRef}
+        />
+      ) : (
+        <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
+      )}
       <FieldError error={errors[field]} />
     </div>
   );

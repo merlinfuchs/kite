@@ -44,8 +44,9 @@ type App struct {
 }
 
 type CommandsDeployError struct {
-	Message string `json:"message"`
-	Command string `json:"command,omitempty"`
+	Message     string `json:"message"`
+	Command     string `json:"command,omitempty"`
+	CommandType string `json:"command_type,omitempty"`
 }
 
 type AppDiscordStatus struct {
@@ -219,4 +220,6 @@ type AppEntity struct {
 	ID   string `json:"id"`
 	Type string `json:"type"`
 	Name string `json:"name"`
+	// Enabled is always true for messages and variables.
+	Enabled bool `json:"enabled"`
 }

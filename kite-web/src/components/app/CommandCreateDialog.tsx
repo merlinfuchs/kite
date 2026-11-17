@@ -22,15 +22,23 @@ import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
-import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { newCommandFlow } from "@/lib/flow/newFlows";
+import { CommandType, commandTypeOptions } from "@/lib/flow/commandTypes";
 import { track } from "@/lib/analytics";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface FormFields {
   name: string;
   description: string;
+  command_type: CommandType;
 }
 
 export default function CommandCreateDialog({
@@ -48,15 +56,21 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
+      command_type: "chat_input",
     },
   });
+  const isSlash = form.watch("command_type") === "chat_input";
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
     createMutation.mutate(
       {
-        flow_source: newCommandFlow(data.name, data.description),
+        flow_source: newCommandFlow(
+          data.name,
+          data.description,
+          data.command_type
+        ),
         enabled: true,
       },
       {
@@ -98,11 +112,37 @@ export default function CommandCreateDialog({
         <DialogHeader>
           <DialogTitle>Create command</DialogTitle>
           <DialogDescription>
-            Create a new command with a name and description.
+            Members use slash commands by typing / in the chat. User and Message
+            commands show in the Apps menu when someone right-clicks a user or
+            message.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <FormField
+              control={form.control}
+              name="command_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {commandTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
@@ -110,25 +150,31 @@ export default function CommandCreateDialog({
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input type="text" {...field} />
+                    <Input
+                      type="text"
+                      placeholder={isSlash ? "ping" : "Report message"}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isSlash && (
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
                 Create command

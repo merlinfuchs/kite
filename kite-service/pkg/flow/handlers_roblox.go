@@ -359,35 +359,31 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 		return err
 	}
 
-	// The roles the mode should leave, unless the request returns the
-	// membership, whose roles are then what Roblox actually did.
+	// The roles the mode leaves. The membership Roblox returns can still have
+	// the roles from before the change, so it isn't used.
 	held := member.Roles
-	var updated robloxGroupMembership
 	switch n.Data.RobloxGroupRoleMode {
 	case RobloxGroupRoleModeAdd:
 		if !slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, &updated)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":assignRole", map[string]string{"role": role.Path}, nil)
 			held = append(held, role.Path)
 		}
 	case RobloxGroupRoleModeRemove:
 		if slices.Contains(held, role.Path) {
-			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, &updated)
+			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, nil)
 			held = slices.DeleteFunc(held, func(p string) bool { return p == role.Path })
 		}
 	case RobloxGroupRoleModeSet, "":
 		// Roblox deprecated this for assigning and unassigning roles one by
 		// one, but it's the only request that replaces all of them, including
 		// the hidden base role every member has.
-		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, &updated)
+		err = robloxOpenCloudRequest(ctx, http.MethodPatch, member.Path, map[string]string{"role": role.Path}, nil)
 		held = []string{role.Path}
 	default:
 		return fmt.Errorf("unknown mode %q", n.Data.RobloxGroupRoleMode)
 	}
 	if err != nil {
 		return err
-	}
-	if updated.Path != "" {
-		held = updated.rolePaths()
 	}
 
 	ctx.StoreNodeResult(n, robloxGroupMemberResult(userID, held, roles))
@@ -404,6 +400,9 @@ func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, e
 		} `json:"groupJoinRequests"`
 	}
 	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/join-requests?%s", groupID, robloxUserFilter(userID)), nil, &res)
+	if isMissingJoinRequest(err) {
+		return "", nil
+	}
 	if err != nil || len(res.GroupJoinRequests) == 0 {
 		return "", err
 	}
@@ -414,6 +413,15 @@ func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, e
 		return "", fmt.Errorf("Roblox returned the join request of %s instead of %s", request.User, robloxUserPath(userID))
 	}
 	return request.Path, nil
+}
+
+// isMissingJoinRequest reports whether Roblox answered that the user has no
+// pending join request. Roblox answers with a 404 that names the join
+// request, while a 404 for a group that doesn't exist stays an error.
+func isMissingJoinRequest(err error) bool {
+	var integrationErr *integrationError
+	return errors.As(err, &integrationErr) && integrationErr.Status == http.StatusNotFound &&
+		strings.Contains(strings.ToLower(integrationErr.Error()), "join request")
 }
 
 func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -439,7 +447,10 @@ func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext
 	}
 	if path != "" {
 		err := robloxOpenCloudRequest(ctx, http.MethodPost, path+":"+string(action), map[string]string{}, nil)
-		if err != nil {
+		if isMissingJoinRequest(err) {
+			// Someone answered the request in the meantime.
+			path = ""
+		} else if err != nil {
 			return err
 		}
 	}

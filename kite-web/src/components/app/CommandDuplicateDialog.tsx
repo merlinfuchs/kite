@@ -26,6 +26,7 @@ import { useRouter } from "next/router";
 import { Command } from "@/lib/types/wire.gen";
 import { FlowData } from "@/lib/types/flow.gen";
 import { track } from "@/lib/analytics";
+import { commandTypeOf } from "@/lib/flow/commandTypes";
 
 interface FormFields {
   name: string;
@@ -45,6 +46,7 @@ export default function CommandDuplicateDialog({
   const appId = useAppId();
 
   const createMutation = useCommandCreateMutation(appId);
+  const isSlash = commandTypeOf(command.flow_source) === "chat_input";
   const form = useForm<FormFields>({
     defaultValues: {
       name: command.name,
@@ -60,7 +62,7 @@ export default function CommandDuplicateDialog({
         flow_source: updateFlowData(
           command.flow_source,
           data.name,
-          data.description
+          isSlash ? data.description : undefined
         ),
         enabled: true,
       },
@@ -96,7 +98,9 @@ export default function CommandDuplicateDialog({
         <DialogHeader>
           <DialogTitle>Duplicate command</DialogTitle>
           <DialogDescription>
-            Duplicate this command with a new name and description.
+            {isSlash
+              ? "Duplicate this command with a new name and description."
+              : "Duplicate this command with a new name."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -114,19 +118,21 @@ export default function CommandDuplicateDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isSlash && (
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
                 Duplicate command
@@ -139,14 +145,21 @@ export default function CommandDuplicateDialog({
   );
 }
 
-function updateFlowData(flowData: FlowData, name: string, description: string) {
+function updateFlowData(
+  flowData: FlowData,
+  name: string,
+  description: string | undefined
+) {
   return {
     ...flowData,
     nodes: flowData.nodes.map((node) => {
       if (node.type === "entry_command") {
         return {
           ...node,
-          data: { ...node.data, name, description },
+          data:
+            description === undefined
+              ? { ...node.data, name }
+              : { ...node.data, name, description },
         };
       }
       return { ...node };

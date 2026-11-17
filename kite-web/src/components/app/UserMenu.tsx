@@ -1,3 +1,4 @@
+import { UserBadges } from "@/components/badges/Badges";
 import {
   ClipboardCheckIcon,
   HomeIcon,
@@ -80,6 +81,11 @@ export default function UserMenu({
                 </span>
               </div>
             </div>
+            <UserBadges
+              badges={user?.badges ?? []}
+              size="sm"
+              className="mx-1 mb-1.5"
+            />
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {returnHome && (

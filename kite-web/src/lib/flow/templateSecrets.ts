@@ -2,11 +2,11 @@
 // pkg/flow/secrets.go.
 // Only placeholders reference secrets, and webhook.data.secrets.count, after
 // a dot, isn't one.
-const placeholderRe = /\{\{([\s\S]*?)\}\}/g;
+export const placeholderRe = /\{\{([\s\S]*?)\}\}/g;
 const plainSecretRe = /^\s*secrets\.[A-Za-z_][A-Za-z0-9_]*\s*$/;
 // Any use of the secrets, also like secrets?.NAME, which can read the ones
 // another placeholder of the template references.
-const secretMentionRe = /(?<![.\w])secrets\b/;
+export const secretMentionRe = /(?<![.\w])secrets\b/;
 
 // The names of the secrets a template references, like API_KEY in
 // {{secrets.API_KEY}}.

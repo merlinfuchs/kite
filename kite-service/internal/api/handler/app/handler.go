@@ -338,9 +338,10 @@ func (h *AppHandler) HandleAppEntityList(c *handler.Context) (*wire.AppEntityLis
 	res := make([]*wire.AppEntity, len(entities))
 	for i, entity := range entities {
 		res[i] = &wire.AppEntity{
-			ID:   entity.ID,
-			Type: string(entity.Type),
-			Name: entity.Name,
+			ID:      entity.ID,
+			Type:    string(entity.Type),
+			Name:    entity.Name,
+			Enabled: entity.Enabled,
 		}
 	}
 

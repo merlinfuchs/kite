@@ -41,6 +41,7 @@ const bots = [
   { title: "AI bot", href: "/ai-discord-bot" },
   { title: "AI bot maker", href: "/ai-discord-bot-maker" },
   { title: "ER:LC bot", href: "/erlc-discord-bot" },
+  { title: "Roblox ranking bot", href: "/roblox-ranking-bot" },
   { title: "Discord MCP server", href: "/discord-mcp-server" },
 ];
 

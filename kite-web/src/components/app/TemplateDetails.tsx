@@ -1,4 +1,5 @@
 import TemplateIcon from "./TemplateIcon";
+import { StaffPickIcon } from "../badges/Badges";
 import {
   creatorPath,
   Template,
@@ -43,6 +44,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../ui/accordion";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
@@ -131,8 +133,9 @@ export function TemplateDetails({
           />
         </div>
         <div>
-          <h1 className="text-xl font-semibold md:text-2xl mb-1">
+          <h1 className="flex items-center gap-2 text-xl font-semibold md:text-2xl mb-1">
             {template.name}
+            {template.staffPick && <StaffPickIcon className="h-6 w-6" />}
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
             {template.description}
@@ -250,7 +253,7 @@ export function TemplateDetails({
                   <FlowItemCard
                     key={command.name}
                     icon={SlashSquareIcon}
-                    name={`/${command.name}`}
+                    name={commandLabel(command.name, command.flowSource)}
                     description={command.description}
                     context="command"
                     flow={command.flowSource}

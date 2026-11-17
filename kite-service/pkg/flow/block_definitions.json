@@ -33,7 +33,7 @@
         "type": "header",
         "name": "x-api-key",
         "label": "API key",
-        "help_url": "https://create.roblox.com/docs/cloud/auth/api-keys"
+        "help_url": "https://docs.kite.onl/guides/roblox-ranking#connecting-your-group"
       },
       "availability": "opt_in",
       "data_shared": "Its blocks send Roblox your API key and the users and roles you change. The key can do what its owner can in the group, so give it only the group:read and group:write permissions.",

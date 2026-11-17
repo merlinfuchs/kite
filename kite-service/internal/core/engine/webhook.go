@@ -8,7 +8,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
-	"gopkg.in/guregu/null.v4"
 )
 
 var (
@@ -104,9 +103,7 @@ func (l *EventListener) HandleWebhookRun(session *state.State, event *webhook.Ev
 		l.flow,
 		session,
 		event,
-		entityLinks{
-			EventListenerID: null.NewString(l.listener.ID, true),
-		},
+		l.entityLinks(),
 		nil,
 	)
 }

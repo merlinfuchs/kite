@@ -88,30 +88,30 @@ export default function FlowJsonInput({
             Switch to JSON to insert placeholders.
           </div>
         )}
+        {mode === "json" && (
+          <EditOnly>
+            <FlowPlaceholderExplorer onSelect={insertPlaceholder} />
+          </EditOnly>
+        )}
       </div>
       {mode === "visual" ? (
         <JsonEditor src={value ?? {}} onChange={onChange} readOnly={readOnly} />
       ) : (
-        <div className="relative">
-          <ReactCodeMirror
-            ref={ref}
-            className="rounded overflow-hidden"
-            maxHeight="400px"
-            value={raw}
-            basicSetup={{
-              lineNumbers: false,
-              foldGutter: false,
-              indentOnInput: true,
-            }}
-            extensions={[lintGutter(), json(), linter(jsonParseLinter())]}
-            theme={theme === "light" ? githubLight : githubDark}
-            onChange={update}
-            readOnly={readOnly}
-          />
-          <EditOnly>
-            <FlowPlaceholderExplorer onSelect={insertPlaceholder} />
-          </EditOnly>
-        </div>
+        <ReactCodeMirror
+          ref={ref}
+          className="rounded overflow-hidden"
+          maxHeight="400px"
+          value={raw}
+          basicSetup={{
+            lineNumbers: false,
+            foldGutter: false,
+            indentOnInput: true,
+          }}
+          extensions={[lintGutter(), json(), linter(jsonParseLinter())]}
+          theme={theme === "light" ? githubLight : githubDark}
+          onChange={update}
+          readOnly={readOnly}
+        />
       )}
       {invalid && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">

@@ -31,6 +31,7 @@ import {
   TemplateParameterFields,
   useTemplateGuild,
 } from "./TemplateParameterFields";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // TemplateInstalledCard shows that the app has the template, with updating it
 // to a new version and removing it.
@@ -41,7 +42,9 @@ function useItemLabel(template: Template) {
   return (item: BundleInstallItem) => {
     const command =
       item.type === "command" && commands?.find((c) => c?.id === item.id);
-    return command ? `/${command.name}` : itemLabel(template, item.key);
+    return command
+      ? commandLabel(command.name, command.flow_source)
+      : itemLabel(template, item.key);
   };
 }
 

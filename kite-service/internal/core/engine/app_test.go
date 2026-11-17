@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -36,14 +37,14 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByName["ping"]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.(*Command).cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByName["config set"]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.(*Command).cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
-	if got := app.commandsByName["missing"]; got != nil {
-		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "missing")]; got != nil {
+		t.Errorf("lookup of unknown name resolved to %v, want nil", got.(*Command).cmd.ID)
 	}
 }
 
@@ -54,14 +55,44 @@ func TestCommandIndexDropsOldNameOnRename(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "oldname"))
 	app.AddCommand(testCommand("cmd-1", "newname"))
 
-	if got := app.commandsByName["oldname"]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "oldname")]; got != nil {
 		t.Error("old name still resolves after rename")
 	}
-	if got := app.commandsByName["newname"]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "newname")]; got == nil {
 		t.Fatal("new name does not resolve after rename")
 	}
 	if len(app.commands) != 1 {
 		t.Errorf("commands = %d entries, want 1 after rename of same ID", len(app.commands))
+	}
+}
+
+// A slash command and a User command can have the same name, and each
+// interaction goes to the command of its type.
+func TestCommandIndexByType(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddCommand(testCommand("slash", "report"))
+	app.AddCommand("user", &Command{cmd: &model.Command{ID: "user", Name: "report", FlowSource: flow.FlowData{
+		Nodes: []flow.FlowNode{{Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{CommandType: flow.CommandTypeUser}}},
+	}}})
+
+	tests := []struct {
+		data *discord.CommandInteraction
+		want string
+	}{
+		{data: &discord.CommandInteraction{Name: "report"}, want: "slash"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.ChatInputCommand}, want: "slash"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.UserCommand, TargetID: 5}, want: "user"},
+		{data: &discord.CommandInteraction{Name: "report", Type: discord.MessageCommand, TargetID: 5}},
+	}
+	for _, test := range tests {
+		got := app.commandsByKey[interactionCommandKey(test.data)]
+		if test.want == "" {
+			if got != nil {
+				t.Errorf("%+v resolved to %s, want none", test.data, got.(*Command).cmd.ID)
+			}
+		} else if got == nil || got.(*Command).cmd.ID != test.want {
+			t.Errorf("%+v did not resolve to %s", test.data, test.want)
+		}
 	}
 }
 
@@ -72,10 +103,10 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 
 	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
-	if got := app.commandsByName["drop"]; got != nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "drop")]; got != nil {
 		t.Error("removed command still resolves by name")
 	}
-	if got := app.commandsByName["keep"]; got == nil {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "keep")]; got == nil {
 		t.Error("surviving command no longer resolves by name")
 	}
 }
@@ -150,8 +181,8 @@ func TestListenerIndexRebuildDoesNotMutateExistingSlice(t *testing.T) {
 	if len(snapshot) != 1 {
 		t.Errorf("snapshot taken before rebuild changed length to %d, want 1", len(snapshot))
 	}
-	if snapshot[0].listener.ID != "l-1" {
-		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].listener.ID)
+	if snapshot[0].handler.(*EventListener).listener.ID != "l-1" {
+		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].handler.(*EventListener).listener.ID)
 	}
 }
 
@@ -207,7 +238,8 @@ func TestResumeFlowTargetUnknownOwner(t *testing.T) {
 // Links are stored on the resume point when the flow suspends, so attribution
 // of logs and usage has to survive the round trip rather than be rebuilt.
 func TestEntityLinksFromResumePoint(t *testing.T) {
-	links := entityLinksFromResumePoint(&model.ResumePoint{
+	app := NewApp("app-1", Env{})
+	links := app.entityLinksFromResumePoint(&model.ResumePoint{
 		MessageID:         null.NewString("msg-1", true),
 		MessageInstanceID: null.NewInt(7, true),
 		FlowSourceID:      null.NewString("src-1", true),
@@ -220,11 +252,38 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 	}
 }
 
+// Webhook and scheduled listeners are event listeners, so the source has to be
+// found again from the listener when a flow resumes.
+func TestEntityLinksFromResumePointKeepsEventSource(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	id, listener := testListener("lst-hook", model.EventSourceWebhook, model.EventListenerTypeWebhook)
+	app.AddEventListener(id, listener)
+
+	links := app.entityLinksFromResumePoint(&model.ResumePoint{
+		EventListenerID: null.NewString("lst-hook", true),
+	})
+	if got := links.usageRecordType(); got != model.UsageRecordTypeWebhookFlowExecution {
+		t.Errorf("got %s, want webhook usage", got)
+	}
+}
+
 func TestEntityLinksUsageRecordType(t *testing.T) {
 	for links, want := range map[entityLinks]model.UsageRecordType{
 		{CommandID: null.NewString("cmd-1", true)}:       model.UsageRecordTypeCommandFlowExecution,
 		{EventListenerID: null.NewString("lis-1", true)}: model.UsageRecordTypeEventListenerFlowExecution,
 		{MessageID: null.NewString("msg-1", true)}:       model.UsageRecordTypeMessageFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-2", true),
+			EventSource:     model.EventSourceWebhook,
+		}: model.UsageRecordTypeWebhookFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-3", true),
+			EventSource:     model.EventSourceSchedule,
+		}: model.UsageRecordTypeScheduleFlowExecution,
+		{
+			EventListenerID: null.NewString("lis-4", true),
+			EventSource:     model.EventSourceDiscord,
+		}: model.UsageRecordTypeEventListenerFlowExecution,
 	} {
 		if got := links.usageRecordType(); got != want {
 			t.Errorf("%+v: got %s, want %s", links, got, want)
@@ -262,6 +321,41 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Handlers only get the events shouldHandleEvent lets through for their type,
+// so bots and the app's own reactions don't run listeners, and boost
+// listeners only run on boosts.
+func TestRoutesForEventFilters(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost))
+	app.AddEventListener(testListener("reaction", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageReactionAdd))
+
+	const botID = discord.UserID(42)
+	botMessage := discord.Message{GuildID: 1, Author: discord.User{ID: 7, Bot: true}}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"member message", &gateway.MessageCreateEvent{Message: discord.Message{GuildID: 1}}, []string{"create"}},
+		{"bot message", &gateway.MessageCreateEvent{Message: botMessage}, nil},
+		{"bot message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: botMessage}}, nil},
+		{"boost", testBoostEvent(discord.NitroBoostMessage), []string{"create", "boost"}},
+		{"member reaction", &gateway.MessageReactionAddEvent{UserID: 7}, []string{"reaction"}},
+		{"own reaction", &gateway.MessageReactionAddEvent{UserID: botID}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routes, _ := app.routesForEvent(tt.event, botID)
+			if got := listenerIDs(routes); !slices.Equal(got, tt.want) {
 				t.Errorf("listeners = %v, want %v", got, tt.want)
 			}
 		})

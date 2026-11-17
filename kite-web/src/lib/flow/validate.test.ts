@@ -58,6 +58,34 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("checks the name and description of slash commands", () => {
+    expect(
+      errors([node("entry", "entry_command", { name: "View User" })], [])
+    ).toEqual([
+      "'Command' setting 'name': Must be only lowercase alphanumeric characters and underscores, and have at most 3 words",
+      "'Command' setting 'description': Required",
+    ]);
+  });
+
+  it("accepts User and Message commands without a description", () => {
+    for (const [command_type, name] of [
+      ["user", "View User"],
+      ["message", "Summarize Message"],
+    ]) {
+      expect(
+        errors(
+          [
+            node("entry", "entry_command", {
+              name,
+              command_type,
+            }),
+          ],
+          []
+        )
+      ).toEqual([]);
+    }
+  });
+
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
       const flows = [

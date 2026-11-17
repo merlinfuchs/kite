@@ -40,6 +40,7 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
         onChange={(v) => setFooter({ text: v || undefined })}
         validation={nodeField<EmbedNode>(embedId, "footer.text")}
         placeholders
+        emojis="native"
       />
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="w-full">

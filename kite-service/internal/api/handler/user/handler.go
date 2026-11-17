@@ -7,18 +7,21 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type UserHandler struct {
 	userStore    store.UserStore
 	adminUserIDs []string
+	badges       *plan.PlanManager
 }
 
-func NewUserHandler(userStore store.UserStore, adminUserIDs []string) *UserHandler {
+func NewUserHandler(userStore store.UserStore, adminUserIDs []string, badges *plan.PlanManager) *UserHandler {
 	return &UserHandler{
 		userStore:    userStore,
 		adminUserIDs: adminUserIDs,
+		badges:       badges,
 	}
 }
 
@@ -42,5 +45,12 @@ func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse,
 
 	res := wire.UserToWire(user, withEmail)
 	res.IsAdmin = withEmail && slices.Contains(h.adminUserIDs, user.ID)
+	if withEmail {
+		badges, err := h.badges.UserBadges(c.Context(), []string{user.ID})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get badges: %w", err)
+		}
+		res.Badges = wire.UserBadgesToWire(badges[user.ID])
+	}
 	return res, nil
 }

@@ -38,6 +38,11 @@ UPDATE event_listeners SET
     updated_at = $3
 WHERE id = $1 RETURNING *;
 
+-- name: UpdateEventListenersFolder :many
+-- Doesn't change updated_at, the folder is only how the dashboard lists them.
+UPDATE event_listeners SET folder = sqlc.narg(folder)
+WHERE app_id = @app_id AND id = ANY(@ids::text[]) RETURNING *;
+
 -- name: UpdateEventListenerWebhookSecret :one
 UPDATE event_listeners SET
     webhook_secret = $2,
@@ -59,7 +64,10 @@ SELECT id FROM event_listeners WHERE enabled = TRUE;
 DELETE FROM event_listeners WHERE id = $1 RETURNING *;
 
 -- name: CountEventListenersByAppAndSource :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
+SELECT
+    COUNT(*) AS total,
+    COUNT(*) FILTER (WHERE enabled) AS enabled
+FROM event_listeners WHERE app_id = $1 AND source = $2;
 
 -- name: UpdateEventListenersLastRunAt :exec
 -- Doesn't touch updated_at, otherwise every run would make the engine reload the listener.

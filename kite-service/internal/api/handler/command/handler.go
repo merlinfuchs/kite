@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/limit"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -48,15 +49,8 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		if commandCount >= c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	if err := h.checkCommandLimit(c, store.ItemCounts{Total: 1, Enabled: enabledCount(req.Enabled)}); err != nil {
+		return nil, err
 	}
 
 	cmdFlow, err := compileCommand(req.FlowSource)
@@ -64,7 +58,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
+	if err := h.checkCommandNames(c, "", command.FlowKey(cmdFlow)); err != nil {
 		return nil, err
 	}
 
@@ -112,27 +106,22 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		return nil, nil
 	}
 
-	if c.Features.MaxCommands != 0 {
-		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
-		}
-
-		newCommandCount := commandCount + len(reqs)
-
-		if newCommandCount > c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
-		}
+	added := store.ItemCounts{Total: len(reqs)}
+	for _, cmd := range reqs {
+		added.Enabled += enabledCount(cmd.Enabled)
+	}
+	if err := h.checkCommandLimit(c, added); err != nil {
+		return nil, err
 	}
 
 	commands := make([]*model.Command, len(reqs))
-	names := make([]string, len(reqs))
+	keys := make([]command.Key, len(reqs))
 	for i, cmd := range reqs {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
 			return nil, err
 		}
-		names[i] = cmdFlow.CommandName()
+		keys[i] = command.FlowKey(cmdFlow)
 
 		commands[i] = &model.Command{
 			ID:            util.UniqueID(),
@@ -147,7 +136,7 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, keys...)
 	if err != nil {
 		return nil, commandNamesError(err)
 	}
@@ -198,20 +187,20 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 
 // PrepareUpdate checks that the command can be changed to the flow and returns
 // it changed, without saving it.
-func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Command, flowSource flow.FlowData) (*model.Command, error) {
+func (h *CommandHandler) PrepareUpdate(c *handler.Context, cmd *model.Command, flowSource flow.FlowData) (*model.Command, error) {
 	cmdFlow, err := compileCommand(flowSource)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't block saving an existing conflict that this change didn't cause.
-	if cmdFlow.CommandName() != command.Name {
-		if err := h.checkCommandNames(c, command.ID, cmdFlow.CommandName()); err != nil {
+	if key := command.FlowKey(cmdFlow); key != command.ModelKey(cmd) {
+		if err := h.checkCommandNames(c, cmd.ID, key); err != nil {
 			return nil, err
 		}
 	}
 
-	updated := *command
+	updated := *cmd
 	updated.Name = cmdFlow.CommandName()
 	updated.Description = cmdFlow.CommandDescription()
 	updated.FlowSource = flowSource
@@ -220,6 +209,12 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Comman
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
+	if req.Enabled && !c.Command.Enabled {
+		if err := h.checkCommandLimit(c, store.ItemCounts{Enabled: 1}); err != nil {
+			return nil, err
+		}
+	}
+
 	command, err := h.commandStore.UpdateCommandEnabled(c.Context(), c.Command.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -229,6 +224,19 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 	}
 
 	return wire.CommandToWire(command), nil
+}
+
+func (h *CommandHandler) HandleCommandsUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.CommandsUpdateFolderResponse, error) {
+	commands, err := h.commandStore.UpdateCommandsFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update folder of commands: %w", err)
+	}
+
+	res := make(wire.CommandsUpdateFolderResponse, len(commands))
+	for i, command := range commands {
+		res[i] = wire.CommandToWire(command)
+	}
+	return &res, nil
 }
 
 func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandDeleteResponse, error) {
@@ -268,8 +276,8 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
-func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
-	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...))
+func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, keys ...command.Key) error {
+	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, keys...))
 }
 
 // commandNamesError turns a conflict of command names into an error for the
@@ -283,4 +291,28 @@ func commandNamesError(err error) error {
 		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
 	}
 	return fmt.Errorf("failed to check command names: %w", err)
+}
+
+// checkCommandLimit checks that the app can have added more commands.
+func (h *CommandHandler) checkCommandLimit(c *handler.Context, added store.ItemCounts) error {
+	if c.Features.MaxCommands == 0 {
+		return nil
+	}
+
+	counts, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return fmt.Errorf("failed to count commands: %w", err)
+	}
+
+	if err := limit.Check("commands", c.Features.MaxCommands, counts, added); err != nil {
+		return handler.ErrBadRequest("resource_limit", err.Error())
+	}
+	return nil
+}
+
+func enabledCount(enabled bool) int {
+	if enabled {
+		return 1
+	}
+	return 0
 }

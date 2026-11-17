@@ -211,6 +211,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
+		DiscordBotToken:     cfg.Discord.BotToken,
 		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		AdminUserIDs:        cfg.App.AdminUserIDs,

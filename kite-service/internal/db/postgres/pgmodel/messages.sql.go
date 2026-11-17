@@ -36,7 +36,7 @@ INSERT INTO messages (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
+) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder
 `
 
 type CreateMessageParams struct {
@@ -77,6 +77,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
@@ -152,7 +153,7 @@ func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageIn
 }
 
 const deleteMessage = `-- name: DeleteMessage :one
-DELETE FROM messages WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
+DELETE FROM messages WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder
 `
 
 func (q *Queries) DeleteMessage(ctx context.Context, id string) (Message, error) {
@@ -169,6 +170,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, id string) (Message, error)
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
@@ -212,7 +214,7 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 }
 
 const deleteMessagesByBundleInstall = `-- name: DeleteMessagesByBundleInstall :many
-DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[])) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
+DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[])) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder
 `
 
 type DeleteMessagesByBundleInstallParams struct {
@@ -240,6 +242,7 @@ func (q *Queries) DeleteMessagesByBundleInstall(ctx context.Context, arg DeleteM
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -322,7 +325,7 @@ func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetF
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder FROM messages WHERE id = $1 AND app_id = $2
 `
 
 type GetMessageParams struct {
@@ -344,12 +347,13 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
 
 const getMessageForUpdate = `-- name: GetMessageForUpdate :one
-SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 FOR UPDATE
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder FROM messages WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetMessageForUpdate(ctx context.Context, id string) (Message, error) {
@@ -366,6 +370,7 @@ func (q *Queries) GetMessageForUpdate(ctx context.Context, id string) (Message, 
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
@@ -490,7 +495,7 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, arg GetMessa
 }
 
 const getMessagesByApp = `-- name: GetMessagesByApp :many
-SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder FROM messages WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
@@ -513,6 +518,7 @@ func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -550,7 +556,7 @@ UPDATE messages SET
     data = $4,
     flow_sources = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder
 `
 
 type UpdateMessageParams struct {
@@ -583,6 +589,7 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Folder,
 	)
 	return i, err
 }
@@ -630,4 +637,48 @@ func (q *Queries) UpdateMessageInstance(ctx context.Context, arg UpdateMessageIn
 		&i.LastUsedAt,
 	)
 	return i, err
+}
+
+const updateMessagesFolder = `-- name: UpdateMessagesFolder :many
+UPDATE messages SET folder = $1
+WHERE app_id = $2 AND id = ANY($3::text[]) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder
+`
+
+type UpdateMessagesFolderParams struct {
+	Folder pgtype.Text
+	AppID  string
+	Ids    []string
+}
+
+// Doesn't change updated_at, the folder is only how the dashboard lists them.
+func (q *Queries) UpdateMessagesFolder(ctx context.Context, arg UpdateMessagesFolderParams) ([]Message, error) {
+	rows, err := q.db.Query(ctx, updateMessagesFolder, arg.Folder, arg.AppID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Data,
+			&i.FlowSources,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Folder,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

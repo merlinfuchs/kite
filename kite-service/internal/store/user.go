@@ -26,4 +26,15 @@ type UserStore interface {
 	// if they aren't banned from it. Lifting a ban from Kite starts the apps
 	// it stopped again.
 	UnbanUser(ctx context.Context, userID string, feature model.UserBanFeature) error
+	// UserBadgeGrants returns all badges admins gave, newest first, with their
+	// user.
+	UserBadgeGrants(ctx context.Context) ([]*model.UserBadgeGrant, error)
+	// UserBadgeGrantsByUserIDs returns the badges admins gave the users.
+	UserBadgeGrantsByUserIDs(ctx context.Context, userIDs []string) ([]*model.UserBadgeGrant, error)
+	// GrantUserBadge gives the user the badge, which does nothing if they have
+	// it already.
+	GrantUserBadge(ctx context.Context, grant *model.UserBadgeGrant) error
+	// RevokeUserBadge takes the badge away again. It returns ErrNotFound if
+	// the user doesn't have it.
+	RevokeUserBadge(ctx context.Context, userID string, kind model.UserBadgeKind) error
 }

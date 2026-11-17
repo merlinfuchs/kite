@@ -14,15 +14,30 @@ import (
 type FlowCompiler struct{}
 
 func CompileCommand(data FlowData) (*CompiledFlowNode, error) {
-	return compile(data, FlowNodeTypeEntryCommand)
+	entry, err := compile(data, FlowNodeTypeEntryCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	switch entry.Data.CommandType {
+	case "", CommandTypeChatInput, CommandTypeUser, CommandTypeMessage:
+		return entry, nil
+	default:
+		return nil, fmt.Errorf("unknown command type %q", entry.Data.CommandType)
+	}
 }
 
 // CheckCommandArguments reports problems with the arguments of a command that
 // Discord rejects. Saving checks it, not compiling, so commands saved before
 // keep running.
 func (n *CompiledFlowNode) CheckCommandArguments() error {
+	nodes := n.commandArgumentNodes()
+	if n.CommandType() != discord.ChatInputCommand && len(nodes) > 0 {
+		return fmt.Errorf("only slash commands can have arguments")
+	}
+
 	names := make(map[string]bool)
-	for _, node := range n.commandArgumentNodes() {
+	for _, node := range nodes {
 		if names[node.Data.Name] {
 			return fmt.Errorf("more than one argument is named %s", node.Data.Name)
 		}
@@ -281,11 +296,16 @@ func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
+		Type:                     n.CommandType(),
 		Name:                     n.CommandName(),
 		Options:                  n.CommandArguments(),
 		Description:              n.CommandDescription(),
 		DefaultMemberPermissions: n.CommandPermissions(),
 		Contexts:                 n.CommandContexts(),
+	}
+
+	if res.Type != discord.ChatInputCommand {
+		return res
 	}
 
 	namesParts := strings.Split(n.Data.Name, " ")
@@ -332,14 +352,22 @@ func (n *CompiledFlowNode) CommandName() string {
 	return n.Data.Name
 }
 
+// CommandType is the type of the command in Discord.
+func (n *CompiledFlowNode) CommandType() discord.CommandType {
+	return n.Data.CommandType.Discord()
+}
+
 func (n *CompiledFlowNode) CommandDescription() string {
-	if !n.IsCommandEntry() {
+	if !n.IsCommandEntry() || n.CommandType() != discord.ChatInputCommand {
 		return ""
 	}
 	return n.Data.Description
 }
 
 func (n *CompiledFlowNode) CommandArguments() discord.CommandOptions {
+	if n.CommandType() != discord.ChatInputCommand {
+		return nil
+	}
 	res := make(discord.CommandOptions, 0)
 	for _, node := range n.commandArgumentNodes() {
 		var o discord.CommandOption

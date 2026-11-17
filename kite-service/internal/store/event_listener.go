@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type EventListenerStore interface {
 	EventListenersByApp(ctx context.Context, appID string) ([]*model.EventListener, error)
-	CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (int, error)
+	CountEventListenersByAppAndSource(ctx context.Context, appID string, source model.EventSource) (ItemCounts, error)
 	UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error
 	EventListener(ctx context.Context, id string) (*model.EventListener, error)
 	CreateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)
@@ -17,6 +18,8 @@ type EventListenerStore interface {
 	// UpdateEventListenerEnabled changes, so neither reverts the other.
 	UpdateEventListener(ctx context.Context, eventListener *model.EventListener, change ItemChange) (*model.EventListener, error)
 	UpdateEventListenerEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.EventListener, error)
+	// UpdateEventListenersFolder is UpdateCommandsFolder for event listeners.
+	UpdateEventListenersFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.EventListener, error)
 	// UpdateEventListenerWebhookSecret replaces the secret of a webhook
 	// listener, which invalidates its previous webhook URL.
 	UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error)

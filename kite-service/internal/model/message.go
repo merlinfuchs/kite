@@ -17,11 +17,13 @@ type Message struct {
 	Description     null.String
 	AppID           string
 	BundleInstallID null.String
-	CreatorUserID   string
-	Data            message.MessageData
-	FlowSources     map[string]flow.FlowData
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// Folder is the folder the dashboard lists it under, null for none.
+	Folder        null.String
+	CreatorUserID string
+	Data          message.MessageData
+	FlowSources   map[string]flow.FlowData
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 	// ContentVersion identifies the saved content, see
 	// store.ItemChange.BaseVersion. The store sets it.
 	ContentVersion string

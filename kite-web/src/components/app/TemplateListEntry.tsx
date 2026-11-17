@@ -1,6 +1,7 @@
 import logo from "@/assets/logo/orange@1024.png";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
+import { StaffPickIcon } from "../badges/Badges";
 import { Card } from "@/components/ui/card";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // TemplateListEntry links to the page of the template, or calls onClick
 // instead, like to show it in a dialog.
@@ -105,7 +107,7 @@ function TemplateEntryHead({
     <div className="flex items-center gap-3 min-w-0">
       <div
         className={cn(
-          "h-10 w-10 flex-none rounded-lg flex items-center justify-center",
+          "relative h-10 w-10 flex-none rounded-lg flex items-center justify-center",
           category.tile
         )}
       >
@@ -113,6 +115,12 @@ function TemplateEntryHead({
           name={template.icon}
           className={cn("h-5 w-5", category.icon)}
         />
+        {/* On the corner of the icon, so it doesn't take room from the name. */}
+        {template.staffPick && (
+          <div className="absolute -right-1.5 -bottom-1.5 rounded-full bg-card p-0.5">
+            <StaffPickIcon className="h-4 w-4" />
+          </div>
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className="font-semibold truncate">{template.name}</div>
@@ -166,7 +174,7 @@ function TemplateEntryLine({ template }: { template: Template }) {
     content = (
       <>
         <span className="font-mono text-foreground truncate flex-none max-w-[60%]">
-          /{command.name}
+          {commandLabel(command.name, command.flowSource)}
         </span>
         <span className="text-xs text-muted-foreground truncate">
           {command.description}

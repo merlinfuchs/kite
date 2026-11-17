@@ -52,7 +52,7 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
           .record(z.string(), z.unknown())
           .optional()
           .describe(
-            'The arguments of a command by name, like {"user": "123", "amount": 5}. IDs as strings, attachments as the URL of a file.'
+            'The arguments of a command by name, like {"user": "123", "amount": 5}. IDs as strings, attachments as the URL of a file. User and Message commands only take {"target": "<ID>"}, the user or message in the channel they\'re used on. By default that\'s the user who runs it, or a message from them that only exists in the test.'
           ),
         values: z
           .array(z.string())

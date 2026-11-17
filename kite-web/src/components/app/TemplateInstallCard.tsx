@@ -44,6 +44,7 @@ import {
   useTemplateGuild,
 } from "./TemplateParameterFields";
 import { PlanLimitNotice, useExceededLimit } from "./PlanLimit";
+import { commandLabel } from "@/lib/flow/commandTypes";
 
 // useCommandNames are the names of the app's commands. An added command with
 // one of them gets a number.
@@ -352,7 +353,7 @@ export function TemplateInstallCard({
                 : undefined
             }
           >
-            /{command.name}
+            {commandLabel(command.name, command.flowSource)}
           </ItemRow>
         ))}
         {template.eventListeners.map((listener) => (

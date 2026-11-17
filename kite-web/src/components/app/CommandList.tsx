@@ -11,11 +11,23 @@ import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
+import {
+  FolderActions,
+  FolderItemsProvider,
+  useItemGroupOf,
+} from "./ItemFolders";
+import { useAppId } from "@/lib/hooks/params";
 import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
+import { commandTypeOf } from "@/lib/flow/commandTypes";
 
 export default function CommandList() {
   const commands = useCommands();
-  const limit = usePlanLimit("max_commands", commands?.length);
+  const appId = useAppId();
+  const groupOf = useItemGroupOf();
+  const limit = usePlanLimit(
+    "max_commands",
+    commands?.filter((c) => c?.enabled).length
+  );
 
   const commandActions = (
     <PlanLimitGate limit={limit} noun="commands" from="commands">
@@ -48,30 +60,44 @@ export default function CommandList() {
               footer={<AppEmptyTemplatesLink />}
             />
           ) : (
-            <SearchableList
-              items={commands}
-              // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
-              fields={(command) => [
-                "/" + command.name.split(" ").join(" /"),
-                command.description,
-              ]}
-              renderItem={(command) => (
-                <CommandListEntry command={command} key={command.id} />
-              )}
-              placeholder="Search commands"
-              actions={commandActions}
-              // The deploy status and the limit read as one group.
-              status={
-                <div className="space-y-2">
-                  <CommandDeployStatus />
-                  <PlanLimitCount
+            <FolderItemsProvider kind="commands" items={commands}>
+              <SearchableList
+                items={commands}
+                // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
+                // User and Message commands are found by their name.
+                fields={(command) => [
+                  commandTypeOf(command.flow_source) === "chat_input"
+                    ? "/" + command.name.split(" ").join(" /")
+                    : command.name,
+                  command.description,
+                ]}
+                renderItem={(command) => (
+                  <CommandListEntry
+                    command={command}
                     limit={limit}
-                    noun="commands"
-                    from="commands"
+                    key={command.id}
                   />
-                </div>
-              }
-            />
+                )}
+                placeholder="Search commands"
+                actions={commandActions}
+                // The deploy status and the limit read as one group.
+                status={
+                  <div className="space-y-2">
+                    <CommandDeployStatus />
+                    <PlanLimitCount
+                      limit={limit}
+                      noun="commands"
+                      from="commands"
+                    />
+                  </div>
+                }
+                groups={{
+                  list: `${appId}:commands`,
+                  of: groupOf,
+                  actions: (group) => <FolderActions group={group} />,
+                }}
+              />
+            </FolderItemsProvider>
           )}
         </>
       )}

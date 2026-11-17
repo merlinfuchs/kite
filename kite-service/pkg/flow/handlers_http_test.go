@@ -12,12 +12,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func runHTTPRequestBlock(t *testing.T, data HTTPRequestData, p *codeHTTPProvider) (*FlowContext, error) {
+func runHTTPRequestBlock(t *testing.T, data HTTPRequestData, p *codeHTTPProvider, env ...eval.Env) (*FlowContext, error) {
+	if len(env) == 0 {
+		env = append(env, eval.Env{"user": map[string]any{"id": "42"}})
+	}
 	c := javaScriptTestContext(t, FlowProviders{
 		HTTP:   p,
 		Secret: &secretTestProvider{values: map[string]string{"TOKEN": "s3cret-t0ken"}},
 		Log:    &provider.MockLogProvider{},
-	}, 1000, eval.Env{"user": map[string]any{"id": "42"}})
+	}, 1000, env[0])
 	return c, httpNode(data).Execute(c)
 }
 
@@ -46,6 +49,32 @@ func TestHTTPRequestBlock(t *testing.T) {
 	assert.JSONEq(t, `{"found":false}`, string(res.Body))
 	// Blocks are charged when they start, not per request like code.
 	assert.Equal(t, 3, c.CreditsUsed())
+}
+
+// Placeholders in the JSON body can't break it, and stay text like they were
+// when the whole body was one template.
+func TestHTTPRequestBlockJSONBody(t *testing.T) {
+	p := &codeHTTPProvider{status: 200}
+	_, err := runHTTPRequestBlock(t, HTTPRequestData{
+		URL:    "https://api.example.com",
+		Method: "POST",
+		BodyJSON: json.RawMessage(`{
+			"content": "Hi {{user.name}}!",
+			"count": "{{user.count}}",
+			"missing": "{{user.missing}}",
+			"{{user.id}}": [" {{user.id}} ", 1234567890123456789],
+			"token": "{{secrets.TOKEN}}"
+		}`),
+	}, p, eval.Env{"user": map[string]any{"id": "42", "name": "Jack \"the dev\" \\o/\nhi", "count": 3}})
+	require.NoError(t, err)
+
+	assert.JSONEq(t, `{
+		"content": "Hi Jack \"the dev\" \\o/\nhi!",
+		"count": "3",
+		"missing": "",
+		"42": [" 42 ", 1234567890123456789],
+		"token": "s3cret-t0ken"
+	}`, p.reqBody)
 }
 
 func TestHTTPRequestBlockRejectsOtherSchemes(t *testing.T) {
