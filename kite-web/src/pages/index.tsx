@@ -10,26 +10,66 @@ import HomePricingSection from "@/components/home/HomePricingSection";
 import HomeProfileSection from "@/components/home/HomeProfileSection";
 import HomeSectionDivider from "@/components/home/HomeSectionDivider";
 import HomeStatsSection from "@/components/home/HomeStatsSection";
+import HomeTemplatesSection from "@/components/home/HomeTemplatesSection";
 import HomeUseCasesSection from "@/components/home/HomeUseCasesSection";
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
 import {
+  fetchBundles,
   fetchPlans,
   fetchStats,
   Plans,
   Stats,
   withApiData,
 } from "@/lib/apiData";
+import {
+  featuredTemplates,
+  templateFromBundle,
+  utcDay,
+} from "@/lib/flow/templates";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
+import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
 import { GetStaticProps } from "next";
 import { useEffect } from "react";
 
-type Props = { stats: Stats; plans: Plans };
-
-export const getStaticProps: GetStaticProps<Props> = async () => {
-  const [stats, plans] = await Promise.all([fetchStats(), fetchPlans()]);
-  return withApiData({ stats, plans });
+type Props = {
+  stats: Stats;
+  plans: Plans;
+  // The templates shown in the templates section, null without the API.
+  featuredBundles: Bundle[] | null;
+  templateCount: number;
+  templateIconSvgs: TemplateIconSvgs;
 };
 
-export default function Home({ stats, plans }: Props) {
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [stats, plans, bundles] = await Promise.all([
+    fetchStats(),
+    fetchPlans(),
+    fetchBundles(),
+  ]);
+
+  // Only the bundles of the shown templates go in the page's data.
+  const templates = (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []);
+  const ids = new Set(featuredTemplates(templates, utcDay()).map((t) => t.id));
+  const featuredBundles = bundles ? bundles.filter((b) => ids.has(b.id)) : null;
+
+  return withApiData({
+    stats,
+    plans,
+    featuredBundles,
+    templateCount: templates.length,
+    templateIconSvgs: templateIconSvgs(
+      (featuredBundles ?? []).map((b) => b.listing?.icon)
+    ),
+  });
+};
+
+export default function Home({
+  stats,
+  plans,
+  featuredBundles,
+  templateCount,
+}: Props) {
   useEffect(() => {
     if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) {
       return;
@@ -55,6 +95,7 @@ export default function Home({ stats, plans }: Props) {
       <HomeStatsSection initial={stats} />
 
       <HomeUseCasesSection />
+      <HomeTemplatesSection bundles={featuredBundles} total={templateCount} />
       <HomeSectionDivider
         from="background"
         to="muted"
