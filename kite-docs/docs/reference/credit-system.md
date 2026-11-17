@@ -26,9 +26,9 @@ Credits pay for what your flows do, not for what they look up. Most actions in f
   - Balanced: 20 credits per execution
   - Smartest: 100 credits per execution
 - **`Search the Web` block**:
-  - Fast (default): 25 credits per execution
-  - Balanced: 100 credits per execution
-  - Smartest: 500 credits per execution
+  - Fast (default): 250 credits per execution
+  - Balanced: 300 credits per execution
+  - Smartest: 600 credits per execution
 - **`Send API Request` block**: 3 credits per execution
 - **`AI Translate` block**: 1 credit for every 1,000 characters of text
 - **`Run JavaScript` block**: 10 credits per execution, plus 1 credit for each read from an integration other than Discord, 1 for each change or list of a stored variable, and 3 for each request with `fetch`
