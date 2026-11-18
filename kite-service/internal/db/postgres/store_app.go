@@ -200,6 +200,23 @@ func (c *Client) SharedAppIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetSharedAppIDs(ctx)
 }
 
+func (c *Client) EnabledSharedApps(ctx context.Context) ([]*model.App, error) {
+	rows, err := c.Q.GetEnabledSharedApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	apps := make([]*model.App, len(rows))
+	for i, row := range rows {
+		app, err := rowToApp(row)
+		if err != nil {
+			return nil, err
+		}
+		apps[i] = app
+	}
+	return apps, nil
+}
+
 func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetEnabledAppIDs(ctx)
 }

@@ -87,6 +87,9 @@ DELETE FROM apps WHERE id = $1;
 -- name: GetSharedAppIDs :many
 SELECT id FROM apps WHERE bot_type = 'shared';
 
+-- name: GetEnabledSharedApps :many
+SELECT * FROM apps WHERE bot_type = 'shared' AND enabled;
+
 -- name: GetEnabledAppIDs :many
 SELECT id FROM apps WHERE enabled = TRUE;
 
@@ -249,11 +252,9 @@ UPDATE apps SET
 WHERE id = sqlc.arg(id);
 
 -- Newest changes first, so a user waiting for one isn't stuck behind a backlog.
--- Shared apps have no Discord application of their own to deploy to, and stay
--- queued.
 -- name: GetAppIDsWithDueCommandsDeploy :many
 SELECT id FROM apps
-WHERE enabled AND bot_type = 'own' AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
 ORDER BY commands_deploy_at DESC
 LIMIT $1;
 

@@ -167,6 +167,14 @@ func TestPopulateSkipsSharedApps(t *testing.T) {
 	if !e.runsApp("own") {
 		t.Error("engine doesn't run an own app in its cluster")
 	}
+
+	e.env.Config.SharedApps = true
+	if !e.runsApp("shared") {
+		t.Error("shared process doesn't run a shared app")
+	}
+	if e.runsApp("own") {
+		t.Error("shared process runs an own app")
+	}
 }
 
 // Without the shared apps, the engine could load their entities, so it

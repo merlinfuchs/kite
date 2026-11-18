@@ -495,6 +495,7 @@ func (s *APIServer) RegisterRoutes(
 		variablesHandler,
 		s.config.UserLimits.MaxBundlesPerUser,
 		notifier,
+		appStateManager,
 	)
 
 	// Tokens can add templates and update them, but not remove them or change

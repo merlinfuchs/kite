@@ -88,6 +88,13 @@ func (h *BundleInstallHandler) HandleBundleInstallParametersUpdate(c *handler.Co
 		}
 	}
 
+	err = h.checkSharedParameters(c, req.Parameters, func(key string) (flow.FlowParameterType, string) {
+		return defs[key].Type, defs[key].DisplayLabel()
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	params := make(map[string]string, len(install.Parameters)+len(req.Parameters))
 	maps.Copy(params, install.Parameters)
 	maps.Copy(params, req.Parameters)

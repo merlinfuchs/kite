@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: proposed 2026-11-18, nothing built. The name is a placeholder.
+Status: steps 1 to 3 of the order of work built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -93,9 +93,19 @@ Every Discord call of a Lite app, from the engine or the API, must target the ap
 
 Curated modules don't make the check optional. Modules take channels and roles as parameters, and a user can paste the ID of a channel in another server into a parameter. The Kite bot would then post into that server. Parameters are checked when they are saved, and every call is checked when it runs.
 
-The check has two parts. Typed methods of `DiscordProvider` check their target channel, role, message or member against the app's server, with the channel's server from the cache. Raw API calls use `policy.target` in `operations.json`, which every operation declares already and nothing checks yet. On the Kite bot, both start as an allowlist of the methods and operations Lite modules use, and the rest fail. DMs aren't allowed.
+The check is in `internal/core/sharedbot`, below the engine and the API, so blocks, code, the Discord API Request block and the MCP Discord API go through it without knowing about it. Each Lite app gets its own view of the Kite bot's session, which shares the bot's connection, cache and rate limits.
 
-Discord's global rate limit is 50 requests a second per bot token, shared by every Lite server. Each server gets its own request budget so that one busy server can't slow the others. A server whose calls keep failing with 403 or 404 is paused for a while. Its invalid requests count toward Discord's limit of 10,000 per 10 minutes, which is per IP and already shared with every Kite app on the host.
+The view has two parts. Its REST client checks the route of every request against an allowlist before it's sent. Routes under the app's server pass, and routes under a channel pass if the channel is in the server, looked up in the cache or asked from Discord once. A few global routes pass too, like reading users and the routes of interactions and webhook tokens. Everything else is refused with a 403 that never reaches Discord, including DMs and the Kite bot's own profile. Messages that reference a message in another server, like a forward, are refused by their body. Its cache only answers for the app's server, so reads of other servers miss and go to the REST client, which refuses them.
+
+Commands sent over the bot's gateway connection don't go through the view. The engine's `DiscordProvider` refuses status changes for Lite apps, and only joins voice channels of the app's server.
+
+This replaces checking each method of `DiscordProvider` and `policy.target` in `operations.json`, which would each need every new block or operation to remember the check. Sticker and emoji IDs of other servers in a message aren't checked yet.
+
+Template settings with a channel or role are checked against the server when they're saved.
+
+Discord's global rate limit is 50 requests a second per bot token, shared by every Lite server. Each server should get its own request budget so that one busy server can't slow the others, which isn't built yet. Once Discord refuses 200 requests of one app within 10 minutes with a 401, 403 or 429, its requests are refused without sending them for 10 minutes. Refused requests count toward Discord's limit of 10,000 per 10 minutes, which is per IP and already shared with every Kite app on the host.
+
+Own-bot apps count how often their requests name a channel that isn't in the cache, in `shared_bot_shadow_total`. That's how often a Lite app would ask Discord for a channel's server.
 
 ## Adding the bot from Kite
 
@@ -152,11 +162,11 @@ Lite doesn't wait for the answer. Modules that need an intent appear once it's g
 
 ## Order of work
 
-Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
+Steps 1 to 3 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
 
 1. Data model. The migration for `bot_type` and `discord_guild_id`, nullable `discord_token` and `discord_id`, and every place that reads them handling shared apps. The gateway manager, the engine and command deploys skip shared apps. Nothing creates one yet.
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.
-3. Scoping. The checks in `DiscordProvider` and on `policy.target`, the allowlist, parameter checks on save, and pausing servers whose calls keep failing. On own-bot apps the checks run in log-only mode for a week. Own bots may act across their servers, so a logged call isn't a bug, but the log shows whether the lookups of a channel's server work on real traffic. No Lite app is created outside our test servers before this is merged.
+3. Scoping. The view of the session for each Lite app, the check of settings on save, and pausing apps whose requests Discord keeps refusing. Own-bot apps count how often a channel isn't in the cache. No Lite app is created outside our test servers before this is merged.
 4. Modules. The `lite` flag in the template format, the test that Lite templates only use allowed blocks, and the flag on the launch modules.
 5. Installing. The install page with prefill, the bot authorization and callback, posting `send_to` messages from the server, and Lite apps disabled and restored when the bot leaves and comes back. The Kite bot's Add App button points to the page.
 6. The Lite app page in the dashboard. It's a reduced view of the app page with modules, settings, logs and the upgrade card, whose button can still be disabled at this point.

@@ -36,6 +36,7 @@ type BundleInstallHandler struct {
 	variableHandler      *variablehandler.VariableHandler
 	maxBundlesPerUser    int
 	notifier             *notify.Notifier
+	appStateManager      store.AppStateManager
 }
 
 func NewBundleInstallHandler(
@@ -52,6 +53,7 @@ func NewBundleInstallHandler(
 	variableHandler *variablehandler.VariableHandler,
 	maxBundlesPerUser int,
 	notifier *notify.Notifier,
+	appStateManager store.AppStateManager,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -67,6 +69,7 @@ func NewBundleInstallHandler(
 		variableHandler:      variableHandler,
 		maxBundlesPerUser:    maxBundlesPerUser,
 		notifier:             notifier,
+		appStateManager:      appStateManager,
 	}
 }
 
@@ -164,6 +167,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	sel, err := selectItems(b, req.Items, params, "invalid_bundle_install")
 	if err != nil {
+		return nil, err
+	}
+	if err := h.checkSharedParameters(c, req.Parameters, bundleParameterOf(b)); err != nil {
 		return nil, err
 	}
 	if err := sel.Customize(req.Messages); err != nil {
@@ -436,6 +442,10 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		}
 		itemIndex[item.Key] = i
 		keys = append(keys, item.Key)
+	}
+
+	if err := h.checkSharedParameters(c, req.Parameters, bundleParameterOf(b)); err != nil {
+		return nil, err
 	}
 
 	sel, err := selectItems(b, keys, params, "invalid_bundle_install")

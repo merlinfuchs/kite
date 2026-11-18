@@ -26,9 +26,15 @@ type Config struct {
 	// Kite's own registration at the services of integrations, by
 	// integration ID, like [integrations.erlc].
 	Integrations map[string]IntegrationConfig `toml:"integrations"`
+	// SharedBot is the Kite bot, which shared apps run on. See
+	// design/kite-lite.md.
+	SharedBot SharedBotConfig `toml:"shared_bot"`
 
 	ClusterCount int `toml:"cluster_count"`
 	ClusterIndex int `toml:"cluster_index"`
+	// RunSharedBot is set in the process of the Kite bot, which runs the
+	// shared apps instead of a cluster's share of the others.
+	RunSharedBot bool `toml:"-"`
 }
 
 func (cfg *Config) Validate() error {
@@ -89,6 +95,12 @@ type AppConfig struct {
 
 type EncryptionConfig struct {
 	TokenEncryptionKey string `toml:"token_encryption_key" validate:"required"`
+}
+
+type SharedBotConfig struct {
+	// Token is the Kite bot's token, from the environment like other secrets.
+	// Without it, shared apps don't run.
+	Token string `toml:"token"`
 }
 
 type DiscordConfig struct {

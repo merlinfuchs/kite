@@ -104,8 +104,11 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		cooldownProvider = s.CooldownProvider
 	}
 
+	discordProvider := NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice)
+	discordProvider.shared = s.Config.SharedApps
+
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice),
+		Discord: discordProvider,
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,
