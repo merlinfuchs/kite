@@ -215,7 +215,8 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 
 	filteredApps := make([]*model.App, 0, len(apps))
 	for _, app := range apps {
-		if util.CluserForKey(app.ID, m.config.ClusterCount) != m.config.ClusterIndex {
+		// Shared apps have no bot of their own, the shared process runs them.
+		if app.IsShared() || util.CluserForKey(app.ID, m.config.ClusterCount) != m.config.ClusterIndex {
 			continue
 		}
 		filteredApps = append(filteredApps, app)

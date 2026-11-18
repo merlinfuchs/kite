@@ -31,8 +31,8 @@ type App struct {
 	Enabled                 bool
 	OwnerUserID             string
 	CreatorUserID           string
-	DiscordToken            string
-	DiscordID               string
+	DiscordToken            pgtype.Text
+	DiscordID               pgtype.Text
 	CreatedAt               pgtype.Timestamp
 	UpdatedAt               pgtype.Timestamp
 	DiscordStatus           []byte
@@ -46,6 +46,8 @@ type App struct {
 	DiscordVerifyKey        pgtype.Text
 	CreditsPausedAt         pgtype.Timestamp
 	CreditNoticesEnabled    bool
+	BotType                 string
+	DiscordGuildID          pgtype.Text
 }
 
 type AppIntegration struct {
