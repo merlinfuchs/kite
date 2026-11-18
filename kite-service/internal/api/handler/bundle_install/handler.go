@@ -738,6 +738,11 @@ func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bu
 	if err != nil {
 		return nil, err
 	}
+	// Only official bundles can say they run on the Kite bot, users' content
+	// could say anything.
+	if c.App.IsShared() && (b.OwnerUserID.Valid || !content.SharedBot) {
+		return nil, handler.ErrBadRequest("needs_own_bot", "This template needs a bot of its own, so it can't be added to an app on the Kite bot.")
+	}
 	content.Name = b.Name
 	content.Description = b.Description
 	return content, nil

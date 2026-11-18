@@ -25,6 +25,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -1978,6 +1979,7 @@
       "In your server settings, put your bot's role above the verified role, so it can give the role.",
       "Hide your channels from @everyone and show them to the verified role instead."
     ],
+    "shared_bot": true,
     "parameters": [
       {
         "key": "channel_id",
@@ -2153,6 +2155,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [
       {
         "key": "channel_id",
@@ -2802,6 +2805,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [
       {
         "key": "level_up_channel",
@@ -4350,6 +4354,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -6844,6 +6849,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -7851,6 +7857,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [
       {
         "key": "sticky_channel",

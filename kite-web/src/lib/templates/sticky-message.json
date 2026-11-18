@@ -1,6 +1,7 @@
 {
   "id": "sticky-message",
   "version": 1,
+  "shared_bot": true,
   "name": "Sticky Message",
   "description": "Keeps a message at the bottom of a channel by posting it again when the channel goes quiet.",
   "about": [

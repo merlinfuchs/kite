@@ -1,6 +1,7 @@
 {
   "id": "giveaway",
   "version": 2,
+  "shared_bot": true,
   "changelog": [
     {
       "version": 2,

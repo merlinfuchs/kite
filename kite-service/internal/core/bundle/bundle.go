@@ -32,6 +32,9 @@ type Bundle struct {
 	EventListeners []EventListener `json:"event_listeners"`
 	Messages       []Message       `json:"messages"`
 	Variables      []Variable      `json:"variables"`
+	// SharedBot is set on official bundles that apps on the Kite bot can add.
+	// They only use what the Kite bot can run, which a test checks.
+	SharedBot bool `json:"shared_bot,omitempty"`
 }
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
