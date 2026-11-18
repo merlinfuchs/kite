@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -155,6 +156,18 @@ func (m *AccessManager) PluginInstanceAccess(next handler.HandlerFunc) handler.H
 		}
 
 		c.PluginInstance = pluginInstance
+		return next(c)
+	}
+}
+
+// CustomBotOnly refuses changes to apps on the Kite bot, which only run the
+// official templates they add. Reading stays allowed. See
+// design/kite-lite.md.
+func (m *AccessManager) CustomBotOnly(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		if c.App != nil && c.App.IsShared() && c.Method() != http.MethodGet {
+			return handler.ErrForbidden("needs_custom_bot", "Apps on the Kite bot only run templates. Create an app with a custom bot to build your own.")
+		}
 		return next(c)
 	}
 }

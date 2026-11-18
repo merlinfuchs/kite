@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: steps 1 to 5 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
+Status: steps 1 to 6 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -166,14 +166,14 @@ Lite doesn't wait for the answer. Modules that need an intent appear once it's g
 
 ## Order of work
 
-Steps 1 to 5 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
+Steps 1 to 6 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
 
 1. Data model. The migration for `bot_type` and `discord_guild_id`, nullable `discord_token` and `discord_id`, and every place that reads them handling shared apps. The gateway manager, the engine and command deploys skip shared apps. Nothing creates one yet.
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.
 3. Scoping. The view of the session for each Lite app, the check of settings on save, and pausing apps whose requests Discord keeps refusing. Own-bot apps count how often a channel isn't in the cache. No Lite app is created outside our test servers before this is merged.
 4. Modules. The `shared_bot` flag in the template format, the test that marked templates only use allowed blocks, and the flag on the launch modules.
 5. Adding the bot. The link that logs in and adds the Kite bot at once, the app for the server on the callback, stopping and starting apps when the bot leaves and comes back, and the setup page in the dashboard.
-6. The Lite app page in the dashboard. It's a reduced view of the app page with modules, settings, logs and the upgrade card, whose button can still be disabled at this point.
+6. The Lite app page in the dashboard. The API refuses every change to commands, event listeners, message templates, Flow AI, secrets, integrations and plugins of Lite apps, so the API and MCP can't build anything on the Kite bot. The dashboard shows templates, stored variables, logs, settings and the plan, without the editor, invite links, bot profile and token. Deleting a Lite app removes its commands from the server. There's no upgrade card yet, as it would promise step 9.
 7. Plus on Lite. Server profiles for Lite apps on Plus, checkout from a Lite app, the line on the pricing page, and the credit warnings reaching Lite owners.
 8. Launch with Xenon. Xenon links to the install page after a template install. We watch the first servers, the logs and the cost before Xenon shows it to everyone.
 9. Upgrading. Until this is done, a Lite server that wants the editor creates a new app.

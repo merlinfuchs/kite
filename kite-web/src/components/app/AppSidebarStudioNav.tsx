@@ -16,7 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useBundleInstalls } from "@/lib/hooks/api";
+import { useBundleInstalls, useSharedBot } from "@/lib/hooks/api";
 import { hasUpdate } from "@/lib/flow/bundleInstalls";
 import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
@@ -42,8 +42,31 @@ export default function AppSidebarStudioNav() {
   // What the bot does, and what its flows use.
   const updates =
     useBundleInstalls()?.filter((i) => i && hasUpdate(i)).length ?? 0;
+  // Apps on the Kite bot only add templates, they have nothing to build.
+  const sharedBot = useSharedBot();
 
   const sections = useMemo(() => {
+    if (sharedBot) {
+      return [
+        {
+          label: "Library",
+          items: [
+            {
+              name: "Templates",
+              url: "/apps/[appId]/setup",
+              icon: StoreIcon,
+              badge: updates || undefined,
+            },
+            {
+              name: "Stored variables",
+              url: "/apps/[appId]/variables",
+              icon: VariableIcon,
+            },
+          ],
+        },
+      ];
+    }
+
     return [
       {
         label: "Studio",
@@ -103,7 +126,7 @@ export default function AppSidebarStudioNav() {
         ],
       },
     ];
-  }, [updates]);
+  }, [updates, sharedBot]);
 
   return (
     <>

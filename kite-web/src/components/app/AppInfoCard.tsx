@@ -9,7 +9,9 @@ import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
 import {
   useApp,
   useAppPlan,
+  useAppStateGuilds,
   useResponseData,
+  useSharedBot,
   useUsageCredits,
 } from "@/lib/hooks/api";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -23,6 +25,8 @@ import AppInviteButton from "./AppInviteButton";
 export default function AppInfoCard() {
   const app = useApp();
   const plan = useAppPlan();
+  const sharedBot = useSharedBot();
+  const guild = useAppStateGuilds()?.[0];
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
 
@@ -54,7 +58,7 @@ export default function AppInfoCard() {
           </CardDescription>
         </div>
         <div className="ml-auto flex items-center gap-1">
-          <AppInviteButton />
+          {!sharedBot && <AppInviteButton />}
         </div>
       </CardHeader>
       <CardContent className="p-6 text-sm">
@@ -75,10 +79,17 @@ export default function AppInfoCard() {
                 {ownerUser ? ownerUser.display_name : app?.owner_user_id}
               </span>
             </li>
-            <li className="flex items-center justify-between">
-              <span className="text-muted-foreground">Discord app ID</span>
-              <span>{app?.discord_id}</span>
-            </li>
+            {sharedBot ? (
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">Bot</span>
+                <span>Kite bot in {guild?.name ?? "your server"}</span>
+              </li>
+            ) : (
+              <li className="flex items-center justify-between">
+                <span className="text-muted-foreground">Discord app ID</span>
+                <span>{app?.discord_id}</span>
+              </li>
+            )}
             <li className="flex items-center justify-between">
               <span className="text-muted-foreground">App status</span>
               <span>
@@ -89,20 +100,26 @@ export default function AppInfoCard() {
                   : "Offline"}
               </span>
             </li>
-            <li
-              className="flex items-center justify-between"
-              title="Approximate count from Discord, updated daily"
-            >
-              <span className="text-muted-foreground">Servers</span>
-              <span>{formatInstallCount(app?.discord_guild_count)}</span>
-            </li>
-            <li
-              className="flex items-center justify-between"
-              title="Approximate count from Discord, updated daily"
-            >
-              <span className="text-muted-foreground">User installs</span>
-              <span>{formatInstallCount(app?.discord_user_install_count)}</span>
-            </li>
+            {!sharedBot && (
+              <>
+                <li
+                  className="flex items-center justify-between"
+                  title="Approximate count from Discord, updated daily"
+                >
+                  <span className="text-muted-foreground">Servers</span>
+                  <span>{formatInstallCount(app?.discord_guild_count)}</span>
+                </li>
+                <li
+                  className="flex items-center justify-between"
+                  title="Approximate count from Discord, updated daily"
+                >
+                  <span className="text-muted-foreground">User installs</span>
+                  <span>
+                    {formatInstallCount(app?.discord_user_install_count)}
+                  </span>
+                </li>
+              </>
+            )}
           </ul>
         </div>
         <Separator className="my-4" />

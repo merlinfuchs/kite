@@ -228,6 +228,7 @@ func (s *APIServer) RegisterRoutes(
 		userStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
+		appStateManager,
 	)
 
 	appsGroup := v1Group.Group("/apps",
@@ -315,7 +316,9 @@ func (s *APIServer) RegisterRoutes(
 	// Flow AI routes
 	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, bundleStore, bundleInstallStore, flowAssistant, s.config.AssistantMaxRepairs)
 
-	flowAIGroup := appGroup.Group("/flow-ai")
+	// Apps on the Kite bot only run templates, so they get none of the routes
+	// for building their own, see CustomBotOnly.
+	flowAIGroup := appGroup.Group("/flow-ai", accessManager.CustomBotOnly)
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
 	flowAIGroup.Post("/chat",
 		handler.TypedWithBody(flowAIHandler.HandleFlowAIChat),
@@ -338,7 +341,7 @@ func (s *APIServer) RegisterRoutes(
 	// Command routes
 	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
 
-	commandsGroup := appGroup.Group("/commands").AllowAPIToken()
+	commandsGroup := appGroup.Group("/commands", accessManager.CustomBotOnly).AllowAPIToken()
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
 	commandsGroup.Post("/", handler.TypedWithBody(commandsHandler.HandleCommandCreate))
 	commandsGroup.Post("/import", handler.TypedWithBody(commandsHandler.HandleCommandsImport))
@@ -351,7 +354,9 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
 	commandGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleCommandVersionList))
 	commandGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleCommandVersionGet))
-	commandsGroup.Post("/deploy",
+	// Outside the commands group, so apps on the Kite bot can send their
+	// commands again too.
+	appGroup.AllowAPIToken().Post("/commands/deploy",
 		handler.Typed(commandsHandler.HandleCommandsDeploy),
 		handler.RateLimitByUser(2, time.Minute),
 	)
@@ -359,7 +364,7 @@ func (s *APIServer) RegisterRoutes(
 	// Event listener routes
 	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
 
-	eventListenersGroup := appGroup.Group("/event-listeners").AllowAPIToken()
+	eventListenersGroup := appGroup.Group("/event-listeners", accessManager.CustomBotOnly).AllowAPIToken()
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
 	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
 	eventListenersGroup.Post("/import", handler.TypedWithBody(eventListenerHandler.HandleEventListenersImport))
@@ -389,7 +394,7 @@ func (s *APIServer) RegisterRoutes(
 	pluginsGroup := v1Group.Group("/plugins")
 	pluginsGroup.Get("/", handler.Typed(pluginHandler.HandlePluginList))
 
-	pluginInstancesGroup := appGroup.Group("/plugins")
+	pluginInstancesGroup := appGroup.Group("/plugins", accessManager.CustomBotOnly)
 	pluginInstancesGroup.Get("/", handler.Typed(pluginHandler.HandlePluginInstanceList))
 	pluginInstancesGroup.Post("/", handler.TypedWithBody(pluginHandler.HandlePluginInstanceCreate))
 
@@ -423,7 +428,7 @@ func (s *APIServer) RegisterRoutes(
 	// Secret routes
 	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
 
-	secretsGroup := appGroup.Group("/secrets")
+	secretsGroup := appGroup.Group("/secrets", accessManager.CustomBotOnly)
 	secretsGroup.AllowAPIToken().Get("/", handler.Typed(appSecretHandler.HandleAppSecretList))
 	secretsGroup.Post("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretCreate))
 
@@ -434,7 +439,7 @@ func (s *APIServer) RegisterRoutes(
 	// Integration routes
 	integrationHandler := integration.NewIntegrationHandler(appSecretStore, appIntegrationStore, tokenCrypt)
 
-	integrationsGroup := appGroup.Group("/integrations")
+	integrationsGroup := appGroup.Group("/integrations", accessManager.CustomBotOnly)
 	integrationsGroup.AllowAPIToken().Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
 
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
@@ -457,14 +462,15 @@ func (s *APIServer) RegisterRoutes(
 
 	messagesGroup := appGroup.Group("/messages").AllowAPIToken()
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
-	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
-	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport))
-	messagesGroup.Put("/folder", handler.TypedWithBody(messageHandler.HandleMessagesUpdateFolder))
+	// Posting the messages of templates stays allowed for apps on the Kite bot.
+	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate), accessManager.CustomBotOnly)
+	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport), accessManager.CustomBotOnly)
+	messagesGroup.Put("/folder", handler.TypedWithBody(messageHandler.HandleMessagesUpdateFolder), accessManager.CustomBotOnly)
 
 	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
-	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
-	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
+	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate), accessManager.CustomBotOnly)
+	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete), accessManager.CustomBotOnly)
 	messageGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleMessageVersionList))
 	messageGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleMessageVersionGet))
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
@@ -513,11 +519,11 @@ func (s *APIServer) RegisterRoutes(
 	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
 	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
 
-	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
-	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))
+	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport), accessManager.CustomBotOnly)
+	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport), accessManager.CustomBotOnly)
 
 	// Bundles are the user's, but made from the items of an app.
-	appBundlesGroup := appGroup.Group("/bundles", handler.RateLimitByUser(10, time.Minute))
+	appBundlesGroup := appGroup.Group("/bundles", handler.RateLimitByUser(10, time.Minute), accessManager.CustomBotOnly)
 	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
 
@@ -616,12 +622,13 @@ func (s *APIServer) RegisterRoutes(
 
 	commandGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleCommandTest), flowTestRateLimit)
 	eventListenerGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleEventListenerTest), flowTestRateLimit)
-	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit)
+	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit, accessManager.CustomBotOnly)
 
 	// Sends a request with the app's secrets, so it's only for the editor.
 	appGroup.Post("/test-http-request",
 		handler.TypedWithBody(flowTestHandler.HandleHTTPRequestTest),
 		handler.RateLimitByUser(10, time.Minute),
+		accessManager.CustomBotOnly,
 	)
 
 	// Discord API routes. The handler checks the discord scope, as the access

@@ -122,6 +122,12 @@ export function useApp(callback?: (res: APIResponse<AppGetResponse>) => void) {
   return useResponseData(query, callback);
 }
 
+// useSharedBot is whether the app runs on the Kite bot, which only runs the
+// official templates it adds, instead of a custom bot.
+export function useSharedBot() {
+  return useApp()?.bot_type === "shared";
+}
+
 export function useAppEntities(
   callback?: (res: APIResponse<AppEntityListResponse>) => void
 ) {

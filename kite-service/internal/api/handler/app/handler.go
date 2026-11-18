@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"log/slog"
 	"net/http"
 	"time"
@@ -21,6 +23,8 @@ type AppHandler struct {
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
+	// appStateManager reaches the Kite bot for apps on it.
+	appStateManager store.AppStateManager
 }
 
 func NewAppHandler(
@@ -28,12 +32,15 @@ func NewAppHandler(
 	userStore store.UserStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
+	appStateManager store.AppStateManager,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
+
+		appStateManager: appStateManager,
 	}
 }
 
@@ -310,11 +317,45 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
 	}
 
+	if c.App.IsShared() {
+		h.removeSharedCommands(c)
+	}
+
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {
 		return nil, fmt.Errorf("failed to delete app: %w", err)
 	}
 
 	return &wire.AppDeleteResponse{}, nil
+}
+
+// removeSharedCommands removes the commands of an app on the Kite bot from its
+// server, where nothing would answer them anymore. The bot stays in the
+// server, adding it again sets up a new app. A failure doesn't stop the app
+// from being deleted.
+func (h *AppHandler) removeSharedCommands(c *handler.Context) {
+	err := func() error {
+		client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+		if err != nil {
+			return err
+		}
+		bot, err := client.CurrentApplication()
+		if err != nil {
+			return err
+		}
+		guildID, err := discord.ParseSnowflake(c.App.DiscordGuildID.String)
+		if err != nil {
+			return err
+		}
+		_, err = client.BulkOverwriteGuildCommands(bot.ID, discord.GuildID(guildID), []api.CreateCommandData{})
+		return err
+	}()
+	if err != nil {
+		slog.Error(
+			"Failed to remove the commands of a deleted app on the Kite bot",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiListResponse, error) {

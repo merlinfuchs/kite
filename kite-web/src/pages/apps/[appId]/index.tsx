@@ -5,7 +5,13 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import AppResourceCard from "@/components/app/AppResourceCard";
 import AppSetupChecklist from "@/components/app/AppSetupChecklist";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
-import { useApp, useAppEntities, useAppFeatures } from "@/lib/hooks/api";
+import {
+  useApp,
+  useAppEntities,
+  useAppFeatures,
+  useBundleInstalls,
+  useSharedBot,
+} from "@/lib/hooks/api";
 import { useMemo } from "react";
 
 export default function AppPage() {
@@ -13,6 +19,10 @@ export default function AppPage() {
 
   const entities = useAppEntities();
   const features = useAppFeatures();
+  // Apps on the Kite bot only add templates, so there's nothing to set up
+  // and no commands to manage.
+  const sharedBot = useSharedBot();
+  const installs = useBundleInstalls();
 
   const entityCounts = useMemo(() => {
     // Disabled commands don't count against the limit next to them.
@@ -25,40 +35,54 @@ export default function AppPage() {
 
   return (
     <AppLayout>
-      <AppSetupChecklist />
+      {!sharedBot && <AppSetupChecklist />}
       <main className="grid flex-1 items-start gap-4 sm:py-0 md:gap-8 lg:grid-cols-3">
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2 order-2 lg:order-1">
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-            <AppResourceCard
-              title="Commands"
-              count={entityCounts?.command || 0}
-              limit={features?.max_commands}
-              actionTitle="Manage commands"
-              actionHref={{
-                pathname: "/apps/[appId]/commands",
-                query: { appId: app?.id },
-              }}
-            />
-            <AppResourceCard
-              title="Event listeners"
-              count={entityCounts?.event_listener || 0}
-              actionTitle="Manage events"
-              actionHref={{
-                pathname: "/apps/[appId]/events",
-                query: { appId: app?.id },
-              }}
-            />
-            <AppResourceCard
-              title="Messages"
-              count={entityCounts?.message || 0}
-              limit={features?.max_messages}
-              actionTitle="Manage messages"
-              actionHref={{
-                pathname: "/apps/[appId]/messages",
-                query: { appId: app?.id },
-              }}
-            />
-          </div>
+          {sharedBot ? (
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+              <AppResourceCard
+                title="Templates"
+                count={installs?.length || 0}
+                actionTitle="Set up templates"
+                actionHref={{
+                  pathname: "/apps/[appId]/setup",
+                  query: { appId: app?.id },
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+              <AppResourceCard
+                title="Commands"
+                count={entityCounts?.command || 0}
+                limit={features?.max_commands}
+                actionTitle="Manage commands"
+                actionHref={{
+                  pathname: "/apps/[appId]/commands",
+                  query: { appId: app?.id },
+                }}
+              />
+              <AppResourceCard
+                title="Event listeners"
+                count={entityCounts?.event_listener || 0}
+                actionTitle="Manage events"
+                actionHref={{
+                  pathname: "/apps/[appId]/events",
+                  query: { appId: app?.id },
+                }}
+              />
+              <AppResourceCard
+                title="Messages"
+                count={entityCounts?.message || 0}
+                limit={features?.max_messages}
+                actionTitle="Manage messages"
+                actionHref={{
+                  pathname: "/apps/[appId]/messages",
+                  query: { appId: app?.id },
+                }}
+              />
+            </div>
+          )}
           <UsageCreditsByDayChart />
           <AppChartCards />
         </div>
