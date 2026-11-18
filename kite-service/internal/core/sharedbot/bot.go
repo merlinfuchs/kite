@@ -11,6 +11,21 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
+// Permissions are what the Kite bot asks for when it's added to a server,
+// what the templates that can run on it need.
+const Permissions = discord.PermissionViewChannel |
+	discord.PermissionSendMessages |
+	discord.PermissionEmbedLinks |
+	discord.PermissionAttachFiles |
+	discord.PermissionReadMessageHistory |
+	discord.PermissionAddReactions |
+	discord.PermissionUseExternalEmojis |
+	discord.PermissionManageMessages |
+	discord.PermissionManageRoles |
+	discord.PermissionKickMembers |
+	discord.PermissionBanMembers |
+	discord.PermissionModerateMembers
+
 // Bot is the Kite bot.
 type Bot struct {
 	token string

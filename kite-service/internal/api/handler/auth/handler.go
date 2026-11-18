@@ -26,9 +26,10 @@ type AuthHandler struct {
 	appStore       store.AppStore
 	sessionManager *session.SessionManager
 	oauth2Config   *oauth2.Config
+	kiteBot        KiteBotConfig
 }
 
-func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, appStore store.AppStore, sessionManager *session.SessionManager) *AuthHandler {
+func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, appStore store.AppStore, sessionManager *session.SessionManager, kiteBot KiteBotConfig) *AuthHandler {
 	conf := &oauth2.Config{
 		RedirectURL:  fmt.Sprintf("%s/v1/auth/login/callback", config.APIPublicBaseURL),
 		ClientID:     config.DiscordClientID,
@@ -43,6 +44,7 @@ func NewAuthHandler(config AuthHandlerConfig, userStore store.UserStore, appStor
 		appStore:       appStore,
 		sessionManager: sessionManager,
 		oauth2Config:   conf,
+		kiteBot:        kiteBot,
 	}
 }
 

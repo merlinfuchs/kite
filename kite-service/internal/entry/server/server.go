@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -235,19 +236,21 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
-		ClusterCount:        cfg.ClusterCount,
-		ClusterIndex:        cfg.ClusterIndex,
-		SecureCookies:       cfg.API.SecureCookies,
-		StrictCookies:       cfg.API.StrictCookies,
-		APIPublicBaseURL:    cfg.API.PublicBaseURL,
-		AppPublicBaseURL:    cfg.App.PublicBaseURL,
-		DiscordClientID:     cfg.Discord.ClientID,
-		DiscordClientSecret: cfg.Discord.ClientSecret,
-		DiscordBotToken:     cfg.Discord.BotToken,
-		UserLimits:          cfg.UserLimits,
-		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
-		AdminUserIDs:        cfg.App.AdminUserIDs,
-		HTTPClient:          httpClient,
+		ClusterCount:          cfg.ClusterCount,
+		ClusterIndex:          cfg.ClusterIndex,
+		SecureCookies:         cfg.API.SecureCookies,
+		StrictCookies:         cfg.API.StrictCookies,
+		APIPublicBaseURL:      cfg.API.PublicBaseURL,
+		AppPublicBaseURL:      cfg.App.PublicBaseURL,
+		DiscordClientID:       cfg.Discord.ClientID,
+		DiscordClientSecret:   cfg.Discord.ClientSecret,
+		DiscordBotToken:       cfg.Discord.BotToken,
+		UserLimits:            cfg.UserLimits,
+		AssistantMaxRepairs:   cfg.Assistant.MaxRepairs,
+		AdminUserIDs:          cfg.App.AdminUserIDs,
+		HTTPClient:            httpClient,
+		SharedBot:             sharedBot,
+		SharedBotClientSecret: cmp.Or(cfg.SharedBot.ClientSecret, cfg.Discord.ClientSecret),
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,

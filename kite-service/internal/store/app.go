@@ -8,6 +8,14 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+type SharedAppCreateOpts struct {
+	ID             string
+	Name           string
+	OwnerUserID    string
+	DiscordGuildID string
+	CreatedAt      time.Time
+}
+
 type AppUpdateOpts struct {
 	ID             string
 	Name           string
@@ -66,6 +74,14 @@ type AppStore interface {
 	SharedAppIDs(ctx context.Context) ([]string, error)
 	// EnabledSharedApps are the apps the Kite bot runs.
 	EnabledSharedApps(ctx context.Context) ([]*model.App, error)
+	// SharedAppByGuild is the app on the Kite bot of the server, enabled or
+	// not.
+	SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error)
+	// CreateSharedApp returns ErrAlreadyExists if the server has one.
+	CreateSharedApp(ctx context.Context, opts SharedAppCreateOpts) (*model.App, error)
+	// EnableSharedAppDisabledWithReason reports whether the server's app was
+	// stopped for the reason and is started now.
+	EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error)
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
 	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every

@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: steps 1 to 4 of the order of work built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
+Status: steps 1 to 4 and the service side of step 5 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -107,17 +107,21 @@ Discord's global rate limit is 50 requests a second per bot token, shared by eve
 
 Own-bot apps count how often their requests name a channel that isn't in the cache, in `shared_bot_shadow_total`. That's how often a Lite app would ask Discord for a channel's server.
 
-## Adding the bot from Kite
+## Adding the bot
 
-Servers that find Lite on Kite, or through the Add App button on the Kite bot's profile, set it up on an install page on kite.onl. Discord lets the Add App button use a custom URL, so every Lite server has an owner.
+Users see the two kinds of apps as the Kite bot and a custom bot. Lite is only the name in this doc and in code comments.
 
-The page logs the user in with Discord, like the dashboard. It shows the modules and their settings, and an add button. The button starts Discord's bot authorization with `guild_id` and `disable_guild_select=true`, so it can only add the bot to that server. It asks for the permissions the chosen modules need.
+One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/kite-bot`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link.
 
-On the callback, Kite reads the server ID from Discord's response and creates the Lite app, or reuses the server's existing one. It installs the modules and checks their parameters against the server's channels and roles. Then it posts the modules' `send_to` messages from the server, like the verification panel. Today the browser posts those after a template install. Lite posts them itself, so the install is one step.
+On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators. Losing Manage Server later doesn't remove them yet. The new app counts toward the 10 apps of its owner, and banned users can't create one.
 
-The page also takes the modules and their settings in the URL, like `kite.onl/lite/install?guild_id=…&modules=verification,suggestions&verification.role=…&source=xenon`. That's all Xenon needs before the API below exists. The prefill carries no secret, as the user confirms it and Kite checks it again. With a `return_url` on an allowlist, the user ends up back in Xenon.
+Then the user lands on the setup page of the app, `/apps/{id}/kite-bot`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
 
-When the bot is removed from a server, its Lite app is disabled and kept. Adding the bot again restores it.
+The Kite bot's application needs `https://api.kite.onl/v1/auth/kite-bot/callback` as a redirect in the Discord Developer Portal.
+
+When the bot is removed from a server, its app is stopped with a reason that says so and kept. Adding the bot again starts it. Servers that removed the bot while it was offline are caught when it connects. Servers that added it back while it was offline stay stopped until the next time the bot is added. The 160 servers the bot is in already have no app until someone there adds it again through the link.
+
+Xenon knows the channels and roles it just created from its template, so its link can fill in most settings.
 
 ## Xenon API
 
@@ -168,7 +172,7 @@ Steps 1 to 4 are built. The shared process runs with `server start --shared_bot`
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.
 3. Scoping. The view of the session for each Lite app, the check of settings on save, and pausing apps whose requests Discord keeps refusing. Own-bot apps count how often a channel isn't in the cache. No Lite app is created outside our test servers before this is merged.
 4. Modules. The `shared_bot` flag in the template format, the test that marked templates only use allowed blocks, and the flag on the launch modules.
-5. Installing. The install page with prefill, the bot authorization and callback, posting `send_to` messages from the server, and Lite apps disabled and restored when the bot leaves and comes back. The Kite bot's Add App button points to the page.
+5. Adding the bot. The link that logs in and adds the Kite bot at once, the app for the server on the callback, stopping and starting apps when the bot leaves and comes back, and the setup page in the dashboard.
 6. The Lite app page in the dashboard. It's a reduced view of the app page with modules, settings, logs and the upgrade card, whose button can still be disabled at this point.
 7. Plus on Lite. Server profiles for Lite apps on Plus, checkout from a Lite app, the line on the pricing page, and the credit warnings reaching Lite owners.
 8. Launch with Xenon. Xenon links to the install page after a template install. We watch the first servers, the logs and the cost before Xenon shows it to everyone.
