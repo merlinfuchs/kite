@@ -10,6 +10,7 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import { PermissionFlag } from "@/lib/discord/permissions";
 import {
+  useApp,
   useAppStateGuilds,
   useBundleInstalls,
   useCommands,
@@ -59,12 +60,18 @@ function useCommandNames() {
 export function TemplateInstallCard({
   template,
   from,
+  initialValues,
 }: {
   template: Template;
   // Where the template is added from, like "flow_ai", for analytics.
   from?: string;
+  // Values of its parameters to start with, like from a link.
+  initialValues?: Record<string, string>;
 }) {
   const appId = useAppId();
+  // Apps on the Kite bot can't edit what they add, and the bot isn't theirs.
+  const sharedBot = useApp()?.bot_type === "shared";
+  const botName = sharedBot ? "The Kite bot" : "Your bot";
   const commandNames = useCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
@@ -73,9 +80,10 @@ export function TemplateInstallCard({
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
   const postMutation = useMessageInstanceCreateMutation(appId);
 
-  const [values, setValues] = useState(() =>
-    parameterDefaults(template.parameters)
-  );
+  const [values, setValues] = useState(() => ({
+    ...parameterDefaults(template.parameters),
+    ...initialValues,
+  }));
   // The messages the user wrote in the message editor, by their key.
   const [customMessages, setCustomMessages] = useState<
     Record<string, MessageData>
@@ -232,8 +240,9 @@ export function TemplateInstallCard({
           Added to your app
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          It&apos;s enabled and yours to change in the editor, like anything you
-          built yourself.
+          {sharedBot
+            ? "It's running in your server now."
+            : "It's enabled and yours to change in the editor, like anything you built yourself."}
         </p>
         {missingIntegrations.map((integration) => (
           <MissingIntegration key={integration.id} integration={integration} />
@@ -396,7 +405,7 @@ export function TemplateInstallCard({
           <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
           <div>
             <span className="font-semibold">Missing permissions: </span>
-            Your bot needs the{" "}
+            {botName} needs the{" "}
             {new Intl.ListFormat("en").format(
               missing.permissions.map(permissionLabel)
             )}{" "}
@@ -416,8 +425,8 @@ export function TemplateInstallCard({
             <span className="font-semibold text-foreground">
               Role hierarchy:{" "}
             </span>
-            Put your bot&apos;s role above the roles of the members it acts on
-            so it can manage them.
+            Put {sharedBot ? "the Kite bot" : "your bot"}&apos;s role above the
+            roles of the members it acts on so it can manage them.
           </div>
         </div>
       )}

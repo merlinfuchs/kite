@@ -12,17 +12,24 @@ import (
 )
 
 type App struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Description    null.String       `json:"description"`
-	Enabled        bool              `json:"enabled"`
-	DisabledReason null.String       `json:"disabled_reason"`
-	DiscordID      string            `json:"discord_id"`
-	DiscordStatus  *AppDiscordStatus `json:"discord_status,omitempty"`
-	OwnerUserID    string            `json:"owner_user_id"`
-	CreatorUserID  string            `json:"creator_user_id"`
-	CreatedAt      time.Time         `json:"created_at"`
-	UpdatedAt      time.Time         `json:"updated_at"`
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	Description    null.String `json:"description"`
+	Enabled        bool        `json:"enabled"`
+	DisabledReason null.String `json:"disabled_reason"`
+	// DiscordID is empty for apps on the Kite bot, which have no bot of
+	// their own.
+	DiscordID     string            `json:"discord_id"`
+	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
+	// BotType is "own" for apps with a custom bot and "shared" for apps on
+	// the Kite bot.
+	BotType string `json:"bot_type"`
+	// DiscordGuildID is the server of an app on the Kite bot.
+	DiscordGuildID null.String `json:"discord_guild_id"`
+	OwnerUserID    string      `json:"owner_user_id"`
+	CreatorUserID  string      `json:"creator_user_id"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
@@ -188,6 +195,8 @@ func AppToWire(app *model.App) *App {
 		DisabledReason: app.DisabledReason,
 		DiscordID:      app.DiscordID,
 		DiscordStatus:  status,
+		BotType:        string(app.BotType),
+		DiscordGuildID: app.DiscordGuildID,
 		OwnerUserID:    app.OwnerUserID,
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,

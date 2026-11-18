@@ -6,6 +6,8 @@ export type AnalyticsEvent =
   // Discord.
   | "sign_up"
   | "app_create_opened"
+  // Which bot the app runs on, the Kite bot or a custom one.
+  | "app_create_kind"
   | "app_create_step"
   | "app_create_failed"
   | "app_create_portal_opened"
