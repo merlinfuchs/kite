@@ -8,7 +8,7 @@ import {
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import LoadingAvatar from "@/components/common/LoadingAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/lib/hooks/api";
+import { useUserQuery } from "@/lib/api/queries";
+import { useResponseData, useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
@@ -121,17 +123,29 @@ export default function UserMenu({
   );
 }
 
-// UserAvatar shows the initials of the logged in user.
+// UserAvatar shows the Discord avatar of the logged in user, falling back to
+// their initials.
 export function UserAvatar({ className }: { className?: string }) {
-  const user = useUser();
+  const userQuery = useUserQuery();
+  const user = useResponseData(userQuery);
   const initials = (user?.display_name ?? "")
     .split(" ")
     .map((word) => word[0])
     .join("");
+  const avatarSrc = user?.discord_id
+    ? userAvatar({
+        id: user.discord_id,
+        avatar: user.discord_avatar,
+      })
+    : undefined;
 
   return (
-    <Avatar className={cn("rounded-lg", className)}>
-      <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-    </Avatar>
+    <LoadingAvatar
+      src={avatarSrc}
+      loading={userQuery.isPending}
+      className={className}
+    >
+      {initials}
+    </LoadingAvatar>
   );
 }
