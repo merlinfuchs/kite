@@ -187,7 +187,7 @@ func (g *Gateway) populate(ctx context.Context) error {
 // guildJoined starts the app of a server that added the bot again. New
 // servers get their app when they're set up, see the install of the API.
 func (g *Gateway) guildJoined(ctx context.Context, guildID discord.GuildID) {
-	started, err := g.appStore.EnableSharedAppDisabledWithReason(ctx, guildID.String(), model.AppDisabledReasonKiteBotRemoved, time.Now())
+	started, err := g.appStore.EnableSharedAppDisabledWithReason(ctx, guildID.String(), model.AppDisabledReasonSharedBotRemoved, time.Now())
 	if err != nil {
 		slog.Error("Failed to start the app of a server that added the Kite bot", slog.String("guild_id", guildID.String()), slog.String("error", err.Error()))
 		return
@@ -209,7 +209,7 @@ func (g *Gateway) guildLeft(ctx context.Context, guildID discord.GuildID) {
 
 	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             app.ID,
-		DisabledReason: null.StringFrom(model.AppDisabledReasonKiteBotRemoved),
+		DisabledReason: null.StringFrom(model.AppDisabledReasonSharedBotRemoved),
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {

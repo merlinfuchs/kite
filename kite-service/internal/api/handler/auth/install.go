@@ -20,9 +20,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// KiteBotConfig is what adding the Kite bot to a server needs. See
+// InstallConfig is what adding the Kite bot to a server needs. See
 // design/kite-lite.md.
-type KiteBotConfig struct {
+type InstallConfig struct {
 	// Bot is nil without a Kite bot, which turns adding it off.
 	Bot *sharedbot.Bot
 	// ClientSecret is the OAuth2 secret of the Kite bot's application.
@@ -33,34 +33,34 @@ type KiteBotConfig struct {
 // setupCookie keeps what the setup page in the dashboard should start with,
 // like the templates and settings in a link from Xenon, while the user is on
 // Discord's page.
-const setupCookie = "kite_bot_setup"
+const setupCookie = "install_setup"
 
 // maxSetupLength bounds what's kept of it.
 const maxSetupLength = 2000
 
-func (h *AuthHandler) kiteBotOAuth2Config(c *handler.Context) (*oauth2.Config, error) {
-	if h.kiteBot.Bot == nil {
-		return nil, handler.ErrNotFound("no_kite_bot", "This Kite has no Kite bot")
+func (h *AuthHandler) installOAuth2Config(c *handler.Context) (*oauth2.Config, error) {
+	if h.install.Bot == nil {
+		return nil, handler.ErrNotFound("no_shared_bot", "The Kite bot isn't set up")
 	}
-	appID, err := h.kiteBot.Bot.AppID(c.Context())
+	appID, err := h.install.Bot.AppID(c.Context())
 	if err != nil {
 		return nil, err
 	}
 
 	return &oauth2.Config{
-		RedirectURL:  fmt.Sprintf("%s/v1/auth/kite-bot/callback", h.config.APIPublicBaseURL),
+		RedirectURL:  fmt.Sprintf("%s/v1/auth/install/callback", h.config.APIPublicBaseURL),
 		ClientID:     appID.String(),
-		ClientSecret: h.kiteBot.ClientSecret,
+		ClientSecret: h.install.ClientSecret,
 		Scopes:       []string{discordoauth.ScopeIdentify, discordoauth.ScopeEmail, "bot", "applications.commands"},
 		Endpoint:     discordoauth.Endpoint,
 	}, nil
 }
 
-// HandleKiteBotAdd logs the user in and adds the Kite bot to a server on the
+// HandleInstall logs the user in and adds the Kite bot to a server on the
 // same page of Discord. guild_id picks the server, the rest of the query goes
 // to the setup page afterwards.
-func (h *AuthHandler) HandleKiteBotAdd(c *handler.Context) error {
-	conf, err := h.kiteBotOAuth2Config(c)
+func (h *AuthHandler) HandleInstall(c *handler.Context) error {
+	conf, err := h.installOAuth2Config(c)
 	if err != nil {
 		return err
 	}
@@ -92,11 +92,11 @@ func (h *AuthHandler) HandleKiteBotAdd(c *handler.Context) error {
 	return nil
 }
 
-// HandleKiteBotCallback gets the server the user added the Kite bot to from
+// HandleInstallCallback gets the server the user added the Kite bot to from
 // Discord, gives it an app on the Kite bot, and sends the user to set it up.
 // Discord only lets users with Manage Server add a bot, so they can change the
 // server's app: the first one owns it, the others become collaborators.
-func (h *AuthHandler) HandleKiteBotCallback(c *handler.Context) error {
+func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 	base := strings.TrimSuffix(h.config.AppPublicBaseURL, "/")
 
 	state := h.getOauthStateCookie(c)
@@ -112,7 +112,7 @@ func (h *AuthHandler) HandleKiteBotCallback(c *handler.Context) error {
 		return nil
 	}
 
-	conf, err := h.kiteBotOAuth2Config(c)
+	conf, err := h.installOAuth2Config(c)
 	if err != nil {
 		return err
 	}
@@ -135,16 +135,16 @@ func (h *AuthHandler) HandleKiteBotCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	app, errCode, err := h.kiteBotApp(c, user, guildID, guildName)
+	app, errCode, err := h.sharedApp(c, user, guildID, guildName)
 	if err != nil {
 		return err
 	}
 	if errCode != "" {
-		c.Redirect(base+"/apps?kite_bot_error="+errCode, http.StatusTemporaryRedirect)
+		c.Redirect(base+"/apps?install_error="+errCode, http.StatusTemporaryRedirect)
 		return nil
 	}
 
-	target := fmt.Sprintf("%s/apps/%s/kite-bot", base, app.ID)
+	target := fmt.Sprintf("%s/apps/%s/setup", base, app.ID)
 	if setup != "" {
 		target += "?" + setup
 	}
@@ -152,9 +152,9 @@ func (h *AuthHandler) HandleKiteBotCallback(c *handler.Context) error {
 	return nil
 }
 
-// kiteBotApp returns the server's app on the Kite bot for the user, or the
+// sharedApp returns the server's app on the Kite bot for the user, or the
 // code of why they can't have it.
-func (h *AuthHandler) kiteBotApp(c *handler.Context, user *model.User, guildID string, guildName string) (*model.App, string, error) {
+func (h *AuthHandler) sharedApp(c *handler.Context, user *model.User, guildID string, guildName string) (*model.App, string, error) {
 	ctx := c.Context()
 	now := time.Now().UTC()
 
@@ -172,7 +172,7 @@ func (h *AuthHandler) kiteBotApp(c *handler.Context, user *model.User, guildID s
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to count apps: %w", err)
 		}
-		if count >= h.kiteBot.MaxAppsPerUser {
+		if count >= h.install.MaxAppsPerUser {
 			return nil, "app_limit", nil
 		}
 
@@ -197,7 +197,7 @@ func (h *AuthHandler) kiteBotApp(c *handler.Context, user *model.User, guildID s
 
 	// Adding the bot again starts the app, like when the bot sees itself
 	// join, which may come first.
-	if _, err := h.appStore.EnableSharedAppDisabledWithReason(ctx, guildID, model.AppDisabledReasonKiteBotRemoved, now); err != nil {
+	if _, err := h.appStore.EnableSharedAppDisabledWithReason(ctx, guildID, model.AppDisabledReasonSharedBotRemoved, now); err != nil {
 		return nil, "", fmt.Errorf("failed to start app: %w", err)
 	}
 

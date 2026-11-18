@@ -111,13 +111,13 @@ Own-bot apps count how often their requests name a channel that isn't in the cac
 
 Users see the two kinds of apps as the Kite bot and a custom bot. Lite is only the name in this doc and in code comments.
 
-One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/kite-bot`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link.
+One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/install`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link. Links people see, like Xenon's, can use a short `kite.onl/add` on the site that forwards to it.
 
 On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators. Losing Manage Server later doesn't remove them yet. The new app counts toward the 10 apps of its owner, and banned users can't create one.
 
-Then the user lands on the setup page of the app, `/apps/{id}/kite-bot`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
+Then the user lands on the setup page of the app, `/apps/{id}/setup`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
 
-The Kite bot's application needs `https://api.kite.onl/v1/auth/kite-bot/callback` as a redirect in the Discord Developer Portal.
+The Kite bot's application needs `https://api.kite.onl/v1/auth/install/callback` as a redirect in the Discord Developer Portal.
 
 When the bot is removed from a server, its app is stopped with a reason that says so and kept. Adding the bot again starts it. Servers that removed the bot while it was offline are caught when it connects. Servers that added it back while it was offline stay stopped until the next time the bot is added. The 160 servers the bot is in already have no app until someone there adds it again through the link.
 

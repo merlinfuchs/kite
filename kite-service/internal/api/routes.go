@@ -143,7 +143,7 @@ func (s *APIServer) RegisterRoutes(
 		APIPublicBaseURL:    s.config.APIPublicBaseURL,
 		DiscordClientID:     s.config.DiscordClientID,
 		DiscordClientSecret: s.config.DiscordClientSecret,
-	}, userStore, appStore, sessionManager, auth.KiteBotConfig{
+	}, userStore, appStore, sessionManager, auth.InstallConfig{
 		Bot:            s.config.SharedBot,
 		ClientSecret:   s.config.SharedBotClientSecret,
 		MaxAppsPerUser: s.config.UserLimits.MaxAppsPerUser,
@@ -152,8 +152,8 @@ func (s *APIServer) RegisterRoutes(
 	authGroup := v1Group.Group("/auth")
 	authGroup.Get("/login", authHandler.HandleAuthLogin)
 	authGroup.Get("/login/callback", authHandler.HandleAuthLoginCallback)
-	authGroup.Get("/kite-bot", authHandler.HandleKiteBotAdd)
-	authGroup.Get("/kite-bot/callback", authHandler.HandleKiteBotCallback)
+	authGroup.Get("/install", authHandler.HandleInstall)
+	authGroup.Get("/install/callback", authHandler.HandleInstallCallback)
 	authGroup.Post("/logout", handler.Typed(authHandler.HandleAuthLogout))
 
 	// User routes
