@@ -10,7 +10,7 @@ import (
 
 func TestTrackMemberCounts(t *testing.T) {
 	session := state.New("Bot token")
-	trackMemberCounts(session)
+	TrackMemberCounts(session)
 
 	const guildID = discord.GuildID(1)
 	count := func() uint64 {

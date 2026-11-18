@@ -55,6 +55,8 @@ type Gateway struct {
 func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.EventHandler, config GatewayConfig) *Gateway {
 	session := state.NewWithIdentifier(gateway.DefaultIdentifier("Bot " + bot.token))
 	session.AddIntents(Intents)
+	// Before the views of the apps copy the cache.
+	kitegateway.TrackMemberCounts(session)
 
 	return &Gateway{
 		config:       config,
