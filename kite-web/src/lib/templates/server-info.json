@@ -1,6 +1,7 @@
 {
   "id": "server-info",
   "version": 1,
+  "shared_bot": true,
   "name": "Server Info",
   "description": "The commands /avatar, /userinfo and /serverinfo.",
   "about": [

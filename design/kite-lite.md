@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: steps 1 to 3 of the order of work built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
+Status: steps 1 to 4 of the order of work built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -12,7 +12,7 @@ Lite is deliberately narrow. It runs only official modules, so the Kite bot only
 
 A Lite app is a Kite app row on the Kite bot. Each server has at most one Lite app, and the user who set it up owns it. Everything that works on app IDs today, like commands, event listeners, stored variables, logs, credits and template installs, works for it unchanged.
 
-Modules are official templates marked `lite: true` in their template file. A Lite app can install, remove and configure them. It can't open the flow editor, create commands or listeners, or install user templates. A test checks that every Lite template only uses the blocks and operations allowed on the Kite bot, the same way `TestEveryBlockRuns` checks blocks.
+Modules are official templates marked `shared_bot: true` in their template file. A Lite app can install, remove and configure them, and adding any other template to it is refused. It can't open the flow editor, create commands or listeners, or install user templates. `TestSharedBotBundles` checks that every marked template only uses blocks from an allowlist and events the Kite bot gets with its intents.
 
 Anyone with Manage Server in the server can change its Lite app, not only the owner. A Lite app belongs to the server more than to a person, and that's the permission Discord asks for to add a bot in the first place. Kite checks it with the Kite bot, which fetches the member and works out their permissions. That needs no privileged intent. The owner is who the app is listed under and who can delete it.
 
@@ -162,12 +162,12 @@ Lite doesn't wait for the answer. Modules that need an intent appear once it's g
 
 ## Order of work
 
-Steps 1 to 3 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
+Steps 1 to 4 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
 
 1. Data model. The migration for `bot_type` and `discord_guild_id`, nullable `discord_token` and `discord_id`, and every place that reads them handling shared apps. The gateway manager, the engine and command deploys skip shared apps. Nothing creates one yet.
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.
 3. Scoping. The view of the session for each Lite app, the check of settings on save, and pausing apps whose requests Discord keeps refusing. Own-bot apps count how often a channel isn't in the cache. No Lite app is created outside our test servers before this is merged.
-4. Modules. The `lite` flag in the template format, the test that Lite templates only use allowed blocks, and the flag on the launch modules.
+4. Modules. The `shared_bot` flag in the template format, the test that marked templates only use allowed blocks, and the flag on the launch modules.
 5. Installing. The install page with prefill, the bot authorization and callback, posting `send_to` messages from the server, and Lite apps disabled and restored when the bot leaves and comes back. The Kite bot's Add App button points to the page.
 6. The Lite app page in the dashboard. It's a reduced view of the app page with modules, settings, logs and the upgrade card, whose button can still be disabled at this point.
 7. Plus on Lite. Server profiles for Lite apps on Plus, checkout from a Lite app, the line on the pricing page, and the credit warnings reaching Lite owners.

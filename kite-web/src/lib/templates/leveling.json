@@ -1,6 +1,7 @@
 {
   "id": "leveling",
   "version": 1,
+  "shared_bot": true,
   "name": "Leveling",
   "description": "Members earn XP for chatting and level up, with /rank, /leaderboard, and an optional reward role.",
   "about": [

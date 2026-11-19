@@ -1,6 +1,7 @@
 {
   "id": "moderation",
   "version": 1,
+  "shared_bot": true,
   "name": "Moderation",
   "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
   "about": [

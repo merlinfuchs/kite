@@ -324,6 +324,10 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
+  // Whether servers can add the template to an app on the Kite bot, which
+  // runs it in their server without a bot of their own. The service checks
+  // that it only uses what the Kite bot can run.
+  shared_bot: z.boolean().optional(),
   parameters: z.array(
     templateParameterSchema.refine(
       (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
