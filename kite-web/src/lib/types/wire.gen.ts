@@ -175,6 +175,14 @@ export interface AppTokenUpdateRequest {
   discord_token: string;
 }
 export type AppTokenUpdateResponse = App;
+/**
+ * AppSwitchToCustomRequest moves an app on the Kite bot to the user's own
+ * bot, with its token.
+ */
+export interface AppSwitchToCustomRequest {
+  discord_token: string;
+}
+export type AppSwitchToCustomResponse = App;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
 export type AppEmojiListResponse = (AppEmoji | undefined)[];

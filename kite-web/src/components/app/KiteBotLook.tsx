@@ -4,6 +4,7 @@ import {
 } from "@/lib/api/queries";
 import { useApp, useAppStateGuilds, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -61,6 +62,7 @@ export function KiteBotMemberPreview({
 // KiteBotLook is how the Kite bot looks in the app's server, with a button to
 // change it.
 export default function KiteBotLook() {
+  const appId = useAppId();
   const guild = useAppStateGuilds()?.[0];
   const look = useKiteBotLook();
   const [open, setOpen] = useState(false);
@@ -68,15 +70,32 @@ export default function KiteBotLook() {
   if (!guild) return null;
 
   return (
-    <Card className="flex flex-col sm:flex-row sm:items-center gap-4 p-4">
-      <div className="flex-1 min-w-0">
-        <KiteBotMemberPreview name={look.name} avatarUrl={look.avatarUrl} />
-      </div>
-      <div className="flex-none">
-        <Button variant="outline" onClick={() => setOpen(true)}>
+    <Card className="space-y-2 p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <KiteBotMemberPreview name={look.name} avatarUrl={look.avatarUrl} />
+        </div>
+        <Button
+          variant="outline"
+          className="flex-none"
+          onClick={() => setOpen(true)}
+        >
           Change look
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        The status is the same in every server. Want your own?{" "}
+        <Link
+          href={{
+            pathname: "/apps/[appId]/settings",
+            query: { appId },
+            hash: "switch",
+          }}
+          className="text-primary hover:underline"
+        >
+          Switch to Custom setup
+        </Link>
+      </p>
       <GuildProfileDialog guild={guild} open={open} onOpenChange={setOpen} />
     </Card>
   );

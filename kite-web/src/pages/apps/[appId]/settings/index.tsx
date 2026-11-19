@@ -6,6 +6,7 @@ import AppSettingsControls from "@/components/app/AppSettingsControls";
 import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
+import KiteBotSwitchCard from "@/components/app/KiteBotSwitchCard";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import { useApp, useSharedBot } from "@/lib/hooks/api";
@@ -61,6 +62,7 @@ export default function AppSettingsPage() {
             <AppSettingsCollaborators />
           </>
         )}
+        {loaded && sharedBot && <KiteBotSwitchCard />}
         <AppSettingsDelete />
       </div>
     </AppLayout>

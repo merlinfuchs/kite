@@ -262,6 +262,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	sharedAppGroup.Post("/switch-to-custom",
+		handler.TypedWithBody(appHandler.HandleAppSwitchToCustom),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	sharedAppGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),

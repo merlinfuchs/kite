@@ -19,7 +19,10 @@ import {
   FormMessage,
 } from "../ui/form";
 import { useForm } from "react-hook-form";
-import { useAppCreateMutation } from "@/lib/api/mutations";
+import {
+  useAppCreateMutation,
+  useAppSwitchToCustomMutation,
+} from "@/lib/api/mutations";
 import { toast } from "sonner";
 import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
@@ -60,15 +63,22 @@ interface WrongToken {
 export default function AppCreateDialog({
   children,
   onCreated,
+  switchApp,
 }: {
   children: ReactNode;
   // Instead of opening the new app.
   onCreated?: (app: App) => void;
+  // An app on the Kite bot to switch to the user's own bot, Custom setup,
+  // with the same steps instead of creating an app.
+  switchApp?: App;
 }) {
   const [open, setOpen] = useState(false);
   // Whether the user picked a custom bot over the Kite bot, which is only
   // offered where Kite has one.
-  const [custom, setCustom] = useState(!env.NEXT_PUBLIC_KITE_BOT_ENABLED);
+  const startCustom = !!switchApp || !env.NEXT_PUBLIC_KITE_BOT_ENABLED;
+  const [custom, setCustom] = useState(startCustom);
+  // Switching doesn't count toward creating apps.
+  const trackCreate: typeof track = switchApp ? () => {} : track;
   const [step, setStep] = useState(0);
   const [skippedGuide, setSkippedGuide] = useState(false);
   const router = useRouter();
@@ -79,14 +89,14 @@ export default function AppCreateDialog({
     const skipped = step === 0 && next === 2;
     if (skipped) setSkippedGuide(true);
     setStep(next);
-    track("app_create_step", { step: next + 1, skipped, returned });
+    trackCreate("app_create_step", { step: next + 1, skipped, returned });
   }
 
   // When the user comes back from the Developer Portal, show the next step.
   const portalOpenedAt = useRef<number | null>(null);
   function onPortalOpened(from: string) {
     portalOpenedAt.current = Date.now();
-    track("app_create_portal_opened", { step: step + 1, from });
+    trackCreate("app_create_portal_opened", { step: step + 1, from });
   }
   useEffect(() => {
     if (!open) return;
@@ -110,7 +120,7 @@ export default function AppCreateDialog({
       // Submitting clears the error, so it's set again every time.
       form.setError("discord_token", { message: wrongTokenMessages[kind] });
       if (kind !== wrongToken?.kind) {
-        track("app_create_failed", { code: "token_format", kind });
+        trackCreate("app_create_failed", { code: "token_format", kind });
       }
     } else if (wrongToken) {
       form.clearErrors("discord_token");
@@ -128,6 +138,8 @@ export default function AppCreateDialog({
   }
 
   const createMutation = useAppCreateMutation();
+  const switchMutation = useAppSwitchToCustomMutation(switchApp?.id ?? "");
+  const mutation = switchApp ? switchMutation : createMutation;
   const form = useForm<FormFields>({
     defaultValues: {
       discord_token: "",
@@ -137,9 +149,9 @@ export default function AppCreateDialog({
   function onOpenChange(open: boolean) {
     setOpen(open);
     if (open) {
-      track("app_create_opened");
+      trackCreate("app_create_opened");
     } else {
-      setCustom(!env.NEXT_PUBLIC_KITE_BOT_ENABLED);
+      setCustom(startCustom);
       setStep(0);
       setSkippedGuide(false);
       setWrongToken(null);
@@ -149,28 +161,38 @@ export default function AppCreateDialog({
   }
 
   function onSubmit(data: FormFields) {
-    if (createMutation.isPending) return;
+    if (mutation.isPending) return;
 
     const token = cleanToken(data.discord_token);
     if (!token) {
       form.setError("discord_token", {
         message: "Paste your bot token first.",
       });
-      track("app_create_failed", { code: "empty_token" });
+      trackCreate("app_create_failed", { code: "empty_token" });
       return;
     }
 
     if (checkWrongToken(token)) return;
 
-    createMutation.mutate(
+    mutation.mutate(
       { discord_token: token },
       {
         onSuccess(res) {
           if (!res.success) {
-            track("app_create_failed", { code: res.error.code });
+            trackCreate("app_create_failed", { code: res.error.code });
           }
 
-          if (res.success) {
+          if (res.success && switchApp) {
+            track("app_switched_to_custom", { skipped_guide: skippedGuide });
+            toast.success(
+              "Switched to Custom setup. Invite your bot to your server next."
+            );
+            onOpenChange(false);
+            router.push({
+              pathname: "/apps/[appId]",
+              query: { appId: res.data.id },
+            });
+          } else if (res.success) {
             track("app_created", { skipped_guide: skippedGuide });
             toast.success("App created.");
             onOpenChange(false);
@@ -209,7 +231,7 @@ export default function AppCreateDialog({
         <DialogHeader>
           <DialogTitle>
             <div className="flex items-center space-x-2">
-              <div>Create app</div>
+              <div>{switchApp ? "Switch to Custom setup" : "Create app"}</div>
               <a
                 href={env.NEXT_PUBLIC_DOCS_LINK + "/guides/getting-started"}
                 target="_blank"
@@ -219,7 +241,9 @@ export default function AppCreateDialog({
             </div>
           </DialogTitle>
           <DialogDescription>
-            {custom
+            {switchApp
+              ? "Create your own bot in Discord and paste its token here, which takes about a minute. The app keeps its templates, settings, and plan."
+              : custom
               ? "Kite runs your bot for you. You only need to create it in Discord first, which takes about a minute."
               : "Pick how you want to set up your bot."}
           </DialogDescription>
@@ -410,8 +434,8 @@ export default function AppCreateDialog({
                 >
                   Back
                 </Button>
-                <LoadingButton type="submit" loading={createMutation.isPending}>
-                  Create app
+                <LoadingButton type="submit" loading={mutation.isPending}>
+                  {switchApp ? "Switch" : "Create app"}
                 </LoadingButton>
               </DialogFooter>
             </form>

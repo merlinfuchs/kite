@@ -146,17 +146,14 @@ Xenon knows the channels and roles it just created from its template, so it can 
 
 ## Upgrading
 
-The user creates a bot in the Discord developer portal and enters its token on the upgrade card, the same step as creating a Kite app today. Then the app is a full Kite app on their own bot.
+Settings of a Lite app have Switch to Custom setup, and the look on its dashboard points there for a status of its own. The user creates a bot in the Discord developer portal and enters its token, with the same steps as creating a Kite app. Then the app is a full Kite app on their own bot.
 
-1. Kite checks the token and asks the user to add their bot to the server, with the server preselected.
-2. Once the bot is in, the app's row gets the token, `discord_id` and `bot_type = 'own'`, and `discord_guild_id` is cleared. The shared process drops the app, and its cluster starts a gateway for it.
-3. Kite deploys the commands globally under the new bot and deletes the Kite bot's guild commands in that server.
-4. Kite reposts every message the Kite bot sent for the app's message templates from the new bot, and deletes the old ones. A bot can't edit another bot's messages. Buttons on the old messages would also still go to the Kite bot, which no longer has an app for the server.
-5. The Kite bot leaves the server.
-
-Stored variables, levels, logs and parameters carry over, since it's the same app. The server's modules become normal installs of their templates, and the user can edit them. A Plus subscription stays on the app.
-
-There's no way back from a full app to Lite.
+1. Kite checks the token and removes the Kite bot's guild commands in the server. If the bot is already another Kite app, the switch is refused and the Kite bot sends its commands again.
+2. The app's row gets the token, `discord_id`, the bot's name and `bot_type = 'own'`, and `discord_guild_id` is cleared. Its commands are deployed globally under the new bot. The shared process drops the app, and its cluster starts a gateway for it.
+3. The templates become normal installs the user can edit, and stored variables, logs and the plan stay. Access follows the owner and collaborators again, so whoever switched it is added as an admin.
+4. The dashboard asks the user to invite their bot to the server, like after creating an app.
+5. Messages the Kite bot posted, like the verification message, keep their buttons going to the Kite bot, which has no app for the server anymore. A bot can't edit another bot's messages, so the user posts them again from the template's page. Doing that for them is for later.
+6. The Kite bot stays in the server until someone removes it.
 
 ## Discord approval
 
@@ -178,7 +175,7 @@ Steps 1 to 6 are built. The shared process runs with `server start --shared_bot`
 6. The Lite app page in the dashboard. The API refuses every change to a Lite app except on the routes that opt in, like adding templates, their settings and posted messages, starting and stopping the app, billing and the server profile. So the API can't build anything on the Kite bot, and a new route isn't open to Lite apps by accident. API tokens, and with them MCP, can't use Lite apps at all for now, and token and MCP app pickers leave them out. The sidebar has four pages. The dashboard shows whether the bot can run the templates, with recent errors and the credits, and the added templates, each with a page for its settings and how it works. The others are the logs, the plan and a few settings. The setup page has no sidebar, so nothing distracts from picking templates. People first pick them from a grid, then fill in the settings of each on its own step. Templates without settings are added right away. There's no editor, invite link, bot profile, token or collaborator list, as Manage Server decides who can change the app. Deleting a Lite app removes its commands from the server. There's no upgrade card yet, as it would promise step 9.
 7. Plus on Lite. The plans page of a Lite app shows only credits and the look, checkout works like for any app, and credit warnings reach the owner through the Kite bot, which shares their server. Free server profiles came with the setup steps. The pricing page gets its line for Quick setup at the launch, as it isn't advertised before.
 8. Launch with Xenon. Xenon links to the install page after a template install. We watch the first servers, the logs and the cost before Xenon shows it to everyone.
-9. Upgrading. Until this is done, a Lite server that wants the editor creates a new app.
+9. Upgrading. Switch to Custom setup in the settings, see Upgrading.
 10. The intent application. Welcomer and AI Automod or Counting run on a test application, the privacy policy says how message contents are handled, and we apply. This can start any time after step 4 and runs in parallel, as Discord takes a while.
 11. The Xenon API, and users without an email.
 12. Request budgets per server and sharding, before the Kite bot gets close to 2,500 servers.
