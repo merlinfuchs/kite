@@ -61,7 +61,7 @@ export default function KiteBotSetupShell({
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-20 pt-8">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-20 pt-10 md:pt-16">
         {children}
       </div>
 
