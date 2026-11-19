@@ -7872,7 +7872,7 @@
     "shared_bot": true,
     "shared_bot_about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-      "You write the sticky message when you set up the template, with text, embeds or images. It shows up after the next message in the channel. To change it later, remove the template and add it again."
+      "You write the sticky message when you set up the template, with text, embeds or images, and can change it on the template's page on the dashboard any time. It shows up after the next message in the channel."
     ],
     "parameters": [
       {

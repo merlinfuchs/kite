@@ -59,6 +59,8 @@ import {
   MessagesImportResponse,
   MessageUpdateRequest,
   MessageUpdateResponse,
+  MessageDataUpdateRequest,
+  MessageDataUpdateResponse,
   PluginInstanceCreateRequest,
   PluginInstanceCreateResponse,
   PluginInstanceUpdateRequest,
@@ -1418,6 +1420,34 @@ export function useMessageUpdateMutation(appId: string, messageId: string) {
         `/v1/apps/${appId}/messages/${messageId}`,
         {
           method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "messages"],
+      });
+    },
+  });
+}
+
+// useMessageDataUpdateMutation changes only what a message says, for apps on
+// the Kite bot.
+export function useMessageDataUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      messageId,
+      ...req
+    }: MessageDataUpdateRequest & { messageId: string }) =>
+      apiRequest<MessageDataUpdateResponse>(
+        `/v1/apps/${appId}/messages/${messageId}/data`,
+        {
+          method: "PUT",
           body: JSON.stringify(req),
           headers: {
             "Content-Type": "application/json",

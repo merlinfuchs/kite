@@ -1657,6 +1657,14 @@ export interface MessageUpdateRequest {
   base_version?: string;
 }
 export type MessageUpdateResponse = Message;
+/**
+ * MessageDataUpdateRequest changes only what a message says and keeps its
+ * flows, for apps on the Kite bot, which can't change flows.
+ */
+export interface MessageDataUpdateRequest {
+  data: MessageData;
+}
+export type MessageDataUpdateResponse = Message;
 export type MessagesUpdateFolderResponse = (Message | undefined)[];
 export type MessageDeleteResponse = Empty;
 export interface MessageInstance {
