@@ -111,7 +111,7 @@ Own-bot apps count how often their requests name a channel that isn't in the cac
 
 ## Adding the bot
 
-Users see the two kinds of apps as the Kite bot and a custom bot. Lite is only the name in this doc and in code comments.
+Users see the two ways to set up an app as Quick setup and Custom setup, which run on the Kite bot and a custom bot. Lite is only the name in this doc and in code comments.
 
 One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/install`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link. Links people see, like Xenon's, can use a short `kite.onl/add` on the site that forwards to it.
 

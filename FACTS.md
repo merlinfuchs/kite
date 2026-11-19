@@ -100,6 +100,7 @@ Exact names of things users see:
 - Integrations: Discord, ER:LC, Roblox, Roblox Open Cloud, Bloxlink, Cookie API.
 - Badges: Template creator (listed, then 10, 100 or 1,000 users), Star creator (5, 20 or 50 stars), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
 - Plans: Basic, Plus, Premium, and Ultimate. Basic is the free plan.
+- The two ways to set up an app: Quick setup and Custom setup. Quick setup adds the Kite bot and turns on templates, without a bot of your own. Custom setup uses a custom bot and has the editor. Use these names wherever people choose between the two, like the create dialog and marketing pages, so a page doesn't have to explain them each time.
 - The two bots an app can run on: the Kite bot and a custom bot. The Kite bot is Kite's own bot, which runs official templates in one server without a bot of your own. A custom bot is the user's own bot from the Discord Developer Portal, with its own name, avatar, and the editor. Apps on the Kite bot can give it their own name, avatar, banner, and About Me in their server for free. Animated ones need Plus, and name styles Premium. Apps on the Kite bot can't be used with MCP or API tokens. Adding the Kite bot is off on kite.onl until it launches.
 - The plan page in the dashboard is titled Plans, and its sidebar link says Upgrade, or Plan on a paid plan. There's no Premium page.
 - Pages: /pricing, /marketplace, /alternatives, /guides, /tools, /refund. Docs at docs.kite.onl. The dashboard is kite.onl/apps.
@@ -117,7 +118,7 @@ Words to never use:
 - "plugin" for anything new. Plugins are hidden for new bots.
 - "no branding".
 - "Premium" for every paid plan. Say "paid plans".
-- "Lite", "Kite Lite", or "shared bot" for apps on the Kite bot. Lite sounds like a plan. Say "the Kite bot" and "a custom bot".
+- "Lite", "Kite Lite", or "shared bot" for apps on the Kite bot. Lite sounds like a plan. Say "Quick setup" for the way to set up, and "the Kite bot" and "a custom bot" for the bots.
 - "Kite's AI" or "AI builder" as a name. The name is Flow AI.
 - Plan IDs or setting keys, like basic, feature_max_guilds, or temporary_name.
 - "entitlement", "execution", "operation", "node", or "handle". Say plan, run, step, block, or output.
@@ -131,7 +132,7 @@ Project-specific rules:
 - "Plus and up" or "Premium and up" for features of more than one plan.
 - Name a locked feature with the cheapest plan that has it.
 - "Online 24/7" and "always online" are fine. Don't add a credits caveat to them.
-- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
+- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, Quick setup and Custom setup, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
 - A UI label is written as it appears, in sentence case, and marked as something to click: backticks in the docs, bold on the site. "Open **Stored variables** in the sidebar." Block names work the same way: "add a Send message block".
 - "template" for official and community templates alike. "Made by Kite" and "From the community" tell them apart.
 - Kite pages say "Discord bot templates", not "server templates", which are copies of a server's channels and roles.

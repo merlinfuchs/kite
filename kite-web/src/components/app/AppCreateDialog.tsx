@@ -221,7 +221,7 @@ export default function AppCreateDialog({
           <DialogDescription>
             {custom
               ? "Kite runs your bot for you. You only need to create it in Discord first, which takes about a minute."
-              : "Pick which bot your app runs on."}
+              : "Pick how you want to set up your bot."}
           </DialogDescription>
         </DialogHeader>
 
@@ -232,11 +232,11 @@ export default function AppCreateDialog({
               onClick={() => track("app_create_kind", { kind: "kite_bot" })}
               className="rounded-lg border p-4 hover:bg-muted/50 transition-colors"
             >
-              <div className="font-medium">Add the Kite bot</div>
+              <div className="font-medium">Quick setup</div>
               <p className="text-sm text-muted-foreground mt-1">
-                Turn on ready-made features like verification, giveaways, and
-                leveling in your server. You add the bot and log in on one
-                Discord page.
+                Add the Kite bot and turn on ready-made features like
+                verification, giveaways, and leveling. You don&apos;t need a bot
+                of your own, and you can give it your own name and avatar.
               </p>
             </a>
             <button
@@ -247,10 +247,11 @@ export default function AppCreateDialog({
               }}
               className="rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors"
             >
-              <div className="font-medium">Create a custom bot</div>
+              <div className="font-medium">Custom setup</div>
               <p className="text-sm text-muted-foreground mt-1">
-                Your own bot with its own name and avatar, and the editor to
-                build any command. Creating it in Discord takes about a minute.
+                Your own bot from the Discord Developer Portal, with your own
+                status and the editor to build any command. Creating it in
+                Discord takes about a minute.
               </p>
             </button>
           </div>
