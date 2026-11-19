@@ -5,6 +5,7 @@ import {
   ScaleIcon,
   SparklesIcon,
   StoreIcon,
+  SmartphoneIcon,
   WorkflowIcon,
 } from "lucide-react";
 import { externalTools, kiteTools, Tool } from "@/tools/registry";
@@ -42,6 +43,12 @@ export const productLinks: NavLink[] = [
       "Step by step guides to make your bot in Kite, Claude, or ChatGPT.",
     href: "/guides",
     icon: BookOpenIcon,
+  },
+  {
+    title: "Install Kite",
+    description: "Add Kite to your device and open it like an app.",
+    href: "/install",
+    icon: SmartphoneIcon,
   },
   {
     title: "Compare",

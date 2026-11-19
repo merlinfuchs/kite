@@ -10,10 +10,14 @@ import { Skeleton } from "../ui/skeleton";
 import ThemeSwitch from "../common/ThemeSwitch";
 import DiscordIcon from "../icons/DiscordIcon";
 import { loginUrl } from "@/lib/api/client";
+import { usePwaInstall } from "../common/PwaExperience";
 
 export default function HomeNavbar() {
+  const { isInstalled } = usePwaInstall();
   const userQuery = useUserQuery();
   const user = useResponseData(userQuery);
+
+  if (isInstalled) return null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 import { categoryPath, templateCategories } from "./flow/templates";
 
@@ -31,7 +31,13 @@ function pageFiles(dir: string): string[] {
 }
 
 function routeOf(file: string) {
-  return "/" + relative(pagesDir, file).replace(/(\/?index)?\.tsx$/, "");
+  return (
+    "/" +
+    relative(pagesDir, file)
+      .split(sep)
+      .join("/")
+      .replace(/(\/?index)?\.tsx$/, "")
+  );
 }
 
 // The pages the export writes for each dynamic route, from the same function

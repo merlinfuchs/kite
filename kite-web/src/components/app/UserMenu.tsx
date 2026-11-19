@@ -4,6 +4,7 @@ import {
   HomeIcon,
   KeyRoundIcon,
   LogOutIcon,
+  SmartphoneIcon,
 } from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
@@ -21,6 +22,7 @@ import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
+import { usePwaInstall } from "@/components/common/PwaExperience";
 
 // The menu of the logged in user, opened by children. Pages that link home
 // elsewhere, like with the logo, leave out returnHome.
@@ -40,6 +42,7 @@ export default function UserMenu({
   returnHome?: boolean;
 }) {
   const user = useUser();
+  const { isInstalled } = usePwaInstall();
   const logout = useLogout();
   const router = useRouter();
   const [tokensOpen, setTokensOpen] = useState(false);
@@ -93,6 +96,14 @@ export default function UserMenu({
               <Link href="/">
                 <HomeIcon className="size-4" />
                 Return home
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {!isInstalled && (
+            <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
+              <Link href="/install">
+                <SmartphoneIcon className="size-4" />
+                Install Kite
               </Link>
             </DropdownMenuItem>
           )}

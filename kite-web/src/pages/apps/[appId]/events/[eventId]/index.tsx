@@ -1,8 +1,9 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
+import { useAppQuery, useEventListenerQuery } from "@/lib/api/queries";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
+import { useFlowLogEntries, useResponseData } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
@@ -13,10 +14,17 @@ import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 import { isNoteNode } from "@/lib/flow/notes";
+import { usePwaInstall } from "@/components/common/PwaExperience";
+import { BotLoadingGate } from "@/components/app/BotLoadingScreen";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
-  const listener = useEventListener((res) => {
+  const appId = useAppId();
+  const eventId = useEventId();
+  const appQuery = useAppQuery(appId);
+  const listenerQuery = useEventListenerQuery(appId, eventId);
+  const { isInstalled, navigateWithPwaTransition } = usePwaInstall();
+  const listener = useResponseData(listenerQuery, (res) => {
     if (!res.success) {
       toast.error(
         `Failed to load event listener: ${res?.error.message} (${res?.error.code})`
@@ -31,8 +39,6 @@ export default function AppEventListenerPage() {
   });
   const name = eventSourceName(listener?.source);
 
-  const appId = useAppId();
-  const eventId = useEventId();
   const updateMutation = useEventListenerUpdateMutation(appId, eventId);
   const { mutateAsync: updateEventListener } = updateMutation;
 
@@ -93,11 +99,13 @@ export default function AppEventListenerPage() {
 
   const exit = useCallback(() => {
     // Back to the list of the event listener's source.
-    leave({
-      pathname: name.path,
-      query: { appId: router.query.appId },
-    });
-  }, [leave, router, name]);
+    navigateWithPwaTransition(name.path.replace("[appId]", appId), () =>
+      leave({
+        pathname: name.path,
+        query: { appId: router.query.appId },
+      })
+    );
+  }, [appId, leave, navigateWithPwaTransition, router, name]);
 
   const logs = useFlowLogEntries({ eventId });
   const versionTarget = useMemo(
@@ -106,36 +114,41 @@ export default function AppEventListenerPage() {
   );
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col">
-      <Head>
-        <title>{`Manage ${name.title} | Kite`}</title>
-      </Head>
-      {listener && (
-        <FlowPage
-          flowData={listener.flow_source}
-          context={
-            listener.source === "schedule"
-              ? "event_schedule"
-              : listener.source === "webhook"
-              ? "event_webhook"
-              : "event_discord"
-          }
-          viewportKey={`event:${listener.id}`}
-          bundleInstallId={listener.bundle_install_id}
-          hasUnsavedChanges={hasUnsavedChanges}
-          onChange={onChange}
-          isSaving={updateMutation.isPending}
-          onSave={save}
-          onExit={exit}
-          logs={logs}
-          versionTarget={versionTarget}
+    <BotLoadingGate
+      enabled={isInstalled}
+      isLoading={appQuery.isPending || listenerQuery.isPending}
+    >
+      <div className="flex min-h-[100dvh] w-full flex-col">
+        <Head>
+          <title>{`Manage ${name.title} | Kite`}</title>
+        </Head>
+        {listener && (
+          <FlowPage
+            flowData={listener.flow_source}
+            context={
+              listener.source === "schedule"
+                ? "event_schedule"
+                : listener.source === "webhook"
+                ? "event_webhook"
+                : "event_discord"
+            }
+            viewportKey={`event:${listener.id}`}
+            bundleInstallId={listener.bundle_install_id}
+            hasUnsavedChanges={hasUnsavedChanges}
+            onChange={onChange}
+            isSaving={updateMutation.isPending}
+            onSave={save}
+            onExit={exit}
+            logs={logs}
+            versionTarget={versionTarget}
+          />
+        )}
+        <LogEntryListDrawer
+          eventId={listener?.id}
+          open={logsOpen}
+          onOpenChange={setLogsOpen}
         />
-      )}
-      <LogEntryListDrawer
-        eventId={listener?.id}
-        open={logsOpen}
-        onOpenChange={setLogsOpen}
-      />
-    </div>
+      </div>
+    </BotLoadingGate>
   );
 }

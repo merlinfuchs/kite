@@ -8,6 +8,7 @@ import AppCreditsPopup from "./AppCreditsPopup";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 import LegalUpdateDialog from "../common/LegalUpdateDialog";
+import { isFlowEditorRoute, usePwaInstall } from "../common/PwaExperience";
 
 // useAppOrLeave loads the app, and goes back to the app list if it doesn't
 // exist or the user can't open it.
@@ -34,7 +35,27 @@ export function useAppOrLeave() {
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
 export default function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { isInstalled } = usePwaInstall();
   useAppOrLeave();
+
+  const dialogs = (
+    <>
+      <AppDisabledPopup />
+      <AppCreditsPopup />
+      <UpsellPopup />
+      <LegalUpdateDialog />
+    </>
+  );
+
+  if (isInstalled && isFlowEditorRoute(router.pathname)) {
+    return (
+      <>
+        {children}
+        {dialogs}
+      </>
+    );
+  }
 
   // TODO: remember open state of sidebar on desktop
   return (
@@ -42,11 +63,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <AppSidebar />
       <SidebarInset className="bg-transparent min-h-[100dvh] min-w-0 max-w-[1500px] mx-auto pb-20 md:pb-0">
         {children}
-
-        <AppDisabledPopup />
-        <AppCreditsPopup />
-        <UpsellPopup />
-        <LegalUpdateDialog />
+        {dialogs}
       </SidebarInset>
     </SidebarProvider>
   );

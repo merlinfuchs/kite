@@ -78,7 +78,7 @@ export default function BaseLayout({
           key="twitter:card"
           content="summary_large_image"
         />
-        <meta name="theme-color" key="theme-color" content="#f97316" />
+        <meta name="theme-color" key="theme-color" content="#141211" />
         {discordEmbed && canonicalUrl && (
           <script
             key="discord:component-embed"

@@ -1,6 +1,7 @@
 import logo from "@/assets/logo/orange@1024.png";
 import Link from "next/link";
 import env from "@/lib/env/client";
+import { usePwaInstall } from "../common/PwaExperience";
 
 const botLinks = [
   { label: "Bot hosting", href: "/discord-bot-hosting" },
@@ -24,6 +25,10 @@ const compareLinks = [
 ];
 
 export default function HomeFooter() {
+  const { isInstalled } = usePwaInstall();
+
+  if (isInstalled) return null;
+
   return (
     <footer id="footer">
       <div className="container">
@@ -124,6 +129,11 @@ export default function HomeFooter() {
           <div>
             <Link href="/guides" className="opacity-60 hover:opacity-100">
               Guides
+            </Link>
+          </div>
+          <div>
+            <Link href="/install" className="opacity-60 hover:opacity-100">
+              Install Kite
             </Link>
           </div>
           <div>

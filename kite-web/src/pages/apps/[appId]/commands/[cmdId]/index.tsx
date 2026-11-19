@@ -1,11 +1,14 @@
 import FlowPage from "@/components/flow/FlowPage";
 import { track } from "@/lib/analytics";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
+import { useAppQuery, useCommandQuery } from "@/lib/api/queries";
 import { FlowData } from "@/lib/flow/dataSchema";
-import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
+import { useFlowLogEntries, useResponseData } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
+import { usePwaInstall } from "@/components/common/PwaExperience";
+import { BotLoadingGate } from "@/components/app/BotLoadingScreen";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -14,7 +17,12 @@ import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppCommandPage() {
   const router = useRouter();
-  const cmd = useCommand((res) => {
+  const appId = useAppId();
+  const cmdId = useCommandId();
+  const appQuery = useAppQuery(appId);
+  const commandQuery = useCommandQuery(appId, cmdId);
+  const { isInstalled, navigateWithPwaTransition } = usePwaInstall();
+  const cmd = useResponseData(commandQuery, (res) => {
     if (!res.success) {
       toast.error(
         `Failed to load command: ${res?.error.message} (${res?.error.code})`
@@ -28,8 +36,6 @@ export default function AppCommandPage() {
     }
   });
 
-  const appId = useAppId();
-  const cmdId = useCommandId();
   const updateMutation = useCommandUpdateMutation(appId, cmdId);
   const { mutateAsync: updateCommand } = updateMutation;
 
@@ -83,11 +89,13 @@ export default function AppCommandPage() {
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const exit = useCallback(() => {
-    leave({
-      pathname: "/apps/[appId]/commands",
-      query: { appId: router.query.appId },
-    });
-  }, [leave, router]);
+    navigateWithPwaTransition(`/apps/${appId}/commands`, () =>
+      leave({
+        pathname: "/apps/[appId]/commands",
+        query: { appId: router.query.appId },
+      })
+    );
+  }, [appId, leave, navigateWithPwaTransition, router]);
 
   const logs = useFlowLogEntries({ commandId: cmdId });
   const versionTarget = useMemo(
@@ -96,26 +104,31 @@ export default function AppCommandPage() {
   );
 
   return (
-    <div className="flex min-h-[100dvh] w-full flex-col">
-      <Head>
-        <title>Manage command | Kite</title>
-      </Head>
-      {cmd && (
-        <FlowPage
-          flowData={cmd.flow_source}
-          context="command"
-          viewportKey={`command:${cmd.id}`}
-          hasUnsavedChanges={hasUnsavedChanges}
-          command={cmd}
-          bundleInstallId={cmd.bundle_install_id}
-          onChange={onChange}
-          isSaving={updateMutation.isPending}
-          onSave={save}
-          onExit={exit}
-          logs={logs}
-          versionTarget={versionTarget}
-        />
-      )}
-    </div>
+    <BotLoadingGate
+      enabled={isInstalled}
+      isLoading={appQuery.isPending || commandQuery.isPending}
+    >
+      <div className="flex min-h-[100dvh] w-full flex-col">
+        <Head>
+          <title>Manage command | Kite</title>
+        </Head>
+        {cmd && (
+          <FlowPage
+            flowData={cmd.flow_source}
+            context="command"
+            viewportKey={`command:${cmd.id}`}
+            hasUnsavedChanges={hasUnsavedChanges}
+            command={cmd}
+            bundleInstallId={cmd.bundle_install_id}
+            onChange={onChange}
+            isSaving={updateMutation.isPending}
+            onSave={save}
+            onExit={exit}
+            logs={logs}
+            versionTarget={versionTarget}
+          />
+        )}
+      </div>
+    </BotLoadingGate>
   );
 }

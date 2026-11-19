@@ -14,6 +14,8 @@ import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 import KiteBanDialog from "@/components/common/KiteBanDialog";
 import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
+import { PwaProvider } from "@/components/common/PwaExperience";
+import { PwaRouteTransitionLayer } from "@/components/app/BotLoadingScreen";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -41,21 +43,25 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
         }
       `}</style>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class">
-          <TooltipProvider delayDuration={200}>
-            {/* Pages with templates rendered on the server pass the SVGs of
+        <PwaProvider>
+          <PwaRouteTransitionLayer>
+            <ThemeProvider attribute="class">
+              <TooltipProvider delayDuration={200}>
+                {/* Pages with templates rendered on the server pass the SVGs of
             their icons, see templateIconSvgs. */}
-            <TemplateIconSvgsContext.Provider
-              value={pageProps.templateIconSvgs ?? noIconSvgs}
-            >
-              {getLayout(<Component {...pageProps} />)}
-            </TemplateIconSvgsContext.Provider>
-            <Toaster position="top-right" richColors={true} />
+                <TemplateIconSvgsContext.Provider
+                  value={pageProps.templateIconSvgs ?? noIconSvgs}
+                >
+                  {getLayout(<Component {...pageProps} />)}
+                </TemplateIconSvgsContext.Provider>
+                <Toaster position="top-right" richColors={true} />
 
-            <AnalyticsProvider />
-            <KiteBanDialog />
-          </TooltipProvider>
-        </ThemeProvider>
+                <AnalyticsProvider />
+                <KiteBanDialog />
+              </TooltipProvider>
+            </ThemeProvider>
+          </PwaRouteTransitionLayer>
+        </PwaProvider>
       </QueryClientProvider>
     </>
   );

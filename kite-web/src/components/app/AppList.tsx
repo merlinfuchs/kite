@@ -1,16 +1,19 @@
 import { Button } from "@/components/ui/button";
 
-import { useAppsQuery } from "@/lib/api/queries";
 import { Skeleton } from "../ui/skeleton";
 import { toast } from "sonner";
 import AppListEntry from "./AppListEntry";
 import AppCreateDialog from "./AppCreateDialog";
-import { useApps, useResponseData } from "@/lib/hooks/api";
+import { useApps } from "@/lib/hooks/api";
 import AutoAnimate from "../common/AutoAnimate";
 import { loginUrl } from "@/lib/api/client";
 import { BotIcon } from "lucide-react";
+import { useAppsQuery } from "@/lib/api/queries";
+import { usePwaTransitionReady } from "../common/PwaExperience";
 
 export default function AppList() {
+  const appsQuery = useAppsQuery();
+  usePwaTransitionReady(!appsQuery.isPending);
   const apps = useApps((res) => {
     if (!res.success) {
       toast.error(

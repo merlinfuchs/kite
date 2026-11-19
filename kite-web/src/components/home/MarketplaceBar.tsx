@@ -5,10 +5,12 @@ import {
   templateCategories,
 } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
-import { SearchIcon, StoreIcon } from "lucide-react";
+import { Grid2X2Icon, SearchIcon, StoreIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { Button } from "../ui/button";
+import { usePwaInstall } from "../common/PwaExperience";
 
 // MarketplaceBar is on every page of the public marketplace, so they feel
 // like one place: a link to it, its categories and a search that opens it.
@@ -22,6 +24,7 @@ export default function MarketplaceBar({
   search?: boolean;
 }) {
   const router = useRouter();
+  const { isInstalled } = usePwaInstall();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
 
@@ -61,6 +64,19 @@ export default function MarketplaceBar({
             </Link>
           ))}
         </nav>
+        {isInstalled && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 flex-none px-2"
+            asChild
+          >
+            <Link href="/apps" aria-label="Back to apps">
+              <Grid2X2Icon className="size-4 md:mr-2" />
+              <span className="hidden md:inline">Back to apps</span>
+            </Link>
+          </Button>
+        )}
         {/* Only a button until it's used, so the categories fit next to it. */}
         {search && !searching && (
           <button

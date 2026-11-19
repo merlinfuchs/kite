@@ -2,6 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://kite.onl/</loc></url>
   <url><loc>https://kite.onl/guides</loc></url>
+  <url><loc>https://kite.onl/install</loc></url>
   <url><loc>https://kite.onl/guides/how-to-make-a-discord-bot</loc></url>
   <url><loc>https://kite.onl/guides/make-a-discord-bot-with-claude</loc></url>
   <url><loc>https://kite.onl/guides/make-a-discord-bot-with-chatgpt</loc></url>

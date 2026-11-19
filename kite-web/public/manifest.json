@@ -6,6 +6,7 @@
   "start_url": "/apps",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#141211",
   "theme_color": "#141211",
   "icons": [
