@@ -1,14 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { useApp, useAppStateGuilds } from "@/lib/hooks/api";
+import { useAppStateGuilds } from "@/lib/hooks/api";
 import Link from "next/link";
-import { createContext, ReactNode } from "react";
+import { ReactElement, ReactNode } from "react";
 import logo from "@/assets/logo/orange@1024.png";
+import LegalUpdateDialog from "../common/LegalUpdateDialog";
 import ThemeSwitch from "../common/ThemeSwitch";
+import AppDisabledPopup from "./AppDisabledPopup";
+import { useAppOrLeave } from "./AppShell";
 import UserMenu, { UserAvatar } from "./UserMenu";
-
-// InKiteBotSetupShell tells AppLayout to leave out its header with the
-// sidebar toggle and breadcrumbs, the shell has its own.
-export const InKiteBotSetupShell = createContext(false);
 
 // KiteBotSetupShell is the shell of the setup page of apps on the Kite bot.
 // It has no navigation, so nothing distracts from picking templates.
@@ -17,7 +16,7 @@ export default function KiteBotSetupShell({
 }: {
   children: ReactNode;
 }) {
-  const app = useApp();
+  const app = useAppOrLeave();
   const guild = useAppStateGuilds()?.[0];
 
   return (
@@ -63,10 +62,15 @@ export default function KiteBotSetupShell({
       </header>
 
       <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-20 pt-8">
-        <InKiteBotSetupShell.Provider value={true}>
-          {children}
-        </InKiteBotSetupShell.Provider>
+        {children}
       </div>
+
+      <AppDisabledPopup />
+      <LegalUpdateDialog />
     </div>
   );
+}
+
+export function getKiteBotSetupLayout(page: ReactElement) {
+  return <KiteBotSetupShell>{page}</KiteBotSetupShell>;
 }

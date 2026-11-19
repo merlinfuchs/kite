@@ -1,20 +1,16 @@
-import AppLayout from "@/components/app/AppLayout";
-import { getAppShellLayout } from "@/components/app/AppShell";
-import TemplateIcon from "@/components/app/TemplateIcon";
+import { getKiteBotSetupLayout } from "@/components/app/KiteBotSetupShell";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
+import TemplateToggleRow from "@/components/app/TemplateToggleRow";
+import BaseLayout from "@/components/common/BaseLayout";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Template } from "@/lib/flow/templates";
 import { useApp, useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useTemplate, useTemplates } from "@/lib/hooks/templates";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
-
-const breadcrumbs = [{ label: "Set up" }];
+import { useEffect, useMemo } from "react";
 
 // The page apps on the Kite bot start on, after adding the bot. The query can
 // pick templates and their settings, like
@@ -26,7 +22,8 @@ export default function AppSetupPage() {
   const installs = useBundleInstalls();
   const templates = useTemplates();
   // The query is only there once the router is ready, after the first render.
-  const { query, isReady } = useRouter();
+  const router = useRouter();
+  const { query } = router;
 
   const picked = useMemo(
     () =>
@@ -56,8 +53,19 @@ export default function AppSetupPage() {
     return values;
   }
 
+  // Custom bots add templates from the Marketplace.
+  const custom = !!app && app.bot_type !== "shared";
+  useEffect(() => {
+    if (custom) {
+      router.replace({
+        pathname: "/apps/[appId]/marketplace",
+        query: { appId },
+      });
+    }
+  }, [custom, router, appId]);
+
   return (
-    <AppLayout title="Set up" breadcrumbs={breadcrumbs}>
+    <BaseLayout title="Set up the Kite bot" noindex>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Set up the Kite bot
@@ -70,27 +78,26 @@ export default function AppSetupPage() {
       </div>
       <Separator className="my-4" />
 
-      {!isReady || !app ? null : app.bot_type !== "shared" ? (
-        <p className="text-sm text-muted-foreground">
-          This app has a custom bot. Add templates to it from the{" "}
-          <Link
-            href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
-            className="text-primary hover:underline"
-          >
-            Marketplace
-          </Link>
-          .
-        </p>
-      ) : (
+      {router.isReady && app && !custom && (
         <div className="space-y-3">
           {shared.map((template) => (
-            <SetupTemplate
+            <TemplateToggleRow
               key={template.id}
               template={template}
-              added={!!installs?.some((i) => i?.bundle_id === template.id)}
+              label={
+                installs?.some((i) => i?.bundle_id === template.id)
+                  ? "Added"
+                  : "Set up"
+              }
               initiallyOpen={picked.has(template.id)}
-              initialValues={initialValues(template)}
-            />
+            >
+              {() => (
+                <SetupInstall
+                  id={template.id}
+                  initialValues={initialValues(template)}
+                />
+              )}
+            </TemplateToggleRow>
           ))}
 
           <div className="pt-2">
@@ -102,56 +109,28 @@ export default function AppSetupPage() {
           </div>
         </div>
       )}
-    </AppLayout>
+    </BaseLayout>
   );
 }
 
-function SetupTemplate({
-  template,
-  added,
-  initiallyOpen,
+function SetupInstall({
+  id,
   initialValues,
 }: {
-  template: Template;
-  added: boolean;
-  initiallyOpen: boolean;
+  id: string;
   initialValues: Record<string, string>;
 }) {
-  const [open, setOpen] = useState(initiallyOpen);
   // The list has no flows, which the parameters are found in.
-  const full = useTemplate(open ? template.id : "");
+  const template = useTemplate(id);
+  if (!template) return null;
 
   return (
-    <div className="space-y-3">
-      <Card className="flex items-center gap-4 p-4">
-        <TemplateIcon
-          name={template.icon}
-          className="h-6 w-6 flex-none text-muted-foreground"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="font-medium">{template.name}</div>
-          <div className="text-sm text-muted-foreground">
-            {template.description}
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
-          {added ? "Added" : "Set up"}
-          {open ? (
-            <ChevronUpIcon className="h-4 w-4 ml-1" />
-          ) : (
-            <ChevronDownIcon className="h-4 w-4 ml-1" />
-          )}
-        </Button>
-      </Card>
-      {open && full && (
-        <TemplateInstallCard
-          template={full}
-          from="setup"
-          initialValues={initialValues}
-        />
-      )}
-    </div>
+    <TemplateInstallCard
+      template={template}
+      from="setup"
+      initialValues={initialValues}
+    />
   );
 }
 
-AppSetupPage.getLayout = getAppShellLayout;
+AppSetupPage.getLayout = getKiteBotSetupLayout;

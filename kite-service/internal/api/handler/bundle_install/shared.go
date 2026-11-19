@@ -1,6 +1,7 @@
 package bundleinstall
 
 import (
+	"cmp"
 	"fmt"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -16,40 +17,37 @@ func (h *BundleInstallHandler) checkSharedParameters(
 	values map[string]string,
 	parameterOf func(key string) (flow.FlowParameterType, string),
 ) error {
-	if !c.App.IsShared() || h.appStateManager == nil {
+	if !c.App.IsShared() {
 		return nil
 	}
 
-	var channels, roles map[string]bool
+	// The IDs of the server's channels and roles, loaded once they're needed.
+	ids := map[string]map[string]bool{}
 	for key, value := range values {
 		if value == "" {
 			continue
 		}
 
 		typ, label := parameterOf(key)
+		var kind string
 		switch typ {
 		case flow.FlowParameterTypeChannel, flow.FlowParameterTypeCategory:
-			if channels == nil {
-				ids, err := h.sharedGuildIDs(c, false)
-				if err != nil {
-					return err
-				}
-				channels = ids
-			}
-			if !channels[value] {
-				return handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s isn't a channel of this server", label))
-			}
+			kind = "channel"
 		case flow.FlowParameterTypeRole:
-			if roles == nil {
-				ids, err := h.sharedGuildIDs(c, true)
-				if err != nil {
-					return err
-				}
-				roles = ids
+			kind = "role"
+		default:
+			continue
+		}
+
+		if ids[kind] == nil {
+			list, err := h.sharedGuildIDs(c, kind)
+			if err != nil {
+				return err
 			}
-			if !roles[value] {
-				return handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s isn't a role of this server", label))
-			}
+			ids[kind] = list
+		}
+		if !ids[kind][value] {
+			return handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s isn't a %s of this server", label, kind))
 		}
 	}
 	return nil
@@ -60,7 +58,7 @@ func bundleParameterOf(b *bundle.Bundle) func(key string) (flow.FlowParameterTyp
 	return func(key string) (flow.FlowParameterType, string) {
 		for _, p := range b.Parameters {
 			if p.Key == key {
-				return p.Type, p.Label
+				return p.Type, cmp.Or(p.Label, p.Key)
 			}
 		}
 		return "", key
@@ -68,7 +66,7 @@ func bundleParameterOf(b *bundle.Bundle) func(key string) (flow.FlowParameterTyp
 }
 
 // sharedGuildIDs returns the IDs of the channels or roles of the app's server.
-func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, roles bool) (map[string]bool, error) {
+func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, kind string) (map[string]bool, error) {
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
@@ -76,7 +74,7 @@ func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, roles bool) (m
 
 	guildID := c.App.DiscordGuildID.String
 	ids := map[string]bool{}
-	if roles {
+	if kind == "role" {
 		list, err := state.AppGuildRoles(c.Context(), guildID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get roles: %w", err)

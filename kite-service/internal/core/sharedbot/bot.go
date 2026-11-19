@@ -35,6 +35,7 @@ type Bot struct {
 
 	mu    sync.Mutex
 	appID discord.AppID
+	me    *discord.User
 }
 
 // New returns the bot with the token, or nil without one. Shared apps don't
@@ -66,4 +67,22 @@ func (b *Bot) AppID(ctx context.Context) (discord.AppID, error) {
 	}
 	b.appID = app.ID
 	return b.appID, nil
+}
+
+// Me is the bot's user. It's only fetched once, the Kite bot's name and avatar
+// hardly ever change.
+func (b *Bot) Me(ctx context.Context) (*discord.User, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.me != nil {
+		return b.me, nil
+	}
+
+	me, err := b.Client(ctx).Me()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the Kite bot's user: %w", err)
+	}
+	b.me = me
+	return b.me, nil
 }

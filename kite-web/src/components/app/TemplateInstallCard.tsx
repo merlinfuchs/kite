@@ -10,10 +10,10 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import { PermissionFlag } from "@/lib/discord/permissions";
 import {
-  useApp,
   useAppStateGuilds,
   useBundleInstalls,
   useCommands,
+  useSharedBot,
 } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import {
@@ -70,8 +70,8 @@ export function TemplateInstallCard({
 }) {
   const appId = useAppId();
   // Apps on the Kite bot can't edit what they add, and the bot isn't theirs.
-  const sharedBot = useApp()?.bot_type === "shared";
-  const botName = sharedBot ? "The Kite bot" : "Your bot";
+  const sharedBot = useSharedBot();
+  const botName = sharedBot ? "the Kite bot" : "your bot";
   const commandNames = useCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
@@ -261,38 +261,46 @@ export function TemplateInstallCard({
           </div>
         ))}
         {/* Apps on the Kite bot can't open what they added. */}
-        <div className={cn("flex flex-col gap-2", sharedBot && "hidden")}>
-          {!!installed.commands && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{ pathname: "/apps/[appId]/commands", query: { appId } }}
-              >
-                View commands
-              </Link>
-            </Button>
-          )}
-          {!!installed.eventListeners && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{
-                  pathname: eventSourceName("discord").path,
-                  query: { appId },
-                }}
-              >
-                View event listeners
-              </Link>
-            </Button>
-          )}
-          {!!installed.messages && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{ pathname: "/apps/[appId]/messages", query: { appId } }}
-              >
-                View message templates
-              </Link>
-            </Button>
-          )}
-        </div>
+        {!sharedBot && (
+          <div className="flex flex-col gap-2">
+            {!!installed.commands && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/commands",
+                    query: { appId },
+                  }}
+                >
+                  View commands
+                </Link>
+              </Button>
+            )}
+            {!!installed.eventListeners && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: eventSourceName("discord").path,
+                    query: { appId },
+                  }}
+                >
+                  View event listeners
+                </Link>
+              </Button>
+            )}
+            {!!installed.messages && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/messages",
+                    query: { appId },
+                  }}
+                >
+                  View message templates
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
     );
   }
@@ -407,7 +415,7 @@ export function TemplateInstallCard({
           <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
           <div>
             <span className="font-semibold">Missing permissions: </span>
-            {botName} needs the{" "}
+            {botName.charAt(0).toUpperCase() + botName.slice(1)} needs the{" "}
             {new Intl.ListFormat("en").format(
               missing.permissions.map(permissionLabel)
             )}{" "}
@@ -427,8 +435,8 @@ export function TemplateInstallCard({
             <span className="font-semibold text-foreground">
               Role hierarchy:{" "}
             </span>
-            Put {sharedBot ? "the Kite bot" : "your bot"}&apos;s role above the
-            roles of the members it acts on so it can manage them.
+            Put {botName}&apos;s role above the roles of the members it acts on
+            so it can manage them.
           </div>
         </div>
       )}

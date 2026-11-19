@@ -29,10 +29,8 @@ import { ReactNode } from "react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Progress } from "../ui/progress";
+import { warnAt } from "./AppCreditsPopup";
 import GetCreditsButton from "./GetCreditsButton";
-
-// Credits stand out from this share on, like in AppCreditsPopup.
-const warnAt = 0.8;
 
 const list = (items: string[]) => new Intl.ListFormat("en").format(items);
 
@@ -106,9 +104,11 @@ function BotRow({
   const app = useApp();
   const guilds = useAppStateGuilds();
   const guild = guilds?.[0];
-  const roles = useAppStateGuildRoles(guild?.id ?? null);
+  // By the app's server, so they load next to the server instead of after it.
+  const guildId = app?.discord_guild_id ?? null;
+  const roles = useAppStateGuildRoles(guildId);
   const profile = useResponseData(
-    useAppStateGuildProfileQuery(appId, guild?.id ?? "")
+    useAppStateGuildProfileQuery(appId, guildId ?? "")
   );
 
   if (!app || !guilds) return null;

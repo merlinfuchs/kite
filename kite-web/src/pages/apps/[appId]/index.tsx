@@ -15,11 +15,22 @@ import {
 import { useMemo } from "react";
 
 export default function AppPage() {
+  // Apps on the Kite bot only add templates, so they have a dashboard of
+  // their own.
+  return useSharedBot() ? (
+    <AppLayout>
+      <KiteBotHome />
+    </AppLayout>
+  ) : (
+    <CustomBotDashboard />
+  );
+}
+
+function CustomBotDashboard() {
   const app = useApp();
 
   const entities = useAppEntities();
   const features = useAppFeatures();
-  const sharedBot = useSharedBot();
 
   const entityCounts = useMemo(() => {
     // Disabled commands don't count against the limit next to them.
@@ -29,14 +40,6 @@ export default function AppPage() {
       return acc;
     }, {} as Record<string, number>);
   }, [entities]);
-
-  if (sharedBot) {
-    return (
-      <AppLayout>
-        <KiteBotHome />
-      </AppLayout>
-    );
-  }
 
   return (
     <AppLayout>

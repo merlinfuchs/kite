@@ -17,7 +17,6 @@ import { Switch } from "../ui/switch";
 import { useRedeployCommands } from "./CommandDeployStatus";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export default function AppSettingsControls() {
   const app = useApp();
@@ -107,27 +106,24 @@ export default function AppSettingsControls() {
           </Button>
         </div>
         {/* Kite keeps the Kite bot's commands in sync itself. */}
-        <div
-          className={cn(
-            "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between",
-            sharedBot && "hidden"
-          )}
-        >
-          <div>
-            <div className="font-bold pb-1">Sync commands</div>
-            <div className="text-muted-foreground">
-              Kite updates your commands in Discord after every change. If they
-              look out of date in Discord, send them again.
+        {!sharedBot && (
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-bold pb-1">Sync commands</div>
+              <div className="text-muted-foreground">
+                Kite updates your commands in Discord after every change. If
+                they look out of date in Discord, send them again.
+              </div>
             </div>
+            <LoadingButton
+              variant="secondary"
+              loading={isRedeploying}
+              onClick={redeploy}
+            >
+              Sync commands
+            </LoadingButton>
           </div>
-          <LoadingButton
-            variant="secondary"
-            loading={isRedeploying}
-            onClick={redeploy}
-          >
-            Sync commands
-          </LoadingButton>
-        </div>
+        )}
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">Credit messages</div>

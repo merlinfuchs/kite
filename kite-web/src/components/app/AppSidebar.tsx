@@ -18,11 +18,8 @@ import { useAppId } from "@/lib/hooks/params";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboardIcon,
-  LucideIcon,
   MenuIcon,
-  MessageSquareWarningIcon,
   SatelliteDishIcon,
-  Settings2Icon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,7 +27,10 @@ import { useRouter } from "next/router";
 import { useEffect } from "react";
 import AppSidebarAppSwitcher from "./AppSidebarAppSwitcher";
 import AppSidebarExternalNav from "./AppSidebarExternalNav";
-import AppSidebarMainNav from "./AppSidebarMainNav";
+import AppSidebarMainNav, {
+  NavItem,
+  useMainNavItems,
+} from "./AppSidebarMainNav";
 import AppSidebarSupportCard from "./AppSidebarSupportCard";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
@@ -49,57 +49,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setOpenMobile(false);
   }, [router.asPath, isMobile, setOpenMobile]);
 
-  const isDashboardActive = router.pathname === "/apps/[appId]";
+  const mainItems = useMainNavItems();
   // The links of the bar at the bottom on phones, the rest is in the menu.
-  const mobileItems: {
-    title: string;
-    url: string;
-    icon: LucideIcon;
-    active: boolean;
-  }[] = sharedBot
-    ? [
-        {
-          title: "Dashboard",
-          url: "/apps/[appId]",
-          icon: LayoutDashboardIcon,
-          active:
-            isDashboardActive || router.pathname === "/apps/[appId]/setup",
-        },
-        {
-          title: "Logs",
-          url: "/apps/[appId]/logs",
-          icon: MessageSquareWarningIcon,
-          active: router.pathname.startsWith("/apps/[appId]/logs"),
-        },
-        {
-          title: "Settings",
-          url: "/apps/[appId]/settings",
-          icon: Settings2Icon,
-          active: router.pathname.startsWith("/apps/[appId]/settings"),
-        },
-      ]
-    : [
-        {
-          title: "Dashboard",
-          url: "/apps/[appId]",
-          icon: LayoutDashboardIcon,
-          active: isDashboardActive,
-        },
-        {
-          title: "Commands",
-          url: "/apps/[appId]/commands",
-          icon: SlashSquareIcon,
-          active: router.pathname.startsWith("/apps/[appId]/commands"),
-        },
-        {
-          title: "Listeners",
-          url: "/apps/[appId]/events",
-          icon: SatelliteDishIcon,
-          active: eventSources.some((source) =>
-            router.pathname.startsWith(eventSourceName(source).path)
-          ),
-        },
-      ];
+  const mobileItems: Pick<NavItem, "title" | "url" | "icon" | "active">[] =
+    sharedBot
+      ? mainItems.filter((item) => item.url !== "/apps/[appId]/premium")
+      : [
+          {
+            title: "Dashboard",
+            url: "/apps/[appId]",
+            icon: LayoutDashboardIcon,
+            active: router.pathname === "/apps/[appId]",
+          },
+          {
+            title: "Commands",
+            url: "/apps/[appId]/commands",
+            icon: SlashSquareIcon,
+            active: router.pathname.startsWith("/apps/[appId]/commands"),
+          },
+          {
+            title: "Listeners",
+            url: "/apps/[appId]/events",
+            icon: SatelliteDishIcon,
+            active: eventSources.some((source) =>
+              router.pathname.startsWith(eventSourceName(source).path)
+            ),
+          },
+        ];
 
   const isOtherActive = !mobileItems.some((item) => item.active);
 

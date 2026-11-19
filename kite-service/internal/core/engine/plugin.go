@@ -141,8 +141,7 @@ func (p *pluginInstance) HandleEvent(ctx context.Context, session *state.State, 
 }
 
 func (p *pluginInstance) pluginContext(ctx context.Context, session *state.State) *pluginContext {
-	discord := NewDiscordProvider(p.model.AppID, p.env.AppStore, p.env.FeatureProvider, p.env.BlockRateLimiter, p.env.WebhookCache, session, p.env.Voice)
-	discord.shared = p.env.Config.SharedApps
+	discord := p.env.discordProvider(p.model.AppID, session)
 
 	return &pluginContext{
 		Context:       ctx,

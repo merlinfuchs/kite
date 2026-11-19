@@ -1,5 +1,6 @@
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   OAuthAuthorizeGetResponse,
@@ -369,9 +370,13 @@ export function useBundleQuery(
   });
 }
 
-// useBundlesByIdQueries loads several bundles with everything in them.
-export function useBundlesByIdQueries(bundleIds: string[]) {
-  return useQueries({ queries: bundleIds.map(bundleQuery) });
+// useBundlesByIdQueries loads several bundles with everything in them. The
+// result of combine stays the same until one of them changes.
+export function useBundlesByIdQueries<T>(
+  bundleIds: string[],
+  combine: (results: { data?: APIResponse<BundleGetResponse> }[]) => T
+) {
+  return useQueries({ queries: bundleIds.map(bundleQuery), combine });
 }
 
 function bundleQuery(bundleId: string) {

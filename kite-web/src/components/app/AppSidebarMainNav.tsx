@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
-interface NavItem {
+export interface NavItem {
   title: string;
   url: string;
   icon: LucideIcon;
@@ -41,13 +41,13 @@ interface NavItem {
   items?: { title: string; url: string; active: boolean }[];
 }
 
-export default function AppSidebarMainNav() {
-  const appId = useAppId();
+// useMainNavItems are the app's pages in the "My app" group. Apps on the Kite
+// bot only add templates, so they only get a few pages.
+export function useMainNavItems(): NavItem[] {
   const router = useRouter();
   // Plugins are replaced by templates, only apps that use one still see them.
   const hasPlugins = !!usePluginInstances()?.length;
   const plan = useAppPlan();
-  // Apps on the Kite bot only add templates, so they only get a few pages.
   const sharedBot = useSharedBot();
 
   const isActive = useCallback(
@@ -61,7 +61,7 @@ export default function AppSidebarMainNav() {
     [router.pathname]
   );
 
-  const items = useMemo((): NavItem[] => {
+  return useMemo((): NavItem[] => {
     const upgrade = {
       // Paid apps manage their plan here, the rest are asked to upgrade.
       title: plan && !plan.default ? "Plan" : "Upgrade",
@@ -77,8 +77,7 @@ export default function AppSidebarMainNav() {
           title: "Dashboard",
           url: "/apps/[appId]",
           icon: LayoutDashboardIcon,
-          active:
-            isActive("/apps/[appId]", true) || isActive("/apps/[appId]/setup"),
+          active: isActive("/apps/[appId]", true),
         },
         {
           title: "Logs",
@@ -147,6 +146,11 @@ export default function AppSidebarMainNav() {
       },
     ];
   }, [isActive, hasPlugins, plan, sharedBot]);
+}
+
+export default function AppSidebarMainNav() {
+  const appId = useAppId();
+  const items = useMainNavItems();
 
   return (
     <SidebarGroup>

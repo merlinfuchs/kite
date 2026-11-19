@@ -1,18 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { hasUpdate } from "@/lib/flow/bundleInstalls";
-import { Template } from "@/lib/flow/templates";
 import { useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useFullTemplates } from "@/lib/hooks/templates";
-import { BundleInstall } from "@/lib/types/wire.gen";
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { Badge } from "../ui/badge";
 import KiteBotStatus from "./KiteBotStatus";
-import TemplateIcon from "./TemplateIcon";
 import { TemplateInstalledCard } from "./TemplateInstalledCard";
+import TemplateToggleRow from "./TemplateToggleRow";
 
 // KiteBotHome is the dashboard of apps on the Kite bot: whether the bot runs
 // fine, and the templates it runs in the server, with their settings.
@@ -65,11 +62,18 @@ export default function KiteBotHome() {
         <div className="space-y-3 !mt-4">
           {added.length ? (
             added.map(({ install, template }) => (
-              <AddedTemplate
+              <TemplateToggleRow
                 key={install.id}
-                install={install}
                 template={template}
-              />
+                label="Settings"
+                badge={
+                  hasUpdate(install) && (
+                    <Badge variant="secondary">Update</Badge>
+                  )
+                }
+              >
+                {() => <TemplateInstalledCard template={template} />}
+              </TemplateToggleRow>
             ))
           ) : (
             <Card className="p-8 text-center">
@@ -84,45 +88,6 @@ export default function KiteBotHome() {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function AddedTemplate({
-  install,
-  template,
-}: {
-  install: BundleInstall;
-  template: Template;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="space-y-3">
-      <Card className="flex items-center gap-4 p-4">
-        <TemplateIcon
-          name={template.icon}
-          className="h-6 w-6 flex-none text-muted-foreground"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="font-medium flex items-center gap-2">
-            {template.name}
-            {hasUpdate(install) && <Badge variant="secondary">Update</Badge>}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {template.description}
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setOpen(!open)}>
-          Settings
-          {open ? (
-            <ChevronUpIcon className="h-4 w-4 ml-1" />
-          ) : (
-            <ChevronDownIcon className="h-4 w-4 ml-1" />
-          )}
-        </Button>
-      </Card>
-      {open && <TemplateInstalledCard template={template} />}
     </div>
   );
 }

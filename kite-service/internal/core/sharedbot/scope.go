@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"mime"
@@ -27,15 +28,12 @@ import (
 // of every request, and a cache that only has the app's server. The engine
 // and the API use the view like the bot of an own app.
 
-// ScopeError is a request a shared app isn't allowed to send.
-type ScopeError struct {
-	Method string
-	Path   string
-}
-
-func (e *ScopeError) Error() string {
-	return "This app runs on the Kite bot and can only act in its own server."
-}
+var (
+	// errOutOfScope is a request a shared app isn't allowed to send.
+	errOutOfScope = errors.New("This app runs on the Kite bot and can only act in its own server.")
+	// errPaused is a request of an app whose requests Discord kept refusing.
+	errPaused = errors.New("Discord refused too many requests of this app, so it can't send any for a few minutes.")
+)
 
 // channelGuilds finds the server of a channel, which the paths of most
 // requests only name the channel of.
@@ -140,21 +138,13 @@ func (f *failures) add(now time.Time) bool {
 	return true
 }
 
-// PausedError is a request of an app whose requests Discord kept refusing.
-type PausedError struct{}
-
-func (PausedError) Error() string {
-	return "Discord refused too many requests of this app, so it can't send any for a few minutes."
-}
-
 // check returns an error for a request outside the app's server. Paths are
 // Discord's routes after the API version, like /channels/123/messages. Unknown
 // routes are refused.
 func (s *scope) check(ctx context.Context, method, path string) error {
 	segments := util.DiscordAPISegments(path)
-	deny := &ScopeError{Method: method, Path: path}
 	if len(segments) == 0 {
-		return deny
+		return errOutOfScope
 	}
 
 	at := func(i int) string {
@@ -177,12 +167,12 @@ func (s *scope) check(ctx context.Context, method, path string) error {
 	case "channels":
 		id, err := discord.ParseSnowflake(at(1))
 		if err != nil {
-			return deny
+			return errOutOfScope
 		}
 		guildID, err := s.channels.guildOf(ctx, discord.ChannelID(id))
 		if err != nil {
 			// Unknown channels are refused, as Discord would.
-			return deny
+			return errOutOfScope
 		}
 		allowed = guildID == s.guildID
 	case "webhooks":
@@ -214,7 +204,7 @@ func (s *scope) check(ctx context.Context, method, path string) error {
 
 	if !allowed {
 		metrics.SharedBotDenied.Add(at(0), 1)
-		return deny
+		return errOutOfScope
 	}
 	return nil
 }
@@ -237,7 +227,7 @@ type scopedDriver struct {
 func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if !ok {
-		return refused(&ScopeError{Path: r.GetPath()}), nil
+		return refused(errOutOfScope), nil
 	}
 	hr := (*http.Request)(req)
 
@@ -250,7 +240,7 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 
 	now := time.Now()
 	if d.scope.failures.paused(now) {
-		return refused(PausedError{}), nil
+		return refused(errPaused), nil
 	}
 
 	resp, err := d.Client.Do(r)
@@ -284,6 +274,12 @@ func (d scopedDriver) checkBody(hr *http.Request) error {
 	}
 	hr.Body = io.NopCloser(bytes.NewReader(body))
 
+	// Most messages don't reference one, which is cheaper to see than to
+	// parse.
+	if !bytes.Contains(body, []byte(`"message_reference"`)) {
+		return nil
+	}
+
 	payload := body
 	if mediaType, params, err := mime.ParseMediaType(hr.Header.Get("Content-Type")); err == nil && strings.HasPrefix(mediaType, "multipart/") {
 		payload = multipartPayload(body, params["boundary"])
@@ -299,15 +295,14 @@ func (d scopedDriver) checkBody(hr *http.Request) error {
 		return nil
 	}
 
-	deny := &ScopeError{Method: hr.Method, Path: hr.URL.Path}
 	ref := msg.MessageReference
 	if ref.GuildID.IsValid() && ref.GuildID != d.scope.guildID {
-		return deny
+		return errOutOfScope
 	}
 	if ref.ChannelID.IsValid() {
 		guildID, err := d.scope.channels.guildOf(hr.Context(), ref.ChannelID)
 		if err != nil || guildID != d.scope.guildID {
-			return deny
+			return errOutOfScope
 		}
 	}
 	return nil

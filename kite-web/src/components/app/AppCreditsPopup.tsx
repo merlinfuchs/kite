@@ -14,7 +14,7 @@ import GetCreditsButton from "./GetCreditsButton";
 
 // Shown from this share of the credits on, so there is time to act before the
 // app is paused.
-const warnAt = 0.8;
+export const warnAt = 0.8;
 
 export default function AppCreditsPopup() {
   const app = useApp();

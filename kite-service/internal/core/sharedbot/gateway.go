@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync"
 	"time"
 
@@ -46,8 +45,10 @@ type Gateway struct {
 	channels     *channelGuilds
 
 	mu sync.Mutex
-	// apps are the enabled shared apps by their server.
-	apps map[discord.GuildID]*model.App
+	// apps are the enabled shared apps by their server, and guilds their
+	// servers by app ID.
+	apps   map[discord.GuildID]*model.App
+	guilds map[string]discord.GuildID
 	// states are the views of the session of the apps, by app ID. They're
 	// made again after the bot reconnects, as they copy its Ready event.
 	states map[string]*state.State
@@ -67,6 +68,7 @@ func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.Even
 		session:      session,
 		channels:     newChannelGuilds(session.Cabinet.ChannelStore, session.Client),
 		apps:         make(map[discord.GuildID]*model.App),
+		guilds:       make(map[string]discord.GuildID),
 		states:       make(map[string]*state.State),
 	}
 }
@@ -102,16 +104,13 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 
 	g.session.AddHandler(func(e *gateway.ReadyEvent) {
-		g.mu.Lock()
-		clear(g.states)
-		g.mu.Unlock()
-
 		// Servers that removed the bot while it was offline.
 		inGuild := make(map[discord.GuildID]bool, len(e.Guilds))
 		for _, guild := range e.Guilds {
 			inGuild[guild.ID] = true
 		}
 		g.mu.Lock()
+		clear(g.states)
 		var removed []discord.GuildID
 		for guildID := range g.apps {
 			if !inGuild[guildID] {
@@ -164,6 +163,7 @@ func (g *Gateway) populate(ctx context.Context) error {
 	}
 
 	byGuild := make(map[discord.GuildID]*model.App, len(apps))
+	guilds := make(map[string]discord.GuildID, len(apps))
 	for _, app := range apps {
 		guildID, err := discord.ParseSnowflake(app.DiscordGuildID.String)
 		if err != nil {
@@ -171,12 +171,14 @@ func (g *Gateway) populate(ctx context.Context) error {
 			continue
 		}
 		byGuild[discord.GuildID(guildID)] = app
+		guilds[app.ID] = discord.GuildID(guildID)
 	}
 
 	g.mu.Lock()
 	g.apps = byGuild
+	g.guilds = guilds
 	for appID := range g.states {
-		if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
+		if _, ok := guilds[appID]; !ok {
 			delete(g.states, appID)
 		}
 	}
@@ -245,22 +247,24 @@ func (g *Gateway) dispatch(e gateway.Event) {
 		return
 	}
 
-	app := g.appOfGuild(guildID)
+	g.mu.Lock()
+	app := g.apps[guildID]
+	var session *state.State
+	if app != nil && !model.HasNoCredits(app) {
+		session = g.stateFor(app, guildID)
+	}
+	g.mu.Unlock()
+
 	if app == nil {
 		metrics.GatewayEventsDropped.Add("shared_no_app", 1)
 		return
 	}
-
-	if model.HasNoCredits(app) {
+	if session == nil {
 		if e, ok := e.(*gateway.InteractionCreateEvent); ok {
 			go kitegateway.RespondPaused(g.session, e, app, g.config.AppBaseURL)
 		}
 		return
 	}
-
-	g.mu.Lock()
-	session := g.stateFor(app, guildID)
-	g.mu.Unlock()
 
 	g.eventHandler.HandleEvent(app.ID, session, e)
 }
@@ -285,10 +289,9 @@ func (g *Gateway) AppSession(ctx context.Context, appID string) (*state.State, e
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	for guildID, app := range g.apps {
-		if app.ID == appID && !model.HasNoCredits(app) {
-			return g.stateFor(app, guildID), nil
-		}
+	guildID, ok := g.guilds[appID]
+	if app := g.apps[guildID]; ok && !model.HasNoCredits(app) {
+		return g.stateFor(app, guildID), nil
 	}
 	return nil, store.ErrNotFound
 }
