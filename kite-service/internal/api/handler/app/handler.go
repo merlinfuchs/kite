@@ -192,11 +192,6 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 }
 
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
-	// The Kite bot's status is the same in every server.
-	if c.App.IsShared() {
-		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot, whose status can't be changed.")
-	}
-
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
 		entries := make([]model.AppDiscordStatusEntry, len(req.DiscordStatus.Statuses))
@@ -241,11 +236,6 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 }
 
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
-	// Moving a shared app to its own bot is the upgrade, which isn't built yet.
-	if c.App.IsShared() {
-		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot and has no token of its own.")
-	}
-
 	// A new token starts the app.
 	if err := h.checkOwnerNotBanned(c); err != nil {
 		return nil, err
