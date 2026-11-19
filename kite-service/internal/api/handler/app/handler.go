@@ -245,7 +245,15 @@ func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwi
 	if !c.App.IsShared() {
 		return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
 	}
-	// Banned users can't get here, so the new owner isn't banned.
+	// Taking the app over needs Manage Server now, not access through an old
+	// record while the bot isn't in the server.
+	if c.SharedAppMember == nil {
+		return nil, handler.ErrForbidden("kite_bot_missing", "Add the Kite bot to your server again to switch this app.")
+	}
+	// So a banned owner can't get the app running again through someone else.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
 	if c.App.OwnerUserID != c.Session.UserID {
 		appCount, err := h.appStore.CountAppsByUser(c.Context(), c.Session.UserID)
 		if err != nil {
