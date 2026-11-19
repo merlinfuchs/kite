@@ -173,13 +173,14 @@ func (e *Engine) removeDangling(ctx context.Context) {
 	}
 }
 
-// runsApp is whether this process runs the app: it's in this cluster and has
-// a bot of its own.
+// runsApp is whether this process runs the app. The shared process runs the
+// shared apps, and each cluster its share of the others.
 func (e *Engine) runsApp(appID string) bool {
-	if _, ok := e.sharedAppIDs[appID]; ok {
-		return false
+	_, shared := e.sharedAppIDs[appID]
+	if e.env.Config.SharedApps {
+		return shared
 	}
-	return util.CluserForKey(appID, e.env.Config.ClusterCount) == e.env.Config.ClusterIndex
+	return !shared && util.CluserForKey(appID, e.env.Config.ClusterCount) == e.env.Config.ClusterIndex
 }
 
 // appForID returns the app with the given ID, creating it if necessary. The
@@ -445,6 +446,9 @@ type EngineConfig struct {
 	MaxCredits    int
 	ClusterCount  int
 	ClusterIndex  int
+	// SharedApps is set in the process of the Kite bot, which runs only the
+	// shared apps.
+	SharedApps bool
 
 	PopulateInterval       time.Duration
 	RemoveDanglingInterval time.Duration

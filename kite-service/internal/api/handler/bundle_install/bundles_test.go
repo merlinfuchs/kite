@@ -120,7 +120,7 @@ func bundlesHandler(commandCount int) (*BundleInstallHandler, *userBundleStore) 
 	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}}
 	h := NewBundleInstallHandler(
 		nil, bundles, commands, &appEventListenerStore{}, &appMessageStore{}, &memoryVariableStore{},
-		&bannedUserStore{bans: map[string]string{}}, nil, nil, nil, nil, 2, nil,
+		&bannedUserStore{bans: map[string]string{}}, nil, nil, nil, nil, 2, nil, nil,
 	)
 	return h, bundles
 }

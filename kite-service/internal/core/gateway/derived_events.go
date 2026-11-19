@@ -12,12 +12,12 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
-// trackDerivedEvents makes session dispatch the events of the guildevent
+// TrackDerivedEvents makes session dispatch the events of the guildevent
 // package. They read the cache from before Discord's event updated it, so
 // they're worked out in the PreHandler. They're dispatched once the cache is
 // updated, so their flows see the same cache as the flows of the Discord
 // event.
-func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
+func TrackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 	var mu sync.Mutex
 	pending := make(map[gateway.Event][]guildevent.Event)
 	edits := newEditTimes()

@@ -1,0 +1,232 @@
+package sharedbot
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"slices"
+	"sync"
+	"time"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/core/engine"
+	kitegateway "github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
+)
+
+// Intents are what the Kite bot identifies with. It has no privileged intents
+// yet, so Lite modules can't need them.
+const Intents = gateway.IntentGuilds |
+	gateway.IntentGuildMessages |
+	gateway.IntentGuildMessageReactions
+
+type GatewayConfig struct {
+	PopulateInterval time.Duration
+	// AppBaseURL is where the Kite app runs, for the link in the reply of
+	// paused apps.
+	AppBaseURL string
+}
+
+// Gateway is the Kite bot's connection to Discord. It sends each event to the
+// app of the server it happened in, and drops the events of servers without
+// one.
+type Gateway struct {
+	config       GatewayConfig
+	bot          *Bot
+	appStore     store.AppStore
+	eventHandler kitegateway.EventHandler
+	session      *state.State
+	botAppID     discord.AppID
+	channels     *channelGuilds
+
+	mu sync.Mutex
+	// apps are the enabled shared apps by their server.
+	apps map[discord.GuildID]*model.App
+	// states are the views of the session of the apps, by app ID. They're
+	// made again after the bot reconnects, as they copy its Ready event.
+	states map[string]*state.State
+}
+
+func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.EventHandler, config GatewayConfig) *Gateway {
+	session := state.NewWithIdentifier(gateway.DefaultIdentifier("Bot " + bot.token))
+	session.AddIntents(Intents)
+	// Before the views of the apps copy the cache.
+	kitegateway.TrackMemberCounts(session)
+
+	return &Gateway{
+		config:       config,
+		bot:          bot,
+		appStore:     appStore,
+		eventHandler: eventHandler,
+		session:      session,
+		channels:     newChannelGuilds(session.Cabinet.ChannelStore, session.Client),
+		apps:         make(map[discord.GuildID]*model.App),
+		states:       make(map[string]*state.State),
+	}
+}
+
+// Run loads the apps before it connects, so the first events have an app to
+// go to.
+func (g *Gateway) Run(ctx context.Context) error {
+	appID, err := g.bot.AppID(ctx)
+	if err != nil {
+		return err
+	}
+	g.botAppID = appID
+
+	if err := g.populate(ctx); err != nil {
+		return err
+	}
+
+	g.session.AddHandler(func(e gateway.Event) {
+		// Protocol frames have no type, see Gateway.startGateway.
+		if e.EventType() == "" {
+			return
+		}
+		metrics.GatewayEvents.Add(string(e.EventType()), 1)
+		g.dispatch(e)
+	})
+	kitegateway.TrackDerivedEvents(g.session, g.dispatch)
+
+	g.session.AddHandler(func(e *gateway.ReadyEvent) {
+		g.mu.Lock()
+		clear(g.states)
+		g.mu.Unlock()
+
+		slog.Info(
+			"Kite bot received ready event",
+			slog.String("user_id", e.User.ID.String()),
+			slog.Int("guilds", len(e.Guilds)),
+		)
+	})
+
+	go func() {
+		ticker := time.NewTicker(util.IntervalOrDefault(g.config.PopulateInterval, 5*time.Second))
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := g.populate(ctx); err != nil {
+					slog.Error("Failed to populate shared apps", slog.String("error", err.Error()))
+				}
+			}
+		}
+	}()
+
+	go func() {
+		if err := g.session.Connect(ctx); err != nil && ctx.Err() == nil {
+			slog.Error("Kite bot failed to connect to the gateway", slog.String("error", err.Error()))
+		}
+	}()
+
+	return nil
+}
+
+// populate reloads every enabled shared app. There are few, so this is
+// cheaper than tracking changes like the gateway manager.
+func (g *Gateway) populate(ctx context.Context) error {
+	apps, err := g.appStore.EnabledSharedApps(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get shared apps: %w", err)
+	}
+
+	byGuild := make(map[discord.GuildID]*model.App, len(apps))
+	for _, app := range apps {
+		guildID, err := discord.ParseSnowflake(app.DiscordGuildID.String)
+		if err != nil {
+			slog.Error("Shared app has an invalid server", slog.String("app_id", app.ID))
+			continue
+		}
+		byGuild[discord.GuildID(guildID)] = app
+	}
+
+	g.mu.Lock()
+	g.apps = byGuild
+	for appID := range g.states {
+		if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
+			delete(g.states, appID)
+		}
+	}
+	g.mu.Unlock()
+	return nil
+}
+
+func (g *Gateway) appOfGuild(guildID discord.GuildID) *model.App {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.apps[guildID]
+}
+
+// stateFor returns the app's view of the session, see scopedState. g.mu
+// must be held.
+func (g *Gateway) stateFor(app *model.App, guildID discord.GuildID) *state.State {
+	if s, ok := g.states[app.ID]; ok {
+		return s
+	}
+	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels})
+	g.states[app.ID] = s
+	return s
+}
+
+func (g *Gateway) dispatch(e gateway.Event) {
+	guildID := engine.EventGuildID(e)
+	if !guildID.IsValid() {
+		metrics.GatewayEventsDropped.Add("shared_no_guild", 1)
+		return
+	}
+
+	app := g.appOfGuild(guildID)
+	if app == nil {
+		metrics.GatewayEventsDropped.Add("shared_no_app", 1)
+		return
+	}
+
+	if model.HasNoCredits(app) {
+		if e, ok := e.(*gateway.InteractionCreateEvent); ok {
+			go kitegateway.RespondPaused(g.session, e, app, g.config.AppBaseURL)
+		}
+		return
+	}
+
+	g.mu.Lock()
+	session := g.stateFor(app, guildID)
+	g.mu.Unlock()
+
+	g.eventHandler.HandleEvent(app.ID, session, e)
+}
+
+// AppIDs returns the shared apps that run flows, for the scheduler.
+func (g *Gateway) AppIDs() []string {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	ids := make([]string, 0, len(g.apps))
+	for _, app := range g.apps {
+		if !model.HasNoCredits(app) {
+			ids = append(ids, app.ID)
+		}
+	}
+	return ids
+}
+
+// AppSession is the app's view of the Kite bot's session, for the shared
+// apps that run flows.
+func (g *Gateway) AppSession(ctx context.Context, appID string) (*state.State, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for guildID, app := range g.apps {
+		if app.ID == appID && !model.HasNoCredits(app) {
+			return g.stateFor(app, guildID), nil
+		}
+	}
+	return nil, store.ErrNotFound
+}

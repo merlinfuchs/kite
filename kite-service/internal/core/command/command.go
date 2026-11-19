@@ -131,6 +131,9 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 	}
 
 	cmdData := mergeCommands(commands)
+	if app.IsShared() {
+		return m.sendSharedCommands(ctx, app, cmdData)
+	}
 
 	hash, err := hashCommands(app.DiscordID, cmdData)
 	if err != nil {
@@ -155,6 +158,48 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 	client := api.NewClient("Bot " + token).WithContext(ctx)
 
 	err = overwriteCommands(client, discord.AppID(appID), cmdData)
+	if err != nil {
+		var httpErr *httputil.HTTPError
+		if errors.As(err, &httpErr) && isRejection(httpErr.Status) {
+			return "", discordDeployError(httpErr, cmdData)
+		}
+		return "", fmt.Errorf("failed to deploy commands: %w", err)
+	}
+
+	return hash, nil
+}
+
+// sendSharedCommands deploys a shared app's commands to its server, as
+// commands of the Kite bot there. They only run in that server, so they get
+// no contexts or install types of their own.
+func (m *CommandManager) sendSharedCommands(ctx context.Context, app *model.App, cmdData []api.CreateCommandData) (string, error) {
+	if m.sharedBot == nil {
+		return "", &DeployError{Message: "This app runs on the Kite bot, which isn't set up."}
+	}
+
+	for i := range cmdData {
+		cmdData[i].Contexts = nil
+		cmdData[i].IntegrationTypes = nil
+	}
+
+	hash, err := hashCommands("guild:"+app.DiscordGuildID.String, cmdData)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash commands: %w", err)
+	}
+	if app.CommandsDeployedHash.Valid && app.CommandsDeployedHash.String == hash {
+		return hash, nil
+	}
+
+	guildID, err := discord.ParseSnowflake(app.DiscordGuildID.String)
+	if err != nil {
+		return "", &DeployError{Message: "The app has an invalid server."}
+	}
+	appID, err := m.sharedBot.AppID(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = m.sharedBot.Client(ctx).BulkOverwriteGuildCommands(appID, discord.GuildID(guildID), cmdData)
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && isRejection(httpErr.Status) {

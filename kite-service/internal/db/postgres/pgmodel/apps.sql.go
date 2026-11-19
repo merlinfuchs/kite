@@ -466,14 +466,12 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 
 const getAppIDsWithDueCommandsDeploy = `-- name: GetAppIDsWithDueCommandsDeploy :many
 SELECT id FROM apps
-WHERE enabled AND bot_type = 'own' AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
 ORDER BY commands_deploy_at DESC
 LIMIT $1
 `
 
 // Newest changes first, so a user waiting for one isn't stuck behind a backlog.
-// Shared apps have no Discord application of their own to deploy to, and stay
-// queued.
 func (q *Queries) GetAppIDsWithDueCommandsDeploy(ctx context.Context, limit int32) ([]string, error) {
 	rows, err := q.db.Query(ctx, getAppIDsWithDueCommandsDeploy, limit)
 	if err != nil {
@@ -720,6 +718,54 @@ SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_t
 
 func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]App, error) {
 	rows, err := q.db.Query(ctx, getEnabledAppsUpdatedSince, updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []App
+	for rows.Next() {
+		var i App
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.OwnerUserID,
+			&i.CreatorUserID,
+			&i.DiscordToken,
+			&i.DiscordID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DiscordStatus,
+			&i.DisabledReason,
+			&i.CommandsDeployAt,
+			&i.CommandsDeployedHash,
+			&i.CommandsDeployError,
+			&i.DiscordGuildCount,
+			&i.DiscordUserInstallCount,
+			&i.DiscordCountsUpdatedAt,
+			&i.DiscordVerifyKey,
+			&i.CreditsPausedAt,
+			&i.CreditNoticesEnabled,
+			&i.BotType,
+			&i.DiscordGuildID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEnabledSharedApps = `-- name: GetEnabledSharedApps :many
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE bot_type = 'shared' AND enabled
+`
+
+func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
+	rows, err := q.db.Query(ctx, getEnabledSharedApps)
 	if err != nil {
 		return nil, err
 	}

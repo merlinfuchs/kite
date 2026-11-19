@@ -181,7 +181,7 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
-	trackDerivedEvents(session, func(e gateway.Event) {
+	TrackDerivedEvents(session, func(e gateway.Event) {
 		if g.paused() {
 			return
 		}

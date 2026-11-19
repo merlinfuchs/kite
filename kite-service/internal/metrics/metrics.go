@@ -29,6 +29,15 @@ var (
 	// on demand instead.
 	GatewayEventsDropped = expvar.NewMap("gateway_events_dropped_total")
 
+	// SharedBotDenied counts the requests of shared apps that were refused
+	// for leaving the app's server, by the first part of their route.
+	SharedBotDenied = expvar.NewMap("shared_bot_denied_total")
+
+	// SharedBotShadow counts the requests of own apps that name a channel, by
+	// whether it was in the cache. Shared apps would ask Discord for the
+	// server of the uncached ones.
+	SharedBotShadow = expvar.NewMap("shared_bot_shadow_total")
+
 	// GatewayConnections tracks the number of live gateway connections owned
 	// by this process.
 	GatewayConnections = expvar.NewInt("gateway_connections_active")

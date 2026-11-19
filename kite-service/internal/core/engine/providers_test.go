@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -292,5 +293,16 @@ func TestRobloxProviderUserAvatarURL(t *testing.T) {
 		if err != nil || url != tc.want {
 			t.Errorf("%s: got %q, %v, want %q", tc.body, url, err, tc.want)
 		}
+	}
+}
+
+// The Kite bot's status is the same in every server, so shared apps can't
+// change it.
+func TestDiscordProviderSharedPresence(t *testing.T) {
+	p := NewDiscordProvider("app", nil, nil, NewBlockRateLimiter(), nil, state.New("Bot token"), nil)
+	p.shared = true
+
+	if err := p.UpdatePresence(context.Background(), discord.OnlineStatus, discord.Activity{}); err == nil {
+		t.Error("shared app changed the Kite bot's status")
 	}
 }

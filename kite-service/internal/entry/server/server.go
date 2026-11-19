@@ -19,6 +19,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
+	"github.com/kitecloud/kite/kite-service/internal/core/sharedbot"
 	"github.com/kitecloud/kite/kite-service/internal/core/testrun"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
@@ -78,6 +79,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	// Clusters run on the same host, so each gets its own port, like the API.
 	debugCfg := cfg.Debug
 	debugCfg.Port += cfg.ClusterIndex
+	if cfg.RunSharedBot {
+		// After the ports of the clusters.
+		debugCfg.Port = cfg.Debug.Port + cfg.ClusterCount
+	}
 	startDebugServer(ctx, debugCfg)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
@@ -130,6 +135,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 				MaxCredits:             cfg.Engine.MaxCredits,
 				ClusterCount:           cfg.ClusterCount,
 				ClusterIndex:           cfg.ClusterIndex,
+				SharedApps:             cfg.RunSharedBot,
 				PopulateInterval:       cfg.Engine.PopulateInterval,
 				RemoveDanglingInterval: cfg.Engine.RemoveDanglingInterval,
 				PopulateOverlap:        cfg.Engine.PopulateOverlap,
@@ -160,9 +166,35 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	)
 	engine.Run(ctx)
 
-	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt)
-
 	handler := event.NewEventHandlerWrapper(engine, pg)
+
+	sharedBot := sharedbot.New(cfg.SharedBot.Token)
+	if cfg.RunSharedBot {
+		if sharedBot == nil {
+			return errors.New("the Kite bot needs shared_bot.token")
+		}
+
+		sharedGateway := sharedbot.NewGateway(sharedBot, pg, handler, sharedbot.GatewayConfig{
+			PopulateInterval: cfg.Engine.PopulateInterval,
+			AppBaseURL:       cfg.App.PublicBaseURL,
+		})
+		if err := sharedGateway.Run(ctx); err != nil {
+			return fmt.Errorf("failed to start the Kite bot: %w", err)
+		}
+		engine.RunScheduler(ctx, sharedGateway)
+		js.Warm(ctx, time.Minute)
+
+		// The API, command deploys and other jobs run in the clusters.
+		<-c.Done()
+		return nil
+	}
+
+	// A nil *sharedbot.Bot would be a SharedBot that isn't nil.
+	var commandSharedBot command.SharedBot
+	if sharedBot != nil {
+		commandSharedBot = sharedBot
+	}
+	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt, commandSharedBot)
 
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, pluginRegistry, gateway.GatewayManagerConfig{
 		ClusterCount:           cfg.ClusterCount,
@@ -225,7 +257,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, sharedbot.NewAppStateManager(gateway, pg, sharedBot), engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,
 	)

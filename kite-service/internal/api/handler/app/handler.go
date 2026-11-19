@@ -185,6 +185,11 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 }
 
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
+	// The Kite bot's status is the same in every server.
+	if c.App.IsShared() {
+		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot, whose status can't be changed.")
+	}
+
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
 		entries := make([]model.AppDiscordStatusEntry, len(req.DiscordStatus.Statuses))

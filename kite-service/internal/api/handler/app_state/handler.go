@@ -92,6 +92,11 @@ func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.
 }
 
 func (h *AppStateHandler) HandleStateUserUpdate(c *handler.Context, req wire.StateUserUpdateRequest) (*wire.StateUserUpdateResponse, error) {
+	// The Kite bot's name and avatar are the same in every server. A server
+	// profile changes them in one.
+	if c.App.IsShared() {
+		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot, whose name and avatar can't be changed. Change them for your server in its server profile.")
+	}
 	if err := checkAnimatedImages(c, req.Avatar, req.Banner); err != nil {
 		return nil, err
 	}

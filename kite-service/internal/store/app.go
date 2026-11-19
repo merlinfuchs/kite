@@ -64,6 +64,8 @@ type AppStore interface {
 	DeleteApp(ctx context.Context, id string) error
 	// SharedAppIDs are the apps on the Kite bot, which the clusters skip.
 	SharedAppIDs(ctx context.Context) ([]string, error)
+	// EnabledSharedApps are the apps the Kite bot runs.
+	EnabledSharedApps(ctx context.Context) ([]*model.App, error)
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
 	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every
