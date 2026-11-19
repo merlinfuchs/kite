@@ -50,26 +50,21 @@ export default function LegalUpdateDialog() {
             <Link href="/privacy" target="_blank" className="underline">
               Privacy Policy
             </Link>{" "}
-            were rewritten on {formatLegalDate(legalUpdatedAt)} and apply from
+            were updated on {formatLegalDate(legalUpdatedAt)} and apply from
             then on.
           </DialogDescription>
         </DialogHeader>
         <ul className="list-disc space-y-1.5 pl-5 text-sm">
           <li>
-            Kite runs your bot as your service provider under Discord&apos;s
-            Developer Terms, and only for you.
+            They cover Quick setup, where apps run on the Kite bot instead of a
+            bot of your own.
           </li>
           <li>
-            They include a data processing agreement for the data your bot
-            handles.
+            The privacy policy says what the Kite bot does with the data of
+            servers and their members.
           </li>
           <li>
-            They set the rules for templates you share and list in the
-            marketplace.
-          </li>
-          <li>
-            The privacy policy names every service we share data with, like
-            OpenAI for the AI features.
+            It also covers badges, API tokens and AI apps you connect to Kite.
           </li>
         </ul>
         <DialogFooter>
