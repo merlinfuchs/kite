@@ -82,6 +82,9 @@ type AppStore interface {
 	// EnableSharedAppDisabledWithReason reports whether the server's app was
 	// stopped for the reason and is started now.
 	EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error)
+	// RenameSharedApp gives the server's app the server's name, if it has
+	// another one.
+	RenameSharedApp(ctx context.Context, guildID string, name string, now time.Time) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
 	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every

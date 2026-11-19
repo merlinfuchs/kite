@@ -55,7 +55,11 @@ export default function AppSidebarAppSwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{app?.name}</span>
-                <span className="truncate text-xs">{plan?.title}</span>
+                <span className="truncate text-xs">
+                  {app?.bot_type === "shared"
+                    ? `Quick setup · ${plan?.title ?? ""}`
+                    : plan?.title}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -78,7 +82,12 @@ export default function AppSidebarAppSwitcher() {
                 <div className="flex size-6 items-center justify-center rounded-sm border">
                   <BotIcon className="size-4 shrink-0" />
                 </div>
-                {app!.name}
+                <span className="truncate">{app!.name}</span>
+                {app!.bot_type === "shared" && (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Quick setup
+                  </span>
+                )}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />

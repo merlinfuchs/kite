@@ -121,6 +121,15 @@ func (g *Gateway) Run(ctx context.Context) error {
 	g.session.AddHandler(func(e *state.GuildLeaveEvent) {
 		go g.guildLeft(ctx, e.ID)
 	})
+	// The name of an app is its server's, also after the server is renamed.
+	// Servers come with a create event after every connect, which catches
+	// renames while the bot was offline.
+	g.session.AddHandler(func(e *gateway.GuildCreateEvent) {
+		go g.guildRenamed(ctx, e.ID, e.Name)
+	})
+	g.session.AddHandler(func(e *gateway.GuildUpdateEvent) {
+		go g.guildRenamed(ctx, e.ID, e.Name)
+	})
 
 	g.session.AddHandler(func(e *gateway.ReadyEvent) {
 		// Servers that removed the bot while it was offline.
@@ -242,6 +251,18 @@ func (g *Gateway) guildLeft(ctx context.Context, guildID discord.GuildID) {
 	}
 	if err := g.populate(ctx); err != nil {
 		slog.Error("Failed to populate shared apps", slog.String("error", err.Error()))
+	}
+}
+
+// guildRenamed gives the app of the server the server's name, if it has
+// another one.
+func (g *Gateway) guildRenamed(ctx context.Context, guildID discord.GuildID, name string) {
+	app := g.appOfGuild(guildID)
+	if app == nil || name == "" || app.Name == name {
+		return
+	}
+	if err := g.appStore.RenameSharedApp(ctx, guildID.String(), name, time.Now()); err != nil {
+		slog.Error("Failed to rename the app of a server", slog.String("app_id", app.ID), slog.String("error", err.Error()))
 	}
 }
 

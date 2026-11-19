@@ -238,6 +238,15 @@ func (c *Client) CreateSharedApp(ctx context.Context, opts store.SharedAppCreate
 	return rowToApp(row)
 }
 
+func (c *Client) RenameSharedApp(ctx context.Context, guildID string, name string, now time.Time) error {
+	_, err := c.Q.RenameSharedApp(ctx, pgmodel.RenameSharedAppParams{
+		Name:           name,
+		UpdatedAt:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		DiscordGuildID: pgtype.Text{String: guildID, Valid: true},
+	})
+	return err
+}
+
 func (c *Client) EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error) {
 	n, err := c.Q.EnableSharedAppDisabledWithReason(ctx, pgmodel.EnableSharedAppDisabledWithReasonParams{
 		UpdatedAt:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
