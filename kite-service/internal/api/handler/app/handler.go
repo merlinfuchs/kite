@@ -236,6 +236,79 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 	return wire.AppToWire(app), nil
 }
 
+// HandleAppSwitchToCustom moves an app on the Kite bot to the user's own bot,
+// Custom setup. It keeps its templates, which become editable, its stored
+// variables, logs and plan. The Kite bot stays in the server, its commands
+// for the app are removed.
+func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwitchToCustomRequest) (*wire.AppSwitchToCustomResponse, error) {
+	if !c.App.IsShared() {
+		return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
+	}
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+
+	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
+		}
+		return nil, fmt.Errorf("failed to get discord app info: %w", err)
+	}
+
+	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
+	// Before the switch, as only the app on the Kite bot reaches them.
+	h.removeSharedCommands(c)
+
+	app, err := h.appStore.SwitchSharedAppToOwn(c.Context(), store.SharedAppSwitchOpts{
+		ID:               c.App.ID,
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		DiscordID:        appInfo.ID,
+		DiscordToken:     encryptedToken,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		UpdatedAt:        time.Now().UTC(),
+	})
+	if err != nil {
+		// The Kite bot sends the commands it had again.
+		if err := h.appStore.QueueAppCommandsDeploy(c.Context(), c.App.ID, true); err != nil {
+			slog.Error("Failed to queue commands deploy", slog.String("app_id", c.App.ID), slog.String("error", err.Error()))
+		}
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already an app in Kite. Create a new bot for this app in the Discord Developer Portal.")
+		}
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
+		}
+		return nil, fmt.Errorf("failed to switch app: %w", err)
+	}
+
+	// Access follows the owner and collaborators again, so whoever switched
+	// it keeps it, like everyone the install added.
+	if app.OwnerUserID != c.Session.UserID {
+		_, err := h.appStore.Collaborator(c.Context(), app.ID, c.Session.UserID)
+		if errors.Is(err, store.ErrNotFound) {
+			now := time.Now().UTC()
+			_, err = h.appStore.CreateCollaborator(c.Context(), &model.AppCollaborator{
+				AppID:     app.ID,
+				UserID:    c.Session.UserID,
+				Role:      model.AppCollaboratorRoleAdmin,
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to add collaborator: %w", err)
+		}
+	}
+
+	return wire.AppToWire(app), nil
+}
+
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
 	// A new token starts the app.
 	if err := h.checkOwnerNotBanned(c); err != nil {

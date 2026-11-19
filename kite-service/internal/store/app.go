@@ -16,6 +16,17 @@ type SharedAppCreateOpts struct {
 	CreatedAt      time.Time
 }
 
+// SharedAppSwitchOpts move a shared app to the user's own bot.
+type SharedAppSwitchOpts struct {
+	ID               string
+	Name             string
+	Description      null.String
+	DiscordID        string
+	DiscordToken     string
+	DiscordVerifyKey null.String
+	UpdatedAt        time.Time
+}
+
 type AppUpdateOpts struct {
 	ID             string
 	Name           string
@@ -82,6 +93,9 @@ type AppStore interface {
 	// EnableSharedAppDisabledWithReason reports whether the server's app was
 	// stopped for the reason and is started now.
 	EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error)
+	// SwitchSharedAppToOwn returns ErrAlreadyExists if another app has the
+	// bot, and ErrNotFound if the app isn't a shared one.
+	SwitchSharedAppToOwn(ctx context.Context, opts SharedAppSwitchOpts) (*model.App, error)
 	// RenameSharedApp gives the server's app the server's name, if it has
 	// another one.
 	RenameSharedApp(ctx context.Context, guildID string, name string, now time.Time) error

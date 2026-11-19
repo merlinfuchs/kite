@@ -164,6 +164,20 @@ func (req AppTokenUpdateRequest) Validate() error {
 
 type AppTokenUpdateResponse = App
 
+// AppSwitchToCustomRequest moves an app on the Kite bot to the user's own
+// bot, with its token.
+type AppSwitchToCustomRequest struct {
+	DiscordToken string `json:"discord_token"`
+}
+
+func (req AppSwitchToCustomRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordToken, validation.Required),
+	)
+}
+
+type AppSwitchToCustomResponse = App
+
 type AppDeleteResponse = Empty
 
 type AppListResponse = []*App

@@ -10,6 +10,8 @@ import {
   AppCollaboratorInviteDeleteResponse,
   AppCreateRequest,
   AppCreateResponse,
+  AppSwitchToCustomRequest,
+  AppSwitchToCustomResponse,
   AppDeleteResponse,
   AppCreditNoticesUpdateRequest,
   AppCreditNoticesUpdateResponse,
@@ -180,6 +182,31 @@ export function useAppCreateMutation() {
           "Content-Type": "application/json",
         },
       }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps"],
+      });
+    },
+  });
+}
+
+// useAppSwitchToCustomMutation moves an app on the Kite bot to the user's own
+// bot.
+export function useAppSwitchToCustomMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppSwitchToCustomRequest) =>
+      apiRequest<AppSwitchToCustomResponse>(
+        `/v1/apps/${appId}/switch-to-custom`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps"],
