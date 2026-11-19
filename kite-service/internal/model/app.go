@@ -90,6 +90,11 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
+// AppDisabledReasonSharedBotRemoved is the reason an app on the Kite bot is
+// disabled when the bot was removed from its server. Adding the bot again
+// starts it.
+const AppDisabledReasonSharedBotRemoved = "The Kite bot was removed from this server. Add it again to start the app."
+
 // AppDisabledReasonOwnerBanned is the reason the apps of a user Kite banned
 // are stopped. Unbanning them starts the apps stopped for this reason again.
 const AppDisabledReasonOwnerBanned = "Kite banned the owner of this app"

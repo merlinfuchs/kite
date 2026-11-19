@@ -90,6 +90,33 @@ SELECT id FROM apps WHERE bot_type = 'shared';
 -- name: GetEnabledSharedApps :many
 SELECT * FROM apps WHERE bot_type = 'shared' AND enabled;
 
+-- name: GetSharedAppByGuild :one
+SELECT * FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1;
+
+-- name: CreateSharedApp :one
+INSERT INTO apps (
+    id,
+    name,
+    owner_user_id,
+    creator_user_id,
+    bot_type,
+    discord_guild_id,
+    created_at,
+    updated_at
+) VALUES (
+    @id, @name, @owner_user_id, @owner_user_id, 'shared', @discord_guild_id, @created_at, @created_at
+) RETURNING *;
+
+-- Starts the shared app of the server again if it was stopped for the reason,
+-- like the Kite bot being removed from the server, so it can't undo the user
+-- stopping it.
+-- name: EnableSharedAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at
+WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND NOT enabled AND disabled_reason = @disabled_reason;
+
 -- name: GetEnabledAppIDs :many
 SELECT id FROM apps WHERE enabled = TRUE;
 

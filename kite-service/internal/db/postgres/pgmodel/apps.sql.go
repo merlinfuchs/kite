@@ -94,6 +94,66 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 	return i, err
 }
 
+const createSharedApp = `-- name: CreateSharedApp :one
+INSERT INTO apps (
+    id,
+    name,
+    owner_user_id,
+    creator_user_id,
+    bot_type,
+    discord_guild_id,
+    created_at,
+    updated_at
+) VALUES (
+    $1, $2, $3, $3, 'shared', $4, $5, $5
+) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+`
+
+type CreateSharedAppParams struct {
+	ID             string
+	Name           string
+	OwnerUserID    string
+	DiscordGuildID pgtype.Text
+	CreatedAt      pgtype.Timestamp
+}
+
+func (q *Queries) CreateSharedApp(ctx context.Context, arg CreateSharedAppParams) (App, error) {
+	row := q.db.QueryRow(ctx, createSharedApp,
+		arg.ID,
+		arg.Name,
+		arg.OwnerUserID,
+		arg.DiscordGuildID,
+		arg.CreatedAt,
+	)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.OwnerUserID,
+		&i.CreatorUserID,
+		&i.DiscordToken,
+		&i.DiscordID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DiscordStatus,
+		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
+		&i.CreditsPausedAt,
+		&i.CreditNoticesEnabled,
+		&i.BotType,
+		&i.DiscordGuildID,
+	)
+	return i, err
+}
+
 const delayAppCommandsDeploy = `-- name: DelayAppCommandsDeploy :exec
 UPDATE apps SET
     commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
@@ -190,6 +250,31 @@ type EnableAppsOfOwnerDisabledWithReasonParams struct {
 func (q *Queries) EnableAppsOfOwnerDisabledWithReason(ctx context.Context, arg EnableAppsOfOwnerDisabledWithReasonParams) error {
 	_, err := q.db.Exec(ctx, enableAppsOfOwnerDisabledWithReason, arg.UpdatedAt, arg.OwnerUserID, arg.DisabledReason)
 	return err
+}
+
+const enableSharedAppDisabledWithReason = `-- name: EnableSharedAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $1
+WHERE bot_type = 'shared' AND discord_guild_id = $2 AND NOT enabled AND disabled_reason = $3
+`
+
+type EnableSharedAppDisabledWithReasonParams struct {
+	UpdatedAt      pgtype.Timestamp
+	DiscordGuildID pgtype.Text
+	DisabledReason pgtype.Text
+}
+
+// Starts the shared app of the server again if it was stopped for the reason,
+// like the Kite bot being removed from the server, so it can't undo the user
+// stopping it.
+func (q *Queries) EnableSharedAppDisabledWithReason(ctx context.Context, arg EnableSharedAppDisabledWithReasonParams) (int64, error) {
+	result, err := q.db.Exec(ctx, enableSharedAppDisabledWithReason, arg.UpdatedAt, arg.DiscordGuildID, arg.DisabledReason)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const finishAppCommandsDeploy = `-- name: FinishAppCommandsDeploy :exec
@@ -806,6 +891,41 @@ func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getSharedAppByGuild = `-- name: GetSharedAppByGuild :one
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1
+`
+
+func (q *Queries) GetSharedAppByGuild(ctx context.Context, discordGuildID pgtype.Text) (App, error) {
+	row := q.db.QueryRow(ctx, getSharedAppByGuild, discordGuildID)
+	var i App
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.OwnerUserID,
+		&i.CreatorUserID,
+		&i.DiscordToken,
+		&i.DiscordID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DiscordStatus,
+		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
+		&i.CreditsPausedAt,
+		&i.CreditNoticesEnabled,
+		&i.BotType,
+		&i.DiscordGuildID,
+	)
+	return i, err
 }
 
 const getSharedAppIDs = `-- name: GetSharedAppIDs :many

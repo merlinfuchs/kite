@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 // Intents are what the Kite bot identifies with. It has no privileged intents
@@ -93,10 +94,34 @@ func (g *Gateway) Run(ctx context.Context) error {
 	})
 	kitegateway.TrackDerivedEvents(g.session, g.dispatch)
 
+	g.session.AddHandler(func(e *state.GuildJoinEvent) {
+		go g.guildJoined(ctx, e.ID)
+	})
+	g.session.AddHandler(func(e *state.GuildLeaveEvent) {
+		go g.guildLeft(ctx, e.ID)
+	})
+
 	g.session.AddHandler(func(e *gateway.ReadyEvent) {
 		g.mu.Lock()
 		clear(g.states)
 		g.mu.Unlock()
+
+		// Servers that removed the bot while it was offline.
+		inGuild := make(map[discord.GuildID]bool, len(e.Guilds))
+		for _, guild := range e.Guilds {
+			inGuild[guild.ID] = true
+		}
+		g.mu.Lock()
+		var removed []discord.GuildID
+		for guildID := range g.apps {
+			if !inGuild[guildID] {
+				removed = append(removed, guildID)
+			}
+		}
+		g.mu.Unlock()
+		for _, guildID := range removed {
+			go g.guildLeft(ctx, guildID)
+		}
 
 		slog.Info(
 			"Kite bot received ready event",
@@ -157,6 +182,43 @@ func (g *Gateway) populate(ctx context.Context) error {
 	}
 	g.mu.Unlock()
 	return nil
+}
+
+// guildJoined starts the app of a server that added the bot again. New
+// servers get their app when they're set up, see the install of the API.
+func (g *Gateway) guildJoined(ctx context.Context, guildID discord.GuildID) {
+	started, err := g.appStore.EnableSharedAppDisabledWithReason(ctx, guildID.String(), model.AppDisabledReasonSharedBotRemoved, time.Now())
+	if err != nil {
+		slog.Error("Failed to start the app of a server that added the Kite bot", slog.String("guild_id", guildID.String()), slog.String("error", err.Error()))
+		return
+	}
+	if started {
+		if err := g.populate(ctx); err != nil {
+			slog.Error("Failed to populate shared apps", slog.String("error", err.Error()))
+		}
+	}
+}
+
+// guildLeft stops the app of a server that removed the bot, and keeps it, so
+// adding the bot again starts it with everything it had.
+func (g *Gateway) guildLeft(ctx context.Context, guildID discord.GuildID) {
+	app := g.appOfGuild(guildID)
+	if app == nil {
+		return
+	}
+
+	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+		ID:             app.ID,
+		DisabledReason: null.StringFrom(model.AppDisabledReasonSharedBotRemoved),
+		UpdatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		slog.Error("Failed to stop the app of a server that removed the Kite bot", slog.String("app_id", app.ID), slog.String("error", err.Error()))
+		return
+	}
+	if err := g.populate(ctx); err != nil {
+		slog.Error("Failed to populate shared apps", slog.String("error", err.Error()))
+	}
 }
 
 func (g *Gateway) appOfGuild(guildID discord.GuildID) *model.App {

@@ -23,10 +23,16 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		return "", nil, fmt.Errorf("Failed to exchange token: %w", err)
 	}
 
-	client := h.oauth2Config.Client(c.Context(), tokenData)
+	token, session, _, err := h.authenticate(c, h.oauth2Config.Client(c.Context(), tokenData))
+	return token, session, err
+}
+
+// authenticate logs in the Discord user of the client, creating their Kite
+// user on their first login.
+func (h *AuthHandler) authenticate(c *handler.Context, client *http.Client) (string, *model.Session, *model.User, error) {
 	resp, err := client.Get("https://discord.com/api/users/@me")
 	if err != nil {
-		return "", nil, fmt.Errorf("Failed to get user info: %w", err)
+		return "", nil, nil, fmt.Errorf("Failed to get user info: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -41,15 +47,15 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	}{}
 	err = json.NewDecoder(resp.Body).Decode(&discordUser)
 	if err != nil {
-		return "", nil, fmt.Errorf("Failed to decode user info: %w", err)
+		return "", nil, nil, fmt.Errorf("Failed to decode user info: %w", err)
 	}
 
 	if discordUser.Email == "" {
-		return "", nil, fmt.Errorf("User has no email")
+		return "", nil, nil, fmt.Errorf("User has no email")
 	}
 
 	if !discordUser.Verified {
-		return "", nil, fmt.Errorf("User email is not verified")
+		return "", nil, nil, fmt.Errorf("User email is not verified")
 	}
 
 	displayName := discordUser.GlobalName
@@ -69,7 +75,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	})
 	if err != nil {
 		slog.With("error", err).Error("Failed to upsert user")
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	// The username comes straight from Discord, so whoever has it now is who the
@@ -81,10 +87,10 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 
 	token, session, err := h.sessionManager.CreateSessionCookie(c, user.ID)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
-	return token, session, nil
+	return token, session, user, nil
 }
 
 func (h *AuthHandler) getOauthStateCookie(c *handler.Context) string {

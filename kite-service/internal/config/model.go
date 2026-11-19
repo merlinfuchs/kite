@@ -101,6 +101,11 @@ type SharedBotConfig struct {
 	// Token is the Kite bot's token, from the environment like other secrets.
 	// Without it, shared apps don't run.
 	Token string `toml:"token"`
+	// ClientSecret is the OAuth2 secret of the Kite bot's application, for
+	// logging in and adding the bot on one page. Without it, it's
+	// discord.client_secret, as on kite.onl users log in with the Kite bot's
+	// application.
+	ClientSecret string `toml:"client_secret"`
 }
 
 type DiscordConfig struct {

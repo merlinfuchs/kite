@@ -217,6 +217,41 @@ func (c *Client) EnabledSharedApps(ctx context.Context) ([]*model.App, error) {
 	return apps, nil
 }
 
+func (c *Client) SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error) {
+	row, err := c.Q.GetSharedAppByGuild(ctx, pgtype.Text{String: guildID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToApp(row)
+}
+
+func (c *Client) CreateSharedApp(ctx context.Context, opts store.SharedAppCreateOpts) (*model.App, error) {
+	row, err := c.Q.CreateSharedApp(ctx, pgmodel.CreateSharedAppParams{
+		ID:             opts.ID,
+		Name:           opts.Name,
+		OwnerUserID:    opts.OwnerUserID,
+		DiscordGuildID: pgtype.Text{String: opts.DiscordGuildID, Valid: true},
+		CreatedAt:      pgtype.Timestamp{Time: opts.CreatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		// A server has at most one shared app.
+		return nil, uniqueViolation(err)
+	}
+	return rowToApp(row)
+}
+
+func (c *Client) EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error) {
+	n, err := c.Q.EnableSharedAppDisabledWithReason(ctx, pgmodel.EnableSharedAppDisabledWithReasonParams{
+		UpdatedAt:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		DiscordGuildID: pgtype.Text{String: guildID, Valid: true},
+		DisabledReason: pgtype.Text{String: reason, Valid: true},
+	})
+	return n > 0, err
+}
+
 func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
 	return c.Q.GetEnabledAppIDs(ctx)
 }
