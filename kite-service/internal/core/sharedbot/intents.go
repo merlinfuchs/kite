@@ -50,8 +50,8 @@ var bundleIntents = func() map[string][]string {
 }()
 
 // filterEvent is the event as an app with the intents gets it, or false if
-// it doesn't get it at all.
-func filterEvent(e gateway.Event, intents *appIntents) (gateway.Event, bool) {
+// it doesn't get it at all. bot is the Kite bot's user.
+func filterEvent(e gateway.Event, intents *appIntents, bot discord.UserID) (gateway.Event, bool) {
 	switch e.(type) {
 	case *gateway.GuildMemberAddEvent, *gateway.GuildMemberRemoveEvent,
 		*gateway.GuildMemberUpdateEvent, *gateway.GuildMembersChunkEvent,
@@ -64,27 +64,27 @@ func filterEvent(e gateway.Event, intents *appIntents) (gateway.Event, bool) {
 
 	switch e := e.(type) {
 	case *gateway.MessageCreateEvent:
-		if hasContent(e.Message) {
+		if strips(e.Message, bot) {
 			copied := *e
-			copied.Message = withoutContent(e.Message)
+			copied.Message = withoutContent(e.Message, bot)
 			return &copied, true
 		}
 	case *gateway.MessageUpdateEvent:
-		if hasContent(e.Message) {
+		if strips(e.Message, bot) {
 			copied := *e
-			copied.Message = withoutContent(e.Message)
+			copied.Message = withoutContent(e.Message, bot)
 			return &copied, true
 		}
 	case *guildevent.MessageEdit:
-		if hasContent(e.Message) {
+		if strips(e.Message, bot) {
 			copied := *e
-			copied.Message = withoutContent(e.Message)
+			copied.Message = withoutContent(e.Message, bot)
 			return &copied, true
 		}
 	case *guildevent.MessageDelete:
-		if e.Message != nil && hasContent(*e.Message) {
+		if e.Message != nil && strips(*e.Message, bot) {
 			copied := *e
-			stripped := withoutContent(*e.Message)
+			stripped := withoutContent(*e.Message, bot)
 			copied.Message = &stripped
 			return &copied, true
 		}
@@ -92,40 +92,125 @@ func filterEvent(e gateway.Event, intents *appIntents) (gateway.Event, bool) {
 	return e, true
 }
 
-// hasContent is whether the message has anything withoutContent removes.
-// Without the intent Discord already leaves it out, so most messages have
-// none.
-func hasContent(m discord.Message) bool {
+// keepsContent is whether Discord sends the text of the message also to bots
+// without the Message Content intent: their own messages and the ones that
+// mention them.
+func keepsContent(author discord.UserID, mentions []discord.UserID, bot discord.UserID) bool {
+	return author == bot || slices.Contains(mentions, bot)
+}
+
+func mentionIDs(m discord.Message) []discord.UserID {
+	ids := make([]discord.UserID, len(m.Mentions))
+	for i, u := range m.Mentions {
+		ids[i] = u.ID
+	}
+	return ids
+}
+
+// strips is whether withoutContent changes the message. Without the intent
+// Discord already leaves the text out, so most messages have none.
+func strips(m discord.Message, bot discord.UserID) bool {
+	if m.ReferencedMessage != nil && strips(*m.ReferencedMessage, bot) {
+		return true
+	}
+	if keepsContent(m.Author.ID, mentionIDs(m), bot) {
+		return false
+	}
 	return m.Content != "" || len(m.Embeds) > 0 || len(m.Attachments) > 0 ||
-		len(m.Components) > 0 || len(m.MessageSnapshots) > 0 ||
-		(m.ReferencedMessage != nil && hasContent(*m.ReferencedMessage))
+		len(m.Components) > 0 || len(m.MessageSnapshots) > 0
 }
 
 // withoutContent is the message without what Discord leaves out for bots
-// without the Message Content intent, also of the message it replies to or
-// forwards.
-func withoutContent(m discord.Message) discord.Message {
+// without the Message Content intent, also of the message it replies to.
+func withoutContent(m discord.Message, bot discord.UserID) discord.Message {
+	if m.ReferencedMessage != nil {
+		referenced := withoutContent(*m.ReferencedMessage, bot)
+		m.ReferencedMessage = &referenced
+	}
+	if keepsContent(m.Author.ID, mentionIDs(m), bot) {
+		return m
+	}
 	m.Content = ""
 	m.Embeds = nil
 	m.Attachments = nil
 	m.Components = nil
 	m.MessageSnapshots = nil
-	if m.ReferencedMessage != nil {
-		referenced := withoutContent(*m.ReferencedMessage)
-		m.ReferencedMessage = &referenced
-	}
 	return m
 }
 
+// contentKeys are the fields of a message Discord leaves out for bots without
+// the Message Content intent.
+var contentKeys = []string{"content", "embeds", "attachments", "components", "message_snapshots", "poll"}
+
+// withoutContentJSON is withoutContent for a message as Discord sent it, so
+// fields arikawa doesn't know stay as they are.
+func withoutContentJSON(raw json.RawMessage, bot discord.UserID) (json.RawMessage, error) {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil, err
+	}
+	if referenced, ok := m["referenced_message"]; ok && string(referenced) != "null" {
+		stripped, err := withoutContentJSON(referenced, bot)
+		if err != nil {
+			return nil, err
+		}
+		m["referenced_message"] = stripped
+	}
+
+	var who struct {
+		Author   discord.User   `json:"author"`
+		Mentions []discord.User `json:"mentions"`
+	}
+	if err := json.Unmarshal(raw, &who); err != nil {
+		return nil, err
+	}
+	mentions := make([]discord.UserID, len(who.Mentions))
+	for i, u := range who.Mentions {
+		mentions[i] = u.ID
+	}
+	if !keepsContent(who.Author.ID, mentions, bot) {
+		for _, key := range contentKeys {
+			delete(m, key)
+		}
+	}
+	return json.Marshal(m)
+}
+
+// readsMessages is whether the request gets messages in a form
+// filterResponse doesn't take the text out of, like pins or a search. Apps
+// whose templates don't read message text can't send it.
+func readsMessages(method string, segments []string) bool {
+	if method != http.MethodGet || len(segments) < 3 {
+		return false
+	}
+	switch {
+	case segments[0] == "channels" && segments[2] == "pins":
+		return true
+	case segments[0] == "channels" && segments[2] == "messages" && len(segments) > 3 && segments[3] == "pins":
+		return true
+	case segments[0] == "guilds" && segments[2] == "messages":
+		return true
+	}
+	return false
+}
+
 // filterResponse takes the text out of the messages Discord sent for a GET
-// of one or several messages, like Get Message, for apps whose templates
-// don't read it.
-func filterResponse(method, path string, resp httpdriver.Response, intents *appIntents) (httpdriver.Response, error) {
+// of one message or a channel's messages, like Get Message, for apps whose
+// templates don't read it.
+func filterResponse(method, path string, resp httpdriver.Response, intents *appIntents, bot discord.UserID) (httpdriver.Response, error) {
 	if method != http.MethodGet || resp.GetStatus() != http.StatusOK || intents.messageContent.Load() {
 		return resp, nil
 	}
 	segments := util.DiscordAPISegments(path)
 	if len(segments) < 3 || segments[0] != "channels" || segments[2] != "messages" {
+		return resp, nil
+	}
+	one := len(segments) == 4
+	if one {
+		if _, err := discord.ParseSnowflake(segments[3]); err != nil {
+			return resp, nil
+		}
+	} else if len(segments) != 3 {
 		return resp, nil
 	}
 
@@ -136,24 +221,21 @@ func filterResponse(method, path string, resp httpdriver.Response, intents *appI
 		return nil, err
 	}
 
-	var stripped any
-	if len(segments) == 3 {
-		var messages []discord.Message
-		if err := json.Unmarshal(raw, &messages); err != nil {
-			return nil, err
-		}
-		for i := range messages {
-			messages[i] = withoutContent(messages[i])
-		}
-		stripped = messages
+	if one {
+		raw, err = withoutContentJSON(raw, bot)
 	} else {
-		var m discord.Message
-		if err := json.Unmarshal(raw, &m); err != nil {
-			return nil, err
+		var messages []json.RawMessage
+		if err = json.Unmarshal(raw, &messages); err == nil {
+			for i := range messages {
+				if messages[i], err = withoutContentJSON(messages[i], bot); err != nil {
+					break
+				}
+			}
+			if err == nil {
+				raw, err = json.Marshal(messages)
+			}
 		}
-		stripped = withoutContent(m)
 	}
-	raw, err = json.Marshal(stripped)
 	if err != nil {
 		return nil, err
 	}

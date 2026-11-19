@@ -36,7 +36,7 @@ func testScope(t *testing.T) *scope {
 		}
 	}
 
-	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{max: maxFailures}, all: &failures{max: maxAPIFailures}}
+	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{max: maxFailures}, all: &failures{max: maxAPIFailures}, intents: &appIntents{}}
 }
 
 func TestScopeCheck(t *testing.T) {
@@ -195,7 +195,7 @@ func TestScopedCabinet(t *testing.T) {
 	cabinet.ChannelSet(&discord.Channel{ID: otherChannel, GuildID: otherGuild}, false)
 	cabinet.RoleSet(otherGuild, &discord.Role{ID: 7}, false)
 
-	scoped := scopedCabinet(cabinet, ownGuild, &appIntents{})
+	scoped := scopedCabinet(cabinet, ownGuild, &appIntents{}, 0)
 
 	if _, err := scoped.Channel(ownChannel); err != nil {
 		t.Errorf("own channel: %v", err)

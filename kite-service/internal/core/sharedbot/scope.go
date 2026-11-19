@@ -228,6 +228,11 @@ func (s *scope) check(ctx context.Context, method, path string) error {
 		return id == "@me" || id == s.botAppID.String()
 	}
 
+	if readsMessages(method, segments) && !s.intents.messageContent.Load() {
+		metrics.SharedBotDenied.Add(at(0), 1)
+		return errOutOfScope
+	}
+
 	allowed := false
 	switch at(0) {
 	case "guilds":
@@ -319,7 +324,7 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 		return resp, err
 	}
 	if !isRefusal(resp) {
-		return filterResponse(hr.Method, hr.URL.Path, resp, d.scope.intents)
+		return filterResponse(hr.Method, hr.URL.Path, resp, d.scope.intents, discord.UserID(d.scope.botAppID))
 	}
 	if d.scope.failures.add(now) {
 		slog.Warn(
@@ -437,18 +442,18 @@ func scopedState(shared *state.State, s *scope) *state.State {
 
 	scoped := *shared
 	scoped.Session = &session
-	scoped.Cabinet = scopedCabinet(shared.Cabinet, s.guildID, s.intents)
+	scoped.Cabinet = scopedCabinet(shared.Cabinet, s.guildID, s.intents, discord.UserID(s.botAppID))
 	return &scoped
 }
 
-func scopedCabinet(c *store.Cabinet, guildID discord.GuildID, intents *appIntents) *store.Cabinet {
+func scopedCabinet(c *store.Cabinet, guildID discord.GuildID, intents *appIntents, bot discord.UserID) *store.Cabinet {
 	return &store.Cabinet{
 		MeStore:         c.MeStore,
 		ChannelStore:    scopedChannels{c.ChannelStore, guildID},
 		EmojiStore:      scopedEmojis{c.EmojiStore, guildID},
 		GuildStore:      scopedGuilds{c.GuildStore, guildID},
 		MemberStore:     scopedMembers{c.MemberStore, guildID},
-		MessageStore:    scopedMessages{c.MessageStore, c.ChannelStore, guildID, intents},
+		MessageStore:    scopedMessages{c.MessageStore, c.ChannelStore, guildID, intents, bot},
 		PresenceStore:   scopedPresences{c.PresenceStore, guildID},
 		RoleStore:       scopedRoles{c.RoleStore, guildID},
 		VoiceStateStore: scopedVoiceStates{c.VoiceStateStore, guildID},
@@ -554,6 +559,7 @@ type scopedMessages struct {
 	channels store.ChannelStore
 	guildID  discord.GuildID
 	intents  *appIntents
+	bot      discord.UserID
 }
 
 func (s scopedMessages) inGuild(channelID discord.ChannelID) bool {
@@ -568,7 +574,7 @@ func (s scopedMessages) Message(channelID discord.ChannelID, id discord.MessageI
 	// The store returns a copy, which can be changed.
 	m, err := s.MessageStore.Message(channelID, id)
 	if err == nil && !s.intents.messageContent.Load() {
-		*m = withoutContent(*m)
+		*m = withoutContent(*m, s.bot)
 	}
 	return m, err
 }
@@ -581,7 +587,7 @@ func (s scopedMessages) Messages(channelID discord.ChannelID) ([]discord.Message
 	messages, err := s.MessageStore.Messages(channelID)
 	if err == nil && !s.intents.messageContent.Load() {
 		for i := range messages {
-			messages[i] = withoutContent(messages[i])
+			messages[i] = withoutContent(messages[i], s.bot)
 		}
 	}
 	return messages, err

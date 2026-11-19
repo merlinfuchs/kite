@@ -44,7 +44,9 @@ func (m *AppStateManager) client(ctx context.Context, app *model.App) (*api.Clie
 		return nil, 0, err
 	}
 
-	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID), all: m.failures.all}
+	// The API doesn't load the templates of apps, and the dashboard doesn't
+	// need message text, so it gets none.
+	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID), all: m.failures.all, intents: &appIntents{}}
 	return scopedClient(m.bot.base, s).WithContext(ctx), discord.GuildID(guildID), nil
 }
 

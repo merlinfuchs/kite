@@ -54,7 +54,7 @@ var sharedBotEvents = map[string]bool{
 // event.message.content in a placeholder or an event filter on it. Get
 // Message is there for the text too. A bundle that reads it without saying so
 // gets empty text on the Kite bot.
-var readsContent = regexp.MustCompile(`\.(content|embeds|attachments|components)\b|"action_message_get"|"event_filter_target":"message_content"`)
+var readsContent = regexp.MustCompile(`\.(content|embeds|attachments|components)\b|"action_message_get"|"event_filter_target":\s*"message_content"`)
 
 // readsMembers is whether a bundle listening to the event needs member
 // events, like for apps with a bot of their own.

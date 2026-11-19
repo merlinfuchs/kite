@@ -332,7 +332,7 @@ func (g *Gateway) dispatch(e gateway.Event) {
 		metrics.GatewayEventsDropped.Add("shared_no_app", 1)
 		return
 	}
-	e, ok := filterEvent(e, intents)
+	e, ok := filterEvent(e, intents, discord.UserID(g.botAppID))
 	if !ok {
 		metrics.GatewayEventsDropped.Add("shared_no_intent", 1)
 		return
