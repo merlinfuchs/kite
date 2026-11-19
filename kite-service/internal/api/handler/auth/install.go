@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -137,7 +138,7 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	app, errCode, err := h.sharedApp(c, user, guildID, guildName)
+	app, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName)
 	if err != nil {
 		return err
 	}
@@ -156,8 +157,7 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 
 // sharedApp returns the server's app on the Kite bot for the user, or the
 // code of why they can't have it.
-func (h *AuthHandler) sharedApp(c *handler.Context, user *model.User, guildID string, guildName string) (*model.App, string, error) {
-	ctx := c.Context()
+func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID string, guildName string) (*model.App, string, error) {
 	now := time.Now().UTC()
 
 	_, err := h.userStore.UserBan(ctx, user.ID, model.UserBanFeatureKite)
@@ -170,7 +170,9 @@ func (h *AuthHandler) sharedApp(c *handler.Context, user *model.User, guildID st
 
 	app, err := h.appStore.SharedAppByGuild(ctx, guildID)
 	if errors.Is(err, store.ErrNotFound) {
-		count, err := h.appStore.CountAppsByUser(ctx, user.ID)
+		// Not :=, so err ends up as the one of creating the app below.
+		var count int
+		count, err = h.appStore.CountAppsByUser(ctx, user.ID)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to count apps: %w", err)
 		}
