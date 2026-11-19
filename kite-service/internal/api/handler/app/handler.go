@@ -240,12 +240,28 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 // Custom setup. It keeps its templates, which become editable, its stored
 // variables, logs and plan. The Kite bot stays in the server, its commands
 // for the app are removed.
+// The user becomes its only owner, see design/kite-lite.md.
 func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwitchToCustomRequest) (*wire.AppSwitchToCustomResponse, error) {
 	if !c.App.IsShared() {
 		return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
 	}
+	// Taking the app over needs Manage Server now, not access through an old
+	// record while the bot isn't in the server.
+	if c.SharedAppMember == nil {
+		return nil, handler.ErrForbidden("kite_bot_missing", "Add the Kite bot to your server again to switch this app.")
+	}
+	// So a banned owner can't get the app running again through someone else.
 	if err := h.checkOwnerNotBanned(c); err != nil {
 		return nil, err
+	}
+	if c.App.OwnerUserID != c.Session.UserID {
+		appCount, err := h.appStore.CountAppsByUser(c.Context(), c.Session.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count apps: %w", err)
+		}
+		if appCount >= h.maxAppsPerUser {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You already have the maximum number of apps (%d). Switching makes this app yours, so delete one of your apps first.", h.maxAppsPerUser))
+		}
 	}
 
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
@@ -266,6 +282,7 @@ func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwi
 
 	app, err := h.appStore.SwitchSharedAppToOwn(c.Context(), store.SharedAppSwitchOpts{
 		ID:               c.App.ID,
+		OwnerUserID:      c.Session.UserID,
 		Name:             appInfo.Name,
 		Description:      appInfo.Description,
 		DiscordID:        appInfo.ID,
@@ -285,25 +302,6 @@ func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwi
 			return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
 		}
 		return nil, fmt.Errorf("failed to switch app: %w", err)
-	}
-
-	// Access follows the owner and collaborators again, so whoever switched
-	// it keeps it, like everyone the install added.
-	if app.OwnerUserID != c.Session.UserID {
-		_, err := h.appStore.Collaborator(c.Context(), app.ID, c.Session.UserID)
-		if errors.Is(err, store.ErrNotFound) {
-			now := time.Now().UTC()
-			_, err = h.appStore.CreateCollaborator(c.Context(), &model.AppCollaborator{
-				AppID:     app.ID,
-				UserID:    c.Session.UserID,
-				Role:      model.AppCollaboratorRoleAdmin,
-				CreatedAt: now,
-				UpdatedAt: now,
-			})
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to add collaborator: %w", err)
-		}
 	}
 
 	return wire.AppToWire(app), nil
