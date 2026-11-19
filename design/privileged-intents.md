@@ -34,7 +34,8 @@ Every template is one we wrote. Servers can't build their own flows on the Kite 
 | Removing a template deletes what it stored | `HandleBundleInstallDelete` deletes the install with its variables |
 | Server admins delete everything by deleting the app | App settings, `HandleAppDelete` |
 | Anyone can ask for deletion | contact@kite.onl, privacy policy section 7 and "Your rights" |
-| Not used to train models | Privacy policy section 8. OpenAI requests set `store: false`, OpenRouter and its providers are set up not to train |
+| Not used to train models, and not kept by the AI provider | Privacy policy section 8. AI Automod's checks go through OpenRouter's decisions API to `typesafe/jev-1.14`. OpenRouter's account has zero data retention on and every training toggle off, and TypeSafe's endpoint is on its zero data retention list |
+| The AI provider is bound in writing, as section 12(a) of the Developer Terms asks | OpenRouter's terms (section 10.2) incorporate its data processing agreement, under which it processes only on our instructions (section 2.3). Its model providers are bound by their own no-retention, no-training policies, which OpenRouter checks for the list but doesn't guarantee |
 | Encrypted at rest, in Germany | Encrypted disks at Hetzner and netcup, privacy policy section 4 |
 
 ## Gaps
@@ -111,7 +112,7 @@ Deletion, for both intents:
 >
 > AI Automod checks every new and edited message with an AI model, against a default set of rules and the rules the server adds, like no links to other servers. It deletes a message only when the model is at least 90% sure it breaks a rule, and posts a copy in the server's log channel with who sent it and where. Messages it's less sure about stay up and go to the log channel with a link, so a moderator decides. Members who can manage messages are never checked, and servers can limit the checks to members who joined recently, where most spam bots and raiders are.
 >
-> This can't be done with interactions, because it acts on messages members write, not on commands. Discord's AutoMod matches keywords and patterns, and scams are worded differently every time. AI Automod catches the ones that get past it. The text is sent to the model for the check and isn't stored or logged by us. We've set up our AI providers so they don't use it to train models.
+> This can't be done with interactions, because it acts on messages members write, not on commands. Discord's AutoMod matches keywords and patterns, and scams are worded differently every time. AI Automod catches the ones that get past it. The text is sent to our AI provider, OpenRouter, only for the check. OpenRouter processes it on our instructions under its data processing agreement, with zero data retention, and only routes it to a model provider that keeps nothing and doesn't train on it. We don't store or log it either.
 >
 > Two smaller templates read message text too. Starboard reposts a message that got enough ⭐ reactions to a starboard channel. It reads the message when the reaction comes in, and we store only the ID of the starboard post. Counting checks the numbers members post in one counting channel, and we store the current number and who counted last.
 >
@@ -122,6 +123,11 @@ Deletion, for both intents:
 ### Server Members
 
 > Welcomer greets new members in a channel the server picks and says goodbye when they leave. It needs member join and leave events, which Discord only sends with this intent. Nothing about the member is stored. Only Welcomer uses member events, and only in servers that turned it on.
+
+## Before submitting
+
+- Keep the decision models on endpoints in OpenRouter's zero data retention list. Bumping `aiDecisionModel` or `screenModel` to a version that isn't on it makes OpenRouter reject the requests.
+- Prompt logging stays off in the OpenRouter account. With it on, OpenRouter may use inputs for its own purposes (section 6.2 of its terms), which section 12(a) of Discord's Developer Terms rules out.
 
 ## Open questions
 

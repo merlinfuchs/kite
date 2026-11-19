@@ -260,11 +260,13 @@ export default function PrivacyPolicyPage() {
         <p>
           We tell OpenAI not to store these requests, and we&apos;ve set up
           OpenAI and OpenRouter so that they and the model providers don&apos;t
-          use them to train models. Providers may keep requests for a limited
-          time to detect abuse. For the flow AI and support bot, the legal basis
-          is Art. 6(1)(b) GDPR. For AI blocks, it is the instruction of the
-          bot&apos;s owner (see <a href="#bot-data">section 6</a>), and on the
-          Kite bot Art. 6(1)(f) GDPR (see <a href="#kite-bot">section 7</a>).
+          use them to train models. OpenAI may keep requests for a limited time
+          to detect abuse. OpenRouter only sends requests to model providers
+          that don&apos;t keep them, and keeps none itself. For the flow AI and
+          support bot, the legal basis is Art. 6(1)(b) GDPR. For AI blocks, it
+          is the instruction of the bot&apos;s owner (see{" "}
+          <a href="#bot-data">section 6</a>), and on the Kite bot Art. 6(1)(f)
+          GDPR (see <a href="#kite-bot">section 7</a>).
         </p>
 
         <h2 id="payments">9. Payments</h2>
