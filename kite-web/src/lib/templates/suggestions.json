@@ -2,6 +2,10 @@
   "id": "suggestions",
   "version": 2,
   "shared_bot": true,
+  "shared_bot_about": [
+    "Members use /suggest to post an idea in the suggestions channel you pick. The bot posts it as an embed with their name and avatar, then adds 👍 and 👎 reactions so everyone can vote. The member gets a reply only they see, with a link to the channel.",
+    "Each member can suggest something once a minute, so the channel doesn't get spammed."
+  ],
   "changelog": [
     {
       "version": 2,

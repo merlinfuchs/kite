@@ -64,6 +64,7 @@ describe("templates", () => {
       faq: t.faq,
       setup: t.setup ?? [],
       ...(t.shared_bot ? { shared_bot: true } : {}),
+      ...(t.shared_bot_about ? { shared_bot_about: t.shared_bot_about } : {}),
       parameters: t.parameters,
       commands: t.commands,
       event_listeners: t.event_listeners,
