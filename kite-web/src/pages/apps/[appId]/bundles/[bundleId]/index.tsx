@@ -11,7 +11,12 @@ import {
   TemplateInstalledCard,
 } from "@/components/app/TemplateInstalledCard";
 import { Card } from "@/components/ui/card";
-import { useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
+import KiteBotTemplate from "@/components/app/KiteBotTemplate";
+import {
+  useBundleInstalls,
+  useSharedBot,
+  useUserBundles,
+} from "@/lib/hooks/api";
 import { useAppId, useBundleId } from "@/lib/hooks/params";
 import { useBundleQuery } from "@/lib/api/queries";
 import { useTemplate } from "@/lib/hooks/templates";
@@ -30,6 +35,26 @@ export default function AppBundlePage() {
   // The user's own bundle is managed here too.
   const own = useUserBundles()?.find((b) => b?.id === bundleId);
   const fromHere = own?.source_app_id === appId;
+
+  // Apps on the Kite bot only have official templates, without their blocks.
+  if (useSharedBot()) {
+    return (
+      <AppLayout
+        title={template?.name ?? "Template"}
+        breadcrumbs={[{ label: template?.name ?? "Template" }]}
+      >
+        {template ? (
+          <KiteBotTemplate template={template} />
+        ) : (
+          template === null && (
+            <p className="text-muted-foreground text-sm">
+              This template doesn&apos;t exist anymore.
+            </p>
+          )
+        )}
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout

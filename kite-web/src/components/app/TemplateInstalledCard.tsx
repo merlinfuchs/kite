@@ -430,6 +430,7 @@ function InstallParameters({
   const appId = useAppId();
   const label = useItemLabel(template);
   const mutation = useBundleInstallParametersMutation(appId);
+  const sharedBot = useSharedBot();
   const [guildId, setGuildId] = useTemplateGuild();
   const [values, setValues] = useState<Record<string, string> | null>(null);
 
@@ -493,15 +494,20 @@ function InstallParameters({
       return;
     }
     setValues(null);
-    toast.success(`Saved the parameters of ${template.name}`);
+    toast.success(
+      `Saved the ${sharedBot ? "settings" : "parameters"} of ${template.name}`
+    );
   }
 
   return (
     <div className="mb-5">
-      <div className="text-sm font-medium mb-1.5">Parameters</div>
+      <div className="text-sm font-medium mb-1.5">
+        {sharedBot ? "Settings" : "Parameters"}
+      </div>
       <p className="text-sm text-muted-foreground mb-3">
-        Changes go into every command, event listener and message the template
-        added, also into messages that were already posted.
+        {sharedBot
+          ? "Changes apply right away, also to messages that were already posted."
+          : "Changes go into every command, event listener and message the template added, also into messages that were already posted."}
       </p>
       <TemplateParameterFields
         parameters={fields}
@@ -518,7 +524,7 @@ function InstallParameters({
         loading={mutation.isPending}
         disabled={!changed.length}
       >
-        Save parameters
+        {sharedBot ? "Save settings" : "Save parameters"}
       </LoadingButton>
     </div>
   );

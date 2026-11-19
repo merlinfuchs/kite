@@ -61,12 +61,21 @@ export function TemplateInstallCard({
   template,
   from,
   initialValues,
+  title = "Add to your app",
+  actionLabel,
+  onInstalled,
 }: {
   template: Template;
   // Where the template is added from, like "flow_ai", for analytics.
   from?: string;
   // Values of its parameters to start with, like from a link.
   initialValues?: Record<string, string>;
+  title?: string;
+  // The label of the button that adds it, "Add 3 items" without one.
+  actionLabel?: string;
+  // Called once it's added, with the messages that couldn't be posted. The
+  // card shows what was added when it stays.
+  onInstalled?: (unposted: { name: string; error: string }[]) => void;
 }) {
   const appId = useAppId();
   // Apps on the Kite bot can't edit what they add, and the bot isn't theirs.
@@ -230,6 +239,7 @@ export function TemplateInstallCard({
       messages: messages.length,
       unposted,
     });
+    onInstalled?.(unposted);
   }
 
   if (installed) {
@@ -321,7 +331,7 @@ export function TemplateInstallCard({
 
   return (
     <Card className="p-5">
-      <div className="font-semibold mb-4">Add to your app</div>
+      <div className="font-semibold mb-4">{title}</div>
 
       {!!parameters.length && (
         <div className="mb-5">
@@ -358,53 +368,61 @@ export function TemplateInstallCard({
         </div>
       ))}
 
-      <div className="text-sm font-medium mb-2.5">Include</div>
-      <div className="space-y-2.5 mb-5">
-        {template.commands.map((command) => (
-          <ItemRow
-            key={command.key}
-            exists={installedKeys.has(command.key)}
-            included={!skipped.has(command.key)}
-            onToggle={(included) => toggle(command.key, included)}
-            note={
-              !skipped.has(command.key) && commandNames.has(command.name)
-                ? "name taken, gets a number"
-                : undefined
-            }
-          >
-            {commandLabel(command.name, command.flowSource)}
-          </ItemRow>
-        ))}
-        {template.eventListeners.map((listener) => (
-          <ItemRow
-            key={listener.key}
-            exists={installedKeys.has(listener.key)}
-            included={!skipped.has(listener.key)}
-            onToggle={(included) => toggle(listener.key, included)}
-            description={listener.description}
-          >
-            {discordEventType(listener.type)?.label ?? listener.type}
-          </ItemRow>
-        ))}
-        {template.messages.map((message) => {
-          const exists = installedKeys.has(message.key);
-          return (
-            <ItemRow key={message.key} exists={exists}>
-              {message.name} message
-              {message.sendTo && !exists && (
-                <span className="text-muted-foreground">
-                  , posted in the channel
-                </span>
-              )}
-            </ItemRow>
-          );
-        })}
-        {template.variables.map((variable) => (
-          <ItemRow key={variable.key} exists={installedKeys.has(variable.key)}>
-            {variable.name} stored variable
-          </ItemRow>
-        ))}
-      </div>
+      {/* Apps on the Kite bot add all of it, the parts are code to them. */}
+      {!sharedBot && (
+        <>
+          <div className="text-sm font-medium mb-2.5">Include</div>
+          <div className="space-y-2.5 mb-5">
+            {template.commands.map((command) => (
+              <ItemRow
+                key={command.key}
+                exists={installedKeys.has(command.key)}
+                included={!skipped.has(command.key)}
+                onToggle={(included) => toggle(command.key, included)}
+                note={
+                  !skipped.has(command.key) && commandNames.has(command.name)
+                    ? "name taken, gets a number"
+                    : undefined
+                }
+              >
+                {commandLabel(command.name, command.flowSource)}
+              </ItemRow>
+            ))}
+            {template.eventListeners.map((listener) => (
+              <ItemRow
+                key={listener.key}
+                exists={installedKeys.has(listener.key)}
+                included={!skipped.has(listener.key)}
+                onToggle={(included) => toggle(listener.key, included)}
+                description={listener.description}
+              >
+                {discordEventType(listener.type)?.label ?? listener.type}
+              </ItemRow>
+            ))}
+            {template.messages.map((message) => {
+              const exists = installedKeys.has(message.key);
+              return (
+                <ItemRow key={message.key} exists={exists}>
+                  {message.name} message
+                  {message.sendTo && !exists && (
+                    <span className="text-muted-foreground">
+                      , posted in the channel
+                    </span>
+                  )}
+                </ItemRow>
+              );
+            })}
+            {template.variables.map((variable) => (
+              <ItemRow
+                key={variable.key}
+                exists={installedKeys.has(variable.key)}
+              >
+                {variable.name} stored variable
+              </ItemRow>
+            ))}
+          </div>
+        </>
+      )}
 
       {missingIntegrations.map((integration) => (
         <MissingIntegration key={integration.id} integration={integration} />
@@ -456,7 +474,8 @@ export function TemplateInstallCard({
           disabled={!!exceeded}
           loading={bundleInstallMutation.isPending}
         >
-          Add {itemCount} {itemCount === 1 ? "item" : "items"}
+          {actionLabel ??
+            `Add ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
         </LoadingButton>
       )}
     </Card>
