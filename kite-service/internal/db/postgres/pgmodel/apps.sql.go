@@ -36,7 +36,7 @@ INSERT INTO apps (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref
 `
 
 type CreateAppParams struct {
@@ -90,6 +90,7 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -102,11 +103,12 @@ INSERT INTO apps (
     creator_user_id,
     bot_type,
     discord_guild_id,
+    ref,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $3, 'shared', $4, $5, $5
-) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+    $1, $2, $3, $3, 'shared', $4, $5, $6, $6
+) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref
 `
 
 type CreateSharedAppParams struct {
@@ -114,6 +116,7 @@ type CreateSharedAppParams struct {
 	Name           string
 	OwnerUserID    string
 	DiscordGuildID pgtype.Text
+	Ref            pgtype.Text
 	CreatedAt      pgtype.Timestamp
 }
 
@@ -123,6 +126,7 @@ func (q *Queries) CreateSharedApp(ctx context.Context, arg CreateSharedAppParams
 		arg.Name,
 		arg.OwnerUserID,
 		arg.DiscordGuildID,
+		arg.Ref,
 		arg.CreatedAt,
 	)
 	var i App
@@ -150,6 +154,7 @@ func (q *Queries) CreateSharedApp(ctx context.Context, arg CreateSharedAppParams
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -310,7 +315,7 @@ func (q *Queries) FinishAppCommandsDeploy(ctx context.Context, arg FinishAppComm
 }
 
 const getAllApps = `-- name: GetAllApps :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps
 `
 
 func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
@@ -346,6 +351,7 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 			&i.CreditNoticesEnabled,
 			&i.BotType,
 			&i.DiscordGuildID,
+			&i.Ref,
 		); err != nil {
 			return nil, err
 		}
@@ -358,7 +364,7 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 }
 
 const getApp = `-- name: GetApp :one
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE id = $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE id = $1
 `
 
 func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
@@ -388,6 +394,7 @@ func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -627,7 +634,7 @@ func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Conte
 }
 
 const getAppsByCollaborator = `-- name: GetAppsByCollaborator :many
-SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_at, a.commands_deployed_hash, a.commands_deploy_error, a.discord_guild_count, a.discord_user_install_count, a.discord_counts_updated_at, a.discord_verify_key, a.credits_paused_at, a.credit_notices_enabled, a.bot_type, a.discord_guild_id FROM apps a
+SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_at, a.commands_deployed_hash, a.commands_deploy_error, a.discord_guild_count, a.discord_user_install_count, a.discord_counts_updated_at, a.discord_verify_key, a.credits_paused_at, a.credit_notices_enabled, a.bot_type, a.discord_guild_id, a.ref FROM apps a
 LEFT JOIN collaborators c ON a.id = c.app_id
 WHERE a.owner_user_id = $1 OR c.user_id = $1
 ORDER BY a.created_at DESC
@@ -666,6 +673,7 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 			&i.CreditNoticesEnabled,
 			&i.BotType,
 			&i.DiscordGuildID,
+			&i.Ref,
 		); err != nil {
 			return nil, err
 		}
@@ -678,7 +686,7 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 }
 
 const getAppsByOwner = `-- name: GetAppsByOwner :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App, error) {
@@ -714,6 +722,7 @@ func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App
 			&i.CreditNoticesEnabled,
 			&i.BotType,
 			&i.DiscordGuildID,
+			&i.Ref,
 		); err != nil {
 			return nil, err
 		}
@@ -798,7 +807,7 @@ func (q *Queries) GetEnabledAppIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledAppsUpdatedSince = `-- name: GetEnabledAppsUpdatedSince :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]App, error) {
@@ -834,6 +843,7 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 			&i.CreditNoticesEnabled,
 			&i.BotType,
 			&i.DiscordGuildID,
+			&i.Ref,
 		); err != nil {
 			return nil, err
 		}
@@ -846,7 +856,7 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 }
 
 const getEnabledSharedApps = `-- name: GetEnabledSharedApps :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE bot_type = 'shared' AND enabled
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE bot_type = 'shared' AND enabled
 `
 
 func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
@@ -882,6 +892,7 @@ func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
 			&i.CreditNoticesEnabled,
 			&i.BotType,
 			&i.DiscordGuildID,
+			&i.Ref,
 		); err != nil {
 			return nil, err
 		}
@@ -894,7 +905,7 @@ func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
 }
 
 const getSharedAppByGuild = `-- name: GetSharedAppByGuild :one
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1
 `
 
 func (q *Queries) GetSharedAppByGuild(ctx context.Context, discordGuildID pgtype.Text) (App, error) {
@@ -924,6 +935,7 @@ func (q *Queries) GetSharedAppByGuild(ctx context.Context, discordGuildID pgtype
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -1073,7 +1085,7 @@ UPDATE apps SET
     commands_deploy_at = $7,
     updated_at = $7
 WHERE apps.id IN (SELECT id FROM shared)
-RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref
 `
 
 type SwitchSharedAppToOwnParams struct {
@@ -1131,6 +1143,7 @@ func (q *Queries) SwitchSharedAppToOwn(ctx context.Context, arg SwitchSharedAppT
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -1169,7 +1182,7 @@ UPDATE apps SET
     enabled = $6,
     disabled_reason = $7,
     updated_at = $8
-WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref
 `
 
 type UpdateAppParams struct {
@@ -1219,6 +1232,7 @@ func (q *Queries) UpdateApp(ctx context.Context, arg UpdateAppParams) (App, erro
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }
@@ -1227,7 +1241,7 @@ const updateAppCreditNotices = `-- name: UpdateAppCreditNotices :one
 UPDATE apps SET
     credit_notices_enabled = $1,
     updated_at = $2
-WHERE id = $3 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
+WHERE id = $3 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref
 `
 
 type UpdateAppCreditNoticesParams struct {
@@ -1263,6 +1277,7 @@ func (q *Queries) UpdateAppCreditNotices(ctx context.Context, arg UpdateAppCredi
 		&i.CreditNoticesEnabled,
 		&i.BotType,
 		&i.DiscordGuildID,
+		&i.Ref,
 	)
 	return i, err
 }

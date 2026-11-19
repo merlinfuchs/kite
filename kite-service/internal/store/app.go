@@ -13,6 +13,7 @@ type SharedAppCreateOpts struct {
 	Name           string
 	OwnerUserID    string
 	DiscordGuildID string
+	Ref            null.String
 	CreatedAt      time.Time
 }
 

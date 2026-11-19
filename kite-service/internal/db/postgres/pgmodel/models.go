@@ -48,6 +48,7 @@ type App struct {
 	CreditNoticesEnabled    bool
 	BotType                 string
 	DiscordGuildID          pgtype.Text
+	Ref                     pgtype.Text
 }
 
 type AppIntegration struct {

@@ -28,6 +28,7 @@ import {
   useAppStateGuildRoles,
   useAppStateGuilds,
   useBundleInstalls,
+  useUser,
 } from "@/lib/hooks/api";
 import { Channel, Role } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
@@ -36,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { CheckIcon, CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type Added = { name: string; unposted: { name: string; error: string }[] };
@@ -55,6 +56,29 @@ export default function AppSetupPage() {
   // The query is only there once the router is ready, after the first render.
   const router = useRouter();
   const { query } = router;
+
+  // Counts coming back from Discord once, after the user and app are loaded
+  // so the event is linked to them, and takes the marker out of the URL, so
+  // reloading doesn't count it again. link_ref is the ref of the link, which
+  // can differ from the app's ref for an app that already existed.
+  const user = useUser();
+  const tracked = useRef(false);
+  useEffect(() => {
+    const { installed, installed_ref, ...rest } = query;
+    if (!installed || !user || !app || tracked.current) return;
+    tracked.current = true;
+    // After the effects of AnalyticsProvider in the same render, which
+    // identify the user and set the app's group.
+    setTimeout(() =>
+      track("kite_bot_added", {
+        new: installed === "new",
+        ...(typeof installed_ref === "string" && { link_ref: installed_ref }),
+      })
+    );
+    router.replace({ pathname: router.pathname, query: rest }, undefined, {
+      shallow: true,
+    });
+  }, [router, query, user, app]);
 
   // Custom bots add templates from the Marketplace.
   const custom = !!app && app.bot_type !== "shared";
