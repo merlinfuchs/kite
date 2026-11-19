@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import {
   useAppStateStatusQuery,
-  useAppStateUserQuery,
+  useLookupUserQuery,
   useUserQuery,
 } from "@/lib/api/queries";
 import {
@@ -19,6 +19,7 @@ import {
 import { formatDate, formatNumber } from "@/lib/utils";
 import { BotIcon, CopyIcon } from "lucide-react";
 import { useCallback } from "react";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -30,7 +31,7 @@ export default function AppInfoCard() {
   const plan = useAppPlan();
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
-  const botUser = useResponseData(useAppStateUserQuery(app?.id || ""));
+  const botUser = useResponseData(useLookupUserQuery(app?.discord_id || ""));
 
   const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
 
@@ -45,8 +46,14 @@ export default function AppInfoCard() {
           <CardTitle className="text-lg">
             <span className="flex items-center gap-2">
               <Avatar className="size-10 rounded-full">
-                {botUser?.avatar_url && (
-                  <AvatarImage src={botUser.avatar_url} alt="" />
+                {botUser && (
+                  <AvatarImage
+                    src={userAvatar({
+                      id: botUser.id,
+                      avatar: botUser.avatar,
+                    })}
+                    alt=""
+                  />
                 )}
                 <AvatarFallback className="rounded-full">
                   <BotIcon className="size-5" />
