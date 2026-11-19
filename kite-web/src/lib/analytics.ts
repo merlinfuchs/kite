@@ -110,6 +110,8 @@ async function createOpenPanel(clientId: string) {
             properties[key] = withoutIds(properties[key], location.origin);
           }
         }
+        // The ref of the current app isn't the user's, see setAppRef.
+        if (event.type === "identify") delete properties.ref;
       }
       return true;
     },

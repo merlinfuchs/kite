@@ -28,6 +28,7 @@ import {
   useAppStateGuildRoles,
   useAppStateGuilds,
   useBundleInstalls,
+  useUser,
 } from "@/lib/hooks/api";
 import { Channel, Role } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
@@ -56,24 +57,28 @@ export default function AppSetupPage() {
   const router = useRouter();
   const { query } = router;
 
-  // Counts coming back from Discord once, and takes the marker out of the
-  // URL, so reloading doesn't count it again.
+  // Counts coming back from Discord once, after the user and app are loaded
+  // so the event is linked to them, and takes the marker out of the URL, so
+  // reloading doesn't count it again. link_ref is the ref of the link, which
+  // can differ from the app's ref for an app that already existed.
+  const user = useUser();
   const tracked = useRef(false);
   useEffect(() => {
-    const installed = query.installed;
-    if (!router.isReady || !installed || tracked.current) return;
+    const { installed, installed_ref, ...rest } = query;
+    if (!installed || !user || !app || tracked.current) return;
     tracked.current = true;
-    // The service only passes on a valid ref. It's the link's, which can
-    // differ from the app's for an app that already existed.
-    const { installed: _, ...rest } = query;
-    track("kite_bot_added", {
-      new: installed === "new",
-      ...(typeof query.ref === "string" && { ref: query.ref }),
-    });
+    // After the effects of AnalyticsProvider in the same render, which
+    // identify the user and set the app's group.
+    setTimeout(() =>
+      track("kite_bot_added", {
+        new: installed === "new",
+        ...(typeof installed_ref === "string" && { link_ref: installed_ref }),
+      })
+    );
     router.replace({ pathname: router.pathname, query: rest }, undefined, {
       shallow: true,
     });
-  }, [router, query]);
+  }, [router, query, user, app]);
 
   // Custom bots add templates from the Marketplace.
   const custom = !!app && app.bot_type !== "shared";

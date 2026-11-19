@@ -41,24 +41,12 @@ const setupCookie = "install_setup"
 // maxSetupLength bounds what's kept of it.
 const maxSetupLength = 2000
 
-// refPattern is what the ref of a link can be, like "xenon". Others aren't
-// stored.
-var refPattern = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
+// refCookie keeps the ref of the link, like "xenon", apart from the setup,
+// so it isn't lost with a setup that's too long.
+const refCookie = "install_ref"
 
-// setupRef is the ref of the link the setup came from. An invalid one is
-// also taken out of the setup, so the setup page can pass it on as it is.
-func setupRef(setup string) (null.String, string) {
-	values, _ := url.ParseQuery(setup)
-	ref := values.Get("ref")
-	if refPattern.MatchString(ref) {
-		return null.StringFrom(ref), setup
-	}
-	if values.Has("ref") {
-		values.Del("ref")
-		setup = values.Encode()
-	}
-	return null.String{}, setup
-}
+// refPattern is what a ref can be. Others aren't kept.
+var refPattern = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 
 func (h *AuthHandler) installOAuth2Config(c *handler.Context) (*oauth2.Config, error) {
 	if h.install.Bot == nil {
@@ -98,6 +86,16 @@ func (h *AuthHandler) HandleInstall(c *handler.Context) error {
 	} else {
 		c.DeleteCookie(setupCookie)
 	}
+	if ref := c.Query("ref"); refPattern.MatchString(ref) {
+		c.SetCookie(&http.Cookie{
+			Name:     refCookie,
+			Value:    ref,
+			HttpOnly: true,
+			Secure:   h.config.SecureCookies,
+		})
+	} else {
+		c.DeleteCookie(refCookie)
+	}
 
 	params := []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("permissions", strconv.FormatUint(uint64(sharedbot.Permissions), 10)),
@@ -129,6 +127,11 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 	}
 	setup, _ := url.QueryUnescape(c.Cookie(setupCookie))
 	c.DeleteCookie(setupCookie)
+	ref := c.Cookie(refCookie)
+	c.DeleteCookie(refCookie)
+	if !refPattern.MatchString(ref) {
+		ref = ""
+	}
 
 	// Like when the user cancels on Discord's page.
 	if c.Query("error") != "" {
@@ -159,8 +162,7 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	ref, setup := setupRef(setup)
-	app, created, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, ref)
+	app, created, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, null.NewString(ref, ref != ""))
 	if err != nil {
 		return err
 	}
@@ -169,13 +171,16 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return nil
 	}
 
-	// installed tells the setup page to count adding the bot, and whether it
-	// made a new app.
-	installed := "existing"
+	// installed tells the setup page to count adding the bot, whether it made
+	// a new app and the ref of the link.
+	marker := url.Values{"installed": {"existing"}}
 	if created {
-		installed = "new"
+		marker.Set("installed", "new")
 	}
-	target := fmt.Sprintf("%s/apps/%s/setup?installed=%s", base, app.ID, installed)
+	if ref != "" {
+		marker.Set("installed_ref", ref)
+	}
+	target := fmt.Sprintf("%s/apps/%s/setup?%s", base, app.ID, marker.Encode())
 	if setup != "" {
 		target += "&" + setup
 	}
