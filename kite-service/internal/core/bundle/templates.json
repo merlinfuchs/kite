@@ -536,6 +536,10 @@
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages."
     ],
+    "shared_bot": true,
+    "shared_bot_intents": [
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "log_channel_id",
@@ -1847,6 +1851,13 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel."
+    ],
+    "shared_bot_intents": [
+      "guild_members"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -2361,6 +2372,14 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the starboard posts show the text of messages."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+      "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
+    ],
+    "shared_bot_intents": [
+      "message_content"
     ],
     "parameters": [
       {
@@ -4953,6 +4972,14 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the numbers."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
+      "The count and who counted last are kept for each channel, so it survives restarts."
+    ],
+    "shared_bot_intents": [
+      "message_content"
     ],
     "parameters": [
       {

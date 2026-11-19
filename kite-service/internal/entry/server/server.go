@@ -48,7 +48,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 	metrics.PublishDBPool(func() any { return pg.PoolStats() })
 
-	if err := bundle.SyncOfficial(c, pg); err != nil {
+	if err := bundle.SyncOfficial(c, pg, cfg.SharedBot.Intents); err != nil {
 		return fmt.Errorf("failed to sync official bundles: %w", err)
 	}
 
@@ -176,6 +176,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		}
 
 		sharedGateway := sharedbot.NewGateway(sharedBot, pg, handler, sharedbot.GatewayConfig{
+			Intents:          cfg.SharedBot.Intents,
 			PopulateInterval: cfg.Engine.PopulateInterval,
 			AppBaseURL:       cfg.App.PublicBaseURL,
 		})

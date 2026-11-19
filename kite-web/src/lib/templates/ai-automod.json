@@ -1,6 +1,8 @@
 {
   "id": "ai-automod",
   "version": 2,
+  "shared_bot": true,
+  "shared_bot_intents": ["message_content"],
   "changelog": [
     {
       "version": 2,
