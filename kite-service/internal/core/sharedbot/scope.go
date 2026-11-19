@@ -315,8 +315,11 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 	}
 
 	resp, err := d.Client.Do(r)
-	if err != nil || !isRefusal(resp) {
+	if err != nil {
 		return resp, err
+	}
+	if !isRefusal(resp) {
+		return filterResponse(hr.Method, hr.URL.Path, resp, d.scope.intents)
 	}
 	if d.scope.failures.add(now) {
 		slog.Warn(
@@ -545,7 +548,7 @@ func (s scopedMembers) Members(guildID discord.GuildID) ([]discord.Member, error
 }
 
 // scopedMessages are the cached messages of the server, without their text
-// for apps whose templates don't read it, like their events.
+// for apps whose templates don't read it, see appIntents.
 type scopedMessages struct {
 	store.MessageStore
 	channels store.ChannelStore
@@ -562,27 +565,26 @@ func (s scopedMessages) Message(channelID discord.ChannelID, id discord.MessageI
 	if !s.inGuild(channelID) {
 		return nil, store.ErrNotFound
 	}
+	// The store returns a copy, which can be changed.
 	m, err := s.MessageStore.Message(channelID, id)
-	if err != nil || s.intents.messageContent.Load() {
-		return m, err
+	if err == nil && !s.intents.messageContent.Load() {
+		*m = withoutContent(*m)
 	}
-	stripped := withoutContent(*m)
-	return &stripped, nil
+	return m, err
 }
 
 func (s scopedMessages) Messages(channelID discord.ChannelID) ([]discord.Message, error) {
 	if !s.inGuild(channelID) {
 		return nil, store.ErrNotFound
 	}
+	// The store returns a copy, which can be changed.
 	messages, err := s.MessageStore.Messages(channelID)
-	if err != nil || s.intents.messageContent.Load() {
-		return messages, err
+	if err == nil && !s.intents.messageContent.Load() {
+		for i := range messages {
+			messages[i] = withoutContent(messages[i])
+		}
 	}
-	stripped := make([]discord.Message, len(messages))
-	for i, m := range messages {
-		stripped[i] = withoutContent(m)
-	}
-	return stripped, nil
+	return messages, err
 }
 
 type scopedPresences struct {

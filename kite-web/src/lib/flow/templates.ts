@@ -331,9 +331,8 @@ export const templateFileSchema = z.object({
   // The about for apps on the Kite bot, if it has to differ, like when it
   // mentions the editor or message templates, which they don't have.
   shared_bot_about: z.array(z.string().min(1)).min(1).optional(),
-  // The privileged intents of the Kite bot the template reads. Apps on the
-  // Kite bot only get message text and member events with a template that
-  // names them, and the service checks that it names what it reads.
+  // The privileged intents of the Kite bot the template reads, which apps on
+  // it only get with a template that names them. The service checks it.
   shared_bot_intents: z
     .array(z.enum(["message_content", "guild_members"]))
     .optional(),

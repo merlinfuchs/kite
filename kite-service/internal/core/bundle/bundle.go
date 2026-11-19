@@ -39,10 +39,8 @@ type Bundle struct {
 	// listing's about, if it has to differ.
 	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
 	// SharedBotIntents are the privileged intents of the Kite bot the bundle
-	// reads, like SharedBotIntentMessageContent. Apps on the Kite bot only
-	// get message text and member events with a bundle that has them, see
-	// the sharedbot package, and a test checks that bundles name what they
-	// read.
+	// reads, like SharedBotIntentMessageContent, see sharedbot.appIntents. A
+	// test checks that bundles name what they read.
 	SharedBotIntents []string `json:"shared_bot_intents,omitempty"`
 }
 

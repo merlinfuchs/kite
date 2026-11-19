@@ -1,12 +1,16 @@
 package sharedbot
 
 import (
+	"io"
+	"net/http"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
-	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/diamondburned/arikawa/v3/utils/httputil/httpdriver"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
@@ -36,7 +40,8 @@ func hasText(m discord.Message) bool {
 func TestFilterEvent(t *testing.T) {
 	none := &appIntents{}
 	both := &appIntents{}
-	both.set([]string{"test-content", "test-members"})
+	both.messageContent.Store(true)
+	both.guildMembers.Store(true)
 
 	created := &gateway.MessageCreateEvent{Message: textMessage()}
 	e, ok := filterEvent(created, none)
@@ -94,13 +99,60 @@ func TestScopedMessagesWithoutContent(t *testing.T) {
 		t.Errorf("cached messages without the intent = %v, %v", list, err)
 	}
 
-	intents.set([]string{"test-content"})
+	intents.messageContent.Store(true)
 	if got, err := scoped.Message(ownChannel, 1); err != nil || !hasText(*got) {
 		t.Errorf("cached message with the intent = %v, %v, want its text", got, err)
 	}
 }
 
-func init() {
-	bundleIntents["test-content"] = []string{bundle.SharedBotIntentMessageContent}
-	bundleIntents["test-members"] = []string{bundle.SharedBotIntentGuildMembers}
+// set takes the intents of the bundles the app installed.
+func TestAppIntentsSet(t *testing.T) {
+	var intents appIntents
+	intents.set([]string{"leveling", "starboard"})
+	if intents.messageContent.Load() != slices.Contains(bundleIntents["starboard"], "message_content") {
+		t.Error("message content doesn't follow the bundles")
+	}
+	intents.set(nil)
+	if intents.messageContent.Load() || intents.guildMembers.Load() {
+		t.Error("intents without bundles")
+	}
+}
+
+type fakeResponse struct {
+	status int
+	body   string
+}
+
+func (r fakeResponse) GetStatus() int         { return r.status }
+func (r fakeResponse) GetHeader() http.Header { return http.Header{} }
+func (r fakeResponse) GetBody() io.ReadCloser { return io.NopCloser(strings.NewReader(r.body)) }
+
+func TestFilterResponse(t *testing.T) {
+	none := &appIntents{}
+	read := func(resp httpdriver.Response) string {
+		raw, _ := io.ReadAll(resp.GetBody())
+		return string(raw)
+	}
+
+	one := fakeResponse{http.StatusOK, `{"id":"1","content":"secret","embeds":[{"title":"secret"}]}`}
+	resp, err := filterResponse("GET", "/api/v10/channels/10/messages/1", one, none)
+	if err != nil || strings.Contains(read(resp), "secret") {
+		t.Errorf("message without the intent kept its text: %v", err)
+	}
+
+	list := fakeResponse{http.StatusOK, `[{"id":"1","content":"secret"},{"id":"2","content":"secret"}]`}
+	resp, err = filterResponse("GET", "/api/v10/channels/10/messages", list, none)
+	if err != nil || strings.Contains(read(resp), "secret") {
+		t.Errorf("messages without the intent kept their text: %v", err)
+	}
+
+	with := &appIntents{}
+	with.messageContent.Store(true)
+	if resp, _ := filterResponse("GET", "/api/v10/channels/10/messages/1", one, with); !strings.Contains(read(resp), "secret") {
+		t.Error("message with the intent lost its text")
+	}
+	other := fakeResponse{http.StatusOK, `{"name":"secret"}`}
+	if resp, _ := filterResponse("GET", "/api/v10/channels/10", other, none); !strings.Contains(read(resp), "secret") {
+		t.Error("other responses changed")
+	}
 }
