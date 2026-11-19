@@ -212,6 +212,18 @@ func (c *Client) EnabledSharedApps(ctx context.Context) ([]*model.App, error) {
 	}), nil
 }
 
+func (c *Client) SharedAppBundleIDs(ctx context.Context) (map[string][]string, error) {
+	rows, err := c.Q.GetSharedAppBundleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[string][]string)
+	for _, row := range rows {
+		res[row.AppID] = append(res[row.AppID], row.BundleID)
+	}
+	return res, nil
+}
+
 func (c *Client) SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error) {
 	row, err := c.Q.GetSharedAppByGuild(ctx, pgtype.Text{String: guildID, Valid: true})
 	if err != nil {

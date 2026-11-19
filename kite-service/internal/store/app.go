@@ -87,6 +87,9 @@ type AppStore interface {
 	SharedAppIDs(ctx context.Context) ([]string, error)
 	// EnabledSharedApps are the apps the Kite bot runs.
 	EnabledSharedApps(ctx context.Context) ([]*model.App, error)
+	// SharedAppBundleIDs are the bundles the enabled shared apps installed,
+	// by app ID.
+	SharedAppBundleIDs(ctx context.Context) (map[string][]string, error)
 	// SharedAppByGuild is the app on the Kite bot of the server, enabled or
 	// not.
 	SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error)

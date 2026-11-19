@@ -68,6 +68,8 @@ type Gateway struct {
 	// states are the views of the session of the apps, by app ID. They're
 	// made again after the bot reconnects, as they copy its Ready event.
 	states map[string]*state.State
+	// intents are what the templates of the apps read, by app ID.
+	intents map[string]*appIntents
 }
 
 func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.EventHandler, config GatewayConfig) *Gateway {
@@ -89,6 +91,7 @@ func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.Even
 		apps:         make(map[discord.GuildID]*model.App),
 		guilds:       make(map[string]discord.GuildID),
 		states:       make(map[string]*state.State),
+		intents:      make(map[string]*appIntents),
 	}
 }
 
@@ -192,6 +195,10 @@ func (g *Gateway) populate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get shared apps: %w", err)
 	}
+	bundleIDs, err := g.appStore.SharedAppBundleIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get bundles of shared apps: %w", err)
+	}
 
 	byGuild := make(map[discord.GuildID]*model.App, len(apps))
 	guilds := make(map[string]discord.GuildID, len(apps))
@@ -212,6 +219,14 @@ func (g *Gateway) populate(ctx context.Context) error {
 		if _, ok := guilds[appID]; !ok {
 			delete(g.states, appID)
 		}
+	}
+	for appID := range g.intents {
+		if _, ok := guilds[appID]; !ok {
+			delete(g.intents, appID)
+		}
+	}
+	for appID := range guilds {
+		g.intentsOf(appID).set(bundleIDs[appID])
 	}
 	g.mu.Unlock()
 	return nil
@@ -272,13 +287,24 @@ func (g *Gateway) appOfGuild(guildID discord.GuildID) *model.App {
 	return g.apps[guildID]
 }
 
+// intentsOf returns the intents of the app, which its scopes share. g.mu must
+// be held.
+func (g *Gateway) intentsOf(appID string) *appIntents {
+	intents, ok := g.intents[appID]
+	if !ok {
+		intents = &appIntents{}
+		g.intents[appID] = intents
+	}
+	return intents
+}
+
 // stateFor returns the app's view of the session, see scopedState. g.mu
 // must be held.
 func (g *Gateway) stateFor(app *model.App, guildID discord.GuildID) *state.State {
 	if s, ok := g.states[app.ID]; ok {
 		return s
 	}
-	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels, failures: g.failures.of(app.ID), all: g.failures.all})
+	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels, failures: g.failures.of(app.ID), all: g.failures.all, intents: g.intentsOf(app.ID)})
 	g.states[app.ID] = s
 	return s
 }
@@ -293,13 +319,22 @@ func (g *Gateway) dispatch(e gateway.Event) {
 	g.mu.Lock()
 	app := g.apps[guildID]
 	var session *state.State
-	if app != nil && !model.HasNoCredits(app) {
-		session = g.stateFor(app, guildID)
+	var intents *appIntents
+	if app != nil {
+		intents = g.intentsOf(app.ID)
+		if !model.HasNoCredits(app) {
+			session = g.stateFor(app, guildID)
+		}
 	}
 	g.mu.Unlock()
 
 	if app == nil {
 		metrics.GatewayEventsDropped.Add("shared_no_app", 1)
+		return
+	}
+	e, ok := filterEvent(e, intents)
+	if !ok {
+		metrics.GatewayEventsDropped.Add("shared_no_intent", 1)
 		return
 	}
 	if session == nil {

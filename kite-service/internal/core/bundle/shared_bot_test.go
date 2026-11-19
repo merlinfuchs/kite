@@ -2,6 +2,8 @@ package bundle
 
 import (
 	"encoding/json"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,8 +40,8 @@ var sharedBotBlocks = map[flow.FlowNodeType]bool{
 }
 
 // sharedBotEvents are the events the Kite bot gets with its intents, see
-// sharedbot.Intents. It has no privileged intents yet, so messages come
-// without their text.
+// sharedbot.Intents. Messages come without their text, unless the bundle
+// reads it, see SharedBotIntents.
 var sharedBotEvents = map[string]bool{
 	"message_create":          true,
 	"message_update":          true,
@@ -47,6 +49,18 @@ var sharedBotEvents = map[string]bool{
 	"message_reaction_add":    true,
 	"message_reaction_remove": true,
 }
+
+// memberEvents are the events only bundles with SharedBotIntentGuildMembers
+// get.
+var memberEvents = map[string]bool{
+	"guild_member_add":    true,
+	"guild_member_remove": true,
+}
+
+// readsContent matches what reads the text of messages in a flow, like
+// event.message.content in a placeholder. Reading a message with Get Message
+// gets its text too.
+var readsContent = regexp.MustCompile(`\.(content|embeds|attachments|components)\b|"action_message_get"`)
 
 func TestSharedBotBundles(t *testing.T) {
 	for _, b := range Official() {
@@ -68,7 +82,10 @@ func TestSharedBotBundles(t *testing.T) {
 			}
 		}
 
+		var content, members bool
 		for _, raw := range flows {
+			content = content || readsContent.Match(raw)
+
 			var f flow.FlowData
 			require.NoError(t, json.Unmarshal(raw, &f), b.ID)
 
@@ -80,9 +97,55 @@ func TestSharedBotBundles(t *testing.T) {
 				require.True(t, allowed, "%s uses %s, which the Kite bot can't run", b.ID, typ)
 
 				if node.Type == flow.FlowNodeTypeEntryEvent {
-					require.True(t, sharedBotEvents[node.Data.EventType], "%s listens to %s, which the Kite bot doesn't get", b.ID, node.Data.EventType)
+					members = members || memberEvents[node.Data.EventType]
+					require.True(t, sharedBotEvents[node.Data.EventType] || memberEvents[node.Data.EventType], "%s listens to %s, which the Kite bot doesn't get", b.ID, node.Data.EventType)
 				}
 			}
 		}
+
+		// Apps only get message text and member events with a bundle that
+		// says it reads them, so a bundle has to name exactly what it reads.
+		var want []string
+		if content {
+			want = append(want, SharedBotIntentMessageContent)
+		}
+		if members {
+			want = append(want, SharedBotIntentGuildMembers)
+		}
+		got := slices.Clone(b.SharedBotIntents)
+		slices.Sort(got)
+		slices.Sort(want)
+		require.Equal(t, want, got, "%s: shared_bot_intents must name what it reads", b.ID)
 	}
+}
+
+// readsContent finds the templates that read message text, also ones that
+// aren't on the Kite bot yet.
+func TestReadsContent(t *testing.T) {
+	want := map[string]bool{
+		"ai-automod":     true,
+		"counting":       true,
+		"starboard":      true,
+		"leveling":       false,
+		"sticky-message": false,
+		"verification":   false,
+		"welcomer":       false,
+	}
+	for _, b := range Official() {
+		reads, ok := want[b.ID]
+		if !ok {
+			continue
+		}
+		delete(want, b.ID)
+
+		var got bool
+		for _, l := range b.EventListeners {
+			got = got || readsContent.Match(l.FlowSource)
+		}
+		for _, c := range b.Commands {
+			got = got || readsContent.Match(c.FlowSource)
+		}
+		require.Equal(t, reads, got, b.ID)
+	}
+	require.Empty(t, want, "templates not found")
 }

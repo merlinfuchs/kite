@@ -904,6 +904,39 @@ func (q *Queries) GetEnabledSharedApps(ctx context.Context) ([]App, error) {
 	return items, nil
 }
 
+const getSharedAppBundleIDs = `-- name: GetSharedAppBundleIDs :many
+SELECT bundle_installs.app_id, bundle_installs.bundle_id FROM bundle_installs
+JOIN apps ON apps.id = bundle_installs.app_id
+WHERE apps.bot_type = 'shared' AND apps.enabled AND bundle_installs.enabled
+`
+
+type GetSharedAppBundleIDsRow struct {
+	AppID    string
+	BundleID string
+}
+
+// The official bundles the Kite bot's apps installed, which decide what they
+// get from it.
+func (q *Queries) GetSharedAppBundleIDs(ctx context.Context) ([]GetSharedAppBundleIDsRow, error) {
+	rows, err := q.db.Query(ctx, getSharedAppBundleIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSharedAppBundleIDsRow
+	for rows.Next() {
+		var i GetSharedAppBundleIDsRow
+		if err := rows.Scan(&i.AppID, &i.BundleID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSharedAppByGuild = `-- name: GetSharedAppByGuild :one
 SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id, ref FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1
 `

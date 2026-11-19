@@ -121,6 +121,9 @@ type scope struct {
 	// apps in the process.
 	failures *failures
 	all      *failures
+
+	// intents are what the app's templates read.
+	intents *appIntents
 }
 
 const (
@@ -431,18 +434,18 @@ func scopedState(shared *state.State, s *scope) *state.State {
 
 	scoped := *shared
 	scoped.Session = &session
-	scoped.Cabinet = scopedCabinet(shared.Cabinet, s.guildID)
+	scoped.Cabinet = scopedCabinet(shared.Cabinet, s.guildID, s.intents)
 	return &scoped
 }
 
-func scopedCabinet(c *store.Cabinet, guildID discord.GuildID) *store.Cabinet {
+func scopedCabinet(c *store.Cabinet, guildID discord.GuildID, intents *appIntents) *store.Cabinet {
 	return &store.Cabinet{
 		MeStore:         c.MeStore,
 		ChannelStore:    scopedChannels{c.ChannelStore, guildID},
 		EmojiStore:      scopedEmojis{c.EmojiStore, guildID},
 		GuildStore:      scopedGuilds{c.GuildStore, guildID},
 		MemberStore:     scopedMembers{c.MemberStore, guildID},
-		MessageStore:    scopedMessages{c.MessageStore, c.ChannelStore, guildID},
+		MessageStore:    scopedMessages{c.MessageStore, c.ChannelStore, guildID, intents},
 		PresenceStore:   scopedPresences{c.PresenceStore, guildID},
 		RoleStore:       scopedRoles{c.RoleStore, guildID},
 		VoiceStateStore: scopedVoiceStates{c.VoiceStateStore, guildID},
@@ -541,10 +544,13 @@ func (s scopedMembers) Members(guildID discord.GuildID) ([]discord.Member, error
 	return s.MemberStore.Members(guildID)
 }
 
+// scopedMessages are the cached messages of the server, without their text
+// for apps whose templates don't read it, like their events.
 type scopedMessages struct {
 	store.MessageStore
 	channels store.ChannelStore
 	guildID  discord.GuildID
+	intents  *appIntents
 }
 
 func (s scopedMessages) inGuild(channelID discord.ChannelID) bool {
@@ -556,14 +562,27 @@ func (s scopedMessages) Message(channelID discord.ChannelID, id discord.MessageI
 	if !s.inGuild(channelID) {
 		return nil, store.ErrNotFound
 	}
-	return s.MessageStore.Message(channelID, id)
+	m, err := s.MessageStore.Message(channelID, id)
+	if err != nil || s.intents.messageContent.Load() {
+		return m, err
+	}
+	stripped := withoutContent(*m)
+	return &stripped, nil
 }
 
 func (s scopedMessages) Messages(channelID discord.ChannelID) ([]discord.Message, error) {
 	if !s.inGuild(channelID) {
 		return nil, store.ErrNotFound
 	}
-	return s.MessageStore.Messages(channelID)
+	messages, err := s.MessageStore.Messages(channelID)
+	if err != nil || s.intents.messageContent.Load() {
+		return messages, err
+	}
+	stripped := make([]discord.Message, len(messages))
+	for i, m := range messages {
+		stripped[i] = withoutContent(m)
+	}
+	return stripped, nil
 }
 
 type scopedPresences struct {

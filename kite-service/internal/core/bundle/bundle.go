@@ -38,7 +38,18 @@ type Bundle struct {
 	// SharedBotAbout is what apps on the Kite bot show instead of the
 	// listing's about, if it has to differ.
 	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
+	// SharedBotIntents are the privileged intents of the Kite bot the bundle
+	// reads, like SharedBotIntentMessageContent. Apps on the Kite bot only
+	// get message text and member events with a bundle that has them, see
+	// the sharedbot package, and a test checks that bundles name what they
+	// read.
+	SharedBotIntents []string `json:"shared_bot_intents,omitempty"`
 }
+
+const (
+	SharedBotIntentMessageContent = "message_content"
+	SharedBotIntentGuildMembers   = "guild_members"
+)
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
 type Variable struct {

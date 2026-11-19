@@ -195,7 +195,7 @@ func TestScopedCabinet(t *testing.T) {
 	cabinet.ChannelSet(&discord.Channel{ID: otherChannel, GuildID: otherGuild}, false)
 	cabinet.RoleSet(otherGuild, &discord.Role{ID: 7}, false)
 
-	scoped := scopedCabinet(cabinet, ownGuild)
+	scoped := scopedCabinet(cabinet, ownGuild, &appIntents{})
 
 	if _, err := scoped.Channel(ownChannel); err != nil {
 		t.Errorf("own channel: %v", err)

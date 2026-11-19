@@ -90,6 +90,13 @@ SELECT id FROM apps WHERE bot_type = 'shared';
 -- name: GetEnabledSharedApps :many
 SELECT * FROM apps WHERE bot_type = 'shared' AND enabled;
 
+-- The official bundles the Kite bot's apps installed, which decide what they
+-- get from it.
+-- name: GetSharedAppBundleIDs :many
+SELECT bundle_installs.app_id, bundle_installs.bundle_id FROM bundle_installs
+JOIN apps ON apps.id = bundle_installs.app_id
+WHERE apps.bot_type = 'shared' AND apps.enabled AND bundle_installs.enabled;
+
 -- name: GetSharedAppByGuild :one
 SELECT * FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1;
 
