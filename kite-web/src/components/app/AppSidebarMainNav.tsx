@@ -5,7 +5,9 @@ import {
   LayoutDashboardIcon,
   MessageSquareWarningIcon,
   Settings2Icon,
+  StoreIcon,
   TelescopeIcon,
+  type LucideIcon,
 } from "lucide-react";
 
 import {
@@ -23,7 +25,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { useAppPlan, usePluginInstances } from "@/lib/hooks/api";
+import { useAppPlan, usePluginInstances, useSharedBot } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
@@ -31,12 +33,23 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
+interface NavItem {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  active: boolean;
+  upsell?: boolean;
+  items?: { title: string; url: string; active: boolean }[];
+}
+
 export default function AppSidebarMainNav() {
   const appId = useAppId();
   const router = useRouter();
   // Plugins are replaced by templates, only apps that use one still see them.
   const hasPlugins = !!usePluginInstances()?.length;
   const plan = useAppPlan();
+  // Apps on the Kite bot only add templates, so they only get a few pages.
+  const sharedBot = useSharedBot();
 
   const isActive = useCallback(
     (path: string, exact = false) => {
@@ -49,7 +62,41 @@ export default function AppSidebarMainNav() {
     [router.pathname]
   );
 
-  const items = useMemo(() => {
+  const items = useMemo((): NavItem[] => {
+    const upgrade = {
+      // Paid apps manage their plan here, the rest are asked to upgrade.
+      title: plan && !plan.default ? "Plan" : "Upgrade",
+      url: "/apps/[appId]/premium",
+      upsell: !!plan?.default,
+      icon: CrownIcon,
+      active: isActive("/apps/[appId]/premium"),
+    };
+
+    if (sharedBot) {
+      return [
+        {
+          title: "Templates",
+          url: "/apps/[appId]",
+          icon: StoreIcon,
+          active:
+            isActive("/apps/[appId]", true) || isActive("/apps/[appId]/setup"),
+        },
+        {
+          title: "Logs",
+          url: "/apps/[appId]/logs",
+          icon: MessageSquareWarningIcon,
+          active: isActive("/apps/[appId]/logs"),
+        },
+        upgrade,
+        {
+          title: "Settings",
+          url: "/apps/[appId]/settings",
+          icon: Settings2Icon,
+          active: isActive("/apps/[appId]/settings"),
+        },
+      ];
+    }
+
     return [
       {
         title: "Dashboard",
@@ -57,14 +104,7 @@ export default function AppSidebarMainNav() {
         icon: LayoutDashboardIcon,
         active: isActive("/apps/[appId]", true),
       },
-      {
-        // Paid apps manage their plan here, the rest are asked to upgrade.
-        title: plan && !plan.default ? "Plan" : "Upgrade",
-        url: "/apps/[appId]/premium",
-        upsell: !!plan?.default,
-        icon: CrownIcon,
-        active: isActive("/apps/[appId]/premium"),
-      },
+      upgrade,
       {
         title: "Settings",
         url: "/apps/[appId]/settings",
@@ -107,7 +147,7 @@ export default function AppSidebarMainNav() {
         ],
       },
     ];
-  }, [isActive, hasPlugins, plan]);
+  }, [isActive, hasPlugins, plan, sharedBot]);
 
   return (
     <SidebarGroup>

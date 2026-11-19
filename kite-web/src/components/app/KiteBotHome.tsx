@@ -36,7 +36,7 @@ export default function KiteBotHome() {
   const setupHref = { pathname: "/apps/[appId]/setup", query: { appId } };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-3xl">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">Templates</h1>

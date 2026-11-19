@@ -16,7 +16,7 @@ import { useApp } from "@/lib/hooks/api";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
-import { InKiteBotShell } from "./KiteBotShell";
+import { InKiteBotSetupShell } from "./KiteBotSetupShell";
 
 interface Props {
   breadcrumbs?: {
@@ -59,8 +59,8 @@ export default function AppLayout({ children, ...props }: Props) {
     [app, props.title]
   );
 
-  const inKiteBotShell = useContext(InKiteBotShell);
-  if (inKiteBotShell) {
+  const inSetupShell = useContext(InKiteBotSetupShell);
+  if (inSetupShell) {
     return (
       <BaseLayout title={props.title} noindex>
         {children}

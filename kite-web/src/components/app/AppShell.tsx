@@ -8,7 +8,7 @@ import AppCreditsPopup from "./AppCreditsPopup";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 import LegalUpdateDialog from "../common/LegalUpdateDialog";
-import KiteBotShell from "./KiteBotShell";
+import KiteBotSetupShell from "./KiteBotSetupShell";
 
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
@@ -31,18 +31,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
     }
   });
 
-  // Apps on the Kite bot get a simpler shell. People who just added the bot
-  // land on the setup page, so it doesn't wait for the app with the sidebar.
+  // The setup page of apps on the Kite bot has no sidebar. People who just
+  // added the bot land on it, so it doesn't wait for the app with the sidebar.
   const setup = router.pathname === "/apps/[appId]/setup";
-  if (app ? app.bot_type === "shared" : setup) {
+  if (setup && (!app || app.bot_type === "shared")) {
     return (
-      <KiteBotShell tabs={!setup}>
+      <KiteBotSetupShell>
         {children}
 
         <AppDisabledPopup />
         <AppCreditsPopup />
         <LegalUpdateDialog />
-      </KiteBotShell>
+      </KiteBotSetupShell>
     );
   }
 

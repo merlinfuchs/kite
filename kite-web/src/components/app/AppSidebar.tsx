@@ -18,9 +18,13 @@ import { useAppId } from "@/lib/hooks/params";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboardIcon,
+  LucideIcon,
   MenuIcon,
+  MessageSquareWarningIcon,
   SatelliteDishIcon,
+  Settings2Icon,
   SlashSquareIcon,
+  StoreIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -32,11 +36,14 @@ import AppSidebarSupportCard from "./AppSidebarSupportCard";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
 import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
+import { useSharedBot } from "@/lib/hooks/api";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const appId = useAppId();
+  // Apps on the Kite bot only add templates, so they only get a few pages.
+  const sharedBot = useSharedBot();
 
   // Close the mobile drawer after navigating or when resizing to desktop.
   useEffect(() => {
@@ -44,13 +51,58 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }, [router.asPath, isMobile, setOpenMobile]);
 
   const isDashboardActive = router.pathname === "/apps/[appId]";
-  const isCommandsActive = router.pathname.startsWith("/apps/[appId]/commands");
-  const isEventsActive = eventSources.some((source) =>
-    router.pathname.startsWith(eventSourceName(source).path)
-  );
+  // The links of the bar at the bottom on phones, the rest is in the menu.
+  const mobileItems: {
+    title: string;
+    url: string;
+    icon: LucideIcon;
+    active: boolean;
+  }[] = sharedBot
+    ? [
+        {
+          title: "Templates",
+          url: "/apps/[appId]",
+          icon: StoreIcon,
+          active:
+            isDashboardActive || router.pathname === "/apps/[appId]/setup",
+        },
+        {
+          title: "Logs",
+          url: "/apps/[appId]/logs",
+          icon: MessageSquareWarningIcon,
+          active: router.pathname.startsWith("/apps/[appId]/logs"),
+        },
+        {
+          title: "Settings",
+          url: "/apps/[appId]/settings",
+          icon: Settings2Icon,
+          active: router.pathname.startsWith("/apps/[appId]/settings"),
+        },
+      ]
+    : [
+        {
+          title: "Dashboard",
+          url: "/apps/[appId]",
+          icon: LayoutDashboardIcon,
+          active: isDashboardActive,
+        },
+        {
+          title: "Commands",
+          url: "/apps/[appId]/commands",
+          icon: SlashSquareIcon,
+          active: router.pathname.startsWith("/apps/[appId]/commands"),
+        },
+        {
+          title: "Listeners",
+          url: "/apps/[appId]/events",
+          icon: SatelliteDishIcon,
+          active: eventSources.some((source) =>
+            router.pathname.startsWith(eventSourceName(source).path)
+          ),
+        },
+      ];
 
-  const isOtherActive =
-    !isDashboardActive && !isCommandsActive && !isEventsActive;
+  const isOtherActive = !mobileItems.some((item) => item.active);
 
   return (
     <>
@@ -61,8 +113,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarHeader>
           <SidebarContent>
             <AppSidebarMainNav />
-            <AppSidebarStudioNav />
-            <AppSidebarExternalNav />
+            {!sharedBot && (
+              <>
+                <AppSidebarStudioNav />
+                <AppSidebarExternalNav />
+              </>
+            )}
           </SidebarContent>
           <SidebarFooter>
             <AppSidebarSupportCard />
@@ -78,53 +134,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           className="z-40 block md:hidden select-none fixed bottom-0 inset-x-0 bg-background/95 backdrop-blur-md border-t border-border shadow-lg pb-[env(safe-area-inset-bottom)]"
         >
           <div className="grid grid-cols-4 items-center mx-auto h-16 max-w-md px-3">
-            <Link
-              href={{ pathname: "/apps/[appId]", query: { appId } }}
-              aria-current={isDashboardActive ? "page" : undefined}
-              className={cn(
-                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-                isDashboardActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutDashboardIcon className="size-5" />
-              <span className="text-[10px] sm:text-[11px] leading-none mt-1">
-                Dashboard
-              </span>
-            </Link>
-
-            <Link
-              href={{ pathname: "/apps/[appId]/commands", query: { appId } }}
-              aria-current={isCommandsActive ? "page" : undefined}
-              className={cn(
-                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-                isCommandsActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <SlashSquareIcon className="size-5" />
-              <span className="text-[10px] sm:text-[11px] leading-none mt-1">
-                Commands
-              </span>
-            </Link>
-
-            <Link
-              href={{ pathname: "/apps/[appId]/events", query: { appId } }}
-              aria-current={isEventsActive ? "page" : undefined}
-              className={cn(
-                "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
-                isEventsActive
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <SatelliteDishIcon className="size-5" />
-              <span className="text-[10px] sm:text-[11px] leading-none mt-1">
-                Listeners
-              </span>
-            </Link>
+            {mobileItems.map((item) => (
+              <Link
+                key={item.url}
+                href={{ pathname: item.url, query: { appId } }}
+                aria-current={item.active ? "page" : undefined}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1 rounded-lg transition-colors",
+                  item.active
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <item.icon className="size-5" />
+                <span className="text-[10px] sm:text-[11px] leading-none mt-1">
+                  {item.title}
+                </span>
+              </Link>
+            ))}
 
             <button
               type="button"
@@ -173,8 +200,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
           <div className="flex-1 overflow-y-auto px-2 space-y-2 pb-2 pt-1">
             <AppSidebarMainNav />
-            <AppSidebarStudioNav />
-            <AppSidebarExternalNav />
+            {!sharedBot && (
+              <>
+                <AppSidebarStudioNav />
+                <AppSidebarExternalNav />
+              </>
+            )}
           </div>
 
           <div className="border-t border-sidebar-border bg-sidebar px-3 py-2 shrink-0">
