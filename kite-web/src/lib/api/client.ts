@@ -42,6 +42,13 @@ export function loginUrlTo(path: string) {
 
 export const loginUrl = loginUrlTo("/apps");
 
+// installUrl logs in and adds the Kite bot to a server on one page of
+// Discord. The query can pick the server with guild_id, and the rest goes to
+// the setup page, like templates=verification,giveaway.
+export function installUrl(query?: string) {
+  return getApiUrl(`/v1/auth/install${query ? `?${query}` : ""}`);
+}
+
 export function apiRequest<T>(
   path: string,
   options?: RequestInit,

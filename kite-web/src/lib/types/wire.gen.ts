@@ -79,8 +79,21 @@ export interface App {
   description: null | string;
   enabled: boolean;
   disabled_reason: null | string;
+  /**
+   * DiscordID is empty for apps on the Kite bot, which have no bot of
+   * their own.
+   */
   discord_id: string;
   discord_status?: AppDiscordStatus;
+  /**
+   * BotType is "own" for apps with a custom bot and "shared" for apps on
+   * the Kite bot.
+   */
+  bot_type: string;
+  /**
+   * DiscordGuildID is the server of an app on the Kite bot.
+   */
+  discord_guild_id: null | string;
   owner_user_id: string;
   creator_user_id: string;
   created_at: string /* RFC3339 */;

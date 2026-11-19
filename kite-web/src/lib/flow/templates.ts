@@ -424,6 +424,7 @@ export const bundleContentSchema = z.object({
   version: z.number(),
   name: z.string(),
   description: z.string(),
+  shared_bot: z.boolean().optional(),
   parameters: z.array(bundleParameterSchema),
   commands: z.array(
     z.object({ id: z.string(), flow_source: bundleFlowSchema })
@@ -511,6 +512,9 @@ export type Template = {
   staffPick?: boolean;
   // Whether an AI check found a user's template good enough to be featured.
   featurable?: boolean;
+  // Whether apps on the Kite bot can add it, which only official templates
+  // can be.
+  sharedBot: boolean;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -669,6 +673,7 @@ export function loadTemplate(
     icon: file.icon,
     category: file.category,
     author,
+    sharedBot: author.kind === "kite" && !!file.shared_bot,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,
     about: file.about,

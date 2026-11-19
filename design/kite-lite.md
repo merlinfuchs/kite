@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: steps 1 to 4 and the service side of step 5 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
+Status: steps 1 to 5 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -117,7 +117,7 @@ On the callback, Kite logs the user in like a normal login and reads the server 
 
 Then the user lands on the setup page of the app, `/apps/{id}/setup`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
 
-The Kite bot's application needs `https://api.kite.onl/v1/auth/install/callback` as a redirect in the Discord Developer Portal.
+The Kite bot's application needs `https://api.kite.onl/v1/auth/install/callback` as a redirect in the Discord Developer Portal. The create app dialog only offers the Kite bot with `NEXT_PUBLIC_KITE_BOT_ENABLED=true` in the web app, which stays off until step 6 is done.
 
 When the bot is removed from a server, its app is stopped with a reason that says so and kept. Adding the bot again starts it. Servers that removed the bot while it was offline are caught when it connects. Servers that added it back while it was offline stay stopped until the next time the bot is added. The 160 servers the bot is in already have no app until someone there adds it again through the link.
 
@@ -166,7 +166,7 @@ Lite doesn't wait for the answer. Modules that need an intent appear once it's g
 
 ## Order of work
 
-Steps 1 to 4 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
+Steps 1 to 5 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
 
 1. Data model. The migration for `bot_type` and `discord_guild_id`, nullable `discord_token` and `discord_id`, and every place that reads them handling shared apps. The gateway manager, the engine and command deploys skip shared apps. Nothing creates one yet.
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.

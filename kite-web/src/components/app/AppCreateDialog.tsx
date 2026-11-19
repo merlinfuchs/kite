@@ -36,7 +36,7 @@ import DeveloperPortalMock from "./DeveloperPortalMock";
 import AppTokenConsent from "./AppTokenConsent";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import { loginUrl } from "@/lib/api/client";
+import { installUrl, loginUrl } from "@/lib/api/client";
 import { App } from "@/lib/types/wire.gen";
 
 interface FormFields {
@@ -66,6 +66,9 @@ export default function AppCreateDialog({
   onCreated?: (app: App) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // Whether the user picked a custom bot over the Kite bot, which is only
+  // offered where Kite has one.
+  const [custom, setCustom] = useState(!env.NEXT_PUBLIC_KITE_BOT_ENABLED);
   const [step, setStep] = useState(0);
   const [skippedGuide, setSkippedGuide] = useState(false);
   const router = useRouter();
@@ -136,6 +139,7 @@ export default function AppCreateDialog({
     if (open) {
       track("app_create_opened");
     } else {
+      setCustom(!env.NEXT_PUBLIC_KITE_BOT_ENABLED);
       setStep(0);
       setSkippedGuide(false);
       setWrongToken(null);
@@ -215,33 +219,67 @@ export default function AppCreateDialog({
             </div>
           </DialogTitle>
           <DialogDescription>
-            Kite runs your bot for you. You only need to create it in Discord
-            first, which takes about a minute.
+            {custom
+              ? "Kite runs your bot for you. You only need to create it in Discord first, which takes about a minute."
+              : "Pick which bot your app runs on."}
           </DialogDescription>
         </DialogHeader>
 
-        <ol className="flex gap-2">
-          {steps.map((title, i) => (
-            <li key={title} className="flex-1 space-y-1.5">
-              <div
-                className={cn(
-                  "h-1 rounded-full",
-                  i <= step ? "bg-primary" : "bg-muted"
-                )}
-              />
-              <div
-                className={cn(
-                  "text-xs",
-                  i === step ? "font-medium" : "text-muted-foreground"
-                )}
-              >
-                {title}
-              </div>
-            </li>
-          ))}
-        </ol>
+        {!custom && (
+          <div className="grid gap-3">
+            <a
+              href={installUrl()}
+              onClick={() => track("app_create_kind", { kind: "kite_bot" })}
+              className="rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+            >
+              <div className="font-medium">Add the Kite bot</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Turn on ready-made features like verification, giveaways, and
+                leveling in your server. You add the bot and log in on one
+                Discord page.
+              </p>
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                track("app_create_kind", { kind: "custom_bot" });
+                setCustom(true);
+              }}
+              className="rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors"
+            >
+              <div className="font-medium">Create a custom bot</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your own bot with its own name and avatar, and the editor to
+                build any command. Creating it in Discord takes about a minute.
+              </p>
+            </button>
+          </div>
+        )}
 
-        {step === 0 && (
+        {custom && (
+          <ol className="flex gap-2">
+            {steps.map((title, i) => (
+              <li key={title} className="flex-1 space-y-1.5">
+                <div
+                  className={cn(
+                    "h-1 rounded-full",
+                    i <= step ? "bg-primary" : "bg-muted"
+                  )}
+                />
+                <div
+                  className={cn(
+                    "text-xs",
+                    i === step ? "font-medium" : "text-muted-foreground"
+                  )}
+                >
+                  {title}
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {custom && step === 0 && (
           <>
             <div className="space-y-3 text-sm min-w-0">
               <p>
@@ -277,7 +315,7 @@ export default function AppCreateDialog({
           </>
         )}
 
-        {step === 1 && (
+        {custom && step === 1 && (
           <>
             <div className="space-y-3 text-sm min-w-0">
               <p>
@@ -307,7 +345,7 @@ export default function AppCreateDialog({
           </>
         )}
 
-        {step === 2 && (
+        {custom && step === 2 && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
