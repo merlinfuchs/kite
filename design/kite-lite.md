@@ -14,7 +14,7 @@ A Lite app is a Kite app row on the Kite bot. Each server has at most one Lite a
 
 Modules are official templates marked `shared_bot: true` in their template file. A Lite app can install, remove and configure them, and adding any other template to it is refused. It can't open the flow editor, create commands or listeners, or install user templates. `TestSharedBotBundles` checks that every marked template only uses blocks from an allowlist and events the Kite bot gets with its intents.
 
-Anyone with Manage Server in the server can change its Lite app, not only the owner. A Lite app belongs to the server more than to a person, and that's the permission Discord asks for to add a bot in the first place. Kite checks it with the Kite bot, which fetches the member and works out their permissions. That needs no privileged intent. The owner is who the app is listed under and who can delete it.
+Anyone with Manage Server in the server can change its Lite app, not only the owner. A Lite app belongs to the server more than to a person, and that's the permission Discord asks for to add a bot in the first place. Kite checks it with the Kite bot on every request, which fetches the member and works out their permissions, and trusts the answer for a minute. That needs no privileged intent. Everyone with Manage Server has the same say, including deleting the app. The owner and collaborators only list the app in their apps and give the owner's app limit, bans and credit messages. Losing Manage Server or leaving the server locks someone out within a minute, owners too. When the bot isn't in the server, permissions can't be checked, so the owner and collaborators can still open the app to add the bot again. Roles that templates give must be below the user's own highest role, unless they own the server, like Discord requires to give a role, so Manage Server doesn't let anyone hand out roles through the bot they couldn't give themselves.
 
 Lite apps follow new versions of their templates on their own. The user can't edit the flows, so an update can't conflict with their changes. Parameters and stored variables are kept.
 
@@ -115,7 +115,7 @@ Users see the two kinds of apps as the Kite bot and a custom bot. Lite is only t
 
 One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/install`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link. Links people see, like Xenon's, can use a short `kite.onl/add` on the site that forwards to it.
 
-On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators. Losing Manage Server later doesn't remove them yet. The new app counts toward the 10 apps of its owner, and banned users can't create one.
+On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators, which only lists the app in their apps. The new app counts toward the 10 apps of its owner, and banned users can't create one.
 
 Then the user lands on the setup page of the app, `/apps/{id}/setup`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
 
@@ -187,4 +187,4 @@ Start with steps 1 and 2. They're the most uncertain part and change nothing in 
 
 ## Open questions
 
-- When the owner leaves the server or loses Manage Server, does the app move to someone else? A Plus subscription stays with whoever pays for it.
+- When the owner leaves the server, who gets the credit messages? A Plus subscription stays with whoever pays for it.

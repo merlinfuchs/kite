@@ -43,6 +43,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/core/sharedbot"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
@@ -97,6 +98,8 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerStore,
 		pluginInstanceStore,
 		planManager,
+		userStore,
+		sharedbot.NewMembers(s.config.SharedBot),
 	)
 
 	cacheManager, err := handler.NewCacheManager(10000)

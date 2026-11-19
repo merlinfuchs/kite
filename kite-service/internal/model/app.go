@@ -68,6 +68,26 @@ func (a *App) IsShared() bool {
 	return a.BotType == AppBotTypeShared
 }
 
+// SharedAppMember is a user in the server of an app on the Kite bot, as
+// Discord says right now. Who can change the app follows Manage Server, not
+// its owner and collaborators, which only list it in their apps.
+type SharedAppMember struct {
+	// BotInServer is false when the Kite bot isn't in the server, so the
+	// user's permissions there aren't known.
+	BotInServer   bool
+	ManagesServer bool
+	// ServerOwner can give every role, others only the roles below their
+	// HighestRole, by its position.
+	ServerOwner bool
+	HighestRole int
+}
+
+// CanGiveRole is whether the member could give the role at the position
+// themselves, which Discord only allows below their highest role.
+func (m SharedAppMember) CanGiveRole(position int) bool {
+	return m.ServerOwner || position < m.HighestRole
+}
+
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
 type CommandsDeployError struct {
 	Message string `json:"message"`

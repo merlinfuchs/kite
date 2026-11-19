@@ -80,3 +80,23 @@ func TestCustomBotOnlyRefusesAPITokens(t *testing.T) {
 		}
 	}
 }
+
+func TestSharedAppAccess(t *testing.T) {
+	tests := []struct {
+		name    string
+		member  *model.SharedAppMember
+		decided bool
+		refused bool
+	}{
+		{"not an app on the Kite bot", nil, false, false},
+		{"bot removed from the server", &model.SharedAppMember{}, false, false},
+		{"Manage Server", &model.SharedAppMember{BotInServer: true, ManagesServer: true}, true, false},
+		{"lost Manage Server or left", &model.SharedAppMember{BotInServer: true}, true, true},
+	}
+	for _, tt := range tests {
+		decided, err := sharedAppAccess(tt.member)
+		if decided != tt.decided || (err != nil) != tt.refused {
+			t.Errorf("%s: decided = %v, err = %v", tt.name, decided, err)
+		}
+	}
+}

@@ -94,8 +94,10 @@ func (h *AuthHandler) HandleInstall(c *handler.Context) error {
 
 // HandleInstallCallback gets the server the user added the Kite bot to from
 // Discord, gives it an app on the Kite bot, and sends the user to set it up.
-// Discord only lets users with Manage Server add a bot, so they can change the
-// server's app: the first one owns it, the others become collaborators.
+// Discord only lets users with Manage Server add a bot. The first one owns the
+// app and the others become collaborators, which only lists it in their apps.
+// Who can change it follows Manage Server in the server, see
+// access.AppAccess.
 func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 	base := strings.TrimSuffix(h.config.AppPublicBaseURL, "/")
 

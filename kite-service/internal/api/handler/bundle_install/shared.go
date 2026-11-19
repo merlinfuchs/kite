@@ -11,7 +11,9 @@ import (
 
 // checkSharedParameters refuses channels and roles of other servers for an app
 // on the Kite bot. Its flows can only reach its own server, see the sharedbot
-// package, so they would fail when they run.
+// package, so they would fail when they run. Roles also have to be below the
+// user's highest role, like Discord requires to give them, so Manage Server
+// doesn't let them hand out roles through the bot they couldn't give.
 func (h *BundleInstallHandler) checkSharedParameters(
 	c *handler.Context,
 	values map[string]string,
@@ -21,8 +23,9 @@ func (h *BundleInstallHandler) checkSharedParameters(
 		return nil
 	}
 
-	// The IDs of the server's channels and roles, loaded once they're needed.
-	ids := map[string]map[string]bool{}
+	// The server's channels and roles with their positions, loaded once
+	// they're needed.
+	ids := map[string]map[string]int{}
 	for key, value := range values {
 		if value == "" {
 			continue
@@ -46,8 +49,12 @@ func (h *BundleInstallHandler) checkSharedParameters(
 			}
 			ids[kind] = list
 		}
-		if !ids[kind][value] {
+		position, ok := ids[kind][value]
+		if !ok {
 			return handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s isn't a %s of this server", label, kind))
+		}
+		if member := c.SharedAppMember; kind == "role" && member != nil && !member.CanGiveRole(position) {
+			return handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s is a role at or above your highest role, so you can't give it", label))
 		}
 	}
 	return nil
@@ -65,22 +72,23 @@ func bundleParameterOf(b *bundle.Bundle) func(key string) (flow.FlowParameterTyp
 	}
 }
 
-// sharedGuildIDs returns the IDs of the channels or roles of the app's server.
-func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, kind string) (map[string]bool, error) {
+// sharedGuildIDs returns the channels or roles of the app's server, by ID,
+// with their positions.
+func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, kind string) (map[string]int, error) {
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
 	guildID := c.App.DiscordGuildID.String
-	ids := map[string]bool{}
+	ids := map[string]int{}
 	if kind == "role" {
 		list, err := state.AppGuildRoles(c.Context(), guildID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get roles: %w", err)
 		}
 		for _, role := range list {
-			ids[role.ID.String()] = true
+			ids[role.ID.String()] = role.Position
 		}
 		return ids, nil
 	}
@@ -90,7 +98,7 @@ func (h *BundleInstallHandler) sharedGuildIDs(c *handler.Context, kind string) (
 		return nil, fmt.Errorf("failed to get channels: %w", err)
 	}
 	for _, ch := range list {
-		ids[ch.ID.String()] = true
+		ids[ch.ID.String()] = ch.Position
 	}
 	return ids, nil
 }

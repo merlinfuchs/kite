@@ -30,14 +30,16 @@ type Context struct {
 	// things.
 	sharedAppAllowed bool
 
-	App            *model.App
-	UserAppRole    model.AppCollaboratorRole
-	Features       model.Features
-	Command        *model.Command
-	Variable       *model.Variable
-	Message        *model.Message
-	EventListener  *model.EventListener
-	PluginInstance *model.PluginInstance
+	App *model.App
+	// SharedAppMember is the user in the server of an app on the Kite bot.
+	SharedAppMember *model.SharedAppMember
+	UserAppRole     model.AppCollaboratorRole
+	Features        model.Features
+	Command         *model.Command
+	Variable        *model.Variable
+	Message         *model.Message
+	EventListener   *model.EventListener
+	PluginInstance  *model.PluginInstance
 }
 
 // ItemChange is who made the changes of the request, for the version history
