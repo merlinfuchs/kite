@@ -11,9 +11,12 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 )
 
-// Permissions are what the Kite bot asks for when it's added to a server,
-// what the templates that can run on it need.
-const Permissions = discord.PermissionViewChannel |
+// Permissions are what the Kite bot asks for when it's added to a server.
+// Administrator lets it past channel overwrites. The rest are what the
+// templates that can run on it need, which it keeps when Administrator is
+// unticked on the invite.
+const Permissions = discord.PermissionAdministrator |
+	discord.PermissionViewChannel |
 	discord.PermissionSendMessages |
 	discord.PermissionEmbedLinks |
 	discord.PermissionAttachFiles |
