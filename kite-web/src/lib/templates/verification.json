@@ -2,6 +2,10 @@
   "id": "verification",
   "version": 2,
   "shared_bot": true,
+  "shared_bot_about": [
+    "When you add the template, the Kite bot posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+    "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The Verify button keeps working for as long as the message exists, and you can post the message again from the template's page on the dashboard."
+  ],
   "changelog": [
     {
       "version": 2,

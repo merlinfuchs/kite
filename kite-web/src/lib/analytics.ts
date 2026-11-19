@@ -8,6 +8,7 @@ export type AnalyticsEvent =
   | "app_create_opened"
   // Which bot the app runs on, the Kite bot or a custom one.
   | "app_create_kind"
+  | "kite_bot_look_changed"
   | "app_create_step"
   | "app_create_failed"
   | "app_create_portal_opened"

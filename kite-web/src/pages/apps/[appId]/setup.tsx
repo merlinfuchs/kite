@@ -1,12 +1,23 @@
 import { getKiteBotSetupLayout } from "@/components/app/KiteBotSetupShell";
 import TemplateIcon from "@/components/app/TemplateIcon";
+import {
+  KiteBotMemberPreview,
+  useKiteBotLook,
+} from "@/components/app/KiteBotLook";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
 import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { track } from "@/lib/analytics";
-import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
+import {
+  useAppStateGuildProfileUpdateMutation,
+  useBundleInstallCreateMutation,
+} from "@/lib/api/mutations";
+import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
 import { installRequest, installSelection } from "@/lib/flow/templateInstall";
 import { Template } from "@/lib/flow/templates";
 import { useApp, useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
@@ -20,6 +31,8 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type Added = { name: string; unposted: { name: string; error: string }[] };
+
+type Step = { kind: "look" } | { kind: "template"; template: Template };
 
 // The page apps on the Kite bot start on, after adding the bot. People first
 // pick templates, then fill in the settings of each one on its own. The query
@@ -67,7 +80,8 @@ export default function AppSetupPage() {
     setPicked(new Set(fromLink));
   }, [picked, router.isReady, installs, query.templates, addedIds]);
 
-  const [queue, setQueue] = useState<Template[] | null>(null);
+  // The steps after picking: the bot's look, then the templates with settings.
+  const [queue, setQueue] = useState<Step[] | null>(null);
   const [index, setIndex] = useState(0);
   const [added, setAdded] = useState<Added[]>([]);
   const [starting, setStarting] = useState(false);
@@ -122,7 +136,13 @@ export default function AppSetupPage() {
     }
     setAdded(addedNow);
     setIndex(0);
-    setQueue(withSettings);
+    setQueue([
+      { kind: "look" },
+      ...withSettings.map((template) => ({
+        kind: "template" as const,
+        template,
+      })),
+    ]);
   }
 
   if (!router.isReady || !app || custom || !picked) {
@@ -134,21 +154,36 @@ export default function AppSetupPage() {
   }
 
   if (queue && index < queue.length) {
-    const template = queue[index]!;
+    const step = queue[index]!;
     const next = () => setIndex(index + 1);
+    const progress = { step: index + 1, total: queue.length, onSkip: next };
+    if (step.kind === "look") {
+      return (
+        <BaseLayout title="Make the Kite bot yours" noindex>
+          <SetupProgress {...progress} />
+          <SetupLook
+            guildId={app.discord_guild_id ?? ""}
+            guildName={guild?.name}
+            last={queue.length === 1}
+            onDone={next}
+          />
+        </BaseLayout>
+      );
+    }
+
+    const template = step.template;
     return (
       <BaseLayout title={`Set up ${template.name}`} noindex>
+        <SetupProgress {...progress} />
         <SetupStep
           key={template.id}
           template={template}
-          step={index + 1}
-          total={queue.length}
+          last={index + 1 === queue.length}
           initialValues={initialValues(template)}
           onInstalled={(unposted) => {
             setAdded((a) => [...a, { name: template.name, unposted }]);
             next();
           }}
-          onSkip={next}
         />
       </BaseLayout>
     );
@@ -253,40 +288,145 @@ export default function AppSetupPage() {
   );
 }
 
-// SetupStep is the settings of one picked template.
-function SetupStep({
-  template,
+function SetupProgress({
   step,
   total,
-  initialValues,
-  onInstalled,
   onSkip,
 }: {
-  template: Template;
   step: number;
   total: number;
-  initialValues: Record<string, string>;
-  onInstalled: (unposted: { name: string; error: string }[]) => void;
   onSkip: () => void;
 }) {
   return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+        <span>
+          {step} of {total}
+        </span>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="hover:text-foreground"
+        >
+          Skip
+        </button>
+      </div>
+      <Progress value={((step - 1) / total) * 100} className="h-1.5" />
+    </div>
+  );
+}
+
+// SetupLook gives the Kite bot a name and avatar in the server, which it
+// shows right away.
+function SetupLook({
+  guildId,
+  guildName,
+  last,
+  onDone,
+}: {
+  guildId: string;
+  guildName?: string;
+  last: boolean;
+  onDone: () => void;
+}) {
+  const appId = useAppId();
+  const current = useKiteBotLook();
+  const mutation = useAppStateGuildProfileUpdateMutation(appId);
+  const [nick, setNick] = useState("");
+  const [avatar, setAvatar] = useState<string>();
+
+  async function save() {
+    if (!nick && !avatar) {
+      onDone();
+      return;
+    }
+    const res = await mutation.mutateAsync({
+      guildId,
+      nick: nick || undefined,
+      avatar,
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to change the look: ${res.error.message} (${res.error.code})`
+      );
+      return;
+    }
+    track("kite_bot_look_changed", { nick: !!nick, avatar: !!avatar });
+    onDone();
+  }
+
+  return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-          <span>
-            {step} of {total}
-          </span>
-          <button
-            type="button"
-            onClick={onSkip}
-            className="hover:text-foreground"
-          >
-            Skip
-          </button>
-        </div>
-        <Progress value={((step - 1) / total) * 100} className="h-1.5" />
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+          Make it yours
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          Give the Kite bot your own name and avatar in{" "}
+          {guildName ?? "your server"}. Members see them in the member list and
+          on everything it posts there. You can change them on the dashboard any
+          time.
+        </p>
       </div>
 
+      <KiteBotMemberPreview
+        name={nick || current.name}
+        avatarUrl={avatar || current.avatarUrl}
+      />
+
+      <Card className="p-5 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="look-nick">Name</Label>
+          <Input
+            id="look-nick"
+            value={nick}
+            placeholder={current.name}
+            maxLength={32}
+            onChange={(e) => setNick(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="look-avatar">Avatar</Label>
+          <Input
+            id="look-avatar"
+            type="file"
+            accept={profileImageTypes}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              const image = file && (await readProfileImage(file));
+              if (!image) e.target.value = "";
+              setAvatar(image);
+            }}
+          />
+        </div>
+        <LoadingButton
+          className="w-full"
+          onClick={save}
+          loading={mutation.isPending}
+        >
+          {last ? "Save and finish" : "Save and continue"}
+        </LoadingButton>
+      </Card>
+    </div>
+  );
+}
+
+// SetupStep is the settings of one picked template.
+function SetupStep({
+  template,
+  last,
+  initialValues,
+  onInstalled,
+}: {
+  template: Template;
+  last: boolean;
+  initialValues: Record<string, string>;
+  onInstalled: (unposted: { name: string; error: string }[]) => void;
+}) {
+  const about = template.sharedBotAbout ?? template.about;
+
+  return (
+    <div className="space-y-6">
       <div className="flex items-start gap-4">
         <TemplateIcon
           name={template.icon}
@@ -302,9 +442,9 @@ function SetupStep({
         </div>
       </div>
 
-      {!!template.about.length && (
+      {!!about.length && (
         <div className="space-y-3 text-sm text-muted-foreground">
-          {template.about.map((paragraph, i) => (
+          {about.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
           ))}
         </div>
@@ -315,7 +455,7 @@ function SetupStep({
         from="setup"
         initialValues={initialValues}
         title="Settings"
-        actionLabel={step < total ? "Add and continue" : "Add and finish"}
+        actionLabel={last ? "Add and finish" : "Add and continue"}
         onInstalled={onInstalled}
       />
     </div>

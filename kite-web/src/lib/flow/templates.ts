@@ -328,6 +328,9 @@ export const templateFileSchema = z.object({
   // runs it in their server without a bot of their own. The service checks
   // that it only uses what the Kite bot can run.
   shared_bot: z.boolean().optional(),
+  // The about for apps on the Kite bot, if it has to differ, like when it
+  // mentions the editor or message templates, which they don't have.
+  shared_bot_about: z.array(z.string().min(1)).min(1).optional(),
   parameters: z.array(
     templateParameterSchema.refine(
       (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
@@ -425,6 +428,7 @@ export const bundleContentSchema = z.object({
   name: z.string(),
   description: z.string(),
   shared_bot: z.boolean().optional(),
+  shared_bot_about: z.array(z.string()).optional(),
   parameters: z.array(bundleParameterSchema),
   commands: z.array(
     z.object({ id: z.string(), flow_source: bundleFlowSchema })
@@ -515,6 +519,8 @@ export type Template = {
   // Whether apps on the Kite bot can add it, which only official templates
   // can be.
   sharedBot: boolean;
+  // What apps on the Kite bot show instead of about, see shared_bot_about.
+  sharedBotAbout?: string[];
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -674,6 +680,7 @@ export function loadTemplate(
     category: file.category,
     author,
     sharedBot: author.kind === "kite" && !!file.shared_bot,
+    sharedBotAbout: file.shared_bot_about,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,
     about: file.about,

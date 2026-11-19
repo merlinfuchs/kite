@@ -15,6 +15,7 @@ import { BundleInstall } from "@/lib/types/wire.gen";
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "../ui/badge";
+import KiteBotLook from "./KiteBotLook";
 import KiteBotStatus from "./KiteBotStatus";
 import TemplateIcon from "./TemplateIcon";
 
@@ -45,6 +46,8 @@ export default function KiteBotHome() {
           What the Kite bot does in your server, and whether it works.
         </p>
       </div>
+
+      <KiteBotLook />
 
       {installs && templates && <KiteBotStatus added={added} />}
 

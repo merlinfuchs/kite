@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
@@ -296,8 +297,8 @@ func (h *AppStateHandler) HandleStateGuildLeave(c *handler.Context) (*wire.State
 }
 
 func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req wire.StateGuildProfileUpdateRequest) (*wire.StateGuildProfileUpdateResponse, error) {
-	if !c.Features.ServerProfiles {
-		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include server profiles.")
+	if err := checkServerProfile(c, req); err != nil {
+		return nil, err
 	}
 	if err := checkAnimatedImages(c, req.Avatar, req.Banner); err != nil {
 		return nil, err
@@ -342,6 +343,38 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 	}
 
 	return &wire.StateGuildProfileUpdateResponse{}, nil
+}
+
+// checkServerProfile returns an error if the app's plan doesn't allow the
+// changes. Apps on the Kite bot get a name, avatar, banner and About Me in
+// their server for free, it's the only look of their own they can have. Name
+// styles stay with the plan.
+func checkServerProfile(c *handler.Context, req wire.StateGuildProfileUpdateRequest) error {
+	if !c.Features.ServerProfiles {
+		if !c.App.IsShared() {
+			return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include server profiles.")
+		}
+		if req.NameStyle != nil && req.NameStyle.Font != "" {
+			return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include name styles.")
+		}
+	}
+	// The Kite bot is verified, so it shouldn't pass for Discord's staff.
+	if c.App.IsShared() && req.Nick != nil && impersonatesDiscord(*req.Nick) {
+		return handler.ErrBadRequest("invalid_nick", "The Kite bot's nickname can't contain Discord.")
+	}
+	return nil
+}
+
+// impersonatesDiscord is whether the name contains Discord, also with other
+// characters between its letters, like "D.i.s.c.o.r.d".
+func impersonatesDiscord(name string) bool {
+	var letters strings.Builder
+	for _, r := range strings.ToLower(name) {
+		if unicode.IsLetter(r) {
+			letters.WriteRune(r)
+		}
+	}
+	return strings.Contains(letters.String(), "discord")
 }
 
 func checkAnimatedImages(c *handler.Context, images ...*string) error {

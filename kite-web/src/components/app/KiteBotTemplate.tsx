@@ -51,11 +51,11 @@ export default function KiteBotTemplate({ template }: { template: Template }) {
           />
         ))}
 
-      {!!template.about.length && (
+      {!!(template.sharedBotAbout ?? template.about).length && (
         <section>
           <h2 className="font-semibold mb-3">How it works</h2>
           <div className="space-y-3 text-sm text-muted-foreground">
-            {template.about.map((paragraph, i) => (
+            {(template.sharedBotAbout ?? template.about).map((paragraph, i) => (
               <p key={i}>{paragraph}</p>
             ))}
           </div>

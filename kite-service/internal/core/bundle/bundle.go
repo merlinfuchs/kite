@@ -35,6 +35,9 @@ type Bundle struct {
 	// SharedBot is set on official bundles that apps on the Kite bot can add.
 	// They only use what the Kite bot can run, which a test checks.
 	SharedBot bool `json:"shared_bot,omitempty"`
+	// SharedBotAbout is what apps on the Kite bot show instead of the
+	// listing's about, if it has to differ.
+	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
 }
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
