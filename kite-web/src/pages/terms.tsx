@@ -251,10 +251,12 @@ export default function TermsOfServicePage() {
           and tells anyone who uses it why.
         </p>
         <p>
-          Payments are handled by Lemon Squeezy, which sells the subscription to
-          you as merchant of record. Its terms apply to the purchase. You can
-          cancel a subscription at any time, and it then ends with the current
-          billing period. Refunds are covered by our{" "}
+          Paid plans are sold by a reseller that acts as merchant of record for
+          your order. Orders through the Paddle checkout are sold by Paddle.com.
+          Orders through the Lemon Squeezy checkout are sold by Lemon Squeezy.
+          Your receipt names the reseller, and its terms apply to the purchase.
+          You can cancel a subscription at any time, and it then ends with the
+          current billing period. Refunds are covered by our{" "}
           <Link href="/refund">Refund Policy</Link>.
         </p>
         <p>

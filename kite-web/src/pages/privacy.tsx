@@ -271,21 +271,30 @@ export default function PrivacyPolicyPage() {
 
         <h2 id="payments">9. Payments</h2>
         <p>
-          Subscriptions are sold by Lemon Squeezy as merchant of record. Lemon
-          Squeezy processes your payment and billing details as its own
-          controller under its{" "}
+          Subscriptions are sold by Paddle.com or Lemon Squeezy as merchant of
+          record, depending on the checkout you used. The one that sold your
+          subscription processes your payment and billing details as its own
+          controller, under the privacy policy of{" "}
+          <a
+            href="https://www.paddle.com/legal/privacy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Paddle
+          </a>{" "}
+          or{" "}
           <a
             href="https://www.lemonsqueezy.com/privacy"
             target="_blank"
             rel="noreferrer"
           >
-            privacy policy
+            Lemon Squeezy
           </a>
-          . We never see your payment details. We send Lemon Squeezy your user
-          ID and the app the subscription is for, and receive the status and
-          plan of your subscription, to give your app the features it paid for
-          (Art. 6(1)(b) GDPR). If you are in our Discord server, your Discord
-          account gets a role for your plan there.
+          . We never see your payment details. We send it your user ID and the
+          app the subscription is for, and receive the status and plan of your
+          subscription, to give your app the features it paid for (Art. 6(1)(b)
+          GDPR). If you are in our Discord server, your Discord account gets a
+          role for your plan there.
         </p>
 
         <h2 id="support">10. Support</h2>
@@ -324,10 +333,11 @@ export default function PrivacyPolicyPage() {
           </li>
         </ul>
         <p>
-          Lemon Squeezy (USA) processes payment data as its own controller, see{" "}
-          <a href="#payments">section 9</a>. Bots built with Kite also send data
-          to Discord and to the services their owner chooses. We disclose data
-          to authorities only when the law requires it.
+          Paddle.com (UK) and Lemon Squeezy (USA) process payment data as their
+          own controllers, see <a href="#payments">section 9</a>. Bots built
+          with Kite also send data to Discord and to the services their owner
+          chooses. We disclose data to authorities only when the law requires
+          it.
         </p>
         <p>
           Transfers to the USA are based on the EU-US Data Privacy Framework
