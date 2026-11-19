@@ -3,7 +3,11 @@ import Link from "next/link";
 import { HeartIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
+import {
+  useAppSubscriptions,
+  useBillingPlans,
+  useSharedBot,
+} from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
 import {
@@ -18,6 +22,8 @@ import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
+  // Apps on the Kite bot only use the credits and look of a plan.
+  const sharedBot = useSharedBot();
 
   const activeSubscriptions = useMemo(
     () => subscriptions?.filter((subscription) => subscription!.active),
@@ -92,6 +98,7 @@ export default function AppPricingList() {
       <PlanCards
         plans={pricings}
         interval={interval}
+        kiteBot={sharedBot}
         badge={(pricing) =>
           pricing.current && <Badge className="text-sm">Current</Badge>
         }
@@ -106,14 +113,16 @@ export default function AppPricingList() {
           />
         )}
       />
-      <div className="text-center mt-6">
-        <Link
-          href="/pricing#compare"
-          className="text-sm font-medium text-primary hover:underline"
-        >
-          Compare all limits
-        </Link>
-      </div>
+      {!sharedBot && (
+        <div className="text-center mt-6">
+          <Link
+            href="/pricing#compare"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Compare all limits
+          </Link>
+        </div>
+      )}
       {env.NEXT_PUBLIC_DONATION_VARIANT_ID && (
         <div className="mt-10 rounded-xl border bg-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex-1">
