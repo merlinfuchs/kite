@@ -13,6 +13,13 @@ export default function userAvatar({
   }.png`;
 }
 
+export function discordAvatarUrl(url: string) {
+  return url.replace(
+    /^(https:\/\/cdn\.discordapp\.com\/avatars\/[^/]+\/a_[^/.]+)\.(?:png|webp|jpe?g)(?=[?#]|$)/i,
+    "$1.gif"
+  );
+}
+
 export function discordEmojiUrl(id: string, animated?: boolean) {
   return `https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "webp"}`;
 }

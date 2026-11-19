@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { discordAvatarUrl } from "@/tools/common/utils/discordCdn";
 
 // A preview of the bot's profile the way Discord shows it when someone clicks
 // on the bot.
@@ -38,7 +39,9 @@ export default function BotProfilePreview({
         <div
           className="-mt-10 h-20 w-20 rounded-full border-[6px] border-background bg-muted bg-cover bg-center"
           style={
-            avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined
+            avatarUrl
+              ? { backgroundImage: `url(${discordAvatarUrl(avatarUrl)})` }
+              : undefined
           }
           role="img"
           aria-label="Avatar"

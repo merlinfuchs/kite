@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAppStateUserQuery, useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
 import { useResponseData } from "@/lib/hooks/api";
+import { discordAvatarUrl } from "@/tools/common/utils/discordCdn";
 import MessagePreviewComponents, {
   AttachmentUrlContext,
 } from "./MessagePreviewComponents";
@@ -57,7 +58,9 @@ export default function MessagePreview({
           <div className="discord-message-inner">
             <div className="discord-author-avatar">
               <img
-                src={msg.avatar_url || botUser?.avatar_url || defaultAvatarUrl}
+                src={discordAvatarUrl(
+                  msg.avatar_url || botUser?.avatar_url || defaultAvatarUrl
+                )}
                 alt=""
               />
             </div>
