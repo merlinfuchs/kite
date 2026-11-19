@@ -18,6 +18,11 @@ export default function AppListEntry({ app }: { app: App }) {
         <CardTitle className="text-base flex items-center space-x-2">
           <BotIcon className="h-5 w-5 flex-none text-muted-foreground" />
           <div>{app.name}</div>
+          {app.bot_type === "shared" && (
+            <Badge variant="outline" className="whitespace-nowrap">
+              Quick setup
+            </Badge>
+          )}
           {!app.enabled && (
             <Badge
               variant={app.token_invalid ? "destructive" : "secondary"}

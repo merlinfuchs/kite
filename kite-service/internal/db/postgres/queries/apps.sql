@@ -117,6 +117,13 @@ UPDATE apps SET
     updated_at = @updated_at
 WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND NOT enabled AND disabled_reason = @disabled_reason;
 
+-- The name of a shared app is the name of its server.
+-- name: RenameSharedApp :execrows
+UPDATE apps SET
+    name = @name,
+    updated_at = @updated_at
+WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND name <> @name;
+
 -- name: GetEnabledAppIDs :many
 SELECT id FROM apps WHERE enabled = TRUE;
 

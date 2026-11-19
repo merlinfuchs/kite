@@ -1013,6 +1013,28 @@ func (q *Queries) QueueAppCommandsDeploy(ctx context.Context, arg QueueAppComman
 	return err
 }
 
+const renameSharedApp = `-- name: RenameSharedApp :execrows
+UPDATE apps SET
+    name = $1,
+    updated_at = $2
+WHERE bot_type = 'shared' AND discord_guild_id = $3 AND name <> $1
+`
+
+type RenameSharedAppParams struct {
+	Name           string
+	UpdatedAt      pgtype.Timestamp
+	DiscordGuildID pgtype.Text
+}
+
+// The name of a shared app is the name of its server.
+func (q *Queries) RenameSharedApp(ctx context.Context, arg RenameSharedAppParams) (int64, error) {
+	result, err := q.db.Exec(ctx, renameSharedApp, arg.Name, arg.UpdatedAt, arg.DiscordGuildID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const unpauseAppForCredits = `-- name: UnpauseAppForCredits :execrows
 UPDATE apps SET
     credits_paused_at = NULL,
