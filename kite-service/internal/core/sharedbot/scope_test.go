@@ -36,7 +36,7 @@ func testScope(t *testing.T) *scope {
 		}
 	}
 
-	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil)}
+	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{max: maxFailures}, all: &failures{max: maxAPIFailures}}
 }
 
 func TestScopeCheck(t *testing.T) {
@@ -160,6 +160,8 @@ func TestScopedDriverChecksMessageReferences(t *testing.T) {
 		{"reply in own server", `{"content":"hi","message_reference":{"channel_id":"101","message_id":"5"}}`, true},
 		{"reply without channel", `{"content":"hi","message_reference":{"message_id":"5"}}`, true},
 		{"no reference", `{"content":"hi"}`, true},
+		{"forward with an escaped key", `{"message\u005freference":{"type":1,"channel_id":"201","message_id":"5"}}`, false},
+		{"JSON that isn't understood", `{"message_reference":{"channel_id":201}}`, false},
 	}
 
 	for _, tt := range tests {
@@ -233,5 +235,62 @@ func TestScopedDriverPausesAfterFailures(t *testing.T) {
 
 	if len(inner.sent) != maxFailures {
 		t.Errorf("sent %d requests, want %d", len(inner.sent), maxFailures)
+	}
+}
+
+// Apps that each stay below maxFailures still stop once Discord refused the
+// limit of all apps of the process.
+func TestScopedDriverPausesAllApps(t *testing.T) {
+	all := newAppFailures(10)
+	inner := &fakeDriver{Client: httpdriver.NewClient()}
+
+	for _, appID := range []string{"a", "b", "c", "d", "e"} {
+		s := testScope(t)
+		s.failures = all.of(appID)
+		s.all = all.all
+		driver := scopedDriver{Client: inner, scope: s}
+
+		for range 5 {
+			req, err := driver.NewRequest(context.Background(), "GET", "https://discord.com/api/v10/guilds/100")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := driver.Do(req); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	if len(inner.sent) != 10 {
+		t.Errorf("sent %d requests, want 10", len(inner.sent))
+	}
+}
+
+type statusResponse struct {
+	refusedResponse
+	status int
+	header http.Header
+}
+
+func (r statusResponse) GetStatus() int         { return r.status }
+func (r statusResponse) GetHeader() http.Header { return r.header }
+
+func TestIsRefusal(t *testing.T) {
+	tests := []struct {
+		name    string
+		resp    statusResponse
+		refusal bool
+	}{
+		{"ok", statusResponse{status: 200}, false},
+		{"not found", statusResponse{status: 404}, false},
+		{"unauthorized", statusResponse{status: 401}, true},
+		{"forbidden", statusResponse{status: 403}, true},
+		{"rate limited", statusResponse{status: 429, header: http.Header{"X-Ratelimit-Scope": {"user"}}}, true},
+		{"shared rate limit", statusResponse{status: 429, header: http.Header{"X-Ratelimit-Scope": {"shared"}}}, false},
+	}
+	for _, tt := range tests {
+		if got := isRefusal(tt.resp); got != tt.refusal {
+			t.Errorf("%s: refusal = %v, want %v", tt.name, got, tt.refusal)
+		}
 	}
 }

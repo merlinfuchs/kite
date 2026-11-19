@@ -26,15 +26,20 @@ type Context struct {
 	apiTokenAllowed bool
 	// Set for routes that check the scope of API tokens themselves.
 	apiTokenScopeUnchecked bool
+	// Set for the routes of groups that let apps on the Kite bot change
+	// things.
+	sharedAppAllowed bool
 
-	App            *model.App
-	UserAppRole    model.AppCollaboratorRole
-	Features       model.Features
-	Command        *model.Command
-	Variable       *model.Variable
-	Message        *model.Message
-	EventListener  *model.EventListener
-	PluginInstance *model.PluginInstance
+	App *model.App
+	// SharedAppMember is the user in the server of an app on the Kite bot.
+	SharedAppMember *model.SharedAppMember
+	UserAppRole     model.AppCollaboratorRole
+	Features        model.Features
+	Command         *model.Command
+	Variable        *model.Variable
+	Message         *model.Message
+	EventListener   *model.EventListener
+	PluginInstance  *model.PluginInstance
 }
 
 // ItemChange is who made the changes of the request, for the version history
@@ -44,6 +49,12 @@ func (c *Context) ItemChange(editorSession string) store.ItemChange {
 		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)
 	}
 	return store.EditorChange(c.Session.UserID, editorSession)
+}
+
+// SharedAppAllowed says whether apps on the Kite bot can change things with
+// the route.
+func (c *Context) SharedAppAllowed() bool {
+	return c.sharedAppAllowed
 }
 
 // APITokenAllowed says whether the route can be used with an API token.

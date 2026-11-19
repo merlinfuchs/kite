@@ -1,0 +1,93 @@
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { hasUpdate } from "@/lib/flow/bundleInstalls";
+import { useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
+import { useFullTemplates } from "@/lib/hooks/templates";
+import { PlusIcon } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "../ui/badge";
+import KiteBotStatus from "./KiteBotStatus";
+import { TemplateInstalledCard } from "./TemplateInstalledCard";
+import TemplateToggleRow from "./TemplateToggleRow";
+
+// KiteBotHome is the dashboard of apps on the Kite bot: whether the bot runs
+// fine, and the templates it runs in the server, with their settings.
+export default function KiteBotHome() {
+  const appId = useAppId();
+  const guild = useAppStateGuilds()?.[0];
+  const installs = useBundleInstalls();
+  // With their flows, which the permissions and updates are worked out from.
+  const templates = useFullTemplates(
+    (installs ?? []).flatMap((i) => (i ? [i.bundle_id] : []))
+  );
+
+  const added = (installs ?? []).flatMap((install) => {
+    const template = templates?.find((t) => t.id === install?.bundle_id);
+    return install && template ? [{ install, template }] : [];
+  });
+  const setupHref = { pathname: "/apps/[appId]/setup", query: { appId } };
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      <div>
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+          {guild?.name ?? "Your server"}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          What the Kite bot does in your server, and whether it works.
+        </p>
+      </div>
+
+      {installs && templates && <KiteBotStatus added={added} />}
+
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold mb-1">Templates</h2>
+          <p className="text-muted-foreground text-sm">
+            Open a template to change its settings.
+          </p>
+        </div>
+        {!!added.length && (
+          <Button asChild className="flex-none">
+            <Link href={setupHref}>
+              <PlusIcon className="h-4 w-4 mr-1" />
+              Add templates
+            </Link>
+          </Button>
+        )}
+      </div>
+
+      {installs && templates && (
+        <div className="space-y-3 !mt-4">
+          {added.length ? (
+            added.map(({ install, template }) => (
+              <TemplateToggleRow
+                key={install.id}
+                template={template}
+                label="Settings"
+                badge={
+                  hasUpdate(install) && (
+                    <Badge variant="secondary">Update</Badge>
+                  )
+                }
+              >
+                {() => <TemplateInstalledCard template={template} />}
+              </TemplateToggleRow>
+            ))
+          ) : (
+            <Card className="p-8 text-center">
+              <div className="font-medium mb-1">No templates yet</div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Add one and the Kite bot starts running it in your server.
+              </p>
+              <Button asChild>
+                <Link href={setupHref}>Add templates</Link>
+              </Button>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

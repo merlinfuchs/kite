@@ -88,6 +88,14 @@ func (s Env) FlowProviders(appID string, session *state.State) flow.FlowProvider
 	return s.flowProviders(appID, session, entityLinks{})
 }
 
+// discordProvider is the app's Discord provider. Shared apps can't change the
+// Kite bot's status or voice.
+func (s Env) discordProvider(appID string, session *state.State) *DiscordProvider {
+	p := NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice)
+	p.shared = s.Config.SharedApps
+	return p
+}
+
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
 	var aiProvider provider.AIProvider = &provider.MockAIProvider{}
 	if s.OpenaiClient != nil {
@@ -104,11 +112,8 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		cooldownProvider = s.CooldownProvider
 	}
 
-	discordProvider := NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice)
-	discordProvider.shared = s.Config.SharedApps
-
 	return flow.FlowProviders{
-		Discord: discordProvider,
+		Discord: s.discordProvider(appID, session),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,

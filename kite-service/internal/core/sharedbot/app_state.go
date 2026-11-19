@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"slices"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -23,10 +22,11 @@ type AppStateManager struct {
 	appStore store.AppStore
 	bot      *Bot
 	channels *channelGuilds
+	failures *appFailures
 }
 
 func NewAppStateManager(next store.AppStateManager, appStore store.AppStore, bot *Bot) *AppStateManager {
-	m := &AppStateManager{next: next, appStore: appStore, bot: bot}
+	m := &AppStateManager{next: next, appStore: appStore, bot: bot, failures: newAppFailures(maxAPIFailures)}
 	if bot != nil {
 		m.channels = newChannelGuilds(nil, bot.base)
 	}
@@ -44,7 +44,7 @@ func (m *AppStateManager) client(ctx context.Context, app *model.App) (*api.Clie
 		return nil, 0, err
 	}
 
-	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels}
+	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID), all: m.failures.all}
 	return scopedClient(m.bot.base, s).WithContext(ctx), discord.GuildID(guildID), nil
 }
 
@@ -75,7 +75,7 @@ func (m *AppStateManager) AppState(ctx context.Context, appID string) (store.App
 	if err != nil {
 		return nil, err
 	}
-	return &appState{client: client, guildID: guildID}, nil
+	return &appState{bot: m.bot, client: client, guildID: guildID}, nil
 }
 
 func (m *AppStateManager) AppClient(ctx context.Context, appID string) (*api.Client, error) {
@@ -95,8 +95,29 @@ func (m *AppStateManager) AppClient(ctx context.Context, appID string) (*api.Cli
 // appState is the Kite bot as one shared app sees it. The app only sees its
 // own server, even though the bot is in many.
 type appState struct {
+	bot     *Bot
 	client  *api.Client
 	guildID discord.GuildID
+
+	// guild is fetched once, the state lives for one API request.
+	guildMu sync.Mutex
+	guild   *discord.Guild
+}
+
+// fetchGuild returns the app's server.
+func (s *appState) fetchGuild(ctx context.Context) (*discord.Guild, error) {
+	s.guildMu.Lock()
+	defer s.guildMu.Unlock()
+
+	if s.guild != nil {
+		return s.guild, nil
+	}
+	guild, err := s.client.WithContext(ctx).Guild(s.guildID)
+	if err != nil {
+		return nil, err
+	}
+	s.guild = guild
+	return guild, nil
 }
 
 // ownGuild parses the guild ID and reports whether it's the app's server.
@@ -111,12 +132,12 @@ func (s *appState) AppStatus(ctx context.Context) (store.AppStateStatus, error) 
 }
 
 func (s *appState) AppUser(ctx context.Context) (*discord.User, error) {
-	return s.client.WithContext(ctx).Me()
+	return s.bot.Me(ctx)
 }
 
 func (s *appState) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
-	guild, err := s.client.WithContext(ctx).Guild(s.guildID)
-	if isNotInGuild(err) {
+	guild, err := s.fetchGuild(ctx)
+	if util.IsDiscordNotInGuild(err) {
 		return nil, nil
 	}
 	if err != nil {
@@ -126,36 +147,34 @@ func (s *appState) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
 }
 
 func (s *appState) AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error) {
-	if !s.ownGuild(guildID) {
-		return nil, nil
-	}
-	channels, err := s.client.WithContext(ctx).Channels(s.guildID)
-	if isNotInGuild(err) {
-		return nil, nil
-	}
-	return channels, err
+	return ownGuildList(s, guildID, func() ([]discord.Channel, error) {
+		return s.client.WithContext(ctx).Channels(s.guildID)
+	})
 }
 
 func (s *appState) AppGuildRoles(ctx context.Context, guildID string) ([]discord.Role, error) {
-	if !s.ownGuild(guildID) {
-		return nil, nil
-	}
-	roles, err := s.client.WithContext(ctx).Roles(s.guildID)
-	if isNotInGuild(err) {
-		return nil, nil
-	}
-	return roles, err
+	return ownGuildList(s, guildID, func() ([]discord.Role, error) {
+		return s.client.WithContext(ctx).Roles(s.guildID)
+	})
 }
 
 func (s *appState) AppGuildEmojis(ctx context.Context, guildID string) ([]discord.Emoji, error) {
+	return ownGuildList(s, guildID, func() ([]discord.Emoji, error) {
+		return s.client.WithContext(ctx).Emojis(s.guildID)
+	})
+}
+
+// ownGuildList fetches a list of the app's server. Other servers, and the
+// server once the bot left it, have none.
+func ownGuildList[T any](s *appState, guildID string, fetch func() ([]T, error)) ([]T, error) {
 	if !s.ownGuild(guildID) {
 		return nil, nil
 	}
-	emojis, err := s.client.WithContext(ctx).Emojis(s.guildID)
-	if isNotInGuild(err) {
+	list, err := fetch()
+	if util.IsDiscordNotInGuild(err) {
 		return nil, nil
 	}
-	return emojis, err
+	return list, err
 }
 
 func (s *appState) AppDiscordAPIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
@@ -167,34 +186,19 @@ func (s *appState) AppGuildBotPermissions(ctx context.Context, guildID string) (
 		return 0, store.ErrNotFound
 	}
 
-	client := s.client.WithContext(ctx)
-	me, err := client.Me()
+	me, err := s.bot.Me(ctx)
 	if err != nil {
 		return 0, err
 	}
-	guild, err := client.Guild(s.guildID)
+	guild, err := s.fetchGuild(ctx)
 	if err != nil {
 		return 0, err
 	}
-	if guild.OwnerID == me.ID {
-		return ^discord.Permissions(0), nil
-	}
-	member, err := client.Member(s.guildID, me.ID)
+	member, err := s.client.WithContext(ctx).Member(s.guildID, me.ID)
 	if err != nil {
 		return 0, err
 	}
-
-	// The @everyone role has the ID of the guild.
-	var perms discord.Permissions
-	for _, role := range guild.Roles {
-		if discord.Snowflake(role.ID) == discord.Snowflake(s.guildID) || slices.Contains(member.RoleIDs, role.ID) {
-			perms |= role.Permissions
-		}
-	}
-	if perms.Has(discord.PermissionAdministrator) {
-		return ^discord.Permissions(0), nil
-	}
-	return perms, nil
+	return discord.CalcOverrides(*guild, discord.Channel{}, *member, guild.Roles), nil
 }
 
 func (s *appState) AppGuildBotMember(ctx context.Context, guildID string) (*provider.StyledMember, error) {
@@ -202,21 +206,15 @@ func (s *appState) AppGuildBotMember(ctx context.Context, guildID string) (*prov
 		return nil, store.ErrNotFound
 	}
 
-	client := s.client.WithContext(ctx)
-	me, err := client.Me()
+	me, err := s.bot.Me(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	var member provider.StyledMember
-	err = client.RequestJSON(&member, "GET", api.EndpointGuilds+s.guildID.String()+"/members/"+me.ID.String())
+	err = s.client.WithContext(ctx).RequestJSON(&member, "GET", api.EndpointGuilds+s.guildID.String()+"/members/"+me.ID.String())
 	if err != nil {
 		return nil, err
 	}
 	return &member, nil
-}
-
-func isNotInGuild(err error) bool {
-	return util.IsDiscordRestStatusCode(err, http.StatusForbidden) ||
-		util.IsDiscordRestStatusCode(err, http.StatusNotFound)
 }

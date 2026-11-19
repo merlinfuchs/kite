@@ -1,6 +1,6 @@
 # Kite Lite
 
-Status: steps 1 to 5 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
+Status: steps 1 to 6 built 2026-11-18 and tested on a test bot, not deployed. The name is a placeholder.
 
 Kite Lite gives a server pre-built bot features without creating a bot. The server adds the Kite bot, picks modules like verification or suggestions, and fills in their settings. Entering a bot token later turns it into a full Kite app with the flow editor.
 
@@ -14,7 +14,7 @@ A Lite app is a Kite app row on the Kite bot. Each server has at most one Lite a
 
 Modules are official templates marked `shared_bot: true` in their template file. A Lite app can install, remove and configure them, and adding any other template to it is refused. It can't open the flow editor, create commands or listeners, or install user templates. `TestSharedBotBundles` checks that every marked template only uses blocks from an allowlist and events the Kite bot gets with its intents.
 
-Anyone with Manage Server in the server can change its Lite app, not only the owner. A Lite app belongs to the server more than to a person, and that's the permission Discord asks for to add a bot in the first place. Kite checks it with the Kite bot, which fetches the member and works out their permissions. That needs no privileged intent. The owner is who the app is listed under and who can delete it.
+Anyone with Manage Server in the server can change its Lite app, not only the owner. A Lite app belongs to the server more than to a person, and that's the permission Discord asks for to add a bot in the first place. Kite checks it with the Kite bot on every request, which fetches the member and works out their permissions, and trusts the answer for a minute. That needs no privileged intent. Everyone with Manage Server has the same say, including deleting the app. The owner and collaborators only list the app in their apps and give the owner's app limit, bans and credit messages. Losing Manage Server or leaving the server locks someone out within a minute, owners too. When the bot isn't in the server, permissions can't be checked, so the owner and collaborators can still open the app to add the bot again. Roles that templates give must be below the user's own highest role, unless they own the server, like Discord requires to give a role, so Manage Server doesn't let anyone hand out roles through the bot they couldn't give themselves.
 
 Lite apps follow new versions of their templates on their own. The user can't edit the flows, so an update can't conflict with their changes. Parameters and stored variables are kept.
 
@@ -27,6 +27,8 @@ Lite apps use credits like any other app, with the same costs per block. Without
 Lite apps can subscribe to Plus. On a Lite app, Plus raises the credits like everywhere else and also turns on server profiles. The Kite bot's global name and avatar are Kite's, so a server profile is the only way for a Lite server to give the bot its own look. Own bots already have their own name and avatar, which is why server profiles stay Premium for them.
 
 The feature check becomes server profiles on the plan, or a Lite app on Plus or higher. The pricing page gets a line under Plus for the Kite bot's name and avatar in your server.
+
+Plus on a Lite app is sold for its credits, with the profile as an extra. A custom bot gets its own name and avatar for free, so a pitch about the look alone would feel like a trick once people find that out. The profile settings say so in one line: change how the Kite bot looks in your server with Plus, or switch to a custom bot, which has its own name and avatar for free. The copy doesn't suggest the name is paid, since anyone with Manage Nicknames can rename the bot in Discord. The paid part is the avatar, banner and bio. Server profiles on Lite ship with step 9 or with that line, because before step 9 a custom bot means starting over in a new app.
 
 A Lite app that upgrades to its own bot keeps its subscription, and Plus is then Plus as today. Credits work the same on both, so upgrading doesn't change what the modules cost.
 
@@ -103,7 +105,7 @@ This replaces checking each method of `DiscordProvider` and `policy.target` in `
 
 Template settings with a channel or role are checked against the server when they're saved.
 
-Discord's global rate limit is 50 requests a second per bot token, shared by every Lite server. Each server should get its own request budget so that one busy server can't slow the others, which isn't built yet. Once Discord refuses 200 requests of one app within 10 minutes with a 401, 403 or 429, its requests are refused without sending them for 10 minutes. Refused requests count toward Discord's limit of 10,000 per 10 minutes, which is per IP and already shared with every Kite app on the host.
+Discord's global rate limit is 50 requests a second per bot token, shared by every Lite server. Each server should get its own request budget so that one busy server can't slow the others, which isn't built yet. Once Discord refuses 200 requests of one app within 10 minutes with a 401, 403 or 429, leaving out 429s of limits shared with others, which Discord doesn't count either, its requests are refused without sending them for 10 minutes. Refused requests count toward Discord's limit of 10,000 per 10 minutes, which is per IP and already shared with every Kite app on the host. So many apps that each stay below 200 can't add up to it, all Lite apps of a process pause the same way once Discord refused 4,000 of their requests in the Kite bot's process, or 1,000 in an API cluster. The processes count on their own, so these keep them below 10,000 together. Own bots on the same IP aren't counted, like today.
 
 Own-bot apps count how often their requests name a channel that isn't in the cache, in `shared_bot_shadow_total`. That's how often a Lite app would ask Discord for a channel's server.
 
@@ -113,7 +115,7 @@ Users see the two kinds of apps as the Kite bot and a custom bot. Lite is only t
 
 One link logs the user in and adds the Kite bot on the same page of Discord: `/v1/auth/install`. The Kite bot's application is also the one users log in with on kite.onl, so Discord asks for both in one authorization, with the scopes `identify`, `email`, `bot` and `applications.commands`. `guild_id` preselects the server, and the rest of the query, like `templates=verification,suggestions&verification.role_id=…` from Xenon, is passed on to the setup page. The dashboard's own button for adding the Kite bot uses the same link. Links people see, like Xenon's, can use a short `kite.onl/add` on the site that forwards to it.
 
-On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators. Losing Manage Server later doesn't remove them yet. The new app counts toward the 10 apps of its owner, and banned users can't create one.
+On the callback, Kite logs the user in like a normal login and reads the server from the token, which only Discord can make. The `guild_id` of the redirect could be changed by anyone. Discord only lets users with Manage Server add a bot, so whoever comes back can change the server's app. The first one creates and owns it, later ones become collaborators, which only lists the app in their apps. The new app counts toward the 10 apps of its owner, and banned users can't create one.
 
 Then the user lands on the setup page of the app, `/apps/{id}/setup`, where they pick templates and fill in their settings. The settings come after adding the bot, because the channel and role pickers need the bot in the server. The page uses the same install as the Marketplace, which posts panels like the verification message.
 
@@ -166,14 +168,14 @@ Lite doesn't wait for the answer. Modules that need an intent appear once it's g
 
 ## Order of work
 
-Steps 1 to 5 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
+Steps 1 to 6 are built. The shared process runs with `server start --shared_bot` and `shared_bot.token`. Each step is one PR or a short stack, and each one can be deployed without changing anything for own-bot apps.
 
 1. Data model. The migration for `bot_type` and `discord_guild_id`, nullable `discord_token` and `discord_id`, and every place that reads them handling shared apps. The gateway manager, the engine and command deploys skip shared apps. Nothing creates one yet.
 2. Shared process, end to end on a test bot. The Kite app row of the Kite bot is removed before the process runs with its token. The config for the process, one unsharded session, the map from server to app, the engine for shared apps, guild command deploys, and `AppClient` with the shared token in the API. A Lite app is created by hand and runs Verification in a test server. This is the step that finds the places that still assume one token per app, so it comes early.
 3. Scoping. The view of the session for each Lite app, the check of settings on save, and pausing apps whose requests Discord keeps refusing. Own-bot apps count how often a channel isn't in the cache. No Lite app is created outside our test servers before this is merged.
 4. Modules. The `shared_bot` flag in the template format, the test that marked templates only use allowed blocks, and the flag on the launch modules.
 5. Adding the bot. The link that logs in and adds the Kite bot at once, the app for the server on the callback, stopping and starting apps when the bot leaves and comes back, and the setup page in the dashboard.
-6. The Lite app page in the dashboard. It's a reduced view of the app page with modules, settings, logs and the upgrade card, whose button can still be disabled at this point.
+6. The Lite app page in the dashboard. The API refuses every change to a Lite app except on the routes that opt in, like adding templates, their settings and posted messages, starting and stopping the app, billing and the server profile. So the API can't build anything on the Kite bot, and a new route isn't open to Lite apps by accident. API tokens, and with them MCP, can't use Lite apps at all for now, and token and MCP app pickers leave them out. The sidebar has four pages. The dashboard shows whether the bot can run the templates, with recent errors and the credits, and the added templates with their settings. The others are the logs, the plan and a few settings. The setup page has no sidebar, so nothing distracts from picking templates. There's no editor, invite link, bot profile, token or collaborator list, as Manage Server decides who can change the app. Deleting a Lite app removes its commands from the server. There's no upgrade card yet, as it would promise step 9.
 7. Plus on Lite. Server profiles for Lite apps on Plus, checkout from a Lite app, the line on the pricing page, and the credit warnings reaching Lite owners.
 8. Launch with Xenon. Xenon links to the install page after a template install. We watch the first servers, the logs and the cost before Xenon shows it to everyone.
 9. Upgrading. Until this is done, a Lite server that wants the editor creates a new app.
@@ -185,4 +187,4 @@ Start with steps 1 and 2. They're the most uncertain part and change nothing in 
 
 ## Open questions
 
-- When the owner leaves the server or loses Manage Server, does the app move to someone else? A Plus subscription stays with whoever pays for it.
+- When the owner leaves the server, who gets the credit messages? A Plus subscription stays with whoever pays for it.

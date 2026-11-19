@@ -206,15 +206,10 @@ func (c *Client) EnabledSharedApps(ctx context.Context) ([]*model.App, error) {
 		return nil, err
 	}
 
-	apps := make([]*model.App, len(rows))
-	for i, row := range rows {
-		app, err := rowToApp(row)
-		if err != nil {
-			return nil, err
-		}
-		apps[i] = app
-	}
-	return apps, nil
+	// One app that can't be decoded doesn't stop the others.
+	return decodeRows(rows, rowToApp, func(row pgmodel.App) []any {
+		return []any{slog.String("app_id", row.ID)}
+	}), nil
 }
 
 func (c *Client) SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error) {

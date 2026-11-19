@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"mime"
@@ -27,15 +28,15 @@ import (
 // of every request, and a cache that only has the app's server. The engine
 // and the API use the view like the bot of an own app.
 
-// ScopeError is a request a shared app isn't allowed to send.
-type ScopeError struct {
-	Method string
-	Path   string
-}
-
-func (e *ScopeError) Error() string {
-	return "This app runs on the Kite bot and can only act in its own server."
-}
+var (
+	// errOutOfScope is a request a shared app isn't allowed to send.
+	errOutOfScope = errors.New("This app runs on the Kite bot and can only act in its own server.")
+	// errPaused is a request of an app whose requests Discord kept refusing.
+	errPaused = errors.New("Discord refused too many requests of this app, so it can't send any for a few minutes.")
+	// errAllPaused is a request while Discord kept refusing the requests of
+	// many apps.
+	errAllPaused = errors.New("Discord refused too many requests of apps on the Kite bot, so they can't send any for a few minutes.")
+)
 
 // channelGuilds finds the server of a channel, which the paths of most
 // requests only name the channel of.
@@ -48,13 +49,26 @@ type channelGuilds struct {
 	// known are channels looked up from Discord. Channels don't move between
 	// servers, so they never go stale.
 	known map[discord.ChannelID]discord.GuildID
+	// unknown are channels Discord didn't show the bot, until when they're
+	// asked again. Asking again and again would count toward the refused
+	// requests that get the IP blocked, see maxFailures. They're asked again
+	// later, as the bot may be given access.
+	unknown map[discord.ChannelID]time.Time
 }
 
-// maxKnownChannels bounds the channels remembered from Discord.
-const maxKnownChannels = 10_000
+const (
+	// maxKnownChannels bounds the channels remembered from Discord.
+	maxKnownChannels  = 10_000
+	unknownChannelTTL = 10 * time.Minute
+)
 
 func newChannelGuilds(channels store.ChannelStore, client *api.Client) *channelGuilds {
-	return &channelGuilds{channels: channels, client: client, known: make(map[discord.ChannelID]discord.GuildID)}
+	return &channelGuilds{
+		channels: channels,
+		client:   client,
+		known:    make(map[discord.ChannelID]discord.GuildID),
+		unknown:  make(map[discord.ChannelID]time.Time),
+	}
 }
 
 func (c *channelGuilds) guildOf(ctx context.Context, id discord.ChannelID) (discord.GuildID, error) {
@@ -66,15 +80,24 @@ func (c *channelGuilds) guildOf(ctx context.Context, id discord.ChannelID) (disc
 
 	c.mu.Lock()
 	guildID, ok := c.known[id]
+	until, unknown := c.unknown[id]
 	c.mu.Unlock()
 	if ok {
 		return guildID, nil
 	}
-	if c.client == nil {
+	if c.client == nil || (unknown && time.Now().Before(until)) {
 		return 0, store.ErrNotFound
 	}
 
 	ch, err := c.client.WithContext(ctx).Channel(id)
+	if util.IsDiscordNotInGuild(err) {
+		c.mu.Lock()
+		if len(c.unknown) >= maxKnownChannels {
+			clear(c.unknown)
+		}
+		c.unknown[id] = time.Now().Add(unknownChannelTTL)
+		c.mu.Unlock()
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -94,7 +117,10 @@ type scope struct {
 	botAppID discord.AppID
 	channels *channelGuilds
 
-	failures failures
+	// failures are the app's, which outlive its scopes, and the ones of all
+	// apps in the process.
+	failures *failures
+	all      *failures
 }
 
 const (
@@ -105,10 +131,47 @@ const (
 	maxFailures   = 200
 	failureWindow = 10 * time.Minute
 	failurePause  = 10 * time.Minute
+
+	// Many apps could each stay just below maxFailures, so all shared apps of
+	// a process are paused too once Discord refused this many of their
+	// requests. The limit is per IP and the processes count on their own, so
+	// together they stay below it: the Kite bot's process, which sends nearly
+	// all requests, and each of the 4 API clusters of kite.onl. More clusters
+	// on one host need a lower maxAPIFailures.
+	maxGatewayFailures = 4_000
+	maxAPIFailures     = 1_000
 )
 
-// failures counts the requests Discord refused, see maxFailures.
+// appFailures are the failures of each app, so they add up over the scopes
+// of the app, like one per API request, and of all apps of the process.
+type appFailures struct {
+	mu    sync.Mutex
+	byApp map[string]*failures
+	all   *failures
+}
+
+// newAppFailures pauses all apps after limit refused requests.
+func newAppFailures(limit int) *appFailures {
+	return &appFailures{byApp: make(map[string]*failures), all: &failures{max: limit}}
+}
+
+func (a *appFailures) of(appID string) *failures {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	f, ok := a.byApp[appID]
+	if !ok {
+		f = &failures{max: maxFailures}
+		a.byApp[appID] = f
+	}
+	return f
+}
+
+// failures counts the requests Discord refused, and pauses after max of them
+// within failureWindow.
 type failures struct {
+	max int
+
 	mu          sync.Mutex
 	windowStart time.Time
 	count       int
@@ -131,7 +194,7 @@ func (f *failures) add(now time.Time) bool {
 		f.count = 0
 	}
 	f.count++
-	if f.count < maxFailures {
+	if f.count < f.max {
 		return false
 	}
 
@@ -140,21 +203,13 @@ func (f *failures) add(now time.Time) bool {
 	return true
 }
 
-// PausedError is a request of an app whose requests Discord kept refusing.
-type PausedError struct{}
-
-func (PausedError) Error() string {
-	return "Discord refused too many requests of this app, so it can't send any for a few minutes."
-}
-
 // check returns an error for a request outside the app's server. Paths are
 // Discord's routes after the API version, like /channels/123/messages. Unknown
 // routes are refused.
 func (s *scope) check(ctx context.Context, method, path string) error {
 	segments := util.DiscordAPISegments(path)
-	deny := &ScopeError{Method: method, Path: path}
 	if len(segments) == 0 {
-		return deny
+		return errOutOfScope
 	}
 
 	at := func(i int) string {
@@ -177,12 +232,12 @@ func (s *scope) check(ctx context.Context, method, path string) error {
 	case "channels":
 		id, err := discord.ParseSnowflake(at(1))
 		if err != nil {
-			return deny
+			return errOutOfScope
 		}
 		guildID, err := s.channels.guildOf(ctx, discord.ChannelID(id))
 		if err != nil {
 			// Unknown channels are refused, as Discord would.
-			return deny
+			return errOutOfScope
 		}
 		allowed = guildID == s.guildID
 	case "webhooks":
@@ -214,7 +269,7 @@ func (s *scope) check(ctx context.Context, method, path string) error {
 
 	if !allowed {
 		metrics.SharedBotDenied.Add(at(0), 1)
-		return deny
+		return errOutOfScope
 	}
 	return nil
 }
@@ -237,7 +292,7 @@ type scopedDriver struct {
 func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 	req, ok := r.(*httpdriver.DefaultRequest)
 	if !ok {
-		return refused(&ScopeError{Path: r.GetPath()}), nil
+		return refused(errOutOfScope), nil
 	}
 	hr := (*http.Request)(req)
 
@@ -250,23 +305,39 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 
 	now := time.Now()
 	if d.scope.failures.paused(now) {
-		return refused(PausedError{}), nil
+		return refused(errPaused), nil
+	}
+	if d.scope.all.paused(now) {
+		return refused(errAllPaused), nil
 	}
 
 	resp, err := d.Client.Do(r)
-	if err == nil && isRefusal(resp.GetStatus()) && d.scope.failures.add(now) {
+	if err != nil || !isRefusal(resp) {
+		return resp, err
+	}
+	if d.scope.failures.add(now) {
 		slog.Warn(
 			"Paused the requests of a shared app that Discord kept refusing",
 			slog.String("guild_id", d.scope.guildID.String()),
 		)
 	}
+	if d.scope.all.add(now) {
+		slog.Error("Paused the requests of all shared apps, Discord refused too many of them")
+	}
 	return resp, err
 }
 
 // isRefusal is whether Discord counts the response toward its limit of
-// refused requests.
-func isRefusal(status int) bool {
-	return status == http.StatusUnauthorized || status == http.StatusForbidden || status == http.StatusTooManyRequests
+// refused requests. A 429 of a limit shared with others, like of a busy
+// channel, doesn't count.
+func isRefusal(resp httpdriver.Response) bool {
+	switch resp.GetStatus() {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return true
+	case http.StatusTooManyRequests:
+		return resp.GetHeader().Get("X-RateLimit-Scope") != "shared"
+	}
+	return false
 }
 
 // checkBody refuses messages that reference a message in another server,
@@ -295,19 +366,26 @@ func (d scopedDriver) checkBody(hr *http.Request) error {
 			GuildID   discord.GuildID   `json:"guild_id"`
 		} `json:"message_reference"`
 	}
-	if err := json.Unmarshal(payload, &msg); err != nil || msg.MessageReference == nil {
+	// A message with only files has no JSON. JSON that isn't understood is
+	// refused, Discord might read a reference from it.
+	if len(payload) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return errOutOfScope
+	}
+	if msg.MessageReference == nil {
 		return nil
 	}
 
-	deny := &ScopeError{Method: hr.Method, Path: hr.URL.Path}
 	ref := msg.MessageReference
 	if ref.GuildID.IsValid() && ref.GuildID != d.scope.guildID {
-		return deny
+		return errOutOfScope
 	}
 	if ref.ChannelID.IsValid() {
 		guildID, err := d.scope.channels.guildOf(hr.Context(), ref.ChannelID)
 		if err != nil || guildID != d.scope.guildID {
-			return deny
+			return errOutOfScope
 		}
 	}
 	return nil

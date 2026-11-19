@@ -1,5 +1,6 @@
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   OAuthAuthorizeGetResponse,
@@ -362,15 +363,30 @@ export function useBundleQuery(
 ) {
   // The list only has what the cards show, so the bundle is always loaded.
   return useQuery({
+    ...bundleQuery(bundleId),
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
+  });
+}
+
+// useBundlesByIdQueries loads several bundles with everything in them. The
+// result of combine stays the same until one of them changes.
+export function useBundlesByIdQueries<T>(
+  bundleIds: string[],
+  combine: (results: { data?: APIResponse<BundleGetResponse> }[]) => T
+) {
+  return useQueries({ queries: bundleIds.map(bundleQuery), combine });
+}
+
+function bundleQuery(bundleId: string) {
+  return {
     queryKey: ["bundles", bundleId],
     queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
     enabled: !!bundleId,
     // Users' bundles get new versions or are deleted at any time.
     staleTime: 60_000,
-    placeholderData: placeholder
-      ? { success: true as const, data: placeholder }
-      : undefined,
-  });
+  };
 }
 
 export function useBundleInstallsQuery(appId: string) {

@@ -106,7 +106,10 @@ function ConsentForm({
     },
   });
   const understood = form.watch("understood");
-  const apps = useResponseData(useAppsQuery());
+  // Apps on the Kite bot can't be used with MCP.
+  const apps = useResponseData(useAppsQuery())?.filter(
+    (app) => app?.bot_type !== "shared"
+  );
 
   function submit(approved: boolean, data?: FormFields) {
     if (mutation.isPending) return;

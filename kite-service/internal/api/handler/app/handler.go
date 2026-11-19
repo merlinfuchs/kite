@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"log/slog"
 	"net/http"
 	"time"
@@ -21,6 +23,8 @@ type AppHandler struct {
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
+	// appStateManager reaches the Kite bot for apps on it.
+	appStateManager store.AppStateManager
 }
 
 func NewAppHandler(
@@ -28,12 +32,15 @@ func NewAppHandler(
 	userStore store.UserStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
+	appStateManager store.AppStateManager,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
+
+		appStateManager: appStateManager,
 	}
 }
 
@@ -45,7 +52,8 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 
 	res := make([]*wire.App, 0, len(apps))
 	for _, app := range apps {
-		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+		// Apps on the Kite bot can't be used with tokens, see CustomBotOnly.
+		if c.APIToken != nil && (app.IsShared() || !c.APIToken.CanUseApp(app.ID)) {
 			continue
 		}
 		res = append(res, wire.AppToWire(app))
@@ -185,11 +193,6 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 }
 
 func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatusUpdateRequest) (*wire.AppStatusUpdateResponse, error) {
-	// The Kite bot's status is the same in every server.
-	if c.App.IsShared() {
-		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot, whose status can't be changed.")
-	}
-
 	var status *model.AppDiscordStatus
 	if req.DiscordStatus != nil {
 		entries := make([]model.AppDiscordStatusEntry, len(req.DiscordStatus.Statuses))
@@ -234,11 +237,6 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 }
 
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
-	// Moving a shared app to its own bot is the upgrade, which isn't built yet.
-	if c.App.IsShared() {
-		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot and has no token of its own.")
-	}
-
 	// A new token starts the app.
 	if err := h.checkOwnerNotBanned(c); err != nil {
 		return nil, err
@@ -310,11 +308,45 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
 	}
 
+	if c.App.IsShared() {
+		h.removeSharedCommands(c)
+	}
+
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {
 		return nil, fmt.Errorf("failed to delete app: %w", err)
 	}
 
 	return &wire.AppDeleteResponse{}, nil
+}
+
+// removeSharedCommands removes the commands of an app on the Kite bot from its
+// server, where nothing would answer them anymore. The bot stays in the
+// server, adding it again sets up a new app. A failure doesn't stop the app
+// from being deleted.
+func (h *AppHandler) removeSharedCommands(c *handler.Context) {
+	err := func() error {
+		client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+		if err != nil {
+			return err
+		}
+		bot, err := client.CurrentApplication()
+		if err != nil {
+			return err
+		}
+		guildID, err := discord.ParseSnowflake(c.App.DiscordGuildID.String)
+		if err != nil {
+			return err
+		}
+		_, err = client.BulkOverwriteGuildCommands(bot.ID, discord.GuildID(guildID), []api.CreateCommandData{})
+		return err
+	}()
+	if err != nil {
+		slog.Error(
+			"Failed to remove the commands of a deleted app on the Kite bot",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiListResponse, error) {
