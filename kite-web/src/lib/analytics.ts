@@ -8,6 +8,8 @@ export type AnalyticsEvent =
   | "app_create_opened"
   // Which bot the app runs on, the Kite bot or a custom one.
   | "app_create_kind"
+  // Back from Discord after adding the Kite bot with an install link.
+  | "kite_bot_added"
   | "kite_bot_look_changed"
   | "app_switched_to_custom"
   | "app_create_step"
@@ -141,6 +143,12 @@ export function setAppGroup(appId: string | undefined, identified: boolean) {
     op.groups = appId ? [appId] : [];
     if (appId && identified) op.setGroup(appId);
   });
+}
+
+// setAppRef adds where the current app came from, like "xenon", to every
+// following event, so funnels can be split by it. Undefined removes it.
+export function setAppRef(ref: string | undefined) {
+  openPanel?.then((op) => op.setGlobalProperties({ ref }));
 }
 
 export function updateAppGroup(

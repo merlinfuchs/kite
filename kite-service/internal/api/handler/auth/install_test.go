@@ -64,9 +64,12 @@ func TestSharedApp(t *testing.T) {
 	s := &fakeInstallStore{apps: map[string]*model.App{}, collaborators: map[string]bool{}}
 	h := &AuthHandler{appStore: s, userStore: s, install: InstallConfig{MaxAppsPerUser: 10}}
 
-	first, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server", setupRef("guild_id=100&ref=xenon"))
+	first, created, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server", setupRef("guild_id=100&ref=xenon"))
 	if err != nil || code != "" || first == nil {
 		t.Fatalf("first install: app %v, code %q, err %v", first, code, err)
+	}
+	if !created {
+		t.Error("first install didn't say it created the app")
 	}
 	if first.OwnerUserID != "u1" {
 		t.Errorf("owner = %s, want u1", first.OwnerUserID)
@@ -75,9 +78,12 @@ func TestSharedApp(t *testing.T) {
 		t.Errorf("ref = %v, want xenon", first.Ref)
 	}
 
-	second, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server", setupRef("ref=other"))
+	second, created2, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server", setupRef("ref=other"))
 	if err != nil || code != "" || second == nil || second.ID != first.ID {
 		t.Fatalf("second install: app %v, code %q, err %v", second, code, err)
+	}
+	if created2 {
+		t.Error("second install said it created the app")
 	}
 	if !s.collaborators[first.ID+"/u2"] {
 		t.Error("the second user wasn't added to the app's list")

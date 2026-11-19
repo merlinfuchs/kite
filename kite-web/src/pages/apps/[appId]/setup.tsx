@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 import { CheckIcon, CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type Added = { name: string; unposted: { name: string; error: string }[] };
@@ -55,6 +55,25 @@ export default function AppSetupPage() {
   // The query is only there once the router is ready, after the first render.
   const router = useRouter();
   const { query } = router;
+
+  // Counts coming back from Discord once, and takes the marker out of the
+  // URL, so reloading doesn't count it again.
+  const tracked = useRef(false);
+  useEffect(() => {
+    const installed = query.installed;
+    if (!router.isReady || !installed || tracked.current) return;
+    tracked.current = true;
+    const ref = typeof query.ref === "string" ? query.ref : "";
+    track("kite_bot_added", {
+      new: installed === "new",
+      ...(/^[a-z0-9_-]{1,32}$/.test(ref) && { ref }),
+    });
+    const rest = { ...query };
+    delete rest.installed;
+    router.replace({ pathname: router.pathname, query: rest }, undefined, {
+      shallow: true,
+    });
+  }, [router, query]);
 
   // Custom bots add templates from the Marketplace.
   const custom = !!app && app.bot_type !== "shared";

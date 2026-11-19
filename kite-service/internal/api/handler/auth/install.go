@@ -154,7 +154,7 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	app, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, setupRef(setup))
+	app, created, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, setupRef(setup))
 	if err != nil {
 		return err
 	}
@@ -163,37 +163,44 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return nil
 	}
 
-	target := fmt.Sprintf("%s/apps/%s/setup", base, app.ID)
+	// installed tells the setup page to count adding the bot, and whether it
+	// made a new app.
+	installed := "existing"
+	if created {
+		installed = "new"
+	}
+	target := fmt.Sprintf("%s/apps/%s/setup?installed=%s", base, app.ID, installed)
 	if setup != "" {
-		target += "?" + setup
+		target += "&" + setup
 	}
 	c.Redirect(target, http.StatusTemporaryRedirect)
 	return nil
 }
 
-// sharedApp returns the server's app on the Kite bot for the user, or the
-// code of why they can't have it. ref is only stored on a new app.
-func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID string, guildName string, ref null.String) (*model.App, string, error) {
+// sharedApp returns the server's app on the Kite bot for the user and whether
+// it's new, or the code of why they can't have it. ref is only stored on a
+// new app.
+func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID string, guildName string, ref null.String) (app *model.App, created bool, errCode string, err error) {
 	now := time.Now().UTC()
 
-	_, err := h.userStore.UserBan(ctx, user.ID, model.UserBanFeatureKite)
+	_, err = h.userStore.UserBan(ctx, user.ID, model.UserBanFeatureKite)
 	if err == nil {
-		return nil, "banned", nil
+		return nil, false, "banned", nil
 	}
 	if !errors.Is(err, store.ErrNotFound) {
-		return nil, "", fmt.Errorf("failed to get user ban: %w", err)
+		return nil, false, "", fmt.Errorf("failed to get user ban: %w", err)
 	}
 
-	app, err := h.appStore.SharedAppByGuild(ctx, guildID)
+	app, err = h.appStore.SharedAppByGuild(ctx, guildID)
 	if errors.Is(err, store.ErrNotFound) {
 		// Not :=, so err ends up as the one of creating the app below.
 		var count int
 		count, err = h.appStore.CountAppsByUser(ctx, user.ID)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to count apps: %w", err)
+			return nil, false, "", fmt.Errorf("failed to count apps: %w", err)
 		}
 		if count >= h.install.MaxAppsPerUser {
-			return nil, "app_limit", nil
+			return nil, false, "app_limit", nil
 		}
 
 		if guildName == "" {
@@ -207,23 +214,24 @@ func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID s
 			Ref:            ref,
 			CreatedAt:      now,
 		})
+		created = err == nil
 		if errors.Is(err, store.ErrAlreadyExists) {
 			// Someone else set the server up at the same time.
 			app, err = h.appStore.SharedAppByGuild(ctx, guildID)
 		}
 	}
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get app of server: %w", err)
+		return nil, false, "", fmt.Errorf("failed to get app of server: %w", err)
 	}
 
 	// Adding the bot again starts the app, like when the bot sees itself
 	// join, which may come first.
 	if _, err := h.appStore.EnableSharedAppDisabledWithReason(ctx, guildID, model.AppDisabledReasonSharedBotRemoved, now); err != nil {
-		return nil, "", fmt.Errorf("failed to start app: %w", err)
+		return nil, false, "", fmt.Errorf("failed to start app: %w", err)
 	}
 
 	if app.OwnerUserID == user.ID {
-		return app, "", nil
+		return app, created, "", nil
 	}
 	_, err = h.appStore.Collaborator(ctx, app.ID, user.ID)
 	if errors.Is(err, store.ErrNotFound) {
@@ -239,8 +247,8 @@ func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID s
 		}
 	}
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to add collaborator: %w", err)
+		return nil, false, "", fmt.Errorf("failed to add collaborator: %w", err)
 	}
 
-	return app, "", nil
+	return app, created, "", nil
 }

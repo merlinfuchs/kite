@@ -26,10 +26,12 @@ type App struct {
 	BotType string `json:"bot_type"`
 	// DiscordGuildID is the server of an app on the Kite bot.
 	DiscordGuildID null.String `json:"discord_guild_id"`
-	OwnerUserID    string      `json:"owner_user_id"`
-	CreatorUserID  string      `json:"creator_user_id"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	// Ref is where the app came from, like "xenon" for links from Xenon.
+	Ref           null.String `json:"ref"`
+	OwnerUserID   string      `json:"owner_user_id"`
+	CreatorUserID string      `json:"creator_user_id"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
@@ -211,6 +213,7 @@ func AppToWire(app *model.App) *App {
 		DiscordStatus:  status,
 		BotType:        string(app.BotType),
 		DiscordGuildID: app.DiscordGuildID,
+		Ref:            app.Ref,
 		OwnerUserID:    app.OwnerUserID,
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,

@@ -94,6 +94,10 @@ export interface App {
    * DiscordGuildID is the server of an app on the Kite bot.
    */
   discord_guild_id: null | string;
+  /**
+   * Ref is where the app came from, like "xenon" for links from Xenon.
+   */
+  ref: null | string;
   owner_user_id: string;
   creator_user_id: string;
   created_at: string /* RFC3339 */;
