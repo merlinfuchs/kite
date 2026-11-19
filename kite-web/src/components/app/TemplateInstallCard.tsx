@@ -1,12 +1,9 @@
 import { parameterDefaults, Template } from "@/lib/flow/templates";
-import { installRequest, installSelection } from "@/lib/flow/templateInstall";
+import { installSelection } from "@/lib/flow/templateInstall";
 import { BundleInstall } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import {
-  useBundleInstallCreateMutation,
-  useMessageInstanceCreateMutation,
-} from "@/lib/api/mutations";
+import { useAddTemplate } from "@/lib/hooks/addTemplate";
 import { useAppId } from "@/lib/hooks/params";
 import { PermissionFlag } from "@/lib/discord/permissions";
 import {
@@ -15,7 +12,6 @@ import {
   useCommands,
   useSharedBot,
 } from "@/lib/hooks/api";
-import { track } from "@/lib/analytics";
 import {
   CircleAlertIcon,
   CircleCheckIcon,
@@ -24,7 +20,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
@@ -86,8 +81,7 @@ export function TemplateInstallCard({
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
-  const bundleInstallMutation = useBundleInstallCreateMutation(appId);
-  const postMutation = useMessageInstanceCreateMutation(appId);
+  const { add, pending } = useAddTemplate();
 
   const [values, setValues] = useState(() => ({
     ...parameterDefaults(template.parameters),
@@ -179,59 +173,16 @@ export function TemplateInstallCard({
   }
 
   async function install() {
-    const res = await bundleInstallMutation.mutateAsync(
-      installRequest(template, selection, values, customMessages)
-    );
-    if (!res.success) {
-      toast.error(
-        `Failed to add ${template.name}: ${res.error.message} (${res.error.code})`
-      );
-      return;
-    }
-
-    const analytics = {
-      source: "template",
-      template: template.id,
-      template_version: template.version,
-    };
-    // first is false when items are added to an install the app already has.
-    track("template_added", {
-      ...analytics,
-      count: itemCount,
+    const unposted = await add({
+      template,
+      selection,
+      values,
+      customMessages,
+      guildId,
       first: !existing,
-      ...(from && { from }),
+      from,
     });
-    if (commands.length) {
-      track("command_created", { ...analytics, count: commands.length });
-    }
-    if (eventListeners.length) {
-      track("event_listener_created", {
-        ...analytics,
-        count: eventListeners.length,
-      });
-    }
-
-    // Messages are posted after they were created, a message that can't be
-    // posted can be posted again from this page.
-    const unposted: { name: string; error: string }[] = [];
-    for (const message of messages) {
-      const channelId = message.sendTo && values[message.sendTo];
-      const item = res.data.items.find(
-        (i) => i.type === "message" && i.key === message.key
-      );
-      if (!channelId || !guildId || !item) continue;
-
-      const postRes = await postMutation.mutateAsync({
-        messageId: item.id,
-        discord_guild_id: guildId,
-        discord_channel_id: channelId,
-      });
-      if (postRes.success) {
-        track("message_sent", analytics);
-      } else {
-        unposted.push({ name: message.name, error: postRes.error.message });
-      }
-    }
+    if (!unposted) return;
 
     setInstalled({
       commands: commands.length,
@@ -472,7 +423,7 @@ export function TemplateInstallCard({
           className="w-full"
           onClick={install}
           disabled={!!exceeded}
-          loading={bundleInstallMutation.isPending}
+          loading={pending}
         >
           {actionLabel ??
             `Add ${itemCount} ${itemCount === 1 ? "item" : "items"}`}

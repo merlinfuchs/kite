@@ -13,14 +13,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { track } from "@/lib/analytics";
-import {
-  useAppStateGuildProfileUpdateMutation,
-  useBundleInstallCreateMutation,
-} from "@/lib/api/mutations";
+import { useAppStateGuildProfileUpdateMutation } from "@/lib/api/mutations";
+import { useAddTemplate } from "@/lib/hooks/addTemplate";
 import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
-import { installRequest, installSelection } from "@/lib/flow/templateInstall";
-import { Template } from "@/lib/flow/templates";
-import { useApp, useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
+import { installSelection } from "@/lib/flow/templateInstall";
+import {
+  formatParameterValue,
+  parameterDefaults,
+  Template,
+} from "@/lib/flow/templates";
+import {
+  useApp,
+  useAppStateGuildChannels,
+  useAppStateGuildRoles,
+  useAppStateGuilds,
+  useBundleInstalls,
+} from "@/lib/hooks/api";
+import { Channel, Role } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
 import { useFullTemplates, useTemplates } from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
@@ -85,7 +94,10 @@ export default function AppSetupPage() {
   const [index, setIndex] = useState(0);
   const [added, setAdded] = useState<Added[]>([]);
   const [starting, setStarting] = useState(false);
-  const installMutation = useBundleInstallCreateMutation(appId);
+  const { add } = useAddTemplate();
+  const guildId = app?.discord_guild_id ?? null;
+  const channels = useAppStateGuildChannels(guildId);
+  const roles = useAppStateGuildRoles(guildId);
 
   // The settings of a template in the query, by parameter key.
   function initialValues(template: Template) {
@@ -112,24 +124,15 @@ export default function AppSetupPage() {
           continue;
         }
 
-        const res = await installMutation.mutateAsync(
-          installRequest(template, selection, {}, {})
-        );
-        if (!res.success) {
-          toast.error(
-            `Failed to add ${template.name}: ${res.error.message} (${res.error.code})`
-          );
-          continue;
-        }
-        track("template_added", {
-          source: "template",
-          template: template.id,
-          template_version: template.version,
-          count: res.data.items.length,
+        const unposted = await add({
+          template,
+          selection,
+          values: {},
+          guildId,
           first: true,
           from: "setup",
         });
-        addedNow.push({ name: template.name, unposted: [] });
+        if (unposted) addedNow.push({ name: template.name, unposted });
       }
     } finally {
       setStarting(false);
@@ -143,6 +146,64 @@ export default function AppSetupPage() {
         template,
       })),
     ]);
+  }
+
+  // A link that sets up every template it picks, like from Xenon after a
+  // server template, needs no steps. The templates are added at once after a
+  // look at their settings, unless the user wants to change them.
+  const [changing, setChanging] = useState(false);
+  const linked = String(query.templates ?? "").length > 0;
+  const review = useMemo(() => {
+    if (!full || !channels || !roles || !picked?.size || !linked) {
+      return undefined;
+    }
+    const reviewed = full.filter((t) => picked.has(t.id));
+    const complete = reviewed.every((template) => {
+      const selection = installSelection(template, undefined, new Set());
+      const values = initialValues(template);
+      return (
+        !selection.customizable.length &&
+        selection.parameters.every((p) => {
+          const value = values[p.key];
+          if (!value) return !p.required;
+          if (p.type === "channel" || p.type === "category") {
+            return channels.some((c) => c?.id === value);
+          }
+          if (p.type === "role") return roles.some((r) => r?.id === value);
+          return true;
+        })
+      );
+    });
+    return complete ? reviewed : undefined;
+    // initialValues only reads the query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full, channels, roles, picked, linked, query]);
+
+  async function addAll() {
+    if (!review) return;
+    setStarting(true);
+    const addedNow: Added[] = [];
+    try {
+      for (const template of review) {
+        const unposted = await add({
+          template,
+          selection: installSelection(template, undefined, new Set()),
+          values: {
+            ...parameterDefaults(template.parameters),
+            ...initialValues(template),
+          },
+          guildId,
+          first: true,
+          from: "setup_link",
+        });
+        if (unposted) addedNow.push({ name: template.name, unposted });
+      }
+    } finally {
+      setStarting(false);
+    }
+    setAdded(addedNow);
+    setIndex(0);
+    setQueue([{ kind: "look" }]);
   }
 
   if (!router.isReady || !app || custom || !picked) {
@@ -193,6 +254,23 @@ export default function AppSetupPage() {
     return (
       <BaseLayout title="The Kite bot is set up" noindex>
         <SetupDone added={added} onBack={() => setQueue(null)} />
+      </BaseLayout>
+    );
+  }
+
+  if (review && !changing) {
+    return (
+      <BaseLayout title="Set up the Kite bot" noindex>
+        <SetupReview
+          templates={review}
+          values={initialValues}
+          guildName={guild?.name}
+          channels={channels ?? []}
+          roles={roles ?? []}
+          adding={starting}
+          onAdd={addAll}
+          onChange={() => setChanging(true)}
+        />
       </BaseLayout>
     );
   }
@@ -285,6 +363,90 @@ export default function AppSetupPage() {
         </Button>
       </div>
     </BaseLayout>
+  );
+}
+
+// SetupReview lists the templates of a link with their settings, to add them
+// all at once.
+function SetupReview({
+  templates,
+  values,
+  guildName,
+  channels,
+  roles,
+  adding,
+  onAdd,
+  onChange,
+}: {
+  templates: Template[];
+  values: (template: Template) => Record<string, string>;
+  guildName?: string;
+  channels: (Channel | undefined)[];
+  roles: (Role | undefined)[];
+  adding: boolean;
+  onAdd: () => void;
+  onChange: () => void;
+}) {
+  function shown(type: string, value: string) {
+    if (type === "channel" || type === "category") {
+      const channel = channels.find((c) => c?.id === value);
+      return channel ? `#${channel.name}` : value;
+    }
+    if (type === "role") {
+      const role = roles.find((r) => r?.id === value);
+      return role ? `@${role.name}` : value;
+    }
+    return formatParameterValue(type, value);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+          Your templates are ready
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          They&apos;re already set up for {guildName ?? "your server"}. Check
+          their settings, then add them all at once.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {templates.map((template) => {
+          const set = values(template);
+          const settings = template.parameters.flatMap((p) =>
+            set[p.key]
+              ? [`${p.label || p.key}: ${shown(p.type, set[p.key]!)}`]
+              : []
+          );
+          return (
+            <Card key={template.id} className="flex items-start gap-4 p-4">
+              <TemplateIcon
+                name={template.icon}
+                className="h-6 w-6 flex-none text-muted-foreground mt-0.5"
+              />
+              <div className="min-w-0">
+                <div className="font-medium">{template.name}</div>
+                <div className="text-sm text-muted-foreground">
+                  {settings.length ? settings.join(", ") : template.description}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <LoadingButton onClick={onAdd} loading={adding}>
+          {templates.length === 1
+            ? `Add ${templates[0]!.name}`
+            : `Add all ${templates.length} templates`}
+        </LoadingButton>
+        <Button variant="ghost" onClick={onChange}>
+          Change settings
+        </Button>
+      </div>
+    </div>
   );
 }
 
