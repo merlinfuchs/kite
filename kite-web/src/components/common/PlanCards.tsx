@@ -22,12 +22,16 @@ export default function PlanCards<P extends BillingPlan>({
   interval,
   button,
   badge,
+  kiteBot = false,
 }: {
   plans: P[];
   interval: BillingInterval;
   button: (plan: P) => ReactNode;
   // Shown next to the title, like the current plan of an app.
   badge?: (plan: P) => ReactNode;
+  // For an app on the Kite bot, which only uses the credits and look of a
+  // plan.
+  kiteBot?: boolean;
 }) {
   const cards = plans.slice(0, 3);
   const more = plans.slice(3);
@@ -72,11 +76,20 @@ export default function PlanCards<P extends BillingPlan>({
                 />
               )}
             </div>
-            <div className="grid grid-cols-3 gap-1.5 mt-3">
+            <div
+              className={cn(
+                "grid gap-1.5 mt-3",
+                kiteBot ? "grid-cols-1" : "grid-cols-3"
+              )}
+            >
               {[
                 [shortNumber(plan.feature_usage_credits_per_month), "credits"],
-                [shortNumber(plan.feature_max_guilds), "servers"],
-                [shortNumber(plan.feature_max_commands), "commands"],
+                ...(kiteBot
+                  ? []
+                  : [
+                      [shortNumber(plan.feature_max_guilds), "servers"],
+                      [shortNumber(plan.feature_max_commands), "commands"],
+                    ]),
               ].map(([value, label]) => (
                 <div
                   key={label}
@@ -93,7 +106,7 @@ export default function PlanCards<P extends BillingPlan>({
                   Everything in {previous(plan).title}, and:
                 </li>
               )}
-              {planHighlights(plan, previous(plan)).map((text) => (
+              {planHighlights(plan, previous(plan), kiteBot).map((text) => (
                 <li key={text} className="flex gap-2">
                   <CheckIcon className="w-4 h-4 text-primary mt-0.5 flex-none" />
                   {text}
@@ -123,15 +136,24 @@ export default function PlanCards<P extends BillingPlan>({
               suffix="/ month"
             />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
+          <div
+            className={cn(
+              "grid gap-1.5 flex-1",
+              kiteBot ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-4"
+            )}
+          >
             {[
               [shortNumber(plan.feature_usage_credits_per_month), "credits"],
-              [shortNumber(plan.feature_max_guilds), "servers"],
-              [shortNumber(plan.feature_max_variables), "variables"],
-              [
-                shortNumber(plan.feature_max_event_listeners),
-                "event listeners",
-              ],
+              ...(kiteBot
+                ? []
+                : [
+                    [shortNumber(plan.feature_max_guilds), "servers"],
+                    [shortNumber(plan.feature_max_variables), "variables"],
+                    [
+                      shortNumber(plan.feature_max_event_listeners),
+                      "event listeners",
+                    ],
+                  ]),
             ].map(([value, label]) => (
               <div
                 key={label}
