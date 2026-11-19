@@ -33,7 +33,7 @@ func TestCustomBotOnly(t *testing.T) {
 		group.AllowSharedApp().Group("/nested").Post("/x", ok)
 
 		tests := []struct {
-			method, path string
+			method, path  string
 			sharedAllowed bool
 		}{
 			{"POST", "/app/build", false},
