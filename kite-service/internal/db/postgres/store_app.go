@@ -241,6 +241,7 @@ func (c *Client) CreateSharedApp(ctx context.Context, opts store.SharedAppCreate
 func (c *Client) SwitchSharedAppToOwn(ctx context.Context, opts store.SharedAppSwitchOpts) (*model.App, error) {
 	row, err := c.Q.SwitchSharedAppToOwn(ctx, pgmodel.SwitchSharedAppToOwnParams{
 		AppID:            opts.ID,
+		OwnerUserID:      opts.OwnerUserID,
 		Name:             opts.Name,
 		Description:      pgtype.Text{String: opts.Description.String, Valid: opts.Description.Valid},
 		DiscordID:        pgtype.Text{String: opts.DiscordID, Valid: true},

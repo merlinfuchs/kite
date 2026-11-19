@@ -1036,29 +1036,35 @@ func (q *Queries) RenameSharedApp(ctx context.Context, arg RenameSharedAppParams
 }
 
 const switchSharedAppToOwn = `-- name: SwitchSharedAppToOwn :one
-WITH touched_commands AS (
-    UPDATE commands SET updated_at = $6 WHERE commands.app_id = $7
+WITH removed_collaborators AS (
+    DELETE FROM collaborators WHERE collaborators.app_id = $8
+), removed_collaborator_invites AS (
+    DELETE FROM collaborator_invites WHERE collaborator_invites.app_id = $8
+), touched_commands AS (
+    UPDATE commands SET updated_at = $7 WHERE commands.app_id = $8
 ), touched_event_listeners AS (
-    UPDATE event_listeners SET updated_at = $6 WHERE event_listeners.app_id = $7
+    UPDATE event_listeners SET updated_at = $7 WHERE event_listeners.app_id = $8
 )
 UPDATE apps SET
     bot_type = 'own',
+    owner_user_id = $1,
     discord_guild_id = NULL,
-    discord_id = $1,
-    discord_token = $2,
-    discord_verify_key = $3,
-    name = $4,
-    description = $5,
+    discord_id = $2,
+    discord_token = $3,
+    discord_verify_key = $4,
+    name = $5,
+    description = $6,
     enabled = TRUE,
     disabled_reason = NULL,
     commands_deployed_hash = NULL,
-    commands_deploy_at = $6,
-    updated_at = $6
-WHERE apps.id = $7 AND apps.bot_type = 'shared'
+    commands_deploy_at = $7,
+    updated_at = $7
+WHERE apps.id = $8 AND apps.bot_type = 'shared'
 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
 `
 
 type SwitchSharedAppToOwnParams struct {
+	OwnerUserID      string
 	DiscordID        pgtype.Text
 	DiscordToken     pgtype.Text
 	DiscordVerifyKey pgtype.Text
@@ -1071,9 +1077,11 @@ type SwitchSharedAppToOwnParams struct {
 // A shared app moves to the user's own bot and keeps everything else. The
 // commands are sent again with the new bot. Its commands and event listeners
 // count as changed, so the engine of its cluster loads them, which skipped
-// them while the app was shared.
+// them while the app was shared. Whoever switches it becomes its only owner,
+// so the collaborators and invites from while it was shared are removed.
 func (q *Queries) SwitchSharedAppToOwn(ctx context.Context, arg SwitchSharedAppToOwnParams) (App, error) {
 	row := q.db.QueryRow(ctx, switchSharedAppToOwn,
+		arg.OwnerUserID,
 		arg.DiscordID,
 		arg.DiscordToken,
 		arg.DiscordVerifyKey,

@@ -18,10 +18,11 @@ export default function KiteBotSwitchCard() {
             Use a bot of your own instead of the Kite bot. You get the editor to
             change your templates and build commands, your own status, and your
             bot&apos;s name and avatar everywhere. The app keeps its templates,
-            stored variables, logs, and plan. The Kite bot stays in your server
-            until you remove it. Messages it posted, like the verification
-            message, then need to be posted again by your bot, from the
-            template&apos;s page.
+            stored variables, logs, and plan. You become its owner, and others
+            who manage the server can only open it once you add them as
+            collaborators. The Kite bot stays in your server until you remove
+            it. Messages it posted, like the verification message, then need to
+            be posted again by your bot, from the template&apos;s page.
           </div>
         </div>
         <AppCreateDialog switchApp={app}>

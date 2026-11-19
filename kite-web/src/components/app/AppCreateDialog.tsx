@@ -242,7 +242,7 @@ export default function AppCreateDialog({
           </DialogTitle>
           <DialogDescription>
             {switchApp
-              ? "Create your own bot in Discord and paste its token here, which takes about a minute. The app keeps its templates, settings, and plan."
+              ? "Create your own bot in Discord and paste its token here, which takes about a minute. The app keeps its templates, settings, and plan, and becomes yours."
               : custom
               ? "Kite runs your bot for you. You only need to create it in Discord first, which takes about a minute."
               : "Pick how you want to set up your bot."}
