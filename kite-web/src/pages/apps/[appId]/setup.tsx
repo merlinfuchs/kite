@@ -82,7 +82,7 @@ export default function AppSetupPage() {
           .
         </p>
       ) : (
-        <div className="space-y-3 max-w-2xl">
+        <div className="space-y-3">
           {shared.map((template) => (
             <SetupTemplate
               key={template.id}

@@ -255,11 +255,13 @@ export function TemplateInstallCard({
             <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
             <span>
               Couldn&apos;t post the {m.name} message: {m.error}. Post it again
-              from this page once that&apos;s fixed.
+              from {sharedBot ? "its settings on the dashboard" : "this page"}{" "}
+              once that&apos;s fixed.
             </span>
           </div>
         ))}
-        <div className="flex flex-col gap-2">
+        {/* Apps on the Kite bot can't open what they added. */}
+        <div className={cn("flex flex-col gap-2", sharedBot && "hidden")}>
           {!!installed.commands && (
             <Button variant="outline" asChild>
               <Link

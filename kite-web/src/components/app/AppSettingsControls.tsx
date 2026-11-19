@@ -17,6 +17,7 @@ import { Switch } from "../ui/switch";
 import { useRedeployCommands } from "./CommandDeployStatus";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function AppSettingsControls() {
   const app = useApp();
@@ -105,7 +106,13 @@ export default function AppSettingsControls() {
             Stop app
           </Button>
         </div>
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Kite keeps the Kite bot's commands in sync itself. */}
+        <div
+          className={cn(
+            "flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between",
+            sharedBot && "hidden"
+          )}
+        >
           <div>
             <div className="font-bold pb-1">Sync commands</div>
             <div className="text-muted-foreground">

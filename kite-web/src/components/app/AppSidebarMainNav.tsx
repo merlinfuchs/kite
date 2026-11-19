@@ -23,7 +23,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { useAppPlan, usePluginInstances, useSharedBot } from "@/lib/hooks/api";
+import { useAppPlan, usePluginInstances } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
@@ -37,8 +37,6 @@ export default function AppSidebarMainNav() {
   // Plugins are replaced by templates, only apps that use one still see them.
   const hasPlugins = !!usePluginInstances()?.length;
   const plan = useAppPlan();
-  // The Kite bot's servers and emojis aren't the app's.
-  const sharedBot = useSharedBot();
 
   const isActive = useCallback(
     (path: string, exact = false) => {
@@ -89,32 +87,27 @@ export default function AppSidebarMainNav() {
         icon: MessageSquareWarningIcon,
         active: isActive("/apps/[appId]/logs"),
       },
-      ...(sharedBot
-        ? []
-        : [
-            {
-              title: "Explore",
-              url: "#",
-              icon: TelescopeIcon,
-              active:
-                isActive("/apps/[appId]/guilds") ||
-                isActive("/apps/[appId]/emojis"),
-              items: [
-                {
-                  title: "Servers",
-                  url: "/apps/[appId]/guilds",
-                  active: isActive("/apps/[appId]/guilds"),
-                },
-                {
-                  title: "Emojis",
-                  url: "/apps/[appId]/emojis",
-                  active: isActive("/apps/[appId]/emojis"),
-                },
-              ],
-            },
-          ]),
+      {
+        title: "Explore",
+        url: "#",
+        icon: TelescopeIcon,
+        active:
+          isActive("/apps/[appId]/guilds") || isActive("/apps/[appId]/emojis"),
+        items: [
+          {
+            title: "Servers",
+            url: "/apps/[appId]/guilds",
+            active: isActive("/apps/[appId]/guilds"),
+          },
+          {
+            title: "Emojis",
+            url: "/apps/[appId]/emojis",
+            active: isActive("/apps/[appId]/emojis"),
+          },
+        ],
+      },
     ];
-  }, [isActive, hasPlugins, plan, sharedBot]);
+  }, [isActive, hasPlugins, plan]);
 
   return (
     <SidebarGroup>

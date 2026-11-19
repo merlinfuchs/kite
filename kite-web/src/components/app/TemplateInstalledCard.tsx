@@ -7,7 +7,7 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
+import { useBundleInstalls, useCommands, useSharedBot } from "@/lib/hooks/api";
 import { BundleInstall, BundleInstallItem } from "@/lib/types/wire.gen";
 import { track } from "@/lib/analytics";
 import { ArrowUpCircleIcon, CircleAlertIcon } from "lucide-react";
@@ -56,6 +56,9 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
   const updateMutation = useBundleInstallUpdateMutation(appId);
+  // Apps on the Kite bot show it under the template's name, and only have
+  // what templates add.
+  const sharedBot = useSharedBot();
 
   const [updateOpen, setUpdateOpen] = useState(false);
   const [overwrite, setOverwrite] = useState<Set<string>>(new Set());
@@ -102,12 +105,21 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
   return (
     <Card className="p-5">
-      <div className="font-semibold mb-1">In your app</div>
-      <p className="text-sm text-muted-foreground mb-4">
-        {items.length === 1
-          ? `1 item of this template is in your app.`
-          : `${items.length} items of this template are in your app.`}
-      </p>
+      {!sharedBot && (
+        <>
+          <div className="font-semibold mb-1">In your app</div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {items.length === 1
+              ? `1 item of this template is in your app.`
+              : `${items.length} items of this template are in your app.`}
+          </p>
+        </>
+      )}
+      {sharedBot && !template.parameters.length && (
+        <p className="text-sm text-muted-foreground mb-4">
+          {template.name} has no settings to change.
+        </p>
+      )}
 
       <InstallParameters template={template} install={install} />
 
@@ -259,6 +271,7 @@ export function RemoveInstallButton({
 }) {
   const appId = useAppId();
   const deleteMutation = useBundleInstallDeleteMutation(appId);
+  const sharedBot = useSharedBot();
   const hasVariables = install.items.some(
     (item) => !item.deleted && item.type === "variable"
   );
@@ -291,7 +304,7 @@ export function RemoveInstallButton({
         className="w-full"
         disabled={deleteMutation.isPending}
       >
-        Remove from app
+        {sharedBot ? "Remove template" : "Remove from app"}
       </Button>
     </ConfirmDialog>
   );

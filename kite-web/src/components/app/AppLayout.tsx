@@ -10,12 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArrowLeftIcon } from "lucide-react";
-import { Fragment, ReactNode, useMemo } from "react";
+import { Fragment, ReactNode, useContext, useMemo } from "react";
 import BaseLayout from "../common/BaseLayout";
 import { useApp } from "@/lib/hooks/api";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import ThemeSwitch from "../common/ThemeSwitch";
+import { InKiteBotShell } from "./KiteBotShell";
 
 interface Props {
   breadcrumbs?: {
@@ -57,6 +58,15 @@ export default function AppLayout({ children, ...props }: Props) {
     () => props.title || app?.name || "Kite",
     [app, props.title]
   );
+
+  const inKiteBotShell = useContext(InKiteBotShell);
+  if (inKiteBotShell) {
+    return (
+      <BaseLayout title={props.title} noindex>
+        {children}
+      </BaseLayout>
+    );
+  }
 
   return (
     <BaseLayout title={props.title} noindex>

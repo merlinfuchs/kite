@@ -8,13 +8,14 @@ import AppCreditsPopup from "./AppCreditsPopup";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 import LegalUpdateDialog from "../common/LegalUpdateDialog";
+import KiteBotShell from "./KiteBotShell";
 
 // Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
 // open state and scroll position when navigating between app pages.
 export default function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
 
-  useApp((res) => {
+  const app = useApp((res) => {
     if (!res.success) {
       toast.error(
         `Failed to load app: ${res?.error.message} (${res?.error.code})`
@@ -29,6 +30,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
       }
     }
   });
+
+  // Apps on the Kite bot get a simpler shell. People who just added the bot
+  // land on the setup page, so it doesn't wait for the app with the sidebar.
+  const setup = router.pathname === "/apps/[appId]/setup";
+  if (app ? app.bot_type === "shared" : setup) {
+    return (
+      <KiteBotShell tabs={!setup}>
+        {children}
+
+        <AppDisabledPopup />
+        <AppCreditsPopup />
+        <LegalUpdateDialog />
+      </KiteBotShell>
+    );
+  }
 
   // TODO: remember open state of sidebar on desktop
   return (
