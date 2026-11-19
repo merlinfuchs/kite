@@ -28,7 +28,9 @@ export default function PrivacyPolicyPage() {
           controller. For the data of people on Discord that a bot built with
           Kite processes, the owner of that bot is the controller, and we
           process the data on their behalf (see{" "}
-          <a href="#bot-data">section 6</a>).
+          <a href="#bot-data">section 6</a>). For the Kite bot, which we run
+          ourselves, we are the controller (see{" "}
+          <a href="#kite-bot">section 7</a>).
         </p>
 
         <h2 id="website">2. Visiting kite.onl</h2>
@@ -116,6 +118,21 @@ export default function PrivacyPolicyPage() {
           Encrypted backups of the database are stored with an object storage
           provider in Germany and overwritten within five weeks.
         </p>
+        <p>
+          Apps with Quick setup run on the Kite bot instead of a bot of your
+          own. Everyone with the Manage Server permission in the app&apos;s
+          server can open and change it. To check this permission, the Kite bot
+          fetches your roles in that server when you use the app, and we keep
+          the answer in memory for one minute.
+        </p>
+        <p>
+          When you create an API token or connect an AI app like Claude or
+          ChatGPT to your account, we store its name, the permissions and apps
+          you gave it, when it was last used and when it expires. We only keep a
+          hash of the token itself. A connected app gets the data it asks for
+          with the permissions you gave it, and handles it under its own privacy
+          policy.
+        </p>
 
         <h2 id="templates">5. Templates and the marketplace</h2>
         <p>
@@ -134,6 +151,12 @@ export default function PrivacyPolicyPage() {
           Search engines may still show it for a while.
         </p>
         <p>
+          Your creator page and the pages of your templates show your badges.
+          Creator shows how many people added your templates, and Subscriber
+          shows the plan you pay for. We show them so people can see who makes a
+          template (Art. 6(1)(f) GDPR).
+        </p>
+        <p>
           When you submit a template, we keep the submitted version and our
           decision, including the reason if we reject it. When you report a
           template, we keep your account, the reason and the details you wrote.
@@ -145,6 +168,11 @@ export default function PrivacyPolicyPage() {
         </p>
 
         <h2 id="bot-data">6. Data processed by bots built with Kite</h2>
+        <p>
+          This section is about custom bots, which their owner creates in
+          Discord and runs with Kite. For the Kite bot, see{" "}
+          <a href="#kite-bot">section 7</a>.
+        </p>
         <p>
           Bots built with Kite receive data from Discord, like the user IDs,
           names, roles and messages of the people in the servers they are in,
@@ -166,7 +194,47 @@ export default function PrivacyPolicyPage() {
           requests go through a proxy server we run ourselves in Germany.
         </p>
 
-        <h2 id="ai">7. AI features</h2>
+        <h2 id="kite-bot">7. The Kite bot</h2>
+        <p>
+          The Kite bot is a Discord bot we run ourselves. Servers add it with
+          Quick setup and turn on templates we made, like Leveling or
+          Verification. It only runs these templates. For the data it processes,
+          we are the controller. The people with the Manage Server permission in
+          a server choose which templates run there and how they&apos;re set up.
+        </p>
+        <p>
+          Discord sends the Kite bot data about the servers it&apos;s in, like
+          their channels and roles. It also sends data about the people in them,
+          like their user IDs, names, avatars, roles and messages. The bot uses
+          this data only to run the templates a server turned on, and only in
+          that server. Some templates store data about members, for example how
+          much XP someone has in Leveling or who entered a giveaway. This data
+          is deleted when the server removes the template or deletes the app.
+          Logs and the other records in <a href="#account">section 4</a> are
+          kept for the times listed there.
+        </p>
+        <p>
+          The Kite bot only reads the text of messages in servers with a
+          template that needs it, like one that moderates messages. The text is
+          kept in memory while the template runs and isn&apos;t stored, unless
+          storing it is what the template does, like the current number in a
+          counting game.
+        </p>
+        <p>
+          When the Kite bot is removed from a server, its app stops and its data
+          is kept, so the server can add the bot again and continue. Everyone
+          with the Manage Server permission can delete the app in its settings.
+          When someone switches the app to Custom setup, the app&apos;s data
+          moves to their own bot and they become its owner. From then on they
+          are the controller, and section 6 applies.
+        </p>
+        <p>
+          We process this data to run the features a server turned on, in our
+          interest and the server&apos;s (Art. 6(1)(f) GDPR). If you want to
+          know what the Kite bot stores about you, or want it deleted, email us.
+        </p>
+
+        <h2 id="ai">8. AI features</h2>
         <p>
           Some features send data to AI models: the flow AI that edits flows, AI
           blocks in flows, and the support bot in our Discord server.
@@ -181,7 +249,8 @@ export default function PrivacyPolicyPage() {
             AI blocks send what their flow puts into the prompt to OpenAI. The
             AI Choice, Check and Score blocks send it to OpenRouter, which
             forwards it to the provider of the model. Which data that is depends
-            on how the bot is built, and it can include Discord messages.
+            on how the bot is built, and it can include Discord messages. On the
+            Kite bot, our templates decide what is sent.
           </li>
           <li>
             The support bot sends your question, and the earlier questions and
@@ -194,10 +263,11 @@ export default function PrivacyPolicyPage() {
           use them to train models. Providers may keep requests for a limited
           time to detect abuse. For the flow AI and support bot, the legal basis
           is Art. 6(1)(b) GDPR. For AI blocks, it is the instruction of the
-          bot&apos;s owner (see <a href="#bot-data">section 6</a>).
+          bot&apos;s owner (see <a href="#bot-data">section 6</a>), and on the
+          Kite bot Art. 6(1)(f) GDPR (see <a href="#kite-bot">section 7</a>).
         </p>
 
-        <h2 id="payments">8. Payments</h2>
+        <h2 id="payments">9. Payments</h2>
         <p>
           Subscriptions are sold by Lemon Squeezy as merchant of record. Lemon
           Squeezy processes your payment and billing details as its own
@@ -216,7 +286,7 @@ export default function PrivacyPolicyPage() {
           account gets a role for your plan there.
         </p>
 
-        <h2 id="support">9. Support</h2>
+        <h2 id="support">10. Support</h2>
         <p>
           When you email us, we use your email address and message to answer you
           (Art. 6(1)(b) or (f) GDPR) and delete them when they are no longer
@@ -231,7 +301,7 @@ export default function PrivacyPolicyPage() {
           .
         </p>
 
-        <h2 id="recipients">10. Who we share data with</h2>
+        <h2 id="recipients">11. Who we share data with</h2>
         <p>
           We don&apos;t sell personal data or use it for advertising. We only
           share it with these providers, who process it for us:
@@ -253,7 +323,7 @@ export default function PrivacyPolicyPage() {
         </ul>
         <p>
           Lemon Squeezy (USA) processes payment data as its own controller, see{" "}
-          <a href="#payments">section 8</a>. Bots built with Kite also send data
+          <a href="#payments">section 9</a>. Bots built with Kite also send data
           to Discord and to the services their owner chooses. We disclose data
           to authorities only when the law requires it.
         </p>
@@ -264,7 +334,7 @@ export default function PrivacyPolicyPage() {
           GDPR).
         </p>
 
-        <h2 id="rights">11. Your rights</h2>
+        <h2 id="rights">12. Your rights</h2>
         <p>Under the GDPR, you have the right to:</p>
         <ul>
           <li>get a copy of the data we have about you (Art. 15);</li>
@@ -290,7 +360,7 @@ export default function PrivacyPolicyPage() {
           within one month.
         </p>
 
-        <h2 id="other">12. Other information</h2>
+        <h2 id="other">13. Other information</h2>
         <p>
           Kite is only for people who are at least 18 years old. We don&apos;t
           make decisions about you based solely on automated processing.
