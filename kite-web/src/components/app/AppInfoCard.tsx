@@ -5,7 +5,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
+import {
+  useAppStateStatusQuery,
+  useAppStateUserQuery,
+  useUserQuery,
+} from "@/lib/api/queries";
 import {
   useApp,
   useAppPlan,
@@ -13,11 +17,12 @@ import {
   useUsageCredits,
 } from "@/lib/hooks/api";
 import { formatDate, formatNumber } from "@/lib/utils";
-import { CopyIcon } from "lucide-react";
+import { BotIcon, CopyIcon } from "lucide-react";
 import { useCallback } from "react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import AppInviteButton from "./AppInviteButton";
 
 export default function AppInfoCard() {
@@ -25,6 +30,7 @@ export default function AppInfoCard() {
   const plan = useAppPlan();
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
+  const botUser = useResponseData(useAppStateUserQuery(app?.id || ""));
 
   const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
 
@@ -37,7 +43,17 @@ export default function AppInfoCard() {
       <CardHeader className="flex flex-row items-start bg-muted/50">
         <div className="grid gap-0.5">
           <CardTitle className="text-lg">
-            {app?.name || "Unknown app"}
+            <span className="flex items-center gap-2">
+              <Avatar className="size-10 rounded-full">
+                {botUser?.avatar_url && (
+                  <AvatarImage src={botUser.avatar_url} alt="" />
+                )}
+                <AvatarFallback className="rounded-full">
+                  <BotIcon className="size-5" />
+                </AvatarFallback>
+              </Avatar>
+              {app?.name || "Unknown app"}
+            </span>
           </CardTitle>
           <CardDescription className="group flex items-center gap-2">
             {app?.id}
