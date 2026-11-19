@@ -20,7 +20,7 @@ import {
 import { formatDate, formatNumber } from "@/lib/utils";
 import { BotIcon, CopyIcon } from "lucide-react";
 import { useCallback } from "react";
-import userAvatar, { discordAvatarUrl } from "@/tools/common/utils/discordCdn";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
@@ -41,7 +41,7 @@ export default function AppInfoCard() {
     )
   );
   const botAvatarUrl = botUser?.avatar_url
-    ? discordAvatarUrl(botUser.avatar_url)
+    ? botUser.avatar_url
     : fallbackBotUser
     ? userAvatar({
         id: fallbackBotUser.id,
