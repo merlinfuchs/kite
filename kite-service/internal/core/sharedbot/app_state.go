@@ -22,11 +22,11 @@ type AppStateManager struct {
 	appStore store.AppStore
 	bot      *Bot
 	channels *channelGuilds
-	failures appFailures
+	failures *appFailures
 }
 
 func NewAppStateManager(next store.AppStateManager, appStore store.AppStore, bot *Bot) *AppStateManager {
-	m := &AppStateManager{next: next, appStore: appStore, bot: bot}
+	m := &AppStateManager{next: next, appStore: appStore, bot: bot, failures: newAppFailures(maxAPIFailures)}
 	if bot != nil {
 		m.channels = newChannelGuilds(nil, bot.base)
 	}
@@ -44,7 +44,7 @@ func (m *AppStateManager) client(ctx context.Context, app *model.App) (*api.Clie
 		return nil, 0, err
 	}
 
-	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID)}
+	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID), all: m.failures.all}
 	return scopedClient(m.bot.base, s).WithContext(ctx), discord.GuildID(guildID), nil
 }
 

@@ -33,6 +33,9 @@ var (
 	errOutOfScope = errors.New("This app runs on the Kite bot and can only act in its own server.")
 	// errPaused is a request of an app whose requests Discord kept refusing.
 	errPaused = errors.New("Discord refused too many requests of this app, so it can't send any for a few minutes.")
+	// errAllPaused is a request while Discord kept refusing the requests of
+	// many apps.
+	errAllPaused = errors.New("Discord refused too many requests of apps on the Kite bot, so they can't send any for a few minutes.")
 )
 
 // channelGuilds finds the server of a channel, which the paths of most
@@ -114,8 +117,10 @@ type scope struct {
 	botAppID discord.AppID
 	channels *channelGuilds
 
-	// failures are the app's, which outlive its scopes.
+	// failures are the app's, which outlive its scopes, and the ones of all
+	// apps in the process.
 	failures *failures
+	all      *failures
 }
 
 const (
@@ -126,32 +131,45 @@ const (
 	maxFailures   = 200
 	failureWindow = 10 * time.Minute
 	failurePause  = 10 * time.Minute
+
+	// Many apps could each stay just below maxFailures, so all shared apps of
+	// a process are paused too once Discord refused this many of their
+	// requests. The limit is per IP and the processes count on their own, so
+	// together they stay below it: the Kite bot's process, which sends nearly
+	// all requests, and each API cluster.
+	maxGatewayFailures = 4_000
+	maxAPIFailures     = 1_000
 )
 
 // appFailures are the failures of each app, so they add up over the scopes
-// of the app, like one per API request.
+// of the app, like one per API request, and of all apps of the process.
 type appFailures struct {
 	mu    sync.Mutex
 	byApp map[string]*failures
+	all   *failures
+}
+
+func newAppFailures(max int) *appFailures {
+	return &appFailures{byApp: make(map[string]*failures), all: &failures{max: max}}
 }
 
 func (a *appFailures) of(appID string) *failures {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.byApp == nil {
-		a.byApp = make(map[string]*failures)
-	}
 	f, ok := a.byApp[appID]
 	if !ok {
-		f = &failures{}
+		f = &failures{max: maxFailures}
 		a.byApp[appID] = f
 	}
 	return f
 }
 
-// failures counts the requests Discord refused, see maxFailures.
+// failures counts the requests Discord refused, and pauses after max of them
+// within failureWindow.
 type failures struct {
+	max int
+
 	mu          sync.Mutex
 	windowStart time.Time
 	count       int
@@ -174,7 +192,7 @@ func (f *failures) add(now time.Time) bool {
 		f.count = 0
 	}
 	f.count++
-	if f.count < maxFailures {
+	if f.count < f.max {
 		return false
 	}
 
@@ -287,13 +305,22 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 	if d.scope.failures.paused(now) {
 		return refused(errPaused), nil
 	}
+	if d.scope.all.paused(now) {
+		return refused(errAllPaused), nil
+	}
 
 	resp, err := d.Client.Do(r)
-	if err == nil && isRefusal(resp.GetStatus()) && d.scope.failures.add(now) {
+	if err != nil || !isRefusal(resp.GetStatus()) {
+		return resp, err
+	}
+	if d.scope.failures.add(now) {
 		slog.Warn(
 			"Paused the requests of a shared app that Discord kept refusing",
 			slog.String("guild_id", d.scope.guildID.String()),
 		)
+	}
+	if d.scope.all.add(now) {
+		slog.Error("Paused the requests of all shared apps, Discord refused too many of them")
 	}
 	return resp, err
 }

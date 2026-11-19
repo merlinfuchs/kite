@@ -36,7 +36,7 @@ func testScope(t *testing.T) *scope {
 		}
 	}
 
-	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{}}
+	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{max: maxFailures}, all: &failures{max: maxAPIFailures}}
 }
 
 func TestScopeCheck(t *testing.T) {
@@ -235,5 +235,33 @@ func TestScopedDriverPausesAfterFailures(t *testing.T) {
 
 	if len(inner.sent) != maxFailures {
 		t.Errorf("sent %d requests, want %d", len(inner.sent), maxFailures)
+	}
+}
+
+// Apps that each stay below maxFailures still stop once Discord refused the
+// limit of all apps of the process.
+func TestScopedDriverPausesAllApps(t *testing.T) {
+	all := newAppFailures(10)
+	inner := &fakeDriver{Client: httpdriver.NewClient()}
+
+	for _, appID := range []string{"a", "b", "c", "d", "e"} {
+		s := testScope(t)
+		s.failures = all.of(appID)
+		s.all = all.all
+		driver := scopedDriver{Client: inner, scope: s}
+
+		for range 5 {
+			req, err := driver.NewRequest(context.Background(), "GET", "https://discord.com/api/v10/guilds/100")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := driver.Do(req); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	if len(inner.sent) != 10 {
+		t.Errorf("sent %d requests, want 10", len(inner.sent))
 	}
 }

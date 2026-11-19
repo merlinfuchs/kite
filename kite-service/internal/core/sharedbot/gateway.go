@@ -44,7 +44,7 @@ type Gateway struct {
 	botAppID     discord.AppID
 	channels     *channelGuilds
 	// failures outlive the views, which are made again after reconnects.
-	failures appFailures
+	failures *appFailures
 	// populateMu keeps populates in order, so an older read can't replace a
 	// newer one.
 	populateMu sync.Mutex
@@ -72,6 +72,7 @@ func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.Even
 		eventHandler: eventHandler,
 		session:      session,
 		channels:     newChannelGuilds(session.Cabinet.ChannelStore, session.Client),
+		failures:     newAppFailures(maxGatewayFailures),
 		apps:         make(map[discord.GuildID]*model.App),
 		guilds:       make(map[string]discord.GuildID),
 		states:       make(map[string]*state.State),
@@ -243,7 +244,7 @@ func (g *Gateway) stateFor(app *model.App, guildID discord.GuildID) *state.State
 	if s, ok := g.states[app.ID]; ok {
 		return s
 	}
-	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels, failures: g.failures.of(app.ID)})
+	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels, failures: g.failures.of(app.ID), all: g.failures.all})
 	g.states[app.ID] = s
 	return s
 }
