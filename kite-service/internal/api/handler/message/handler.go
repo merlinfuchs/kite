@@ -175,6 +175,26 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 	return wire.MessageToWire(message), nil
 }
 
+func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.MessageDataUpdateRequest) (*wire.MessageDataUpdateResponse, error) {
+	message, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
+		ID:          c.Message.ID,
+		Name:        c.Message.Name,
+		Description: c.Message.Description,
+		AppID:       c.App.ID,
+		Data:        req.Data,
+		FlowSources: c.Message.FlowSources,
+		UpdatedAt:   time.Now().UTC(),
+	}, c.ItemChange(""))
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_message", "Message not found")
+		}
+		return nil, fmt.Errorf("failed to update message: %w", err)
+	}
+
+	return wire.MessageToWire(message), nil
+}
+
 func (h *MessageHandler) HandleMessagesUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.MessagesUpdateFolderResponse, error) {
 	messages, err := h.messageStore.UpdateMessagesFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
 	if err != nil {

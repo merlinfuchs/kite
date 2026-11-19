@@ -93,6 +93,14 @@ func (req MessageUpdateRequest) Validate() error {
 
 type MessageUpdateResponse = Message
 
+// MessageDataUpdateRequest changes only what a message says and keeps its
+// flows, for apps on the Kite bot, which can't change flows.
+type MessageDataUpdateRequest struct {
+	Data message.MessageData `json:"data"`
+}
+
+type MessageDataUpdateResponse = Message
+
 type MessagesUpdateFolderResponse = []*Message
 
 type MessageDeleteResponse = Empty

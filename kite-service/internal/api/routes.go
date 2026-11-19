@@ -477,6 +477,9 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup := messagesGroup.Group("/{messageID}", accessManager.MessageAccess)
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
 	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
+	// Apps on the Kite bot can change what the messages they wrote when adding
+	// a template say, not their flows.
+	messageGroup.AllowSharedApp().Put("/data", handler.TypedWithBody(messageHandler.HandleMessageDataUpdate))
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
 	messageGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleMessageVersionList))
 	messageGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleMessageVersionGet))

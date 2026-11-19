@@ -1,8 +1,14 @@
+import { useMessageDataUpdateMutation } from "@/lib/api/mutations";
+import { useMessageQuery } from "@/lib/api/queries";
 import { Template } from "@/lib/flow/templates";
-import { useBundleInstalls } from "@/lib/hooks/api";
+import { useBundleInstalls, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+import MessageEditorDialog from "../message/MessageEditorDialog";
+import { Button } from "../ui/button";
+import { Card } from "../ui/card";
 import TemplateIcon from "./TemplateIcon";
 import { TemplateInstallCard } from "./TemplateInstallCard";
 import { TemplateInstalledCard } from "./TemplateInstalledCard";
@@ -41,7 +47,10 @@ export default function KiteBotTemplate({ template }: { template: Template }) {
 
       {installs &&
         (added ? (
-          <TemplateInstalledCard template={template} />
+          <>
+            <TemplateInstalledCard template={template} />
+            <WrittenMessages template={template} />
+          </>
         ) : (
           <TemplateInstallCard
             template={template}
@@ -61,6 +70,83 @@ export default function KiteBotTemplate({ template }: { template: Template }) {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+// WrittenMessages are the messages of the template the server wrote when
+// adding it, like the text of a sticky message, which they can change here.
+// They have no buttons with flows, which only the content would be saved of.
+function WrittenMessages({ template }: { template: Template }) {
+  const install = useBundleInstalls()?.find(
+    (i) => i?.bundle_id === template.id
+  );
+  const messages = template.messages.flatMap((message) => {
+    const item = install?.items.find(
+      (i) => i.type === "message" && i.key === message.key && !i.deleted
+    );
+    return message.customize && item ? [{ ...message, id: item.id }] : [];
+  });
+  if (!messages.length) return null;
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div>
+        <div className="font-semibold mb-1">Messages</div>
+        <p className="text-sm text-muted-foreground">
+          The bot posts the new text the next time it sends the message.
+        </p>
+      </div>
+      {messages.map((message) => (
+        <WrittenMessage
+          key={message.key}
+          id={message.id}
+          name={message.name}
+          description={message.description ?? undefined}
+        />
+      ))}
+    </Card>
+  );
+}
+
+function WrittenMessage({
+  id,
+  name,
+  description,
+}: {
+  id: string;
+  name: string;
+  description?: string;
+}) {
+  const appId = useAppId();
+  const message = useResponseData(useMessageQuery(appId, id));
+  const mutation = useMessageDataUpdateMutation(appId);
+  if (!message) return null;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-sm font-medium">{name} message</div>
+      {description && (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      )}
+      <MessageEditorDialog
+        message={message.data}
+        onClose={async (data, changed) => {
+          if (!changed) return;
+          const res = await mutation.mutateAsync({ messageId: id, data });
+          if (!res.success) {
+            toast.error(
+              `Failed to save the ${name} message: ${res.error.message} (${res.error.code})`
+            );
+            return;
+          }
+          toast.success(`Saved the ${name} message`);
+        }}
+      >
+        <Button variant="outline" className="w-full">
+          Edit message
+        </Button>
+      </MessageEditorDialog>
     </div>
   );
 }
