@@ -28,6 +28,8 @@ Lite apps can subscribe to Plus. On a Lite app, Plus raises the credits like eve
 
 The feature check becomes server profiles on the plan, or a Lite app on Plus or higher. The pricing page gets a line under Plus for the Kite bot's name and avatar in your server.
 
+Plus on a Lite app is sold for its credits, with the profile as an extra. A custom bot gets its own name and avatar for free, so a pitch about the look alone would feel like a trick once people find that out. The profile settings say so in one line: change how the Kite bot looks in your server with Plus, or switch to a custom bot, which has its own name and avatar for free. The copy doesn't suggest the name is paid, since anyone with Manage Nicknames can rename the bot in Discord. The paid part is the avatar, banner and bio. Server profiles on Lite ship with step 9 or with that line, because before step 9 a custom bot means starting over in a new app.
+
 A Lite app that upgrades to its own bot keeps its subscription, and Plus is then Plus as today. Credits work the same on both, so upgrading doesn't change what the modules cost.
 
 When a Lite app runs out of credits, it pauses like any other app, so the Kite bot looks broken in that server. The warning at 80% has to reach Lite owners who never open the Kite dashboard, and the Xenon summary should show it. Pausing only the modules that spend credits can come later.
