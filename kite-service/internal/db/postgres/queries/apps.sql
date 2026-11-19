@@ -118,8 +118,15 @@ UPDATE apps SET
 WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND NOT enabled AND disabled_reason = @disabled_reason;
 
 -- A shared app moves to the user's own bot and keeps everything else. The
--- commands are sent again with the new bot.
+-- commands are sent again with the new bot. Its commands and event listeners
+-- count as changed, so the engine of its cluster loads them, which skipped
+-- them while the app was shared.
 -- name: SwitchSharedAppToOwn :one
+WITH touched_commands AS (
+    UPDATE commands SET updated_at = @updated_at WHERE commands.app_id = @app_id
+), touched_event_listeners AS (
+    UPDATE event_listeners SET updated_at = @updated_at WHERE event_listeners.app_id = @app_id
+)
 UPDATE apps SET
     bot_type = 'own',
     discord_guild_id = NULL,
@@ -133,7 +140,7 @@ UPDATE apps SET
     commands_deployed_hash = NULL,
     commands_deploy_at = @updated_at,
     updated_at = @updated_at
-WHERE id = @id AND bot_type = 'shared'
+WHERE apps.id = @app_id AND apps.bot_type = 'shared'
 RETURNING *;
 
 -- The name of a shared app is the name of its server.

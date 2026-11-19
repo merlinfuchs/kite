@@ -1036,6 +1036,11 @@ func (q *Queries) RenameSharedApp(ctx context.Context, arg RenameSharedAppParams
 }
 
 const switchSharedAppToOwn = `-- name: SwitchSharedAppToOwn :one
+WITH touched_commands AS (
+    UPDATE commands SET updated_at = $6 WHERE commands.app_id = $7
+), touched_event_listeners AS (
+    UPDATE event_listeners SET updated_at = $6 WHERE event_listeners.app_id = $7
+)
 UPDATE apps SET
     bot_type = 'own',
     discord_guild_id = NULL,
@@ -1049,7 +1054,7 @@ UPDATE apps SET
     commands_deployed_hash = NULL,
     commands_deploy_at = $6,
     updated_at = $6
-WHERE id = $7 AND bot_type = 'shared'
+WHERE apps.id = $7 AND apps.bot_type = 'shared'
 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key, credits_paused_at, credit_notices_enabled, bot_type, discord_guild_id
 `
 
@@ -1060,11 +1065,13 @@ type SwitchSharedAppToOwnParams struct {
 	Name             string
 	Description      pgtype.Text
 	UpdatedAt        pgtype.Timestamp
-	ID               string
+	AppID            string
 }
 
 // A shared app moves to the user's own bot and keeps everything else. The
-// commands are sent again with the new bot.
+// commands are sent again with the new bot. Its commands and event listeners
+// count as changed, so the engine of its cluster loads them, which skipped
+// them while the app was shared.
 func (q *Queries) SwitchSharedAppToOwn(ctx context.Context, arg SwitchSharedAppToOwnParams) (App, error) {
 	row := q.db.QueryRow(ctx, switchSharedAppToOwn,
 		arg.DiscordID,
@@ -1073,7 +1080,7 @@ func (q *Queries) SwitchSharedAppToOwn(ctx context.Context, arg SwitchSharedAppT
 		arg.Name,
 		arg.Description,
 		arg.UpdatedAt,
-		arg.ID,
+		arg.AppID,
 	)
 	var i App
 	err := row.Scan(
