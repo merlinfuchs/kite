@@ -6,7 +6,8 @@ export default function userAvatar({
   avatar?: string | null;
 }) {
   if (avatar) {
-    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`;
+    const extension = avatar.startsWith("a_") ? "gif" : "png";
+    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.${extension}`;
   }
   return `https://cdn.discordapp.com/embed/avatars/${
     (BigInt(id) >> BigInt(22)) % BigInt(6)
