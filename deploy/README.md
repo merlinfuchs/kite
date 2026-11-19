@@ -18,11 +18,11 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server. The server needs N
 
 ## Configuration
 
-`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf`, `kite-service@.service` and `kite-web.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
+`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf`, `kite-service@.service`, `kite-shared.service` and `kite-web.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
 
 To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh`, commit, and run `./deploy/server.sh`. It restarts all clusters, since apps move between them, and switches nginx over to the new routing.
 
-`service.sh` runs pending migrations once with the new binary while the old one keeps running, then restarts all clusters at once. Migrations have to work with the running version. Each cluster also migrates when it starts, which finds nothing left to do.
+`service.sh` runs pending migrations once with the new binary while the old one keeps running, then restarts all clusters and the Kite bot at once. Migrations have to work with the running version. Each cluster also migrates when it starts, which finds nothing left to do.
 
 `web.sh` builds the Next.js server on your machine, so it refuses builds with native modules, which would be for the wrong platform. It stops the server, swaps in the new build and starts it, which takes about a second in which pages fail. If the new build doesn't answer within 30 seconds, it goes back to the previous one. nginx serves `public/` from the build and `/_next/static` from `WEB_DIR`, which keeps the assets of old builds for tabs still open on them.
 

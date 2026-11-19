@@ -10,6 +10,7 @@ source "$(dirname "$0")/common.sh"
 
 scp "$ROOT/deploy/nginx.conf" "$DEPLOY_HOST:/tmp/kite-nginx.conf"
 scp "$ROOT/deploy/kite-service@.service" "$DEPLOY_HOST:/tmp/kite-service@.service"
+scp "$ROOT/deploy/kite-shared.service" "$DEPLOY_HOST:/tmp/kite-shared.service"
 scp "$ROOT/deploy/kite-web.service" "$DEPLOY_HOST:/tmp/kite-web.service"
 ssh -t "$DEPLOY_HOST" "set -e
   $REMOTE_SUDO
@@ -20,6 +21,7 @@ ssh -t "$DEPLOY_HOST" "set -e
   fi
 
   \$S install -m 644 /tmp/kite-service@.service /etc/systemd/system/kite-service@.service
+  \$S install -m 644 /tmp/kite-shared.service /etc/systemd/system/kite-shared.service
   \$S install -m 644 /tmp/kite-web.service /etc/systemd/system/kite-web.service
   \$S systemctl daemon-reload
 
@@ -36,6 +38,9 @@ ssh -t "$DEPLOY_HOST" "set -e
     if [ -n \"\$enabled\" ]; then \$S systemctl disable --now \$enabled; fi
     \$S systemctl enable --now \$wanted
   fi
+  # Started the first time, later unit changes take effect with the next
+  # deploy/service.sh like for the clusters.
+  \$S systemctl enable --now kite-shared
 
   rm -f /tmp/kite-nginx.conf.prev
   if [ -f '$NGINX_CONF_PATH' ]; then \$S cp '$NGINX_CONF_PATH' /tmp/kite-nginx.conf.prev; fi
@@ -62,4 +67,4 @@ ssh -t "$DEPLOY_HOST" "set -e
     \$S systemctl restart nginx
   fi
 
-  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service /tmp/kite-web.service"
+  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service /tmp/kite-shared.service /tmp/kite-web.service"
