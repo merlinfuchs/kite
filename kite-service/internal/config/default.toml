@@ -20,7 +20,8 @@ max_api_tokens_per_user = 25
 [engine]
 max_stack_depth = 100
 max_operations = 100
-max_credits = 250
+# Fits one Search the Web block on Smartest (600) with room for the rest of the flow.
+max_credits = 1000
 populate_interval = "5s"
 remove_dangling_interval = "5m"
 populate_overlap = "5s"
