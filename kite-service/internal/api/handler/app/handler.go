@@ -240,11 +240,7 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 // Custom setup. It keeps its templates, which become editable, its stored
 // variables, logs and plan. The Kite bot stays in the server, its commands
 // for the app are removed.
-//
-// The user becomes its only owner. They give the bot and agree to run it, so
-// they're responsible for its data from then on. The owner and collaborators
-// it had were only records while access followed Manage Server, and may have
-// left the server long ago.
+// The user becomes its only owner, see design/kite-lite.md.
 func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwitchToCustomRequest) (*wire.AppSwitchToCustomResponse, error) {
 	if !c.App.IsShared() {
 		return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")

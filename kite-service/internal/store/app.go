@@ -18,8 +18,7 @@ type SharedAppCreateOpts struct {
 
 // SharedAppSwitchOpts move a shared app to the user's own bot.
 type SharedAppSwitchOpts struct {
-	ID string
-	// OwnerUserID is the user who switches it, who becomes its only owner.
+	ID               string
 	OwnerUserID      string
 	Name             string
 	Description      null.String

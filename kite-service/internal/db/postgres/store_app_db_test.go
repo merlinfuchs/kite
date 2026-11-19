@@ -48,12 +48,23 @@ VALUES ('switch_app', 'someone', 'admin', now(), now() + interval '1 day');`)
 	assert.Zero(t, collaborators)
 	assert.Zero(t, invites)
 
-	// An app that isn't shared anymore can't be switched again.
+	// Switching it again changes nothing, also not the collaborators the new
+	// owner added.
+	_, err = c.DB.Exec(ctx, `INSERT INTO collaborators (user_id, app_id, role, created_at, updated_at)
+VALUES ('switch_collab', 'switch_app', 'admin', now(), now())`)
+	require.NoError(t, err)
 	_, err = c.SwitchSharedAppToOwn(ctx, store.SharedAppSwitchOpts{
-		ID: "switch_app", OwnerUserID: "switch_collab", Name: "Bot", DiscordID: "switch_bot_2", DiscordToken: "t", UpdatedAt: time.Now(),
+		ID:           "switch_app",
+		OwnerUserID:  "switch_collab",
+		Name:         "Bot",
+		DiscordID:    "switch_bot_2",
+		DiscordToken: "t",
+		UpdatedAt:    time.Now(),
 	})
 	assert.ErrorIs(t, err, store.ErrNotFound)
 	var owner string
 	require.NoError(t, c.DB.QueryRow(ctx, `SELECT owner_user_id FROM apps WHERE id = 'switch_app'`).Scan(&owner))
+	require.NoError(t, c.DB.QueryRow(ctx, `SELECT count(*) FROM collaborators WHERE app_id = 'switch_app'`).Scan(&collaborators))
 	assert.Equal(t, "switch_user", owner)
+	assert.Equal(t, 1, collaborators)
 }

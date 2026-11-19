@@ -122,15 +122,19 @@ WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND NOT enabl
 -- count as changed, so the engine of its cluster loads them, which skipped
 -- them while the app was shared. Whoever switches it becomes its only owner,
 -- so the collaborators and invites from while it was shared are removed.
+-- The other statements run even when the app isn't shared anymore, so they
+-- only touch the app that shared locks.
 -- name: SwitchSharedAppToOwn :one
-WITH removed_collaborators AS (
-    DELETE FROM collaborators WHERE collaborators.app_id = @app_id
+WITH shared AS (
+    SELECT apps.id FROM apps WHERE apps.id = @app_id AND apps.bot_type = 'shared' FOR UPDATE
+), removed_collaborators AS (
+    DELETE FROM collaborators WHERE collaborators.app_id IN (SELECT id FROM shared)
 ), removed_collaborator_invites AS (
-    DELETE FROM collaborator_invites WHERE collaborator_invites.app_id = @app_id
+    DELETE FROM collaborator_invites WHERE collaborator_invites.app_id IN (SELECT id FROM shared)
 ), touched_commands AS (
-    UPDATE commands SET updated_at = @updated_at WHERE commands.app_id = @app_id
+    UPDATE commands SET updated_at = @updated_at WHERE commands.app_id IN (SELECT id FROM shared)
 ), touched_event_listeners AS (
-    UPDATE event_listeners SET updated_at = @updated_at WHERE event_listeners.app_id = @app_id
+    UPDATE event_listeners SET updated_at = @updated_at WHERE event_listeners.app_id IN (SELECT id FROM shared)
 )
 UPDATE apps SET
     bot_type = 'own',
@@ -146,7 +150,7 @@ UPDATE apps SET
     commands_deployed_hash = NULL,
     commands_deploy_at = @updated_at,
     updated_at = @updated_at
-WHERE apps.id = @app_id AND apps.bot_type = 'shared'
+WHERE apps.id IN (SELECT id FROM shared)
 RETURNING *;
 
 -- The name of a shared app is the name of its server.
