@@ -151,10 +151,10 @@ export default function PrivacyPolicyPage() {
           Search engines may still show it for a while.
         </p>
         <p>
-          Your creator page and the pages of your templates show your badges,
-          like Creator for how many people added your templates, Staff, or
-          Subscriber with the plan you pay for. We show them so people can see
-          who makes a template (Art. 6(1)(f) GDPR).
+          Your creator page and the pages of your templates show your badges.
+          Creator shows how many people added your templates, and Subscriber
+          shows the plan you pay for. We show them so people can see who makes a
+          template (Art. 6(1)(f) GDPR).
         </p>
         <p>
           When you submit a template, we keep the submitted version and our
@@ -204,28 +204,29 @@ export default function PrivacyPolicyPage() {
         </p>
         <p>
           Discord sends the Kite bot data about the servers it&apos;s in, like
-          their channels and roles, and about the people in them, like their
-          user IDs, names, avatars and roles and the messages they send. The bot
-          uses this data only to run the templates a server turned on, and only
-          in that server. Some templates store data about members, for example
-          how much XP someone has in Leveling or who entered a giveaway. This
-          data is deleted when the server removes the template or deletes the
-          app. Logs and the other records in <a href="#account">section 4</a>{" "}
-          are kept for the times listed there.
+          their channels and roles. It also sends data about the people in them,
+          like their user IDs, names, avatars, roles and messages. The bot uses
+          this data only to run the templates a server turned on, and only in
+          that server. Some templates store data about members, for example how
+          much XP someone has in Leveling or who entered a giveaway. This data
+          is deleted when the server removes the template or deletes the app.
+          Logs and the other records in <a href="#account">section 4</a> are
+          kept for the times listed there.
         </p>
         <p>
           The Kite bot only reads the text of messages in servers with a
-          template that needs it, like an automod. The text is kept in memory
-          while the template runs and isn&apos;t stored, unless storing it is
-          what the template does, like the current number in a counting game.
+          template that needs it, like one that moderates messages. The text is
+          kept in memory while the template runs and isn&apos;t stored, unless
+          storing it is what the template does, like the current number in a
+          counting game.
         </p>
         <p>
           When the Kite bot is removed from a server, its app stops and its data
           is kept, so the server can add the bot again and continue. Everyone
           with the Manage Server permission can delete the app in its settings.
           When someone switches the app to Custom setup, the app&apos;s data
-          moves to their own bot and they become its only owner. From then on
-          they are the controller, and section 6 applies.
+          moves to their own bot and they become its owner. From then on they
+          are the controller, and section 6 applies.
         </p>
         <p>
           We process this data to run the features a server turned on, in our

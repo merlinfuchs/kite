@@ -27,8 +27,8 @@ export default function TermsOfServicePage() {
           You log in with your Discord account. You&apos;re responsible for what
           happens through your account and for the apps you create.
           Collaborators you invite to an app can change it, so only invite
-          people you trust. Apps with Quick setup can also be changed and
-          deleted by everyone with the Manage Server permission in their server.
+          people you trust. Everyone with the Manage Server permission in the
+          server of a Quick setup app can also change and delete it.
         </p>
 
         <h2 id="bots">2. Your bots</h2>
@@ -79,18 +79,18 @@ export default function TermsOfServicePage() {
         </p>
         <p id="kite-bot">
           Apps with Quick setup run on the Kite bot, which is our own Discord
-          application. It only runs templates we make. You choose which of them
-          run in your server and how they&apos;re set up, and you&apos;re
-          responsible for the settings, texts and images you add, like the
-          bot&apos;s name and avatar in your server. We can change, update and
-          remove these templates. We are the developer of the Kite bot towards
-          Discord and the controller of its data, as the{" "}
-          <Link href="/privacy#kite-bot">Privacy Policy</Link> explains, so
-          sections 3 and 4 don&apos;t apply to it.
+          application. It only runs templates we make, which we can change,
+          update and remove. You choose which of them run in your server and how
+          they&apos;re set up. You&apos;re responsible for the settings, texts
+          and images you add, like the bot&apos;s name and avatar in your
+          server. We are the developer of the Kite bot towards Discord and the
+          controller of its data. The{" "}
+          <Link href="/privacy#kite-bot">Privacy Policy</Link> explains how we
+          handle it. Sections 3 and 4 don&apos;t apply to these apps.
         </p>
         <p>
-          When you switch an app to Custom setup, you become its only owner and
-          it runs on your custom bot from then on, so sections 3 and 4 apply to
+          When you switch an app to Custom setup, you become its owner and it
+          runs on your custom bot from then on. Sections 3 and 4 then apply to
           it. The Kite bot stays in your server until you remove it.
         </p>
 

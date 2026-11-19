@@ -64,7 +64,8 @@ export default function LegalUpdateDialog() {
             servers and their members.
           </li>
           <li>
-            It also covers badges, API tokens and AI apps you connect to Kite.
+            The privacy policy also covers badges, API tokens and AI apps you
+            connect to Kite.
           </li>
         </ul>
         <DialogFooter>
