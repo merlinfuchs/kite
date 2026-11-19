@@ -83,7 +83,13 @@ func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.
 		return nil, err
 	}
 
+	roleIDs := make([]string, len(member.RoleIDs))
+	for i, id := range member.RoleIDs {
+		roleIDs[i] = id.String()
+	}
+
 	return &wire.StateGuildProfileGetResponse{
+		RoleIDs:   roleIDs,
 		Nick:      member.Nick,
 		AvatarURL: member.AvatarURL(discord.GuildID(guildID)),
 		BannerURL: member.BannerURL(discord.GuildID(guildID)),

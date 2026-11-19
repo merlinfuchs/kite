@@ -1,4 +1,10 @@
-import { useApp, useAppFeature, useUsageCredits } from "@/lib/hooks/api";
+import {
+  useApp,
+  useAppFeature,
+  useSharedBot,
+  useUsageCredits,
+} from "@/lib/hooks/api";
+import { useRouter } from "next/router";
 import { formatMonthlyResetDate, formatNumber } from "@/lib/utils";
 import { TriangleAlertIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -14,13 +20,17 @@ export default function AppCreditsPopup() {
   const app = useApp();
   const credits = useUsageCredits();
   const creditsPerMonth = useAppFeature((f) => f.usage_credits_per_month);
+  // The page of apps on the Kite bot shows the credits itself.
+  const sharedBot = useSharedBot();
+  const router = useRouter();
+  const onKiteBotHome = sharedBot && router.pathname === "/apps/[appId]";
 
   // AppShell stays mounted when switching apps, so this is per app.
   const [closedAppId, setClosedAppId] = useState<string>();
 
   // AppDisabledPopup tells about apps paused for credits.
   if (!app?.enabled || app.no_credits || closedAppId === app.id) return null;
-  if (!credits || !creditsPerMonth) return null;
+  if (!credits || !creditsPerMonth || onKiteBotHome) return null;
   if (credits.credits_used < creditsPerMonth * warnAt) return null;
 
   const left = creditsPerMonth - credits.credits_used;

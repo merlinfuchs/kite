@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Template } from "@/lib/flow/templates";
 import { useApp, useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useTemplates } from "@/lib/hooks/templates";
+import { useTemplate, useTemplates } from "@/lib/hooks/templates";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -118,6 +118,8 @@ function SetupTemplate({
   initialValues: Record<string, string>;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
+  // The list has no flows, which the parameters are found in.
+  const full = useTemplate(open ? template.id : "");
 
   return (
     <div className="space-y-3">
@@ -141,9 +143,9 @@ function SetupTemplate({
           )}
         </Button>
       </Card>
-      {open && (
+      {open && full && (
         <TemplateInstallCard
-          template={template}
+          template={full}
           from="setup"
           initialValues={initialValues}
         />

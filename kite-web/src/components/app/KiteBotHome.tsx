@@ -2,32 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { hasUpdate } from "@/lib/flow/bundleInstalls";
 import { Template } from "@/lib/flow/templates";
-import {
-  useAppFeature,
-  useAppStateGuilds,
-  useBundleInstalls,
-  useUsageCredits,
-} from "@/lib/hooks/api";
+import { useAppStateGuilds, useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useTemplates } from "@/lib/hooks/templates";
+import { useFullTemplates } from "@/lib/hooks/templates";
 import { BundleInstall } from "@/lib/types/wire.gen";
-import { formatMonthlyResetDate, formatNumber } from "@/lib/utils";
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "../ui/badge";
-import { Progress } from "../ui/progress";
-import GetCreditsButton from "./GetCreditsButton";
+import KiteBotStatus from "./KiteBotStatus";
 import TemplateIcon from "./TemplateIcon";
 import { TemplateInstalledCard } from "./TemplateInstalledCard";
 
-// KiteBotHome is the dashboard of apps on the Kite bot: the templates it runs
-// in the server, with their settings, and the credits.
+// KiteBotHome is the dashboard of apps on the Kite bot: whether the bot runs
+// fine, and the templates it runs in the server, with their settings.
 export default function KiteBotHome() {
   const appId = useAppId();
   const guild = useAppStateGuilds()?.[0];
   const installs = useBundleInstalls();
-  const templates = useTemplates();
+  // With their flows, which the permissions and updates are worked out from.
+  const templates = useFullTemplates(
+    (installs ?? []).flatMap((i) => (i ? [i.bundle_id] : []))
+  );
 
   const added = (installs ?? []).flatMap((install) => {
     const template = templates?.find((t) => t.id === install?.bundle_id);
@@ -55,6 +51,8 @@ export default function KiteBotHome() {
         )}
       </div>
 
+      {installs && templates && <KiteBotStatus added={added} />}
+
       {installs && templates && (
         <div className="space-y-3">
           {added.length ? (
@@ -78,8 +76,6 @@ export default function KiteBotHome() {
           )}
         </div>
       )}
-
-      <CreditsCard />
     </div>
   );
 }
@@ -120,32 +116,5 @@ function AddedTemplate({
       </Card>
       {open && <TemplateInstalledCard template={template} />}
     </div>
-  );
-}
-
-function CreditsCard() {
-  const credits = useUsageCredits();
-  const creditsPerMonth = useAppFeature((f) => f.usage_credits_per_month);
-  if (!credits || !creditsPerMonth) return null;
-
-  return (
-    <Card className="p-5">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
-        <div>
-          <div className="font-medium">
-            {formatNumber(credits.credits_used)} of{" "}
-            {formatNumber(creditsPerMonth)} credits used
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Sending a message or giving a role costs 1 credit. Credits reset on{" "}
-            {formatMonthlyResetDate()}.
-          </p>
-        </div>
-        <GetCreditsButton from="kite_bot_home" />
-      </div>
-      <Progress
-        value={Math.min(100, (credits.credits_used / creditsPerMonth) * 100)}
-      />
-    </Card>
   );
 }

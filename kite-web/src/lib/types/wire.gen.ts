@@ -258,6 +258,11 @@ export interface StateGuildProfile {
   avatar_url: string;
   banner_url: string;
   name_style?: NameStyle;
+  /**
+   * RoleIDs are the roles the bot has in the server. It can only give and
+   * take roles below its highest one.
+   */
+  role_ids: string[];
 }
 /**
  * NameStyle is the font, effect and colors of the bot's name in a server, by

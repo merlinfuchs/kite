@@ -362,15 +362,26 @@ export function useBundleQuery(
 ) {
   // The list only has what the cards show, so the bundle is always loaded.
   return useQuery({
+    ...bundleQuery(bundleId),
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
+  });
+}
+
+// useBundlesByIdQueries loads several bundles with everything in them.
+export function useBundlesByIdQueries(bundleIds: string[]) {
+  return useQueries({ queries: bundleIds.map(bundleQuery) });
+}
+
+function bundleQuery(bundleId: string) {
+  return {
     queryKey: ["bundles", bundleId],
     queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
     enabled: !!bundleId,
     // Users' bundles get new versions or are deleted at any time.
     staleTime: 60_000,
-    placeholderData: placeholder
-      ? { success: true as const, data: placeholder }
-      : undefined,
-  });
+  };
 }
 
 export function useBundleInstallsQuery(appId: string) {
