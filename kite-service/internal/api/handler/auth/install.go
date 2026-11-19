@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	discordoauth "github.com/ravener/discord-oauth2"
 	"golang.org/x/oauth2"
+	"gopkg.in/guregu/null.v4"
 )
 
 // InstallConfig is what adding the Kite bot to a server needs. See
@@ -38,6 +40,20 @@ const setupCookie = "install_setup"
 
 // maxSetupLength bounds what's kept of it.
 const maxSetupLength = 2000
+
+// refPattern is what the ref of a link can be, like "xenon". Others aren't
+// stored.
+var refPattern = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
+
+// setupRef is the ref of the link the setup came from.
+func setupRef(setup string) null.String {
+	values, _ := url.ParseQuery(setup)
+	ref := values.Get("ref")
+	if !refPattern.MatchString(ref) {
+		return null.String{}
+	}
+	return null.StringFrom(ref)
+}
 
 func (h *AuthHandler) installOAuth2Config(c *handler.Context) (*oauth2.Config, error) {
 	if h.install.Bot == nil {
@@ -138,7 +154,7 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	app, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName)
+	app, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, setupRef(setup))
 	if err != nil {
 		return err
 	}
@@ -156,8 +172,8 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 }
 
 // sharedApp returns the server's app on the Kite bot for the user, or the
-// code of why they can't have it.
-func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID string, guildName string) (*model.App, string, error) {
+// code of why they can't have it. ref is only stored on a new app.
+func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID string, guildName string, ref null.String) (*model.App, string, error) {
 	now := time.Now().UTC()
 
 	_, err := h.userStore.UserBan(ctx, user.ID, model.UserBanFeatureKite)
@@ -188,6 +204,7 @@ func (h *AuthHandler) sharedApp(ctx context.Context, user *model.User, guildID s
 			Name:           guildName,
 			OwnerUserID:    user.ID,
 			DiscordGuildID: guildID,
+			Ref:            ref,
 			CreatedAt:      now,
 		})
 		if errors.Is(err, store.ErrAlreadyExists) {

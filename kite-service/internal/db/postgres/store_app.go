@@ -229,6 +229,7 @@ func (c *Client) CreateSharedApp(ctx context.Context, opts store.SharedAppCreate
 		Name:           opts.Name,
 		OwnerUserID:    opts.OwnerUserID,
 		DiscordGuildID: pgtype.Text{String: opts.DiscordGuildID, Valid: true},
+		Ref:            pgtype.Text{String: opts.Ref.String, Valid: opts.Ref.Valid},
 		CreatedAt:      pgtype.Timestamp{Time: opts.CreatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
@@ -460,6 +461,7 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordStatus:  status,
 		BotType:        model.AppBotType(row.BotType),
 		DiscordGuildID: null.NewString(row.DiscordGuildID.String, row.DiscordGuildID.Valid),
+		Ref:            null.NewString(row.Ref.String, row.Ref.Valid),
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func (s *fakeInstallStore) CountAppsByUser(ctx context.Context, userID string) (
 }
 
 func (s *fakeInstallStore) CreateSharedApp(ctx context.Context, opts store.SharedAppCreateOpts) (*model.App, error) {
-	app := &model.App{ID: opts.ID, Name: opts.Name, OwnerUserID: opts.OwnerUserID, BotType: model.AppBotTypeShared, DiscordGuildID: null.StringFrom(opts.DiscordGuildID)}
+	app := &model.App{ID: opts.ID, Name: opts.Name, OwnerUserID: opts.OwnerUserID, BotType: model.AppBotTypeShared, DiscordGuildID: null.StringFrom(opts.DiscordGuildID), Ref: opts.Ref}
 	s.apps[opts.DiscordGuildID] = app
 	return app, nil
 }
@@ -57,25 +58,45 @@ func (s *fakeInstallStore) CreateCollaborator(ctx context.Context, c *model.AppC
 	return c, nil
 }
 
-// The first user to add the bot to a server gets its app, and the next one
-// gets the same app.
+// The first user to add the bot to a server gets its app with the ref of
+// their link, and the next one gets the same app.
 func TestSharedApp(t *testing.T) {
 	s := &fakeInstallStore{apps: map[string]*model.App{}, collaborators: map[string]bool{}}
 	h := &AuthHandler{appStore: s, userStore: s, install: InstallConfig{MaxAppsPerUser: 10}}
 
-	first, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server")
+	first, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server", setupRef("guild_id=100&ref=xenon"))
 	if err != nil || code != "" || first == nil {
 		t.Fatalf("first install: app %v, code %q, err %v", first, code, err)
 	}
 	if first.OwnerUserID != "u1" {
 		t.Errorf("owner = %s, want u1", first.OwnerUserID)
 	}
+	if first.Ref != null.StringFrom("xenon") {
+		t.Errorf("ref = %v, want xenon", first.Ref)
+	}
 
-	second, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server")
+	second, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server", setupRef("ref=other"))
 	if err != nil || code != "" || second == nil || second.ID != first.ID {
 		t.Fatalf("second install: app %v, code %q, err %v", second, code, err)
 	}
 	if !s.collaborators[first.ID+"/u2"] {
 		t.Error("the second user wasn't added to the app's list")
+	}
+	if second.Ref != null.StringFrom("xenon") {
+		t.Errorf("ref = %v, want the first one, xenon", second.Ref)
+	}
+}
+
+func TestSetupRef(t *testing.T) {
+	for setup, want := range map[string]null.String{
+		"ref=xenon&templates=leveling":   null.StringFrom("xenon"),
+		"templates=leveling":             {},
+		"ref=Xenon":                      {},
+		"ref=" + strings.Repeat("a", 33): {},
+		"ref=a%20b":                      {},
+	} {
+		if got := setupRef(setup); got != want {
+			t.Errorf("setupRef(%q) = %v, want %v", setup, got, want)
+		}
 	}
 }

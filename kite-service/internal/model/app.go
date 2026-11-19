@@ -23,8 +23,10 @@ type App struct {
 	BotType       AppBotType
 	// DiscordGuildID is the server a shared app runs in, null for own apps.
 	DiscordGuildID null.String
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// Ref is where the app came from, like "xenon" for links from Xenon.
+	Ref       null.String
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	// CommandsDeployAt is when the commands are deployed to Discord next, or
 	// null if Discord is up to date.

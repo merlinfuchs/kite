@@ -101,10 +101,11 @@ INSERT INTO apps (
     creator_user_id,
     bot_type,
     discord_guild_id,
+    ref,
     created_at,
     updated_at
 ) VALUES (
-    @id, @name, @owner_user_id, @owner_user_id, 'shared', @discord_guild_id, @created_at, @created_at
+    @id, @name, @owner_user_id, @owner_user_id, 'shared', @discord_guild_id, @ref, @created_at, @created_at
 ) RETURNING *;
 
 -- Starts the shared app of the server again if it was stopped for the reason,
