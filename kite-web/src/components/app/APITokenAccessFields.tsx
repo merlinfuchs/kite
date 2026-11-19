@@ -126,7 +126,10 @@ export default function APITokenAccessFields({
 }
 
 function AppPicker({ control }: { control: Control<AccessFields> }) {
-  const apps = useResponseData(useAppsQuery());
+  // Apps on the Kite bot can't be used with tokens.
+  const apps = useResponseData(useAppsQuery())?.filter(
+    (app) => app?.bot_type !== "shared"
+  );
 
   return (
     <FormField

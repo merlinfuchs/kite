@@ -640,8 +640,7 @@ func (s *APIServer) RegisterRoutes(
 	// other routes of apps, which share 60 requests a minute.
 	discordAPIHandler := discordapi.NewDiscordAPIHandler(appStateManager, logStore)
 
-	// Scoped to the app's server for apps on the Kite bot, see sharedbot.
-	sharedAppGroup.AllowAPITokenWithoutScope().Post("/discord-api",
+	appGroup.AllowAPITokenWithoutScope().Post("/discord-api",
 		handler.TypedWithBody(discordAPIHandler.HandleDiscordAPIRequest),
 		handler.RateLimitByUser(30, time.Minute),
 	)

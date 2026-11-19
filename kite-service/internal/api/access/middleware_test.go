@@ -53,3 +53,30 @@ func TestCustomBotOnly(t *testing.T) {
 		}
 	}
 }
+
+// API tokens, and so MCP, can't use apps on the Kite bot, not even to read.
+func TestCustomBotOnlyRefusesAPITokens(t *testing.T) {
+	m := &AccessManager{}
+	ok := func(c *handler.Context) error {
+		return c.Send(http.StatusNoContent, nil)
+	}
+
+	for _, botType := range []model.AppBotType{model.AppBotTypeShared, model.AppBotTypeOwn} {
+		withToken := func(next handler.HandlerFunc) handler.HandlerFunc {
+			return func(c *handler.Context) error {
+				c.APIToken = &model.APIToken{ID: "token"}
+				c.App = &model.App{ID: "app", BotType: botType}
+				return next(c)
+			}
+		}
+
+		mux := http.NewServeMux()
+		handler.Group(mux, "/app", withToken, m.CustomBotOnly).AllowSharedApp().Get("/read", ok)
+
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest("GET", "/app/read", nil))
+		if allowed := rec.Code == http.StatusNoContent; allowed != (botType == model.AppBotTypeOwn) {
+			t.Errorf("%s app with a token: status %d", botType, rec.Code)
+		}
+	}
+}

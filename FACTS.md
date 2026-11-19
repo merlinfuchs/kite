@@ -100,7 +100,7 @@ Exact names of things users see:
 - Integrations: Discord, ER:LC, Roblox, Roblox Open Cloud, Bloxlink, Cookie API.
 - Badges: Template creator (listed, then 10, 100 or 1,000 users), Star creator (5, 20 or 50 stars), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
 - Plans: Basic, Plus, Premium, and Ultimate. Basic is the free plan.
-- The two bots an app can run on: the Kite bot and a custom bot. The Kite bot is Kite's own bot, which runs official templates in one server without a bot of your own. A custom bot is the user's own bot from the Discord Developer Portal, with its own name, avatar, and the editor. Adding the Kite bot is off on kite.onl until it launches.
+- The two bots an app can run on: the Kite bot and a custom bot. The Kite bot is Kite's own bot, which runs official templates in one server without a bot of your own. A custom bot is the user's own bot from the Discord Developer Portal, with its own name, avatar, and the editor. Apps on the Kite bot can't be used with MCP or API tokens. Adding the Kite bot is off on kite.onl until it launches.
 - The plan page in the dashboard is titled Plans, and its sidebar link says Upgrade, or Plan on a paid plan. There's no Premium page.
 - Pages: /pricing, /marketplace, /alternatives, /guides, /tools, /refund. Docs at docs.kite.onl. The dashboard is kite.onl/apps.
 - Discord permissions by Discord's names: Administrator, Manage Server, Manage Roles, Manage Webhooks, Ban Members.

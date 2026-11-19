@@ -134,8 +134,12 @@ func CheckAppIDs(ctx context.Context, appStore store.AppStore, userID string, ap
 		return fmt.Errorf("failed to get apps: %w", err)
 	}
 	for _, appID := range appIDs {
-		if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
+		i := slices.IndexFunc(apps, func(app *model.App) bool { return app.ID == appID })
+		if i < 0 {
 			return handler.ErrNotFound("unknown_app", fmt.Sprintf("App %s not found", appID))
+		}
+		if apps[i].IsShared() {
+			return handler.ErrBadRequest("kite_bot_without_api", fmt.Sprintf("App %s runs on the Kite bot, which can't be used with API tokens or MCP", appID))
 		}
 	}
 	return nil

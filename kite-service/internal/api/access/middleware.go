@@ -162,10 +162,17 @@ func (m *AccessManager) PluginInstanceAccess(next handler.HandlerFunc) handler.H
 
 // CustomBotOnly refuses changes to apps on the Kite bot, which only run the
 // official templates they add, unless the route allows them, see
-// HandlerGroup.AllowSharedApp. Reading stays allowed. See design/kite-lite.md.
+// HandlerGroup.AllowSharedApp. Reading stays allowed. API tokens, and so MCP,
+// can't use these apps at all yet. See design/kite-lite.md.
 func (m *AccessManager) CustomBotOnly(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
-		if c.App != nil && c.App.IsShared() && c.Method() != http.MethodGet && !c.SharedAppAllowed() {
+		if c.App == nil || !c.App.IsShared() {
+			return next(c)
+		}
+		if c.APIToken != nil {
+			return handler.ErrForbidden("kite_bot_without_api", "Apps on the Kite bot can't be used with API tokens or MCP.")
+		}
+		if c.Method() != http.MethodGet && !c.SharedAppAllowed() {
 			return handler.ErrForbidden("needs_custom_bot", "Apps on the Kite bot only run templates. Create an app with a custom bot to build your own.")
 		}
 		return next(c)

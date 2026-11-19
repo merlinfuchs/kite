@@ -52,7 +52,8 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 
 	res := make([]*wire.App, 0, len(apps))
 	for _, app := range apps {
-		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+		// Apps on the Kite bot can't be used with tokens, see CustomBotOnly.
+		if c.APIToken != nil && (app.IsShared() || !c.APIToken.CanUseApp(app.ID)) {
 			continue
 		}
 		res = append(res, wire.AppToWire(app))
