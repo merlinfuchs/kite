@@ -111,12 +111,12 @@ export function useAppStateUserQuery(appId: string) {
   });
 }
 
-export function useLookupUserQuery(userId: string) {
+export function useLookupUserQuery(userId: string, enabled = true) {
   return useQuery({
     queryKey: ["lookup", "users", userId],
     queryFn: () =>
       apiRequest<LookupUserGetResponse>(`/v1/lookup/users/${userId}`),
-    enabled: !!userId,
+    enabled: !!userId && enabled,
     staleTime: 10 * 60 * 1000,
   });
 }
