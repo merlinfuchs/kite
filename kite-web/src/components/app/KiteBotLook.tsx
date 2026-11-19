@@ -70,28 +70,32 @@ export default function KiteBotLook() {
   if (!guild) return null;
 
   return (
-    <Card className="flex flex-col sm:flex-row sm:items-center gap-4 p-4">
-      <div className="flex-1 min-w-0 space-y-2">
-        <KiteBotMemberPreview name={look.name} avatarUrl={look.avatarUrl} />
-        <p className="text-xs text-muted-foreground">
-          The status is the same in every server. Want your own?{" "}
-          <Link
-            href={{
-              pathname: "/apps/[appId]/settings",
-              query: { appId },
-              hash: "switch",
-            }}
-            className="text-primary hover:underline"
-          >
-            Switch to Custom setup
-          </Link>
-        </p>
-      </div>
-      <div className="flex-none">
-        <Button variant="outline" onClick={() => setOpen(true)}>
+    <Card className="space-y-2 p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <KiteBotMemberPreview name={look.name} avatarUrl={look.avatarUrl} />
+        </div>
+        <Button
+          variant="outline"
+          className="flex-none"
+          onClick={() => setOpen(true)}
+        >
           Change look
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        The status is the same in every server. Want your own?{" "}
+        <Link
+          href={{
+            pathname: "/apps/[appId]/settings",
+            query: { appId },
+            hash: "switch",
+          }}
+          className="text-primary hover:underline"
+        >
+          Switch to Custom setup
+        </Link>
+      </p>
       <GuildProfileDialog guild={guild} open={open} onOpenChange={setOpen} />
     </Card>
   );
