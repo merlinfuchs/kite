@@ -14,6 +14,7 @@ export default function AddPage() {
 
   return (
     <RedirectScreen
+      noindex
       title="Add the Kite bot"
       url={url}
       linkLabel="Add the Kite bot with Discord"

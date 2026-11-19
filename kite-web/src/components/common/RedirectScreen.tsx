@@ -9,10 +9,12 @@ export default function RedirectScreen({
   title,
   url,
   linkLabel,
+  noindex = false,
 }: {
   title: string;
   url?: string;
   linkLabel: string;
+  noindex?: boolean;
 }) {
   const [slow, setSlow] = useState(false);
 
@@ -24,7 +26,7 @@ export default function RedirectScreen({
   }, [url]);
 
   return (
-    <BaseLayout title={title} noindex>
+    <BaseLayout title={title} noindex={noindex}>
       <div className="flex flex-col flex-1 justify-center items-center gap-4 min-h-[100dvh] w-full px-5 pt-10 pb-20">
         <LoaderCircleIcon
           className="h-8 w-8 animate-spin text-muted-foreground"
