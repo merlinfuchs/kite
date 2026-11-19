@@ -1,5 +1,4 @@
-import BaseLayout from "@/components/common/BaseLayout";
-import { Button } from "@/components/ui/button";
+import RedirectScreen from "@/components/common/RedirectScreen";
 import { installUrl } from "@/lib/api/client";
 import { useEffect, useState } from "react";
 
@@ -7,23 +6,17 @@ import { useEffect, useState } from "react";
 // is passed on, so kite.onl/add?guild_id=…&templates=verification picks the
 // server and the templates.
 export default function AddPage() {
+  // The query is only known in the browser.
   const [url, setUrl] = useState<string>();
-
   useEffect(() => {
-    const target = installUrl(window.location.search.slice(1));
-    setUrl(target);
-    window.location.replace(target);
+    setUrl(installUrl(window.location.search.slice(1)));
   }, []);
 
   return (
-    <BaseLayout title="Add the Kite bot" noindex>
-      <div className="flex flex-1 justify-center items-center min-h-[100dvh] w-full px-5 pt-10 pb-20">
-        {url && (
-          <Button asChild>
-            <a href={url}>Add the Kite bot with Discord</a>
-          </Button>
-        )}
-      </div>
-    </BaseLayout>
+    <RedirectScreen
+      title="Add the Kite bot"
+      url={url}
+      linkLabel="Add the Kite bot with Discord"
+    />
   );
 }
