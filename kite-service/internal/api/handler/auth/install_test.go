@@ -64,7 +64,7 @@ func TestSharedApp(t *testing.T) {
 	s := &fakeInstallStore{apps: map[string]*model.App{}, collaborators: map[string]bool{}}
 	h := &AuthHandler{appStore: s, userStore: s, install: InstallConfig{MaxAppsPerUser: 10}}
 
-	first, created, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server", setupRef("guild_id=100&ref=xenon"))
+	first, created, code, err := h.sharedApp(context.Background(), &model.User{ID: "u1"}, "100", "Server", ref("guild_id=100&ref=xenon"))
 	if err != nil || code != "" || first == nil {
 		t.Fatalf("first install: app %v, code %q, err %v", first, code, err)
 	}
@@ -78,7 +78,7 @@ func TestSharedApp(t *testing.T) {
 		t.Errorf("ref = %v, want xenon", first.Ref)
 	}
 
-	second, created2, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server", setupRef("ref=other"))
+	second, created2, code, err := h.sharedApp(context.Background(), &model.User{ID: "u2"}, "100", "Server", ref("ref=other"))
 	if err != nil || code != "" || second == nil || second.ID != first.ID {
 		t.Fatalf("second install: app %v, code %q, err %v", second, code, err)
 	}
@@ -93,16 +93,26 @@ func TestSharedApp(t *testing.T) {
 	}
 }
 
+func ref(setup string) null.String {
+	ref, _ := setupRef(setup)
+	return ref
+}
+
+// Invalid refs aren't stored and are taken out of the setup.
 func TestSetupRef(t *testing.T) {
-	for setup, want := range map[string]null.String{
-		"ref=xenon&templates=leveling":   null.StringFrom("xenon"),
-		"templates=leveling":             {},
-		"ref=Xenon":                      {},
-		"ref=" + strings.Repeat("a", 33): {},
-		"ref=a%20b":                      {},
+	for setup, want := range map[string]struct {
+		ref   null.String
+		setup string
+	}{
+		"ref=xenon&templates=leveling":   {null.StringFrom("xenon"), "ref=xenon&templates=leveling"},
+		"templates=leveling":             {null.String{}, "templates=leveling"},
+		"ref=Xenon&templates=leveling":   {null.String{}, "templates=leveling"},
+		"ref=" + strings.Repeat("a", 33): {null.String{}, ""},
+		"ref=a%20b":                      {null.String{}, ""},
 	} {
-		if got := setupRef(setup); got != want {
-			t.Errorf("setupRef(%q) = %v, want %v", setup, got, want)
+		ref, rest := setupRef(setup)
+		if ref != want.ref || rest != want.setup {
+			t.Errorf("setupRef(%q) = %v, %q, want %v, %q", setup, ref, rest, want.ref, want.setup)
 		}
 	}
 }

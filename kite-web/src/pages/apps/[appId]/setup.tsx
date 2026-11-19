@@ -63,13 +63,13 @@ export default function AppSetupPage() {
     const installed = query.installed;
     if (!router.isReady || !installed || tracked.current) return;
     tracked.current = true;
-    const ref = typeof query.ref === "string" ? query.ref : "";
+    // The service only passes on a valid ref. It's the link's, which can
+    // differ from the app's for an app that already existed.
+    const { installed: _, ...rest } = query;
     track("kite_bot_added", {
       new: installed === "new",
-      ...(/^[a-z0-9_-]{1,32}$/.test(ref) && { ref }),
+      ...(typeof query.ref === "string" && { ref: query.ref }),
     });
-    const rest = { ...query };
-    delete rest.installed;
     router.replace({ pathname: router.pathname, query: rest }, undefined, {
       shallow: true,
     });

@@ -45,14 +45,19 @@ const maxSetupLength = 2000
 // stored.
 var refPattern = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 
-// setupRef is the ref of the link the setup came from.
-func setupRef(setup string) null.String {
+// setupRef is the ref of the link the setup came from. An invalid one is
+// also taken out of the setup, so the setup page can pass it on as it is.
+func setupRef(setup string) (null.String, string) {
 	values, _ := url.ParseQuery(setup)
 	ref := values.Get("ref")
-	if !refPattern.MatchString(ref) {
-		return null.String{}
+	if refPattern.MatchString(ref) {
+		return null.StringFrom(ref), setup
 	}
-	return null.StringFrom(ref)
+	if values.Has("ref") {
+		values.Del("ref")
+		setup = values.Encode()
+	}
+	return null.String{}, setup
 }
 
 func (h *AuthHandler) installOAuth2Config(c *handler.Context) (*oauth2.Config, error) {
@@ -154,7 +159,8 @@ func (h *AuthHandler) HandleInstallCallback(c *handler.Context) error {
 		return fmt.Errorf("token has no server")
 	}
 
-	app, created, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, setupRef(setup))
+	ref, setup := setupRef(setup)
+	app, created, errCode, err := h.sharedApp(c.Context(), user, guildID, guildName, ref)
 	if err != nil {
 		return err
 	}
