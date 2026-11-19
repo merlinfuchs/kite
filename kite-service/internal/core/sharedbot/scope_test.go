@@ -265,3 +265,32 @@ func TestScopedDriverPausesAllApps(t *testing.T) {
 		t.Errorf("sent %d requests, want 10", len(inner.sent))
 	}
 }
+
+type statusResponse struct {
+	refusedResponse
+	status int
+	header http.Header
+}
+
+func (r statusResponse) GetStatus() int         { return r.status }
+func (r statusResponse) GetHeader() http.Header { return r.header }
+
+func TestIsRefusal(t *testing.T) {
+	tests := []struct {
+		name    string
+		resp    statusResponse
+		refusal bool
+	}{
+		{"ok", statusResponse{status: 200}, false},
+		{"not found", statusResponse{status: 404}, false},
+		{"unauthorized", statusResponse{status: 401}, true},
+		{"forbidden", statusResponse{status: 403}, true},
+		{"rate limited", statusResponse{status: 429, header: http.Header{"X-Ratelimit-Scope": {"user"}}}, true},
+		{"shared rate limit", statusResponse{status: 429, header: http.Header{"X-Ratelimit-Scope": {"shared"}}}, false},
+	}
+	for _, tt := range tests {
+		if got := isRefusal(tt.resp); got != tt.refusal {
+			t.Errorf("%s: refusal = %v, want %v", tt.name, got, tt.refusal)
+		}
+	}
+}

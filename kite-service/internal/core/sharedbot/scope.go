@@ -136,7 +136,8 @@ const (
 	// a process are paused too once Discord refused this many of their
 	// requests. The limit is per IP and the processes count on their own, so
 	// together they stay below it: the Kite bot's process, which sends nearly
-	// all requests, and each API cluster.
+	// all requests, and each of the 4 API clusters of kite.onl. More clusters
+	// on one host need a lower maxAPIFailures.
 	maxGatewayFailures = 4_000
 	maxAPIFailures     = 1_000
 )
@@ -149,8 +150,9 @@ type appFailures struct {
 	all   *failures
 }
 
-func newAppFailures(max int) *appFailures {
-	return &appFailures{byApp: make(map[string]*failures), all: &failures{max: max}}
+// newAppFailures pauses all apps after limit refused requests.
+func newAppFailures(limit int) *appFailures {
+	return &appFailures{byApp: make(map[string]*failures), all: &failures{max: limit}}
 }
 
 func (a *appFailures) of(appID string) *failures {
@@ -310,7 +312,7 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 	}
 
 	resp, err := d.Client.Do(r)
-	if err != nil || !isRefusal(resp.GetStatus()) {
+	if err != nil || !isRefusal(resp) {
 		return resp, err
 	}
 	if d.scope.failures.add(now) {
@@ -326,9 +328,16 @@ func (d scopedDriver) Do(r httpdriver.Request) (httpdriver.Response, error) {
 }
 
 // isRefusal is whether Discord counts the response toward its limit of
-// refused requests.
-func isRefusal(status int) bool {
-	return status == http.StatusUnauthorized || status == http.StatusForbidden || status == http.StatusTooManyRequests
+// refused requests. A 429 of a limit shared with others, like of a busy
+// channel, doesn't count.
+func isRefusal(resp httpdriver.Response) bool {
+	switch resp.GetStatus() {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return true
+	case http.StatusTooManyRequests:
+		return resp.GetHeader().Get("X-RateLimit-Scope") != "shared"
+	}
+	return false
 }
 
 // checkBody refuses messages that reference a message in another server,
