@@ -31,6 +31,9 @@ type operationCall struct {
 	// The IDs of the stored variables the block lets the code use, by the
 	// names the code uses.
 	variables map[string]string
+	// The secrets the block's code names as {{secrets.NAME}}, the only ones
+	// its requests can use, so code can't build the name of another one.
+	secrets []string
 }
 
 // operationHandler runs a handler operation, see
