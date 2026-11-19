@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
 
@@ -70,17 +71,26 @@ export default function UserMenu({
           sideOffset={4}
         >
           <DropdownMenuLabel className="p-0 font-normal">
-            <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <UserAvatar className="h-8 w-8" />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {user?.display_name}
-                </span>
-                <span className="truncate text-xs">
-                  {user && `@${user.discord_username}`}
-                </span>
+            {user ? (
+              <Link
+                href={creatorPath(user.discord_id)}
+                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
+              >
+                <UserAvatar className="h-8 w-8" />
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">
+                    {user.display_name}
+                  </span>
+                  <span className="truncate text-xs">
+                    @{user.discord_username}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <UserAvatar className="h-8 w-8" />
               </div>
-            </div>
+            )}
             <UserBadges
               badges={user?.badges ?? []}
               size="sm"
