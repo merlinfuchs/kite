@@ -16,9 +16,13 @@ type App struct {
 	DisabledReason null.String
 	OwnerUserID    string
 	CreatorUserID  string
-	DiscordToken   string
-	DiscordID      string
-	DiscordStatus  *AppDiscordStatus
+	// DiscordToken and DiscordID are the app's own bot, empty for shared apps.
+	DiscordToken  string
+	DiscordID     string
+	DiscordStatus *AppDiscordStatus
+	BotType       AppBotType
+	// DiscordGuildID is the server a shared app runs in, null for own apps.
+	DiscordGuildID null.String
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 
@@ -46,6 +50,22 @@ type App struct {
 	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
 	// the app used 80% or all of its credits for the month.
 	CreditNoticesEnabled bool
+}
+
+// AppBotType is whose bot an app runs on.
+type AppBotType string
+
+const (
+	// AppBotTypeOwn apps run on a bot of their own, with its token.
+	AppBotTypeOwn AppBotType = "own"
+	// AppBotTypeShared apps run on the Kite bot in one server, see
+	// design/kite-lite.md. The shared process runs them, the clusters don't.
+	AppBotTypeShared AppBotType = "shared"
+)
+
+// IsShared is whether the app runs on the Kite bot instead of its own bot.
+func (a *App) IsShared() bool {
+	return a.BotType == AppBotTypeShared
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.

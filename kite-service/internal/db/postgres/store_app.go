@@ -94,8 +94,8 @@ func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCrede
 	}
 
 	return &model.AppCredentials{
-		DiscordID:    row.DiscordID,
-		DiscordToken: row.DiscordToken,
+		DiscordID:    row.DiscordID.String,
+		DiscordToken: row.DiscordToken.String,
 	}, nil
 }
 
@@ -109,8 +109,8 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		},
 		OwnerUserID:   app.OwnerUserID,
 		CreatorUserID: app.CreatorUserID,
-		DiscordToken:  app.DiscordToken,
-		DiscordID:     app.DiscordID,
+		DiscordToken:  pgtype.Text{String: app.DiscordToken, Valid: app.DiscordToken != ""},
+		DiscordID:     pgtype.Text{String: app.DiscordID, Valid: app.DiscordID != ""},
 		DiscordVerifyKey: pgtype.Text{
 			String: app.DiscordVerifyKey.String,
 			Valid:  app.DiscordVerifyKey.Valid,
@@ -143,7 +143,8 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 			String: opts.Description.String,
 			Valid:  opts.Description.Valid,
 		},
-		DiscordToken:  opts.DiscordToken,
+		// Shared apps have no token, and keep none.
+		DiscordToken:  pgtype.Text{String: opts.DiscordToken, Valid: opts.DiscordToken != ""},
 		DiscordStatus: rawStatus,
 		Enabled:       opts.Enabled,
 		DisabledReason: pgtype.Text{
@@ -193,6 +194,10 @@ func (c *Client) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
 	return c.Q.DeleteApp(ctx, id)
+}
+
+func (c *Client) SharedAppIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetSharedAppIDs(ctx)
 }
 
 func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
@@ -373,9 +378,11 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DisabledReason: null.NewString(row.DisabledReason.String, row.DisabledReason.Valid),
 		OwnerUserID:    row.OwnerUserID,
 		CreatorUserID:  row.CreatorUserID,
-		DiscordToken:   row.DiscordToken,
-		DiscordID:      row.DiscordID,
+		DiscordToken:   row.DiscordToken.String,
+		DiscordID:      row.DiscordID.String,
 		DiscordStatus:  status,
+		BotType:        model.AppBotType(row.BotType),
+		DiscordGuildID: null.NewString(row.DiscordGuildID.String, row.DiscordGuildID.Valid),
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 

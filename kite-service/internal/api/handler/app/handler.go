@@ -149,7 +149,9 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		h.retryFailedCommandsDeploy(c)
 	}
 
-	if req.Name != c.App.Name || req.Description != c.App.Description {
+	// The Kite bot's name is the same in every server, so a shared app's name
+	// is only its name in Kite.
+	if !app.IsShared() && (req.Name != c.App.Name || req.Description != c.App.Description) {
 		if err := h.updateDiscordApp(c.Context(), app); err != nil {
 			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
 				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
@@ -164,7 +166,7 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		}
 	}
 
-	if req.Name != c.App.Name {
+	if !app.IsShared() && req.Name != c.App.Name {
 		if err := h.updateDiscordBotUser(c.Context(), app); err != nil {
 			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
 				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
@@ -227,6 +229,11 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 }
 
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
+	// Moving a shared app to its own bot is the upgrade, which isn't built yet.
+	if c.App.IsShared() {
+		return nil, handler.ErrBadRequest("shared_app", "This app runs on the Kite bot and has no token of its own.")
+	}
+
 	// A new token starts the app.
 	if err := h.checkOwnerNotBanned(c); err != nil {
 		return nil, err
@@ -306,6 +313,11 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 }
 
 func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiListResponse, error) {
+	// The Kite bot's emojis aren't the app's.
+	if c.App.IsShared() {
+		return &wire.AppEmojiListResponse{}, nil
+	}
+
 	emojis, err := h.getAppEmojis(c.Context(), c.App)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app emojis: %w", err)

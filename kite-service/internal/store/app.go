@@ -62,6 +62,8 @@ type AppStore interface {
 	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
 	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
+	// SharedAppIDs are the apps on the Kite bot, which the clusters skip.
+	SharedAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
 	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every
