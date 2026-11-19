@@ -181,6 +181,8 @@ type javaScriptHost struct {
 	mu  sync.Mutex
 	// The block's stored variables, see operationCall.
 	variables map[string]string
+	// The secrets the code names, see operationCall.
+	secrets []string
 	// Credits held for calls running at the same time that charge more once
 	// they finish, like the answer of ai.ask, so other calls can't use them.
 	reserved int
@@ -260,6 +262,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 					return h.chargeMore(reserved, credits)
 				},
 				variables: h.variables,
+				secrets:   h.secrets,
 			})
 			// A reserve the call didn't charge, like after an error.
 			if reserved > 0 {
@@ -336,7 +339,11 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
-	host := &javaScriptHost{ctx: ctx, variables: make(map[string]string, len(data.Variables))}
+	host := &javaScriptHost{
+		ctx:       ctx,
+		variables: make(map[string]string, len(data.Variables)),
+		secrets:   secretNames([]string{data.Code}),
+	}
 	for _, v := range data.Variables {
 		host.variables[v.Name] = v.VariableID
 	}

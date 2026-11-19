@@ -117,6 +117,8 @@ func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 		{"wrong type", `await http.request({url: "https://example.com", body: {a: 1}})`, "http.request: invalid value for parameter body"},
 		{"not an object", `await http.request("https://example.com")`, "http.request: the argument must be an object of its parameters"},
 		{"unknown secret", `await fetch("https://example.com/{{secrets.NOPE}}")`, "http.request: the app has no secret named NOPE"},
+		// TOKEN exists, but code can't build the name of a secret it doesn't name.
+		{"built secret name", `await fetch("https://example.com/{{" + "secrets." + "TOK" + "EN}}")`, "http.request: the code can only use the secret TOKEN if it's written in the code as {{secrets.TOKEN}}"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

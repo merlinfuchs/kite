@@ -181,7 +181,7 @@ if (!res.ok) throw new Error(`The API answered ${res.status}`);
 return await res.json();
 ```
 
-`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Other placeholders aren't filled in, pass values in as inputs instead.
+`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Write each secret out in the code like that. A request can only use the secrets the code names, so a name the code puts together, like `"{{secrets." + name + "}}"`, fails. Other placeholders aren't filled in, pass values in as inputs instead.
 
 The body has to be text, so turn objects into JSON with `JSON.stringify` and set the `Content-Type` header. Without that header, the body is sent as plain text. Like in a browser, a response with an error status like 404 doesn't throw. Check `res.ok` or `res.status` instead. Only a request that gets no response at all throws, like one to a website that doesn't exist. The response can be up to 1 MB, and it's read as text, so images and other files don't come through.
 
