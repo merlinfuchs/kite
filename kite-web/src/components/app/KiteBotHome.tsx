@@ -33,12 +33,22 @@ export default function KiteBotHome() {
 
   return (
     <div className="space-y-8 max-w-3xl">
+      <div>
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+          {guild?.name ?? "Your server"}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          What the Kite bot does in your server, and whether it works.
+        </p>
+      </div>
+
+      {installs && templates && <KiteBotStatus added={added} />}
+
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl mb-1">Templates</h1>
+          <h2 className="text-lg font-semibold mb-1">Templates</h2>
           <p className="text-muted-foreground text-sm">
-            What the Kite bot does in {guild?.name ?? "your server"}. Open a
-            template to change its settings.
+            Open a template to change its settings.
           </p>
         </div>
         {!!added.length && (
@@ -51,10 +61,8 @@ export default function KiteBotHome() {
         )}
       </div>
 
-      {installs && templates && <KiteBotStatus added={added} />}
-
       {installs && templates && (
-        <div className="space-y-3">
+        <div className="space-y-3 !mt-4">
           {added.length ? (
             added.map(({ install, template }) => (
               <AddedTemplate

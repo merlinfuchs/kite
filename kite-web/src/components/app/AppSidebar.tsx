@@ -24,7 +24,6 @@ import {
   SatelliteDishIcon,
   Settings2Icon,
   SlashSquareIcon,
-  StoreIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -60,9 +59,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }[] = sharedBot
     ? [
         {
-          title: "Templates",
+          title: "Dashboard",
           url: "/apps/[appId]",
-          icon: StoreIcon,
+          icon: LayoutDashboardIcon,
           active:
             isDashboardActive || router.pathname === "/apps/[appId]/setup",
         },

@@ -5,7 +5,6 @@ import {
   LayoutDashboardIcon,
   MessageSquareWarningIcon,
   Settings2Icon,
-  StoreIcon,
   TelescopeIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -75,9 +74,9 @@ export default function AppSidebarMainNav() {
     if (sharedBot) {
       return [
         {
-          title: "Templates",
+          title: "Dashboard",
           url: "/apps/[appId]",
-          icon: StoreIcon,
+          icon: LayoutDashboardIcon,
           active:
             isActive("/apps/[appId]", true) || isActive("/apps/[appId]/setup"),
         },
