@@ -536,6 +536,11 @@
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages."
     ],
+    "shared_bot": true,
+    "intents": [
+      "guild_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "log_channel_id",
@@ -1007,6 +1012,10 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "guild_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "system_prompt",
@@ -1240,6 +1249,10 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages it translates."
+    ],
+    "intents": [
+      "guild_message_reactions",
+      "message_content"
     ],
     "parameters": [],
     "commands": [],
@@ -1847,6 +1860,13 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel."
+    ],
+    "intents": [
+      "guild_members"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -2362,6 +2382,15 @@
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the starboard posts show the text of messages."
     ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+      "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
+    ],
+    "intents": [
+      "guild_message_reactions",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -2817,6 +2846,9 @@
     "shared_bot_about": [
       "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in.",
       "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept when the bot restarts."
+    ],
+    "intents": [
+      "guild_messages"
     ],
     "parameters": [
       {
@@ -4690,6 +4722,10 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "direct_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -4953,6 +4989,15 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the numbers."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
+      "The count and who counted last are kept for each channel, so it survives restarts."
+    ],
+    "intents": [
+      "guild_messages",
+      "message_content"
     ],
     "parameters": [
       {
@@ -6285,6 +6330,9 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "guild_messages"
+    ],
     "parameters": [],
     "commands": [
       {
@@ -7874,6 +7922,9 @@
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
       "You write the sticky message when you set up the template, with text, embeds or images, and can change it on the template's page on the dashboard any time. It shows up after the next message in the channel."
     ],
+    "intents": [
+      "guild_messages"
+    ],
     "parameters": [
       {
         "key": "sticky_channel",
@@ -8558,6 +8609,9 @@
     ],
     "setup": [
       "Put your bot's role above the roles of the members it should catch, so it can ban them."
+    ],
+    "intents": [
+      "guild_messages"
     ],
     "parameters": [
       {

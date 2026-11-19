@@ -49,7 +49,9 @@ We also build one module for each privileged intent we apply for, so the applica
 - Message Content: AI Automod or Counting, which both read the text of messages. AI Automod costs credits like everywhere else.
 - Presence: no template uses it yet. A module that gives roles by activity would need it, but we only apply if we want such a module.
 
-These modules can't run on the Kite bot until Discord grants the intent. The Kite bot is verified and in 160 servers, so it can't turn privileged intents on without Discord's approval. We show the modules to Discord on a second, unverified test application, which has every intent while it's in fewer than 100 servers.
+These modules can't run on the Kite bot until Discord grants the intent. The Kite bot reaches far more than 10,000 users, so it can't turn privileged intents on without Discord's approval, see design/privileged-intents.md. We show the modules to Discord on a test application, which turns intents on itself while it reaches fewer than 10,000 users.
+
+Welcomer, AI Automod, Starboard and Counting are marked for the Kite bot. Every template lists the gateway intents it needs in `intents`. `shared_bot.intents` in the config lists the privileged ones Discord granted. The bot asks for what its templates need, without privileged intents that weren't granted, and only templates whose privileged intents are all granted can be added to its apps. Until then they're stored without `shared_bot`, so the setup page doesn't show them.
 
 ## The Kite bot
 

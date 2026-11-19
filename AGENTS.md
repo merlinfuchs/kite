@@ -108,7 +108,8 @@ Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFil
 3. Raise `version` whenever you change the flows of an existing template, and add an entry for it to `changelog`, which apps see when they update. Never change its `id` or the `id` of its commands, event listeners and messages, they identify what apps installed.
 4. Write `about` and `faq`. They're the text of the template's public page at `https://kite.onl/marketplace/<id>`, so describe what it does and answer what people search for. The page is added to the sitemap of the marketplace on its own. Templates with `shared_bot: true` also run on the Kite bot, whose apps have no editor, message templates or stored variables pages. If `about` mentions those, add `shared_bot_about` with paragraphs for them.
 5. Set `usage` for the credit calculator on the pricing page: what one run of the template is, like `AI answers`, and a guess of how many there are a month per 1,000 members.
-6. Run `pnpm test -u`. It checks the format, that every parameter is used, and that no Discord ID is left in a block, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service stores in the `bundles` table on startup and installs them from.
+6. Set `intents` to the gateway intents the flows need, like `guild_messages` for a Message Create listener and `message_content` to read the text of messages. A test in the service checks it.
+7. Run `pnpm test -u`. It checks the format, that every parameter is used, and that no Discord ID is left in a block, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service stores in the `bundles` table on startup and installs them from.
 
 ## Database
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
 type Config struct {
@@ -106,6 +107,18 @@ type SharedBotConfig struct {
 	// discord.client_secret, as on kite.onl users log in with the Kite bot's
 	// application.
 	ClientSecret string `toml:"client_secret"`
+	// Intents are the privileged intents Discord granted the Kite bot, like
+	// "message_content" and "guild_members". It asks for them, and templates
+	// that read them can be added to its apps. Identifying with an intent
+	// Discord didn't grant fails, so only list granted ones.
+	Intents []string `toml:"intents" validate:"dive,oneof=message_content guild_members"`
+}
+
+// GrantedIntents are Intents as flags.
+func (c SharedBotConfig) GrantedIntents() model.Intents {
+	// The names are validated, so parsing can't fail.
+	intents, _ := model.ParseIntents(c.Intents)
+	return intents
 }
 
 type DiscordConfig struct {

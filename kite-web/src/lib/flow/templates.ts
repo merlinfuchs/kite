@@ -331,6 +331,23 @@ export const templateFileSchema = z.object({
   // The about for apps on the Kite bot, if it has to differ, like when it
   // mentions the editor or message templates, which they don't have.
   shared_bot_about: z.array(z.string().min(1)).min(1).optional(),
+  // The gateway intents the template needs, like guild_messages for a
+  // Message Create listener or message_content to read the text of messages.
+  // The service checks that they match the flows. On the Kite bot, templates
+  // that need a privileged intent show up once Discord granted it.
+  intents: z
+    .array(
+      z.enum([
+        "guild_members",
+        "guild_moderation",
+        "guild_voice_states",
+        "guild_messages",
+        "guild_message_reactions",
+        "direct_messages",
+        "message_content",
+      ])
+    )
+    .optional(),
   parameters: z.array(
     templateParameterSchema.refine(
       (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),

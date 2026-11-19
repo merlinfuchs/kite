@@ -1,8 +1,11 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 
 	"github.com/knadh/koanf/v2"
 )
@@ -88,5 +91,26 @@ func TestDebugServerDefaultsToDisabledAndLocal(t *testing.T) {
 	}
 	if cfg.Debug.Host != "127.0.0.1" {
 		t.Errorf("debug.host = %q, want %q", cfg.Debug.Host, "127.0.0.1")
+	}
+}
+
+// Identifying with an intent Discord doesn't know fails, so a typo stops the
+// start instead.
+func TestSharedBotIntentsValidate(t *testing.T) {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	for intents, ok := range map[string]bool{
+		"":                              true,
+		"message_content":               true,
+		"message_content,guild_members": true,
+		"presence":                      false,
+		"message-content":               false,
+	} {
+		cfg := SharedBotConfig{}
+		if intents != "" {
+			cfg.Intents = strings.Split(intents, ",")
+		}
+		if err := validate.Struct(cfg); (err == nil) != ok {
+			t.Errorf("intents %q: err = %v, want ok %v", intents, err, ok)
+		}
 	}
 }

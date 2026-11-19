@@ -1,6 +1,6 @@
 # Privileged intents for the Kite bot
 
-Status: draft answers written 2026-11-19, gaps open, not submitted.
+Status: draft answers written 2026-11-19. Gaps closed in code, videos not recorded, not submitted.
 
 The Kite bot (application 844710218864656414) asks Discord for Server Members and Message Content, so the templates that need them can run on it. It doesn't ask for Presence. This follows Xenon's application, see `docs/privileged-intent-review.md` in the Xen repo, which has the form and what Discord's review guide asks for.
 
@@ -21,12 +21,13 @@ Discord's guide asks for three things. The use case has to need the access and b
 
 Every template is one we wrote. Servers can't build their own flows on the Kite bot, so these are the only things that read message text or member events. A server turns a template on in the dashboard, and only people with Manage Server can.
 
-## Safeguards and where each one has to live
+## Safeguards and where each one lives
 
 | Claim | Where it's enforced |
 | --- | --- |
-| Message text only reaches the templates of servers that turned on one that reads it | Not built yet, see Gaps |
-| Member join and leave events only reach servers with Welcomer | Not built yet, see Gaps |
+| Only AI Automod, Starboard and Counting read message text | `intents` on each template, which `TestBundleIntents` checks against its flows |
+| Only Welcomer uses member events | The same test, for `guild_members` |
+| Templates that need an intent can't be added before it's granted | `SyncOfficial` stores them without `shared_bot` until `shared_bot.intents` lists the intent |
 | Message text isn't stored or logged | Flow logs are errors without block inputs (`model.LogEntry`, `flow.ErrorDetails`). The AI log line in `engine/providers.go` only has token counts |
 | Removing a template deletes what it stored | `HandleBundleInstallDelete` deletes the install with its variables |
 | Server admins delete everything by deleting the app | App settings, `HandleAppDelete` |
@@ -34,15 +35,11 @@ Every template is one we wrote. Servers can't build their own flows on the Kite 
 | Not used to train models | Privacy policy section 8. OpenAI requests set `store: false`, OpenRouter and its providers are set up not to train |
 | Encrypted at rest, in Germany | Encrypted disks at Hetzner and netcup, privacy policy section 4 |
 
-## Gaps to close before submitting
+## Gaps
 
-**Message text reaches every app.** Intents are global, so once Discord grants Message Content the shared process gets the text of every message in all servers. The privacy policy already says the text is only read in servers with a template that needs it. The shared process has to drop the text before dispatching to apps without such a template, so the answer rests on code.
+**Message text reaches every app's flows.** Intents are global, so once Discord grants Message Content, every app on the Kite bot gets message events with their text, like any bot with the intent. Only the templates that declare it read the text, which the test checks. Filtering the text out for the other apps was built and dropped. Text stays in Discord and with people who can read it there, as the Kite bot has no HTTP blocks and stored variables stay in the server. So the answers say which templates read the text, not that it only reaches them.
 
-**Member events reach every app.** Same for joins and leaves, which only Welcomer needs.
-
-**The Kite bot can't ask for the intents yet.** Its intents are a constant in `sharedbot/gateway.go`. They have to come from config, so prod can turn each one on the day Discord grants it.
-
-**The four templates aren't on the Kite bot.** They need `shared_bot: true`, their blocks and events in `TestSharedBotBundles`, and a way to stay hidden on the setup page until the intent they need is on.
+**Asking for the intents.** `shared_bot.intents` in the config lists the granted ones, and the bot asks for those. It's empty until Discord approves.
 
 **Users can't opt out of message reading.** The form asks. The answer is no, and it says why. AI Automod is moderation, and letting the people it moderates opt out would defeat it. Starboard and Counting only act on messages in channels the server picked.
 
@@ -116,13 +113,13 @@ Deletion, for both intents:
 >
 > Counting runs a counting game in one channel. Members type the next number, and the bot reads each message in that channel to check it. We store the current number and the ID of who counted last.
 >
-> Message text only reaches these templates, and only in servers that turned one of them on. It's kept in memory while the template runs and isn't stored or logged. Everything a template stores is deleted when the server removes it. People can't opt out, because AI Automod is moderation and Starboard and Counting only act in channels the server picked. Anyone can email contact@kite.onl to have stored data deleted.
+> Only these templates read message text, and only in servers that turned one of them on. It's kept in memory while the template runs and isn't stored or logged. Everything a template stores is deleted when the server removes it. People can't opt out, because AI Automod is moderation and Starboard and Counting only act in channels the server picked. Anyone can email contact@kite.onl to have stored data deleted.
 >
 > The videos are recorded on our test bot, which runs the same code. The Kite bot can't read message text until this intent is granted.
 
 ### Server Members
 
-> Welcomer greets new members in a channel the server picks and says goodbye when they leave. It needs member join and leave events, which Discord only sends with this intent. Nothing about the member is stored. Member events only reach Welcomer, and only in servers that turned it on.
+> Welcomer greets new members in a channel the server picks and says goodbye when they leave. It needs member join and leave events, which Discord only sends with this intent. Nothing about the member is stored. Only Welcomer uses member events, and only in servers that turned it on.
 
 ## Open questions
 

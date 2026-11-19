@@ -38,6 +38,12 @@ type Bundle struct {
 	// SharedBotAbout is what apps on the Kite bot show instead of the
 	// listing's about, if it has to differ.
 	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
+	// Intents are the gateway intents the bundle needs, like guild_messages
+	// for a Message Create listener or message_content to read the text of
+	// messages. A test checks that they match its flows. On the Kite bot it
+	// can only be added once Discord granted the privileged ones, see
+	// SyncOfficial.
+	Intents model.Intents `json:"intents,omitempty"`
 }
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
@@ -95,6 +101,12 @@ type Message struct {
 	// Customize lets the user change the message while adding the bundle,
 	// like the text of a sticky message. Data is what it starts with.
 	Customize bool `json:"customize,omitempty"`
+}
+
+// SharedBotGranted reports whether Discord granted the Kite bot every
+// privileged intent the bundle needs.
+func (b *Bundle) SharedBotGranted(granted model.Intents) bool {
+	return granted.Has(b.Intents & model.PrivilegedIntents)
 }
 
 // Official returns the bundles of templates.json.
@@ -159,11 +171,18 @@ func Parse(content []byte) (*Bundle, error) {
 
 // SyncOfficial stores the official bundles, so they're installed from the
 // store like any other. The embedded ones are the source of truth for them,
-// so a stored version gets their content.
-func SyncOfficial(ctx context.Context, s store.BundleStore) error {
+// so a stored version gets their content. Bundles that read an intent the
+// Kite bot wasn't granted are stored without SharedBot, so apps on it can't
+// add them yet.
+func SyncOfficial(ctx context.Context, s store.BundleStore, sharedBotIntents model.Intents) error {
 	now := time.Now().UTC()
 	for i, o := range official {
 		b := o.bundle
+		if b.SharedBot && !b.SharedBotGranted(sharedBotIntents) {
+			copied := *b
+			copied.SharedBot = false
+			b = &copied
+		}
 		listing := o.listing
 		listing.Position = i
 		listing.UpdatedAt = now

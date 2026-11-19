@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	kitegateway "github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
@@ -19,11 +20,19 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// Intents are what the Kite bot identifies with. It has no privileged intents
-// yet, so Lite modules can't need them.
-const Intents = gateway.IntentGuilds |
-	gateway.IntentGuildMessages |
-	gateway.IntentGuildMessageReactions
+// Intents are what the Kite bot identifies with: what its templates need,
+// with the privileged intents Discord granted, see
+// config.SharedBotConfig.Intents. Guild messages are always on, as message
+// templates are cleaned up when their messages are deleted.
+func Intents(granted model.Intents) gateway.Intents {
+	intents := gateway.IntentGuilds | gateway.IntentGuildMessages
+	for _, b := range bundle.Official() {
+		if b.SharedBot && b.SharedBotGranted(granted) {
+			intents |= gateway.Intents(b.Intents)
+		}
+	}
+	return intents
+}
 
 // presence is the Kite bot's status, the same in every server. It has to fit
 // the member list, which cuts it off after about 25 characters.
@@ -37,6 +46,8 @@ var presence = gateway.UpdatePresenceCommand{
 }
 
 type GatewayConfig struct {
+	// Intents are the privileged intents Discord granted the Kite bot.
+	Intents          model.Intents
 	PopulateInterval time.Duration
 	// AppBaseURL is where the Kite app runs, for the link in the reply of
 	// paused apps.
@@ -74,7 +85,7 @@ func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.Even
 	identifier := gateway.DefaultIdentifier("Bot " + bot.token)
 	identifier.IdentifyCommand.Presence = &presence
 	session := state.NewWithIdentifier(identifier)
-	session.AddIntents(Intents)
+	session.AddIntents(Intents(config.Intents))
 	// Before the views of the apps copy the cache.
 	kitegateway.TrackMemberCounts(session)
 
