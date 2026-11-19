@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/tooltip";
 import { UserBadge } from "@/lib/types/wire.gen";
 import { cn, formatNumber } from "@/lib/utils";
-import { useId } from "react";
+import { ReactNode, useEffect, useId, useRef, useState } from "react";
 import { badgeIcons, CreatorTier, StarTier } from "./badgeIcons";
 
 type BadgeInfo = {
@@ -102,18 +102,15 @@ export function UserBadges({
     return (
       <div className={cn("flex flex-wrap gap-1.5", className)}>
         {known.map(({ badge, info }) => (
-          <Tooltip key={badge.kind}>
-            <TooltipTrigger asChild>
-              <span
-                tabIndex={0}
-                className="flex items-center gap-1.5 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
-              >
-                <BadgeIcon svg={info.svg} className="h-[22px] w-[22px]" />
-                {info.title}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>{info.description}</TooltipContent>
-          </Tooltip>
+          <BadgeTooltip
+            key={badge.kind}
+            label={info.title}
+            triggerClassName="flex items-center gap-1.5 rounded-full border bg-background py-1 pl-1.5 pr-3 text-sm font-medium"
+            content={info.description}
+          >
+            <BadgeIcon svg={info.svg} className="h-[22px] w-[22px]" />
+            {info.title}
+          </BadgeTooltip>
         ))}
       </div>
     );
@@ -128,22 +125,25 @@ export function UserBadges({
       )}
     >
       {known.map(({ badge, info }) => (
-        <Tooltip key={badge.kind}>
-          <TooltipTrigger asChild>
-            <span tabIndex={0} aria-label={info.title} className="flex">
-              <BadgeIcon
-                svg={info.svg}
-                className={size === "md" ? "h-6 w-6" : "h-5 w-5"}
-              />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className="text-center">
-            <div className="font-semibold">{info.title}</div>
-            <div className="text-xs text-muted-foreground">
-              {info.description}
-            </div>
-          </TooltipContent>
-        </Tooltip>
+        <BadgeTooltip
+          key={badge.kind}
+          label={info.title}
+          triggerClassName="flex"
+          contentClassName="text-center"
+          content={
+            <>
+              <div className="font-semibold">{info.title}</div>
+              <div className="text-xs text-muted-foreground">
+                {info.description}
+              </div>
+            </>
+          }
+        >
+          <BadgeIcon
+            svg={info.svg}
+            className={size === "md" ? "h-6 w-6" : "h-5 w-5"}
+          />
+        </BadgeTooltip>
       ))}
     </div>
   );
@@ -152,18 +152,88 @@ export function UserBadges({
 // StaffPickIcon marks a template the Kite team picked.
 export function StaffPickIcon({ className }: { className?: string }) {
   return (
-    <Tooltip>
+    <BadgeTooltip
+      label="Staff pick"
+      triggerClassName="flex"
+      contentClassName="text-center"
+      content={
+        <>
+          <div className="font-semibold">Staff pick</div>
+          <div className="text-xs text-muted-foreground">
+            Picked by the Kite team
+          </div>
+        </>
+      }
+    >
+      <BadgeIcon svg={badgeIcons.staff_pick} className={className} />
+    </BadgeTooltip>
+  );
+}
+
+function BadgeTooltip({
+  children,
+  content,
+  contentClassName,
+  label,
+  triggerClassName,
+}: {
+  children: ReactNode;
+  content: ReactNode;
+  contentClassName?: string;
+  label: string;
+  triggerClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const pinnedRef = useRef(false);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!pinned) return;
+
+    function onPointerDown(event: PointerEvent) {
+      if (!triggerRef.current?.contains(event.target as Node)) {
+        pinnedRef.current = false;
+        setPinned(false);
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [pinned]);
+
+  return (
+    <Tooltip
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!pinnedRef.current || nextOpen) {
+          setOpen(nextOpen);
+        }
+      }}
+    >
       <TooltipTrigger asChild>
-        <span tabIndex={0} aria-label="Staff pick" className="flex">
-          <BadgeIcon svg={badgeIcons.staff_pick} className={className} />
+        <span
+          ref={triggerRef}
+          tabIndex={0}
+          aria-label={label}
+          className={triggerClassName}
+          onClick={(event) => {
+            if (
+              event.detail > 0 &&
+              window.matchMedia("(hover: none)").matches
+            ) {
+              const nextPinned = !pinnedRef.current;
+              pinnedRef.current = nextPinned;
+              setPinned(nextPinned);
+              setOpen(nextPinned);
+            }
+          }}
+        >
+          {children}
         </span>
       </TooltipTrigger>
-      <TooltipContent className="text-center">
-        <div className="font-semibold">Staff pick</div>
-        <div className="text-xs text-muted-foreground">
-          Picked by the Kite team
-        </div>
-      </TooltipContent>
+      <TooltipContent className={contentClassName}>{content}</TooltipContent>
     </Tooltip>
   );
 }
