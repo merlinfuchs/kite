@@ -25,6 +25,17 @@ const Intents = gateway.IntentGuilds |
 	gateway.IntentGuildMessages |
 	gateway.IntentGuildMessageReactions
 
+// presence is the Kite bot's status, the same in every server. It has to fit
+// the member list, which cuts it off after about 25 characters.
+var presence = gateway.UpdatePresenceCommand{
+	Status: discord.OnlineStatus,
+	Activities: []discord.Activity{{
+		Type:  discord.CustomActivity,
+		Name:  "kite.onl",
+		State: "🪁 Make a bot at kite.onl",
+	}},
+}
+
 type GatewayConfig struct {
 	PopulateInterval time.Duration
 	// AppBaseURL is where the Kite app runs, for the link in the reply of
@@ -60,7 +71,9 @@ type Gateway struct {
 }
 
 func NewGateway(bot *Bot, appStore store.AppStore, eventHandler kitegateway.EventHandler, config GatewayConfig) *Gateway {
-	session := state.NewWithIdentifier(gateway.DefaultIdentifier("Bot " + bot.token))
+	identifier := gateway.DefaultIdentifier("Bot " + bot.token)
+	identifier.IdentifyCommand.Presence = &presence
+	session := state.NewWithIdentifier(identifier)
 	session.AddIntents(Intents)
 	// Before the views of the apps copy the cache.
 	kitegateway.TrackMemberCounts(session)
