@@ -89,9 +89,9 @@ export default function TermsOfServicePage() {
           sections 3 and 4 don&apos;t apply to it.
         </p>
         <p>
-          When you switch an app to Custom setup, it runs on your custom bot
-          from then on, and sections 3 and 4 apply to it. The Kite bot stays in
-          your server until you remove it.
+          When you switch an app to Custom setup, you become its only owner and
+          it runs on your custom bot from then on, so sections 3 and 4 apply to
+          it. The Kite bot stays in your server until you remove it.
         </p>
 
         <h2 id="service-provider">3. Kite as your service provider</h2>

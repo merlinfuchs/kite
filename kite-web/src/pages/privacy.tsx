@@ -223,8 +223,9 @@ export default function PrivacyPolicyPage() {
           When the Kite bot is removed from a server, its app stops and its data
           is kept, so the server can add the bot again and continue. Everyone
           with the Manage Server permission can delete the app in its settings.
-          When a server switches its app to Custom setup, the app&apos;s data
-          moves to its own bot, and section 6 applies from then on.
+          When someone switches the app to Custom setup, the app&apos;s data
+          moves to their own bot and they become its only owner. From then on
+          they are the controller, and section 6 applies.
         </p>
         <p>
           We process this data to run the features a server turned on, in our
