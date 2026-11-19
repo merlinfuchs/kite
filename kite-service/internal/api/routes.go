@@ -268,10 +268,12 @@ func (s *APIServer) RegisterRoutes(
 	)
 	appGroup.AllowAPIToken().Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
-	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
-	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	// Who can change an app on the Kite bot follows Manage Server in its
+	// server, see the install.
+	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate), accessManager.CustomBotOnly)
+	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete), accessManager.CustomBotOnly)
 	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
-	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
+	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete), accessManager.CustomBotOnly)
 	appGroup.Post("/share-codes",
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),

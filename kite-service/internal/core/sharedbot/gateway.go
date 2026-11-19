@@ -43,6 +43,11 @@ type Gateway struct {
 	session      *state.State
 	botAppID     discord.AppID
 	channels     *channelGuilds
+	// failures outlive the views, which are made again after reconnects.
+	failures appFailures
+	// populateMu keeps populates in order, so an older read can't replace a
+	// newer one.
+	populateMu sync.Mutex
 
 	mu sync.Mutex
 	// apps are the enabled shared apps by their server, and guilds their
@@ -157,6 +162,9 @@ func (g *Gateway) Run(ctx context.Context) error {
 // populate reloads every enabled shared app. There are few, so this is
 // cheaper than tracking changes like the gateway manager.
 func (g *Gateway) populate(ctx context.Context) error {
+	g.populateMu.Lock()
+	defer g.populateMu.Unlock()
+
 	apps, err := g.appStore.EnabledSharedApps(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get shared apps: %w", err)
@@ -235,7 +243,7 @@ func (g *Gateway) stateFor(app *model.App, guildID discord.GuildID) *state.State
 	if s, ok := g.states[app.ID]; ok {
 		return s
 	}
-	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels})
+	s := scopedState(g.session, &scope{guildID: guildID, botAppID: g.botAppID, channels: g.channels, failures: g.failures.of(app.ID)})
 	g.states[app.ID] = s
 	return s
 }

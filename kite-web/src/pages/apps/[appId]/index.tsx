@@ -6,18 +6,16 @@ import AppResourceCard from "@/components/app/AppResourceCard";
 import AppSetupChecklist from "@/components/app/AppSetupChecklist";
 import KiteBotHome from "@/components/app/KiteBotHome";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
-import {
-  useApp,
-  useAppEntities,
-  useAppFeatures,
-  useSharedBot,
-} from "@/lib/hooks/api";
+import { useApp, useAppEntities, useAppFeatures } from "@/lib/hooks/api";
 import { useMemo } from "react";
 
 export default function AppPage() {
+  const app = useApp();
+
   // Apps on the Kite bot only add templates, so they have a dashboard of
-  // their own.
-  return useSharedBot() ? (
+  // their own. Which one is only known once the app is loaded.
+  if (!app) return <AppLayout>{null}</AppLayout>;
+  return app.bot_type === "shared" ? (
     <AppLayout>
       <KiteBotHome />
     </AppLayout>

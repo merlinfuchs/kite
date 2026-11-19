@@ -46,13 +46,26 @@ type channelGuilds struct {
 	// known are channels looked up from Discord. Channels don't move between
 	// servers, so they never go stale.
 	known map[discord.ChannelID]discord.GuildID
+	// unknown are channels Discord didn't show the bot, until when they're
+	// asked again. Asking again and again would count toward the refused
+	// requests that get the IP blocked, see maxFailures. They're asked again
+	// later, as the bot may be given access.
+	unknown map[discord.ChannelID]time.Time
 }
 
-// maxKnownChannels bounds the channels remembered from Discord.
-const maxKnownChannels = 10_000
+const (
+	// maxKnownChannels bounds the channels remembered from Discord.
+	maxKnownChannels  = 10_000
+	unknownChannelTTL = 10 * time.Minute
+)
 
 func newChannelGuilds(channels store.ChannelStore, client *api.Client) *channelGuilds {
-	return &channelGuilds{channels: channels, client: client, known: make(map[discord.ChannelID]discord.GuildID)}
+	return &channelGuilds{
+		channels: channels,
+		client:   client,
+		known:    make(map[discord.ChannelID]discord.GuildID),
+		unknown:  make(map[discord.ChannelID]time.Time),
+	}
 }
 
 func (c *channelGuilds) guildOf(ctx context.Context, id discord.ChannelID) (discord.GuildID, error) {
@@ -64,15 +77,24 @@ func (c *channelGuilds) guildOf(ctx context.Context, id discord.ChannelID) (disc
 
 	c.mu.Lock()
 	guildID, ok := c.known[id]
+	until, unknown := c.unknown[id]
 	c.mu.Unlock()
 	if ok {
 		return guildID, nil
 	}
-	if c.client == nil {
+	if c.client == nil || (unknown && time.Now().Before(until)) {
 		return 0, store.ErrNotFound
 	}
 
 	ch, err := c.client.WithContext(ctx).Channel(id)
+	if util.IsDiscordNotInGuild(err) {
+		c.mu.Lock()
+		if len(c.unknown) >= maxKnownChannels {
+			clear(c.unknown)
+		}
+		c.unknown[id] = time.Now().Add(unknownChannelTTL)
+		c.mu.Unlock()
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -92,7 +114,8 @@ type scope struct {
 	botAppID discord.AppID
 	channels *channelGuilds
 
-	failures failures
+	// failures are the app's, which outlive its scopes.
+	failures *failures
 }
 
 const (
@@ -104,6 +127,28 @@ const (
 	failureWindow = 10 * time.Minute
 	failurePause  = 10 * time.Minute
 )
+
+// appFailures are the failures of each app, so they add up over the scopes
+// of the app, like one per API request.
+type appFailures struct {
+	mu    sync.Mutex
+	byApp map[string]*failures
+}
+
+func (a *appFailures) of(appID string) *failures {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.byApp == nil {
+		a.byApp = make(map[string]*failures)
+	}
+	f, ok := a.byApp[appID]
+	if !ok {
+		f = &failures{}
+		a.byApp[appID] = f
+	}
+	return f
+}
 
 // failures counts the requests Discord refused, see maxFailures.
 type failures struct {
@@ -274,12 +319,6 @@ func (d scopedDriver) checkBody(hr *http.Request) error {
 	}
 	hr.Body = io.NopCloser(bytes.NewReader(body))
 
-	// Most messages don't reference one, which is cheaper to see than to
-	// parse.
-	if !bytes.Contains(body, []byte(`"message_reference"`)) {
-		return nil
-	}
-
 	payload := body
 	if mediaType, params, err := mime.ParseMediaType(hr.Header.Get("Content-Type")); err == nil && strings.HasPrefix(mediaType, "multipart/") {
 		payload = multipartPayload(body, params["boundary"])
@@ -291,7 +330,15 @@ func (d scopedDriver) checkBody(hr *http.Request) error {
 			GuildID   discord.GuildID   `json:"guild_id"`
 		} `json:"message_reference"`
 	}
-	if err := json.Unmarshal(payload, &msg); err != nil || msg.MessageReference == nil {
+	// A message with only files has no JSON. JSON that isn't understood is
+	// refused, Discord might read a reference from it.
+	if len(payload) == 0 {
+		return nil
+	}
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return errOutOfScope
+	}
+	if msg.MessageReference == nil {
 		return nil
 	}
 

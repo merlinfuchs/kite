@@ -36,7 +36,7 @@ func testScope(t *testing.T) *scope {
 		}
 	}
 
-	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil)}
+	return &scope{guildID: ownGuild, botAppID: botApp, channels: newChannelGuilds(channels, nil), failures: &failures{}}
 }
 
 func TestScopeCheck(t *testing.T) {
@@ -160,6 +160,8 @@ func TestScopedDriverChecksMessageReferences(t *testing.T) {
 		{"reply in own server", `{"content":"hi","message_reference":{"channel_id":"101","message_id":"5"}}`, true},
 		{"reply without channel", `{"content":"hi","message_reference":{"message_id":"5"}}`, true},
 		{"no reference", `{"content":"hi"}`, true},
+		{"forward with an escaped key", `{"message\u005freference":{"type":1,"channel_id":"201","message_id":"5"}}`, false},
+		{"JSON that isn't understood", `{"message_reference":{"channel_id":201}}`, false},
 	}
 
 	for _, tt := range tests {

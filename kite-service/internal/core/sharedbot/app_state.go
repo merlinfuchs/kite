@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -21,6 +22,7 @@ type AppStateManager struct {
 	appStore store.AppStore
 	bot      *Bot
 	channels *channelGuilds
+	failures appFailures
 }
 
 func NewAppStateManager(next store.AppStateManager, appStore store.AppStore, bot *Bot) *AppStateManager {
@@ -42,7 +44,7 @@ func (m *AppStateManager) client(ctx context.Context, app *model.App) (*api.Clie
 		return nil, 0, err
 	}
 
-	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels}
+	s := &scope{guildID: discord.GuildID(guildID), botAppID: botAppID, channels: m.channels, failures: m.failures.of(app.ID)}
 	return scopedClient(m.bot.base, s).WithContext(ctx), discord.GuildID(guildID), nil
 }
 
@@ -96,6 +98,26 @@ type appState struct {
 	bot     *Bot
 	client  *api.Client
 	guildID discord.GuildID
+
+	// guild is fetched once, the state lives for one API request.
+	guildMu sync.Mutex
+	guild   *discord.Guild
+}
+
+// fetchGuild returns the app's server.
+func (s *appState) fetchGuild(ctx context.Context) (*discord.Guild, error) {
+	s.guildMu.Lock()
+	defer s.guildMu.Unlock()
+
+	if s.guild != nil {
+		return s.guild, nil
+	}
+	guild, err := s.client.WithContext(ctx).Guild(s.guildID)
+	if err != nil {
+		return nil, err
+	}
+	s.guild = guild
+	return guild, nil
 }
 
 // ownGuild parses the guild ID and reports whether it's the app's server.
@@ -114,7 +136,7 @@ func (s *appState) AppUser(ctx context.Context) (*discord.User, error) {
 }
 
 func (s *appState) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
-	guild, err := s.client.WithContext(ctx).Guild(s.guildID)
+	guild, err := s.fetchGuild(ctx)
 	if util.IsDiscordNotInGuild(err) {
 		return nil, nil
 	}
@@ -168,12 +190,11 @@ func (s *appState) AppGuildBotPermissions(ctx context.Context, guildID string) (
 	if err != nil {
 		return 0, err
 	}
-	client := s.client.WithContext(ctx)
-	guild, err := client.Guild(s.guildID)
+	guild, err := s.fetchGuild(ctx)
 	if err != nil {
 		return 0, err
 	}
-	member, err := client.Member(s.guildID, me.ID)
+	member, err := s.client.WithContext(ctx).Member(s.guildID, me.ID)
 	if err != nil {
 		return 0, err
 	}
