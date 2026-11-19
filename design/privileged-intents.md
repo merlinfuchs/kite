@@ -19,6 +19,8 @@ Discord's guide asks for three things. The use case has to need the access and b
 | Message Content | Counting | Members type the next number as a normal message, which no interaction fires for | The current number and the ID of who counted last, per channel, until the template is removed |
 | Server Members | Welcomer | It needs member join and leave events | Nothing |
 
+AI Automod leads the Message Content answer and video. A counting bot's application for the intent was declined about a year ago as not convincing or unique enough, so Counting is named in the answer, because it reads the text, but only in one sentence at the end. Starboard comes in between.
+
 Every template is one we wrote. Servers can't build their own flows on the Kite bot, so these are the only things that read message text or member events. A server turns a template on in the dashboard, and only people with Manage Server can.
 
 ## Safeguards and where each one lives
@@ -32,7 +34,8 @@ Every template is one we wrote. Servers can't build their own flows on the Kite 
 | Removing a template deletes what it stored | `HandleBundleInstallDelete` deletes the install with its variables |
 | Server admins delete everything by deleting the app | App settings, `HandleAppDelete` |
 | Anyone can ask for deletion | contact@kite.onl, privacy policy section 7 and "Your rights" |
-| Not used to train models | Privacy policy section 8. OpenAI requests set `store: false`, OpenRouter and its providers are set up not to train |
+| Not used to train models, and not kept by the AI provider | Privacy policy section 8. AI Automod's checks go through OpenRouter's decisions API to `typesafe/jev-1.14`. OpenRouter's account has zero data retention on and every training toggle off, and TypeSafe's endpoint is on its zero data retention list |
+| The AI provider is bound in writing, as section 12(a) of the Developer Terms asks | OpenRouter's terms (section 10.2) incorporate its data processing agreement, under which it processes only on our instructions (section 2.3). Its model providers are bound by their own no-retention, no-training policies, which OpenRouter checks for the list but doesn't guarantee |
 | Encrypted at rest, in Germany | Encrypted disks at Hetzner and netcup, privacy policy section 4 |
 
 ## Gaps
@@ -51,10 +54,10 @@ One unlisted video per intent, on the test bot in the Kite Test server, with a s
 
 Message Content, in this order:
 
-1. The setup page on kite.onl, turning on AI Automod, Starboard and Counting and picking their channels.
-2. AI Automod. The second account posts a scam link. It's deleted and shows up in the log channel.
+1. The setup page on kite.onl, turning on AI Automod with its log channel and a rule of the server's own, like no links to other servers.
+2. AI Automod, most of the video. The second account posts a scam that keyword filters miss, like a "free nitro" link worded differently. It's deleted and shows up in the log channel with who sent it and where. Then a message that breaks the server's own rule. Then a borderline message, which stays up and goes to the log channel for a moderator to decide. Then a normal message, which is left alone.
 3. Starboard. Three ⭐ reactions on a message, and it appears in the starboard channel.
-4. Counting. Counting to 5, then a wrong number, and the bot says who ruined it.
+4. Counting, a few seconds. Counting to 3 and a wrong number.
 
 Server Members:
 
@@ -93,7 +96,7 @@ Check that the Kite bot's privacy policy and terms URLs are set in the Developer
 
 > Kite (https://kite.onl) lets people build Discord bots without code. The Kite bot is Kite's own bot for servers that don't want to make one. A server admin adds it and turns on ready-made templates from a dashboard, like verification, leveling, giveaways, suggestions and moderation commands. We write every template. Servers only choose which ones run and set things like channels and roles, and they can't add their own logic to the Kite bot.
 >
-> Message Content is used by three templates: AI Automod, Starboard and Counting. Server Members is used by Welcomer. Both are explained below, with videos:
+> Message Content is mainly used by AI Automod, which moderates messages with AI, and also by Starboard and Counting. Server Members is used by Welcomer. Both are explained below, with videos:
 > Message Content: [video]
 > Server Members: [video]
 
@@ -105,13 +108,13 @@ Deletion, for both intents:
 
 ### Message Content
 
-> Three templates on the Kite bot read the text of messages. Each one acts on messages people write in the server, so slash commands can't replace them. A server only gets them when an admin turns them on in the dashboard.
+> We need Message Content mainly for AI Automod, a moderation template on the Kite bot. Servers turn it on in the Kite dashboard to keep spam, scams, ads and insults out of their channels.
 >
-> AI Automod checks new and edited messages against the rules the server wrote, with an AI model. It deletes spam, scams, ads and insults and posts a copy in the server's log channel for its moderators, or flags messages it isn't sure about for review. Keyword filters miss most of these, because scams are worded differently every time. The text is sent to the model for the check and isn't stored. We've set up our AI providers so they don't use it to train models.
+> AI Automod checks every new and edited message with an AI model, against a default set of rules and the rules the server adds, like no links to other servers. It deletes a message only when the model is at least 90% sure it breaks a rule, and posts a copy in the server's log channel with who sent it and where. Messages it's less sure about stay up and go to the log channel with a link, so a moderator decides. Members who can manage messages are never checked, and servers can limit the checks to members who joined recently, where most spam bots and raiders are.
 >
-> Starboard reposts a message to a starboard channel once it gets enough ⭐ reactions. The bot reads the message over REST when the reaction comes in, which returns no text without this intent. We store only the ID of the starboard post for each starred message, so the star count can be updated.
+> This can't be done with interactions, because it acts on messages members write, not on commands. Discord's AutoMod matches keywords and patterns, and scams are worded differently every time. AI Automod catches the ones that get past it. The text is sent to our AI provider, OpenRouter, only for the check. OpenRouter processes it on our instructions under its data processing agreement, with zero data retention, and only routes it to a model provider that keeps nothing and doesn't train on it. We don't store or log it either.
 >
-> Counting runs a counting game in one channel. Members type the next number, and the bot reads each message in that channel to check it. We store the current number and the ID of who counted last.
+> Two smaller templates read message text too. Starboard reposts a message that got enough ⭐ reactions to a starboard channel. It reads the message when the reaction comes in, and we store only the ID of the starboard post. Counting checks the numbers members post in one counting channel, and we store the current number and who counted last.
 >
 > Only these templates read message text, and only in servers that turned one of them on. It's kept in memory while the template runs and isn't stored or logged. Everything a template stores is deleted when the server removes it. People can't opt out, because AI Automod is moderation and Starboard and Counting only act in channels the server picked. Anyone can email contact@kite.onl to have stored data deleted.
 >
@@ -120,6 +123,11 @@ Deletion, for both intents:
 ### Server Members
 
 > Welcomer greets new members in a channel the server picks and says goodbye when they leave. It needs member join and leave events, which Discord only sends with this intent. Nothing about the member is stored. Only Welcomer uses member events, and only in servers that turned it on.
+
+## Before submitting
+
+- Keep the decision models on endpoints in OpenRouter's zero data retention list. Bumping `aiDecisionModel` or `screenModel` to a version that isn't on it makes OpenRouter reject the requests.
+- Prompt logging stays off in the OpenRouter account. With it on, OpenRouter may use inputs for its own purposes (section 6.2 of its terms), which section 12(a) of Discord's Developer Terms rules out.
 
 ## Open questions
 
