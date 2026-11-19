@@ -4,6 +4,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"gopkg.in/guregu/null.v4"
 )
@@ -159,6 +160,32 @@ type AppGatewayRequirements struct {
 	// UsesVoice reports whether the app has flows that play audio. Joining a
 	// voice channel for that needs the bot's own voice state updates.
 	UsesVoice bool
+}
+
+// Intents are the intents the app needs for what it consumes. Message Content
+// isn't among them, as event listeners can't tell whether flows read the
+// text. Bots of their own get it with guild messages when it's permitted.
+func (r AppGatewayRequirements) Intents() Intents {
+	var res Intents
+	if r.NeedsGuildMessages() {
+		res |= Intents(gateway.IntentGuildMessages)
+	}
+	if r.NeedsDirectMessages() {
+		res |= Intents(gateway.IntentDirectMessages)
+	}
+	if r.NeedsGuildMembers() {
+		res |= Intents(gateway.IntentGuildMembers)
+	}
+	if r.NeedsGuildMessageReactions() {
+		res |= Intents(gateway.IntentGuildMessageReactions)
+	}
+	if r.NeedsGuildModeration() {
+		res |= Intents(gateway.IntentGuildModeration)
+	}
+	if r.NeedsGuildVoiceStates() {
+		res |= Intents(gateway.IntentGuildVoiceStates)
+	}
+	return res
 }
 
 // NeedsGuildMessages reports whether the app consumes guild message events.

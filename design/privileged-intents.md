@@ -25,7 +25,7 @@ Every template is one we wrote. Servers can't build their own flows on the Kite 
 
 | Claim | Where it's enforced |
 | --- | --- |
-| Only AI Automod, Starboard and Counting read message text | `shared_bot_intents` on each template, which `TestSharedBotBundles` checks against its flows |
+| Only AI Automod, Starboard and Counting read message text | `intents` on each template, which `TestBundleIntents` checks against its flows |
 | Only Welcomer uses member events | The same test, for `guild_members` |
 | Templates that need an intent can't be added before it's granted | `SyncOfficial` stores them without `shared_bot` until `shared_bot.intents` lists the intent |
 | Message text isn't stored or logged | Flow logs are errors without block inputs (`model.LogEntry`, `flow.ErrorDetails`). The AI log line in `engine/providers.go` only has token counts |

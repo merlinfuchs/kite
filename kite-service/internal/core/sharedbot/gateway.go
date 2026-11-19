@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync"
 	"time"
 
@@ -21,17 +20,16 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// Intents are what the Kite bot identifies with, with the privileged ones
-// Discord granted, see config.SharedBotConfig.Intents.
-func Intents(granted []string) gateway.Intents {
-	intents := gateway.IntentGuilds |
-		gateway.IntentGuildMessages |
-		gateway.IntentGuildMessageReactions
-	if slices.Contains(granted, bundle.SharedBotIntentMessageContent) {
-		intents |= gateway.IntentMessageContent
-	}
-	if slices.Contains(granted, bundle.SharedBotIntentGuildMembers) {
-		intents |= gateway.IntentGuildMembers
+// Intents are what the Kite bot identifies with: what its templates need,
+// with the privileged intents Discord granted, see
+// config.SharedBotConfig.Intents. Guild messages are always on, as message
+// templates are cleaned up when their messages are deleted.
+func Intents(granted model.Intents) gateway.Intents {
+	intents := gateway.IntentGuilds | gateway.IntentGuildMessages
+	for _, b := range bundle.Official() {
+		if b.SharedBot && b.SharedBotGranted(granted) {
+			intents |= gateway.Intents(b.Intents)
+		}
 	}
 	return intents
 }
@@ -49,7 +47,7 @@ var presence = gateway.UpdatePresenceCommand{
 
 type GatewayConfig struct {
 	// Intents are the privileged intents Discord granted the Kite bot.
-	Intents          []string
+	Intents          model.Intents
 	PopulateInterval time.Duration
 	// AppBaseURL is where the Kite app runs, for the link in the reply of
 	// paused apps.

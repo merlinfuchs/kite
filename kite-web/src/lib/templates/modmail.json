@@ -1,6 +1,7 @@
 {
   "id": "modmail",
   "version": 2,
+  "intents": ["direct_messages", "message_content"],
   "changelog": [
     {
       "version": 2,

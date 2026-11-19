@@ -6,7 +6,7 @@
     "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
     "The count and who counted last are kept for each channel, so it survives restarts."
   ],
-  "shared_bot_intents": ["message_content"],
+  "intents": ["guild_messages", "message_content"],
   "name": "Counting",
   "description": "A counting channel where members count up one number at a time, and start over when someone gets it wrong.",
   "about": [

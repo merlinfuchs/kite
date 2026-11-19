@@ -2,6 +2,7 @@ package bundle
 
 import (
 	"encoding/json"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"regexp"
 	"strings"
 	"testing"
@@ -42,16 +43,10 @@ var sharedBotBlocks = map[flow.FlowNodeType]bool{
 	"action_variable_set":            true,
 }
 
-// sharedBotEvents are the events the Kite bot gets with its intents, see
-// sharedbot.Intents. Messages come without their text, unless the bundle
-// reads it, see SharedBotIntents.
-var sharedBotEvents = map[string]bool{
-	"message_create":          true,
-	"message_update":          true,
-	"message_delete":          true,
-	"message_reaction_add":    true,
-	"message_reaction_remove": true,
-}
+// sharedBotIntents are the intents the Kite bot can get, with the
+// privileged ones once Discord grants them. Templates that need others, like
+// voice states or DMs, can't run on it.
+const sharedBotIntents = model.Intents(gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions | gateway.IntentGuildMembers | gateway.IntentMessageContent)
 
 // readsContent matches what reads the text of messages in a flow, like
 // event.message.content in a placeholder or an event filter on it. Get
@@ -59,10 +54,34 @@ var sharedBotEvents = map[string]bool{
 // gets empty text on the Kite bot.
 var readsContent = regexp.MustCompile(`\.(content|embeds|attachments|components)\b|"action_message_get"|"event_filter_target":\s*"message_content"`)
 
-// readsMembers is whether a bundle listening to the event needs member
-// events, like for apps with a bot of their own.
-func readsMembers(eventType string) bool {
-	return model.AppGatewayRequirements{EventListenerTypes: []model.EventListenerType{model.EventListenerType(eventType)}}.NeedsGuildMembers()
+// neededIntents are the intents the bundle's flows need: what its event
+// listeners need, like for apps with a bot of their own, and Message Content
+// if a flow reads the text of messages.
+func neededIntents(t *testing.T, b *Bundle) model.Intents {
+	var reqs model.AppGatewayRequirements
+	var content bool
+	for _, raw := range bundleFlows(b) {
+		content = content || readsContent.Match(raw)
+
+		var f flow.FlowData
+		require.NoError(t, json.Unmarshal(raw, &f), b.ID)
+		for _, node := range f.Nodes {
+			if node.Type == flow.FlowNodeTypeEntryEvent {
+				reqs.EventListenerTypes = append(reqs.EventListenerTypes, model.EventListenerType(node.Data.EventType))
+			}
+		}
+	}
+	intents := reqs.Intents()
+	if content {
+		intents |= model.Intents(gateway.IntentMessageContent)
+	}
+	return intents
+}
+
+func TestBundleIntents(t *testing.T) {
+	for _, b := range Official() {
+		require.Equal(t, neededIntents(t, b).Names(), b.Intents.Names(), "%s: intents must be what its flows need", b.ID)
+	}
 }
 
 // bundleFlows are the flows of the bundle's commands, event listeners and
@@ -93,10 +112,9 @@ func TestSharedBotBundles(t *testing.T) {
 			require.Equal(t, "discord", l.Source, "%s: %s", b.ID, l.ID)
 		}
 
-		var content, members bool
-		for _, raw := range bundleFlows(b) {
-			content = content || readsContent.Match(raw)
+		require.True(t, sharedBotIntents.Has(b.Intents), "%s needs intents the Kite bot can't get: %v", b.ID, b.Intents.Names())
 
+		for _, raw := range bundleFlows(b) {
 			var f flow.FlowData
 			require.NoError(t, json.Unmarshal(raw, &f), b.ID)
 
@@ -106,25 +124,8 @@ func TestSharedBotBundles(t *testing.T) {
 					strings.HasPrefix(typ, "control_") ||
 					strings.HasPrefix(typ, "option_")
 				require.True(t, allowed, "%s uses %s, which the Kite bot can't run", b.ID, typ)
-
-				if node.Type == flow.FlowNodeTypeEntryEvent {
-					reads := readsMembers(node.Data.EventType)
-					members = members || reads
-					require.True(t, sharedBotEvents[node.Data.EventType] || reads, "%s listens to %s, which the Kite bot doesn't get", b.ID, node.Data.EventType)
-				}
 			}
 		}
-
-		// Apps only get message text and member events with a bundle that
-		// says it reads them, so a bundle has to name exactly what it reads.
-		var want []string
-		if content {
-			want = append(want, SharedBotIntentMessageContent)
-		}
-		if members {
-			want = append(want, SharedBotIntentGuildMembers)
-		}
-		require.ElementsMatch(t, want, b.SharedBotIntents, "%s: shared_bot_intents must name what it reads", b.ID)
 	}
 }
 
@@ -157,9 +158,11 @@ func TestReadsContent(t *testing.T) {
 }
 
 func TestSharedBotGranted(t *testing.T) {
-	b := &Bundle{SharedBotIntents: []string{SharedBotIntentMessageContent}}
-	require.False(t, b.SharedBotGranted(nil))
-	require.False(t, b.SharedBotGranted([]string{SharedBotIntentGuildMembers}))
-	require.True(t, b.SharedBotGranted([]string{SharedBotIntentGuildMembers, SharedBotIntentMessageContent}))
-	require.True(t, (&Bundle{}).SharedBotGranted(nil))
+	content := model.Intents(gateway.IntentMessageContent)
+	members := model.Intents(gateway.IntentGuildMembers)
+	b := &Bundle{Intents: content | model.Intents(gateway.IntentGuildMessages)}
+	require.False(t, b.SharedBotGranted(0))
+	require.False(t, b.SharedBotGranted(members))
+	require.True(t, b.SharedBotGranted(members|content))
+	require.True(t, (&Bundle{Intents: model.Intents(gateway.IntentGuildMessages)}).SharedBotGranted(0))
 }

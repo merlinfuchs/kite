@@ -38,17 +38,13 @@ type Bundle struct {
 	// SharedBotAbout is what apps on the Kite bot show instead of the
 	// listing's about, if it has to differ.
 	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
-	// SharedBotIntents are the privileged intents of the Kite bot the bundle
-	// reads, like SharedBotIntentMessageContent. It can only be added to apps
-	// on the Kite bot once Discord granted them, see SyncOfficial. A test
-	// checks that bundles name what they read.
-	SharedBotIntents []string `json:"shared_bot_intents,omitempty"`
+	// Intents are the gateway intents the bundle needs, like guild_messages
+	// for a Message Create listener or message_content to read the text of
+	// messages. A test checks that they match its flows. On the Kite bot it
+	// can only be added once Discord granted the privileged ones, see
+	// SyncOfficial.
+	Intents model.Intents `json:"intents,omitempty"`
 }
-
-const (
-	SharedBotIntentMessageContent = "message_content"
-	SharedBotIntentGuildMembers   = "guild_members"
-)
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
 type Variable struct {
@@ -107,15 +103,10 @@ type Message struct {
 	Customize bool `json:"customize,omitempty"`
 }
 
-// SharedBotGranted reports whether the Kite bot has every intent the bundle
-// reads.
-func (b *Bundle) SharedBotGranted(granted []string) bool {
-	for _, intent := range b.SharedBotIntents {
-		if !slices.Contains(granted, intent) {
-			return false
-		}
-	}
-	return true
+// SharedBotGranted reports whether Discord granted the Kite bot every
+// privileged intent the bundle needs.
+func (b *Bundle) SharedBotGranted(granted model.Intents) bool {
+	return granted.Has(b.Intents & model.PrivilegedIntents)
 }
 
 // Official returns the bundles of templates.json.
@@ -183,7 +174,7 @@ func Parse(content []byte) (*Bundle, error) {
 // so a stored version gets their content. Bundles that read an intent the
 // Kite bot wasn't granted are stored without SharedBot, so apps on it can't
 // add them yet.
-func SyncOfficial(ctx context.Context, s store.BundleStore, sharedBotIntents []string) error {
+func SyncOfficial(ctx context.Context, s store.BundleStore, sharedBotIntents model.Intents) error {
 	now := time.Now().UTC()
 	for i, o := range official {
 		b := o.bundle

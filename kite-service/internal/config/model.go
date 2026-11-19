@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
 type Config struct {
@@ -111,6 +112,13 @@ type SharedBotConfig struct {
 	// that read them can be added to its apps. Identifying with an intent
 	// Discord didn't grant fails, so only list granted ones.
 	Intents []string `toml:"intents" validate:"dive,oneof=message_content guild_members"`
+}
+
+// GrantedIntents are Intents as flags.
+func (c SharedBotConfig) GrantedIntents() model.Intents {
+	// The names are validated, so parsing can't fail.
+	intents, _ := model.ParseIntents(c.Intents)
+	return intents
 }
 
 type DiscordConfig struct {

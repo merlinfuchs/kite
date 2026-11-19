@@ -5,7 +5,7 @@
   "shared_bot_about": [
     "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel."
   ],
-  "shared_bot_intents": ["guild_members"],
+  "intents": ["guild_members"],
   "changelog": [
     {
       "version": 2,
