@@ -1,7 +1,7 @@
 import { useMessageDataUpdateMutation } from "@/lib/api/mutations";
 import { useMessageQuery } from "@/lib/api/queries";
 import { Template } from "@/lib/flow/templates";
-import { useBundleInstalls, useResponseData } from "@/lib/hooks/api";
+import { useApp, useBundleInstalls, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import AppCreateDialog from "./AppCreateDialog";
 import TemplateIcon from "./TemplateIcon";
 import { TemplateInstallCard } from "./TemplateInstallCard";
 import { TemplateInstalledCard } from "./TemplateInstalledCard";
@@ -50,6 +51,7 @@ export default function KiteBotTemplate({ template }: { template: Template }) {
           <>
             <TemplateInstalledCard template={template} />
             <WrittenMessages template={template} />
+            <SwitchToEdit template={template} />
           </>
         ) : (
           <TemplateInstallCard
@@ -147,6 +149,27 @@ function WrittenMessage({
           Edit message
         </Button>
       </MessageEditorDialog>
+    </div>
+  );
+}
+
+// SwitchToEdit points to Custom setup, where the template can be changed in
+// the editor, beyond its settings.
+function SwitchToEdit({ template }: { template: Template }) {
+  const app = useApp();
+  if (!app) return null;
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-dashed p-4">
+      <p className="flex-1 text-sm text-muted-foreground">
+        Want to change what {template.name} does, like its replies? Switch to
+        Custom setup to edit it in the editor.
+      </p>
+      <AppCreateDialog switchApp={app}>
+        <Button variant="outline" size="sm" className="flex-none">
+          Switch to Custom setup
+        </Button>
+      </AppCreateDialog>
     </div>
   );
 }
