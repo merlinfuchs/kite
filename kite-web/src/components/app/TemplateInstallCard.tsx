@@ -298,7 +298,7 @@ export function TemplateInstallCard({
 
       {customizable.map((message) => (
         <div key={message.key} className="space-y-1.5 mb-5">
-          <Label>{message.name} Message</Label>
+          <Label>{message.name} message</Label>
           {message.description && (
             <div className="text-xs text-muted-foreground">
               {message.description}
