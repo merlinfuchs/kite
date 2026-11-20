@@ -175,6 +175,20 @@ try { await discord.getChannel({channel_id: "5"}) } catch (e) { return e.message
 	assert.Equal(t, "discord.getChannel: operations limit exceeded: 2", c.GetNodeResult("js_1").String())
 }
 
+func TestJavaScriptRunPaidCallsLimit(t *testing.T) {
+	p := &operationsTestProvider{}
+	c, err := runJavaScriptOperations(t, `
+for (let i = 0; i < 60; i++) await discord.getChannel({channel_id: "5"})
+const results = await Promise.allSettled(Array.from({length: 51}, () => discord.createMessage({channel_id: "5", body: {content: "Hi"}})))
+return results.filter((r) => r.status === "rejected").map((r) => r.reason.message)`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["discord.createMessage: the code made more than 50 calls that cost credits"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.Len(t, p.paths, 110)
+	// The block, the reads and the calls that were sent.
+	assert.Equal(t, 111, c.operations)
+	assert.Equal(t, 60, c.CreditsUsed())
+}
+
 func TestJavaScriptRunOperationsInTestRuns(t *testing.T) {
 	c := javaScriptTestContext(t, FlowProviders{
 		Discord:     &operationsTestProvider{responses: map[string]string{"/channels/5": `{"name":"general"}`}},
