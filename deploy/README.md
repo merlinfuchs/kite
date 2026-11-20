@@ -18,7 +18,9 @@ They need `pnpm`, `go`, `rsync` and SSH access to the server. The server needs N
 
 ## Configuration
 
-`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf`, `kite-service@.service`, `kite-shared.service` and `kite-web.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
+`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf`, `kite-service@.service`, `kite-shared.service`, `kite-web.service` and `kite-support.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
+
+The clusters and the Kite bot run as the `kite` user, the support bot as `kite-support` and the web server as a throwaway user. `server.sh` creates the users and makes `kite.toml` and `kite-support.toml` readable by them. Everything else stays root's, so the services can't change their own binaries or configs, or write anywhere but their temp dir.
 
 To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh`, commit, and run `./deploy/server.sh`. It restarts all clusters, since apps move between them, and switches nginx over to the new routing.
 
