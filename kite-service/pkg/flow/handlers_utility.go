@@ -184,7 +184,7 @@ const javaScriptMaxPaidCalls = 50
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
-	// The calls that cost credits, up to javaScriptMaxPaidCalls.
+	// The calls that cost credits.
 	paidCalls int
 	// The block's stored variables, see operationCall.
 	variables map[string]string
@@ -205,16 +205,16 @@ func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
 	return &c
 }
 
-// charge counts a call of op against the flow's operations, and against
-// javaScriptMaxPaidCalls if it costs credits, and charges them. Unlike for a
-// block, a call over the limit isn't billed, as code can catch the error and
-// keep calling.
+// charge counts a call of op against the flow's operations and charges its
+// credits. Unlike for a block, a call over the limit isn't billed, as code
+// can catch the error and keep calling.
 func (h *javaScriptHost) charge(op operation) error {
 	return h.chargeCredits(op, op.Credits, 0)
 }
 
 // chargeCredits is charge with credits instead of op's, if credits and
-// reserve fit the limit.
+// reserve fit the limit. A call that costs credits also counts against
+// javaScriptMaxPaidCalls.
 func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
