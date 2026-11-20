@@ -113,8 +113,17 @@ export default function AppSetupPage() {
     setPicked(new Set(fromLink));
   }, [picked, router.isReady, installs, query.templates, addedIds]);
 
-  // The steps after picking: the bot's look, then the templates with settings.
+  // The steps after picking: the templates with settings, then the bot's
+  // look. The look is only part of the first setup, when the app has no
+  // templates yet, not every time templates are added.
   const [queue, setQueue] = useState<Step[] | null>(null);
+  const [firstSetup, setFirstSetup] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (firstSetup === null && installs) {
+      setFirstSetup(!installs.some((i) => i));
+    }
+  }, [firstSetup, installs]);
+  const lookStep: Step[] = firstSetup ? [{ kind: "look" }] : [];
   const [index, setIndex] = useState(0);
   const [added, setAdded] = useState<Added[]>([]);
   const [starting, setStarting] = useState(false);
@@ -164,11 +173,11 @@ export default function AppSetupPage() {
     setAdded(addedNow);
     setIndex(0);
     setQueue([
-      { kind: "look" },
       ...withSettings.map((template) => ({
         kind: "template" as const,
         template,
       })),
+      ...lookStep,
     ]);
   }
 
@@ -227,7 +236,7 @@ export default function AppSetupPage() {
     }
     setAdded(addedNow);
     setIndex(0);
-    setQueue([{ kind: "look" }]);
+    setQueue(lookStep);
   }
 
   if (!router.isReady || !app || custom || !picked) {
@@ -249,7 +258,7 @@ export default function AppSetupPage() {
           <SetupLook
             guildId={app.discord_guild_id ?? ""}
             guildName={guild?.name}
-            last={queue.length === 1}
+            last={index + 1 === queue.length}
             onDone={next}
           />
         </BaseLayout>
