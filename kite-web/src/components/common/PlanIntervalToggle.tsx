@@ -1,13 +1,15 @@
 import { BillingInterval } from "@/lib/billing";
-import { BillingPlan } from "@/lib/types/wire.gen";
+import { BillingPlan, BillingSale } from "@/lib/types/wire.gen";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 export default function PlanIntervalToggle({
   plans,
   value,
   onChange,
+  sale,
 }: {
   plans: BillingPlan[];
+  sale?: BillingSale;
   value: BillingInterval;
   onChange: (value: BillingInterval) => void;
 }) {
@@ -35,10 +37,16 @@ export default function PlanIntervalToggle({
         </TabsTrigger>
         <TabsTrigger value="yearly" className="px-4 gap-2">
           Yearly
-          {saving > 0 && (
+          {sale ? (
             <span className="text-xs font-semibold text-primary">
-              Save {saving}%
+              {sale.percent}% off
             </span>
+          ) : (
+            saving > 0 && (
+              <span className="text-xs font-semibold text-primary">
+                Save {saving}%
+              </span>
+            )
           )}
         </TabsTrigger>
       </TabsList>

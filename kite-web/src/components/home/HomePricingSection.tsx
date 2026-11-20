@@ -5,7 +5,7 @@ import { useBillingPlansQuery } from "@/lib/api/queries";
 import type { Plans } from "@/lib/apiData";
 import { BillingInterval, plansHaveYearly } from "@/lib/billing";
 import env from "@/lib/env/client";
-import { useResponseData } from "@/lib/hooks/api";
+import { useBillingSale, useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
@@ -31,8 +31,12 @@ export default function HomePricingSection({
   header?: ReactNode;
 }) {
   const { plans, failed } = usePublicPlans(initial);
-  const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
+  const sale = useBillingSale();
   const yearlyAvailable = !!plans && plansHaveYearly(plans);
+  // Yearly while a sale runs, as the sale is only on yearly plans.
+  const [chosenInterval, setBillingInterval] = useState<BillingInterval>();
+  const interval: BillingInterval =
+    chosenInterval ?? (sale && yearlyAvailable ? "yearly" : "monthly");
 
   const heading = header ?? (
     <>
@@ -63,6 +67,7 @@ export default function HomePricingSection({
             plans={plans}
             value={interval}
             onChange={setBillingInterval}
+            sale={sale}
           />
         </div>
       )}
@@ -72,6 +77,7 @@ export default function HomePricingSection({
           <PlanCards
             plans={plans}
             interval={interval}
+            sale={sale}
             button={(plan) => (
               <Button
                 asChild

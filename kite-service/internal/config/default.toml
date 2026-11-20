@@ -64,6 +64,15 @@ endpoint = "localhost:9000"
 access_key_id = "kite"
 secret_access_key = "1234567890"
 
+# A sale takes a percent off the first year of yearly plans. The code has to
+# exist in Lemon Squeezy, checkouts of yearly plans apply it.
+# [billing.sale]
+# name = "Black Week"
+# code = "BLACKWEEK2026"
+# percent = 30
+# starts_at = 2026-11-21T00:00:00+01:00
+# ends_at = 2026-12-01T00:00:00+01:00
+
 [[billing.plans]]
 id = "basic"
 title = "Basic"

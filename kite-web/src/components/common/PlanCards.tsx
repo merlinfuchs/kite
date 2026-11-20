@@ -2,7 +2,7 @@ import PlanPrice from "@/components/common/PlanPrice";
 import { Badge } from "@/components/ui/badge";
 import { BillingInterval } from "@/lib/billing";
 import { planHighlights, shortNumber } from "@/lib/planLimits";
-import { BillingPlan } from "@/lib/types/wire.gen";
+import { BillingPlan, BillingSale } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
 import { ReactNode } from "react";
@@ -22,10 +22,13 @@ export default function PlanCards<P extends BillingPlan>({
   interval,
   button,
   badge,
+  sale,
   kiteBot = false,
 }: {
   plans: P[];
   interval: BillingInterval;
+  // A sale that lowers the first year of yearly plans.
+  sale?: BillingSale;
   button: (plan: P) => ReactNode;
   // Shown next to the title, like the current plan of an app.
   badge?: (plan: P) => ReactNode;
@@ -64,13 +67,20 @@ export default function PlanCards<P extends BillingPlan>({
                 )}
               </div>
             </div>
-            <div className="mt-3 min-h-[60px]">
+            <div
+              className={cn(
+                "mt-3",
+                // The price of a sale takes two lines.
+                sale && interval === "yearly" ? "min-h-[84px]" : "min-h-[60px]"
+              )}
+            >
               {plan.price === 0 ? (
                 <span className="text-3xl font-bold">Free</span>
               ) : (
                 <PlanPrice
                   plan={plan}
                   interval={interval}
+                  sale={sale}
                   className="text-3xl font-bold"
                   suffix="/ month"
                 />
@@ -132,6 +142,7 @@ export default function PlanCards<P extends BillingPlan>({
             <PlanPrice
               plan={plan}
               interval={interval}
+              sale={sale}
               className="text-xl font-bold"
               suffix="/ month"
             />

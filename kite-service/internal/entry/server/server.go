@@ -258,6 +258,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
+			Sale:                      cfg.Billing.Sale,
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,

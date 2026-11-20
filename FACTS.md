@@ -66,6 +66,7 @@ Paid plans (monthly, yearly), read from https://api.kite.onl/v1/billing/plans on
 - Yearly costs 10 times the monthly price, so 2 months are free.
 - A plan belongs to one app, and prices are per app and month. Your other apps stay on the free plan.
 - Prices are in USD and include tax. Payment goes through Lemon Squeezy as merchant of record.
+- A sale takes a percent off the first year of yearly plans, with a code that checkout applies itself. While it runs, the site has a strip above the navbar, and the pricing and Plans pages show the sale price. Monthly subscribers who switch to yearly get the percent refunded by email, as a switch can't take a code. It's set in `[billing.sale]` of kite.toml. Black Week 2026 is 30% off with BLACKWEEK2026 until November 30.
 - A donation link sits under the plans on the app's Plans page.
 Trial, refunds, cancellation:
 - No trial. The free plan has no time limit.

@@ -250,6 +250,25 @@ type BillingConfig struct {
 	LemonSqueezyStoreID       string              `toml:"lemonsqueezy_store_id"`
 	TestMode                  bool                `toml:"test_mode"`
 	Plans                     []BillingPlanConfig `toml:"plans"`
+	Sale                      BillingSaleConfig   `toml:"sale"`
+}
+
+// BillingSaleConfig is a discount on the first payment of yearly plans, with
+// a discount code that has to exist in Lemon Squeezy. The site and dashboard
+// show it between StartsAt and EndsAt, and checkouts of yearly plans apply the
+// code. Without a code there's no sale.
+type BillingSaleConfig struct {
+	// Name is what the site calls the sale, like "Black Week".
+	Name     string    `toml:"name" validate:"required_with=Code"`
+	Code     string    `toml:"code"`
+	Percent  int       `toml:"percent" validate:"required_with=Code,omitempty,min=1,max=100"`
+	StartsAt time.Time `toml:"starts_at"`
+	EndsAt   time.Time `toml:"ends_at" validate:"required_with=Code"`
+}
+
+// Active is whether the sale runs at now.
+func (c BillingSaleConfig) Active(now time.Time) bool {
+	return c.Code != "" && !now.Before(c.StartsAt) && now.Before(c.EndsAt)
 }
 
 type BillingPlanConfig struct {

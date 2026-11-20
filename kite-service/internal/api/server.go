@@ -53,6 +53,7 @@ type BillingConfig struct {
 	LemonSqueezyStoreID       string
 	TestMode                  bool
 	Plans                     []config.BillingPlanConfig
+	Sale                      config.BillingSaleConfig
 }
 
 type APIServer struct {

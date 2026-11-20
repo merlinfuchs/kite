@@ -6,6 +6,7 @@ import { Badge } from "../ui/badge";
 import {
   useAppSubscriptions,
   useBillingPlans,
+  useBillingSale,
   useSharedBot,
 } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
@@ -18,7 +19,12 @@ import {
 import env from "@/lib/env/client";
 import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
-import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
+import {
+  BillingInterval,
+  plansHaveYearly,
+  planVariantId,
+  saleLastDay,
+} from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -38,9 +44,10 @@ export default function AppPricingList() {
     [plans]
   );
   const yearlyAvailable = plansHaveYearly(visiblePlans);
+  const sale = useBillingSale();
 
   // Monthly by default, unless the app already pays yearly, so its current
-  // plan shows as such.
+  // plan shows as such, or a sale runs, which is only on yearly plans.
   const [chosenInterval, setChosenInterval] = useState<BillingInterval>();
   const paysYearly = activeSubscriptions?.some((subscription) =>
     visiblePlans.some(
@@ -50,7 +57,7 @@ export default function AppPricingList() {
   );
   const interval: BillingInterval = !yearlyAvailable
     ? "monthly"
-    : chosenInterval ?? (paysYearly ? "yearly" : "monthly");
+    : chosenInterval ?? (paysYearly || sale ? "yearly" : "monthly");
 
   const pricings = useMemo(() => {
     return visiblePlans.map((plan) => {
@@ -86,18 +93,44 @@ export default function AppPricingList() {
 
   return (
     <div>
+      {sale && yearlyAvailable && (
+        <div className="mb-8 rounded-xl border border-primary/50 bg-primary/5 p-5">
+          <div className="font-medium">
+            {sale.name}: {sale.percent}% off the first year of yearly plans
+            until {saleLastDay(sale)}
+          </div>
+          <div className="text-sm text-muted-foreground mt-1">
+            The code {sale.code} is applied when you check out a yearly plan.
+            {activeSubscriptions?.length && !paysYearly ? (
+              <>
+                {" "}
+                On a monthly plan? Switch to yearly, then email{" "}
+                <a
+                  href="mailto:contact@kite.onl"
+                  className="text-foreground underline"
+                >
+                  contact@kite.onl
+                </a>{" "}
+                and we&apos;ll refund {sale.percent}% of the yearly price.
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
       {yearlyAvailable && (
         <div className="mb-8">
           <PlanIntervalToggle
             plans={visiblePlans}
             value={interval}
             onChange={setChosenInterval}
+            sale={sale}
           />
         </div>
       )}
       <PlanCards
         plans={pricings}
         interval={interval}
+        sale={sale}
         kiteBot={sharedBot}
         badge={(pricing) =>
           pricing.current && <Badge className="text-sm">Current</Badge>

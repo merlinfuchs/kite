@@ -1,4 +1,4 @@
-import { BillingPlan } from "./types/wire.gen";
+import { BillingPlan, BillingSale } from "./types/wire.gen";
 
 export type BillingInterval = "monthly" | "yearly";
 
@@ -20,15 +20,33 @@ export function planVariantId(plan: BillingPlan, interval: BillingInterval) {
     : plan.lemonsqueezy_variant_id;
 }
 
-// The price per month to show big, and for yearly what's actually charged.
-export function planPrice(plan: BillingPlan, interval: BillingInterval) {
+// The price per month to show big, and for yearly what's actually charged. A
+// sale lowers the first year, which is what the big price shows then.
+export function planPrice(
+  plan: BillingPlan,
+  interval: BillingInterval,
+  sale?: BillingSale
+) {
   if (interval === "yearly" && plan.price > 0) {
+    const firstYear = sale
+      ? Math.round(plan.yearly_price * (100 - sale.percent)) / 100
+      : undefined;
     return {
-      perMonth: formatPrice(plan.yearly_price / 12),
+      perMonth: formatPrice((firstYear ?? plan.yearly_price) / 12),
       billedYearly: formatPrice(plan.yearly_price),
+      firstYear: firstYear !== undefined ? formatPrice(firstYear) : undefined,
     };
   }
   return { perMonth: formatPrice(plan.price) };
+}
+
+// saleLastDay is the last day of the sale, like "November 30".
+export function saleLastDay(sale: BillingSale) {
+  return new Date(Date.parse(sale.ends_at) - 1).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function formatPrice(price: number) {

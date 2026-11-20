@@ -12,6 +12,7 @@ import {
   AppSetupGetResponse,
   AssetGetResponse,
   BillingPlanListResponse,
+  BillingSaleGetResponse,
   CommandGetResponse,
   CommandListResponse,
   OpenBundleReportListResponse,
@@ -719,6 +720,13 @@ export function useBillingPlansQuery(enabled = true) {
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
     enabled,
+  });
+}
+
+export function useBillingSaleQuery() {
+  return useQuery({
+    queryKey: ["billing", "sale"],
+    queryFn: () => apiRequest<BillingSaleGetResponse>(`/v1/billing/sale`),
   });
 }
 

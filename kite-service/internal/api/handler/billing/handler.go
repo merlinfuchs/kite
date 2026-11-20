@@ -1,7 +1,10 @@
 package billing
 
 import (
+	"time"
+
 	"github.com/NdoleStudio/lemonsqueezy-go"
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -12,6 +15,7 @@ type BillingHandlerConfig struct {
 	LemonSqueezySigningSecret string
 	TestMode                  bool
 	AppPublicBaseURL          string
+	Sale                      config.BillingSaleConfig
 }
 
 type BillingHandler struct {
@@ -22,6 +26,7 @@ type BillingHandler struct {
 	subscriptionManager *billing.SubscriptionManager
 
 	client *lemonsqueezy.Client
+	now    func() time.Time
 }
 
 func NewBillingHandler(
@@ -40,5 +45,6 @@ func NewBillingHandler(
 		subscriptionManager: subscriptionManager,
 
 		client: client,
+		now:    time.Now,
 	}
 }
