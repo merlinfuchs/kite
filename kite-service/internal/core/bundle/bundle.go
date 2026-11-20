@@ -302,7 +302,7 @@ func (s *Selection) Customize(data map[string]message.MessageData) error {
 			return invalid("the message %s can't be changed", key)
 		}
 		if message.HasComponentsWithoutFlow(&d, s.Messages[i].FlowSources) {
-			return invalid("the message %s can't have buttons or select menus", key)
+			return invalid("the message %s can only have link buttons", key)
 		}
 		def := s.Messages[i].Data
 		s.Messages[i].Default = &def

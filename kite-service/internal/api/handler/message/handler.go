@@ -180,10 +180,10 @@ func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.Me
 	// The flows can't be changed here, so a new button or select menu would
 	// have none to run.
 	if message.HasComponentsWithoutFlow(&req.Data, c.Message.FlowSources) {
-		return nil, handler.ErrBadRequest("interactive_components", "This message can't have buttons or select menus")
+		return nil, handler.ErrBadRequest("interactive_components", "This message can only have link buttons")
 	}
 
-	message, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
+	updated, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
 		ID:          c.Message.ID,
 		Name:        c.Message.Name,
 		Description: c.Message.Description,
@@ -199,7 +199,7 @@ func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.Me
 		return nil, fmt.Errorf("failed to update message: %w", err)
 	}
 
-	return wire.MessageToWire(message), nil
+	return wire.MessageToWire(updated), nil
 }
 
 func (h *MessageHandler) HandleMessagesUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.MessagesUpdateFolderResponse, error) {

@@ -182,6 +182,6 @@ func TestSelectionCustomize(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(`{"components":[{"type":1,"components":[{"type":2,"style":5,"label":"Rules","url":"https://example.com"}]}]}`), &withLink))
 	sel, err = b.Select([]string{"sticky"}, map[string]string{})
 	require.NoError(t, err)
-	assert.ErrorContains(t, sel.Customize(map[string]message.MessageData{"sticky": withButton}), "can't have buttons or select menus")
+	assert.ErrorContains(t, sel.Customize(map[string]message.MessageData{"sticky": withButton}), "can only have link buttons")
 	assert.NoError(t, sel.Customize(map[string]message.MessageData{"sticky": withLink}))
 }
