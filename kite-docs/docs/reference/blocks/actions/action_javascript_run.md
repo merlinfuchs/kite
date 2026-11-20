@@ -193,7 +193,7 @@ The editor completes the calls, their parameters, the inputs and the stored vari
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 50 calls per run that change something, like sending a message, changing a stored variable or a `fetch` request other than GET. Reads, like getting a channel or a stored variable, and AI calls don't count toward the 50. A run can take 10 seconds in all, and waiting for calls doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 50 calls per run that cost credits, like sending a message, changing a stored variable, asking AI or a `fetch` request. Free reads, like getting a channel or a stored variable, don't count toward the 50. A run can take 10 seconds in all, and waiting for calls doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 

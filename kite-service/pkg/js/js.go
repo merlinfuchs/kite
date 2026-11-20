@@ -36,7 +36,7 @@ const (
 	// MaxCalls caps the calls of Options.Host a run can make, so a loop of
 	// calls can't start thousands of them. It's above the operations of a
 	// flow on kite.onl, which the host counts them against, along with the
-	// calls that change something.
+	// calls that cost credits.
 	MaxCalls = 200
 	// MaxWallTime caps how long a run takes in all, with the time it waits
 	// for calls, which doesn't count against Timeout.
