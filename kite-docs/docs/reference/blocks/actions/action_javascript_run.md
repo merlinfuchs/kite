@@ -197,6 +197,6 @@ The code can be up to 4,000 characters and have up to 20 inputs, which together 
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 
-The block costs [10 credits](../../credit-system.md#cost-breakdown) each time it runs.
+The block costs [3 credits](../../credit-system.md#cost-breakdown) each time it runs.
 
 <NodeInfoExplorer type="action_javascript_run" />
