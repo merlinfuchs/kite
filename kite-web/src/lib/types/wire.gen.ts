@@ -472,6 +472,22 @@ export interface BillingPlan {
   feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
+/**
+ * BillingSale is a discount on the first payment of yearly plans. Checkouts
+ * of yearly plans apply its code.
+ */
+export interface BillingSale {
+  name: string;
+  code: string;
+  percent: number /* int */;
+  ends_at: string /* RFC3339 */;
+}
+/**
+ * BillingSaleGetResponse has the sale that runs now, if there is one.
+ */
+export interface BillingSaleGetResponse {
+  sale?: BillingSale;
+}
 
 //////////
 // source: bundle.go

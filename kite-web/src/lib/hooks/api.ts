@@ -13,6 +13,7 @@ import {
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
+  useBillingSaleQuery,
   useCommandQuery,
   useCommandsQuery,
   useEventListenerQuery,
@@ -434,6 +435,11 @@ export function useBillingPlans(
 ) {
   const query = useBillingPlansQuery();
   return useResponseData(query, callback);
+}
+
+// useBillingSale is the sale that runs now, if there is one.
+export function useBillingSale() {
+  return useResponseData(useBillingSaleQuery())?.sale ?? undefined;
 }
 
 export function useFlowAIUsage(
