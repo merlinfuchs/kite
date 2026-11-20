@@ -101,11 +101,16 @@ function MessageEditorDialogInner({
   );
 }
 
-export default function MessageEditorDialog(
-  props: ComponentProps<typeof MessageEditorDialogInner>
-) {
+export default function MessageEditorDialog({
+  disableInteractive,
+  ...props
+}: ComponentProps<typeof MessageEditorDialogInner> & {
+  // For messages without flows, whose buttons and select menus would do
+  // nothing.
+  disableInteractive?: boolean;
+}) {
   return (
-    <CurrentMessageStoreProvider>
+    <CurrentMessageStoreProvider noInteractive={disableInteractive}>
       <MessageEditorDialogInner {...props} />
     </CurrentMessageStoreProvider>
   );

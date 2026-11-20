@@ -294,12 +294,15 @@ type SelectedMessage struct {
 
 // Customize replaces the data of the messages the user changed while adding
 // the bundle, by their keys. Only selected messages that allow it can be
-// changed.
+// changed, and only with buttons and select menus that have a flow.
 func (s *Selection) Customize(data map[string]message.MessageData) error {
 	for key, d := range data {
 		i := slices.IndexFunc(s.Messages, func(m SelectedMessage) bool { return m.ID == key })
 		if i == -1 || !s.Messages[i].Customize {
 			return invalid("the message %s can't be changed", key)
+		}
+		if message.HasComponentsWithoutFlow(&d, s.Messages[i].FlowSources) {
+			return invalid("the message %s can only have link buttons", key)
 		}
 		def := s.Messages[i].Data
 		s.Messages[i].Default = &def

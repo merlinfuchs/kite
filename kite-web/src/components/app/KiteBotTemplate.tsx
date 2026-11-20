@@ -133,6 +133,7 @@ function WrittenMessage({
       )}
       <MessageEditorDialog
         message={message.data}
+        disableInteractive
         onClose={async (data, changed) => {
           if (!changed) return;
           const res = await mutation.mutateAsync({ messageId: id, data });

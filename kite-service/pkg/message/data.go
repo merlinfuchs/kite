@@ -237,6 +237,19 @@ func (m *MessageData) HasInteractiveComponents() bool {
 	return found
 }
 
+// HasComponentsWithoutFlow reports whether a button or select menu has no flow
+// in flowSources to run when it's used.
+func HasComponentsWithoutFlow[F any](m *MessageData, flowSources map[string]F) bool {
+	found := false
+	m.EachComponent(func(c *ComponentData) error {
+		if _, ok := flowSources[c.FlowSourceID]; c.IsInteractive() && !ok {
+			found = true
+		}
+		return nil
+	})
+	return found
+}
+
 type MessageAttachment struct {
 	AssetID string `json:"asset_id,omitempty"`
 }

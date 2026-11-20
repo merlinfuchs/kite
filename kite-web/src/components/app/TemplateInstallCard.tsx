@@ -311,6 +311,7 @@ export function TemplateInstallCard({
           />
           <MessageEditorDialog
             message={customMessages[message.key] ?? message.data}
+            disableInteractive
             onClose={(data, changed) => {
               // Unchanged, it stays the template's, which updates replace.
               if (!changed) return;
