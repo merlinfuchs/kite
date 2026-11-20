@@ -1836,13 +1836,13 @@
   },
   {
     "id": "welcomer",
-    "version": 2,
+    "version": 3,
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
     "icon": "user-round-plus",
     "category": "welcome",
     "about": [
-      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
+      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel. You write both messages when you add the template and can change them later, also as embeds with the member's avatar. Uncheck the leave listener if you only want welcomes.",
       "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
     ],
     "faq": [
@@ -1862,7 +1862,7 @@
     "setup": [],
     "shared_bot": true,
     "shared_bot_about": [
-      "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel."
+      "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel. You write both messages when you add the template and can change them on its page later."
     ],
     "intents": [
       "guild_members"
@@ -1904,9 +1904,7 @@
               },
               "data": {
                 "channel_target": "{{params.channel_id}}",
-                "message_data": {
-                  "content": "Welcome {{event.user.mention}} to the server!"
-                }
+                "message_template_id": "welcome"
               }
             }
           ],
@@ -1945,9 +1943,7 @@
               },
               "data": {
                 "channel_target": "{{params.channel_id}}",
-                "message_data": {
-                  "content": "**{{event.user.display_name}}** has left the server."
-                }
+                "message_template_id": "goodbye"
               }
             }
           ],
@@ -1961,9 +1957,34 @@
         }
       }
     ],
-    "messages": [],
+    "messages": [
+      {
+        "id": "welcome",
+        "name": "Welcome",
+        "description": "Posted when someone joins. {{event.user.mention}} mentions them and {{event.user.display_name}} is their name.",
+        "data": {
+          "content": "Welcome {{event.user.mention}} to the server!"
+        },
+        "flow_sources": {},
+        "customize": true
+      },
+      {
+        "id": "goodbye",
+        "name": "Goodbye",
+        "description": "Posted when someone leaves. {{event.user.display_name}} is their name.",
+        "data": {
+          "content": "**{{event.user.display_name}}** has left the server."
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
     "variables": [],
     "changelog": [
+      {
+        "version": 3,
+        "notes": "The welcome and goodbye messages are message templates now, so you can change their text without opening the flows."
+      },
       {
         "version": 2,
         "notes": "The channel is now a parameter, so you can change it on this page without opening the flows."
