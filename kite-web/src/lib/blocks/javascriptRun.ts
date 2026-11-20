@@ -21,7 +21,7 @@ export const javascriptRun: BlockDefinition = {
   description: "Run a short piece of JavaScript and use what it returns later",
   icon: "code",
   category: "Utilities",
-  credits: 10,
+  credits: 3,
   strict_settings: true,
   fields: [
     {

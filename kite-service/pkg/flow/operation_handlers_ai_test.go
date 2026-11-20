@@ -41,19 +41,19 @@ func TestJavaScriptRunAIAsk(t *testing.T) {
 	assert.Equal(t, 800, ai.opts.MaxOutputTokens)
 	assert.Empty(t, ai.opts.Tools)
 	// The block, the medium model, and a second step of answer.
-	assert.Equal(t, 10+20+20, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+20+20, c.CreditsUsed())
 
 	ai = &recordingAIProvider{}
 	c, err = runJavaScriptAI(t, `return await ai.ask({prompt: "Say hi"})`, ai, nil, 1000)
 	require.NoError(t, err)
 	assert.Equal(t, aiModelTiers[AIModelSmall].Model, ai.opts.Model)
 	assert.Equal(t, aiDefaultOutputTokens, ai.opts.MaxOutputTokens)
-	assert.Equal(t, 10+5, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+5, c.CreditsUsed())
 
 	// Long prompts cost a step more, like the block.
 	c, err = runJavaScriptAI(t, `return await ai.ask({prompt: "x".repeat(9000)})`, &recordingAIProvider{}, nil, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 10+5+5, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+5+5, c.CreditsUsed())
 }
 
 func TestJavaScriptRunAIErrors(t *testing.T) {
@@ -84,7 +84,7 @@ func TestJavaScriptRunAIErrors(t *testing.T) {
 			assert.Empty(t, ai.opts.Model)
 			assert.Nil(t, decision.opts)
 			// Only the block.
-			assert.Equal(t, 10, c.CreditsUsed())
+			assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 		})
 	}
 }
@@ -97,7 +97,7 @@ func TestJavaScriptRunAIDecisions(t *testing.T) {
 	assert.Equal(t, provider.DecisionTypeNoul, decision.opts.Type)
 	assert.Equal(t, aiDecisionModel, decision.opts.Model)
 	assert.Equal(t, "buy now", decision.opts.Input)
-	assert.Equal(t, 11, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+1, c.CreditsUsed())
 
 	decision = &fakeDecisionProvider{decision: provider.Decision{Choice: "bug", Confidence: 0.9}}
 	c, err = runJavaScriptAI(t, `return await ai.choose({question: "What is it?", input: "it crashed", options: {bug: "Something broke", idea: ""}})`, nil, decision, 1000)
@@ -124,12 +124,12 @@ func TestJavaScriptRunAITranslate(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"source_language":"en","text":"Hola"}`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.True(t, strings.Contains(ai.opts.SystemPrompt, "Spanish"))
-	assert.Equal(t, 11, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+1, c.CreditsUsed())
 
 	// 1 credit for each 1,000 characters started.
 	c, err = runJavaScriptAI(t, `return await ai.translate({text: "x".repeat(2500), language: "es"})`, &recordingAIProvider{text: `{"source_language":"en","text":"x"}`}, nil, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 }
 
 // slowAIProvider answers after a while, so calls of code overlap.
@@ -150,7 +150,7 @@ return results.map((r) => r.status === "fulfilled" ? "ok" : r.reason.message)`, 
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []any{"ok", "ai.ask: credits limit exceeded: 330"}, c.GetNodeResult("js_1").JSONValue())
 	// The answer was short, so its reserve wasn't used.
-	assert.Equal(t, 110, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+100, c.CreditsUsed())
 }
 
 func TestJavaScriptRunAIInTestRuns(t *testing.T) {
@@ -168,7 +168,7 @@ for (const call of [
 return errors`}}}
 	require.NoError(t, node.Execute(c))
 	assert.JSONEq(t, `["ai.ask: test runs don't ask AI","ai.check: test runs don't ask AI","ai.translate: test runs don't ask AI"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
-	assert.Equal(t, 10, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 }
 
 // Option names are trimmed like those of the block.
