@@ -20,9 +20,11 @@ import MessageNodeActions from "./MessageNodeActions";
 export default function MessageComponentContainer({
   id,
   disableFlowEditor,
+  disableInteractive,
 }: {
   id: NodeId;
   disableFlowEditor?: boolean;
+  disableInteractive?: boolean;
 }) {
   const data = useNode<ContainerNode>(id);
   const childIds = useChildIds(id, "components");
@@ -82,12 +84,14 @@ export default function MessageComponentContainer({
               key={childId}
               id={childId}
               disableFlowEditor={disableFlowEditor}
+              disableInteractive={disableInteractive}
             />
           ))}
           <div className="flex space-x-3">
             <MessageComponentAddDropdown
               parentId={id}
               context="container"
+              disableInteractive={disableInteractive}
               size="sm"
               disabled={childIds.length >= slotLimit("container", "components")}
             />

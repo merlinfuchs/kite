@@ -21,8 +21,10 @@ import MessageComponentAddDropdown from "./MessageComponentAddDropdown";
 
 export default function MessageComponentsSection({
   disableFlowEditor,
+  disableInteractive,
 }: {
   disableFlowEditor?: boolean;
+  disableInteractive?: boolean;
 }) {
   const rootId = useRootId();
   const componentIds = useChildIds(rootId, "components");
@@ -30,6 +32,11 @@ export default function MessageComponentsSection({
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   const limit = slotLimit("message", "components", componentsV2);
+
+  // Without components v2 there are only buttons and select menus.
+  if (disableInteractive && !componentsV2 && componentIds.length === 0) {
+    return null;
+  }
 
   return (
     <CollapsibleSection
@@ -42,6 +49,7 @@ export default function MessageComponentsSection({
           key={id}
           id={id}
           disableFlowEditor={disableFlowEditor}
+          disableInteractive={disableInteractive}
         />
       ))}
       <div className="flex flex-wrap gap-3">
@@ -50,8 +58,9 @@ export default function MessageComponentsSection({
             parentId={rootId}
             context="root"
             disabled={componentIds.length >= limit}
+            disableInteractive={disableInteractive}
           />
-        ) : (
+        ) : disableInteractive ? null : (
           <>
             <Button
               onClick={() =>

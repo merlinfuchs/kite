@@ -15,10 +15,13 @@ export default function MessageComponentEntry({
   id,
   title,
   disableFlowEditor,
+  disableInteractive,
 }: {
   id: NodeId;
   title?: string;
   disableFlowEditor?: boolean;
+  // Hides adding buttons and select menus, for messages without flows.
+  disableInteractive?: boolean;
 }) {
   const type = useDocument((state) => state.nodes[id]?.type);
 
@@ -40,6 +43,7 @@ export default function MessageComponentEntry({
         <MessageComponentContainer
           id={id}
           disableFlowEditor={disableFlowEditor}
+          disableInteractive={disableInteractive}
         />
       );
     case "section":
@@ -47,6 +51,7 @@ export default function MessageComponentEntry({
         <MessageComponentSection
           id={id}
           disableFlowEditor={disableFlowEditor}
+          disableInteractive={disableInteractive}
         />
       );
     case "textDisplay":

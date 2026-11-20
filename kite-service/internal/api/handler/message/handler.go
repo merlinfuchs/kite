@@ -176,6 +176,12 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.MessageDataUpdateRequest) (*wire.MessageDataUpdateResponse, error) {
+	// The flows can't be changed here, so a message without them has nothing
+	// to run for a button or select menu.
+	if len(c.Message.FlowSources) == 0 && req.Data.HasInteractiveComponents() {
+		return nil, handler.ErrBadRequest("interactive_components", "This message can't have buttons or select menus")
+	}
+
 	message, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
 		ID:          c.Message.ID,
 		Name:        c.Message.Name,

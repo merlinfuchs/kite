@@ -14,14 +14,16 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
+  interactive?: boolean;
   needsAttachment?: boolean;
   /** A component to put inside the new one, like the select menu of its row. */
   child?: NewNode;
 }[] = [
-  { label: "Button row", node: { type: "actionRow" } },
+  { label: "Button row", node: { type: "actionRow" }, interactive: true },
   ...selectMenuTypes.map((t) => ({
     label: t.label,
     node: { type: "actionRow" } as NewNode,
+    interactive: true,
     child: {
       type: "selectMenu",
       select_type: t.type === 3 ? undefined : t.type,
@@ -46,11 +48,13 @@ export default function MessageComponentAddDropdown({
   parentId,
   context,
   disabled,
+  disableInteractive,
   size,
 }: {
   parentId: NodeId;
   context: "root" | "container";
   disabled?: boolean;
+  disableInteractive?: boolean;
   size?: "sm";
 }) {
   const { insert } = useDocumentStoreApi().getState();
@@ -77,6 +81,7 @@ export default function MessageComponentAddDropdown({
           .filter(
             (c) =>
               (!c.rootOnly || context === "root") &&
+              (!c.interactive || !disableInteractive) &&
               (!c.needsAttachment || hasAttachments)
           )
           .map((c) => (

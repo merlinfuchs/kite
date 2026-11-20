@@ -34,9 +34,13 @@ function MessageEditorDialogInner({
   children,
   message,
   onClose,
+  disableInteractive,
 }: {
   children: ReactNode;
   message: MessageData;
+  // For messages without flows, whose buttons and select menus would do
+  // nothing.
+  disableInteractive?: boolean;
   // changed is whether the user changed the message since it was opened.
   onClose: (message: MessageData, changed: boolean) => void;
 }) {
@@ -84,7 +88,11 @@ function MessageEditorDialogInner({
                 <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
                   <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-24 xl:pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
                     {/* Flows can't upload files, so messages sent from them can't have any. */}
-                    <MessageEditor disableFlowEditor disableAttachments />
+                    <MessageEditor
+                      disableFlowEditor
+                      disableAttachments
+                      disableInteractive={disableInteractive}
+                    />
                   </ScrollArea>
                   <div className="hidden xl:block py-5 w-5/12 h-full pr-5">
                     <MessageEditorPreview className="rounded-lg" />

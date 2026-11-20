@@ -18,9 +18,11 @@ import MessageNodeActions from "./MessageNodeActions";
 export default function MessageComponentSection({
   id,
   disableFlowEditor,
+  disableInteractive,
 }: {
   id: NodeId;
   disableFlowEditor?: boolean;
+  disableInteractive?: boolean;
 }) {
   const data = useNode<SectionNode>(id);
   const childIds = useChildIds(id, "components");
@@ -93,7 +95,9 @@ export default function MessageComponentSection({
             value={accessoryType ?? ""}
             options={[
               { label: "Thumbnail", value: "thumbnail" },
-              { label: "Button", value: "button" },
+              ...(disableInteractive && accessoryType !== "button"
+                ? []
+                : [{ label: "Button", value: "button" }]),
             ]}
             placeholder="Select an accessory"
             onChange={setAccessoryType}
