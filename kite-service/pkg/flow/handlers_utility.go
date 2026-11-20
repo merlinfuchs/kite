@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
@@ -171,6 +172,42 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// javaScriptMaxWrites caps the calls of a Run JavaScript block that change
+// something, see callWrites. Its other calls only count against the flow's
+// operations, like blocks.
+const javaScriptMaxWrites = 50
+
+// readHandlerOperations are the handler operations that don't change
+// anything, see callWrites.
+var readHandlerOperations = map[string]bool{
+	"variables.get":  true,
+	"variables.list": true,
+	"ai.ask":         true,
+	"ai.check":       true,
+	"ai.choose":      true,
+	"ai.score":       true,
+	"ai.translate":   true,
+}
+
+// callWrites reports whether a call of op with arg changes something, like
+// sending a message or setting a stored variable. Requests other than GET do,
+// and fetch with them.
+func callWrites(op operation, arg json.RawMessage) bool {
+	if op.Kind != "handler" {
+		return op.Method != http.MethodGet
+	}
+	name := op.Integration + "." + op.ID
+	if name == "http.request" {
+		// An argument it can't decode fails before the call is charged.
+		var a struct {
+			Method string `json:"method"`
+		}
+		_ = json.Unmarshal(arg, &a)
+		return a.Method != "" && !strings.EqualFold(a.Method, http.MethodGet)
+	}
+	return !readHandlerOperations[name]
+}
+
 // javaScriptHost has the operations the code of a Run JavaScript block can
 // call: those of the integrations the app can use whose policy allows code,
 // and the handler operations of Kite's own features. Each costs the credits
@@ -179,6 +216,8 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
+	// The calls that changed something, up to javaScriptMaxWrites.
+	writes int
 	// The block's stored variables, see operationCall.
 	variables map[string]string
 	// The secrets the code names, see operationCall.
@@ -198,18 +237,22 @@ func (h *javaScriptHost) callContext(callCtx context.Context) *FlowContext {
 	return &c
 }
 
-// charge counts a call of op against the flow's operations and charges its
-// credits. Unlike for a block, a call over the limit isn't billed, as code
-// can catch the error and keep calling.
-func (h *javaScriptHost) charge(op operation) error {
-	return h.chargeCredits(op, op.Credits, 0)
+// charge counts a call of op against the flow's operations, and against
+// javaScriptMaxWrites if it writes, and charges its credits. Unlike for a
+// block, a call over the limit isn't billed, as code can catch the error and
+// keep calling.
+func (h *javaScriptHost) charge(op operation, write bool) error {
+	return h.chargeCredits(op, write, op.Credits, 0)
 }
 
 // chargeCredits is charge with credits instead of op's, if credits and
 // reserve fit the limit.
-func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) error {
+func (h *javaScriptHost) chargeCredits(op operation, write bool, credits int, reserve int) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if write && h.writes >= javaScriptMaxWrites {
+		return fmt.Errorf("the code made more than %d calls that change something", javaScriptMaxWrites)
+	}
 	if err := h.ctx.increaseOperations(); err != nil {
 		return err
 	}
@@ -220,6 +263,9 @@ func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) e
 		return err
 	}
 	h.reserved += reserve
+	if write {
+		h.writes++
+	}
 	return nil
 }
 
@@ -244,14 +290,15 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 			return nil
 		}
 		return func(callCtx context.Context, arg json.RawMessage) (json.RawMessage, error) {
+			write := callWrites(op, arg)
 			// What this call holds of h.reserved.
 			var reserved int
 			res, err := handler(operationCall{
 				ctx:    h.callContext(callCtx),
 				arg:    arg,
-				charge: func() error { return h.charge(op) },
+				charge: func() error { return h.charge(op, write) },
 				chargeCredits: func(credits int, reserve int) error {
-					if err := h.chargeCredits(op, credits, reserve); err != nil {
+					if err := h.chargeCredits(op, write, credits, reserve); err != nil {
 						return err
 					}
 					reserved = reserve
@@ -293,7 +340,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 		if c.Test != nil && op.Integration != "discord" {
 			return nil, errors.New("test runs don't send requests outside of Discord")
 		}
-		if err := h.charge(op); err != nil {
+		if err := h.charge(op, callWrites(op, arg)); err != nil {
 			return nil, err
 		}
 

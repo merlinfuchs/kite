@@ -365,8 +365,8 @@ func TestHostCalls(t *testing.T) {
 
 	_, err := runHost(t, "await discord.fail()")
 	assert.EqualError(t, err, "Error: discord.fail: Missing Permissions")
-	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
-	assert.EqualError(t, err, "Error: the code made more than 20 calls")
+	_, err = runHost(t, `for (let i = 0; i < 201; i++) await discord.echo(i)`)
+	assert.EqualError(t, err, "Error: the code made more than 200 calls")
 }
 
 func TestFetch(t *testing.T) {
