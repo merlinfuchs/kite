@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 type MessageHandler struct {
@@ -176,9 +177,9 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.MessageDataUpdateRequest) (*wire.MessageDataUpdateResponse, error) {
-	// The flows can't be changed here, so a message without them has nothing
-	// to run for a button or select menu.
-	if len(c.Message.FlowSources) == 0 && req.Data.HasInteractiveComponents() {
+	// The flows can't be changed here, so a new button or select menu would
+	// have none to run.
+	if message.HasComponentsWithoutFlow(&req.Data, c.Message.FlowSources) {
 		return nil, handler.ErrBadRequest("interactive_components", "This message can't have buttons or select menus")
 	}
 

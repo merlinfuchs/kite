@@ -1,7 +1,11 @@
 import { ChevronDownIcon } from "lucide-react";
 import { MessageNode, NewNode, NodeId } from "@/lib/message/document";
 import { selectMenuTypes } from "@/lib/message/selectMenu";
-import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
+import {
+  useDocument,
+  useDocumentStoreApi,
+  useNoInteractive,
+} from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -48,16 +52,15 @@ export default function MessageComponentAddDropdown({
   parentId,
   context,
   disabled,
-  disableInteractive,
   size,
 }: {
   parentId: NodeId;
   context: "root" | "container";
   disabled?: boolean;
-  disableInteractive?: boolean;
   size?: "sm";
 }) {
   const { insert } = useDocumentStoreApi().getState();
+  const noInteractive = useNoInteractive();
   // A file component can only show a file attached to the message.
   const hasAttachments = useDocument(
     (state) => (state.nodes[state.rootId] as MessageNode).attachments.length > 0
@@ -81,7 +84,7 @@ export default function MessageComponentAddDropdown({
           .filter(
             (c) =>
               (!c.rootOnly || context === "root") &&
-              (!c.interactive || !disableInteractive) &&
+              (!c.interactive || !noInteractive) &&
               (!c.needsAttachment || hasAttachments)
           )
           .map((c) => (
