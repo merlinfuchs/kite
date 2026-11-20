@@ -28,9 +28,7 @@ export function planPrice(
   sale?: BillingSale
 ) {
   if (interval === "yearly" && plan.price > 0) {
-    const firstYear = sale
-      ? Math.round(plan.yearly_price * (100 - sale.percent)) / 100
-      : undefined;
+    const firstYear = sale ? saleFirstYear(plan, sale) : undefined;
     return {
       perMonth: formatPrice((firstYear ?? plan.yearly_price) / 12),
       billedYearly: formatPrice(plan.yearly_price),
@@ -38,6 +36,12 @@ export function planPrice(
     };
   }
   return { perMonth: formatPrice(plan.price) };
+}
+
+// saleFirstYear is what the first year of the plan costs with the sale,
+// rounded to cents like Lemon Squeezy does.
+export function saleFirstYear(plan: BillingPlan, sale: BillingSale) {
+  return Math.round(plan.yearly_price * (100 - sale.percent)) / 100;
 }
 
 // saleLastDay is the last day of the sale, like "November 30".

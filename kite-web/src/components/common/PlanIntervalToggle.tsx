@@ -1,4 +1,4 @@
-import { BillingInterval } from "@/lib/billing";
+import { BillingInterval, saleFirstYear } from "@/lib/billing";
 import { BillingPlan, BillingSale } from "@/lib/types/wire.gen";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
@@ -13,16 +13,18 @@ export default function PlanIntervalToggle({
   value: BillingInterval;
   onChange: (value: BillingInterval) => void;
 }) {
-  // The smallest saving of any plan, so the badge holds for every plan.
+  // The smallest saving of any plan over paying monthly, so the badge holds
+  // for every plan. During a sale it's the saving of the first year.
   const saving = Math.min(
     ...plans
       .filter((plan) => plan.price > 0)
-      // Rounded first, so float error can't turn a 20% saving into 19%.
-      .map((plan) =>
-        Math.floor(
-          Math.round((1 - plan.yearly_price / (plan.price * 12)) * 1e4) / 100
-        )
-      )
+      .map((plan) => {
+        const yearly = sale ? saleFirstYear(plan, sale) : plan.yearly_price;
+        // Rounded first, so float error can't turn a 20% saving into 19%.
+        return Math.floor(
+          Math.round((1 - yearly / (plan.price * 12)) * 1e4) / 100
+        );
+      })
   );
 
   return (
@@ -37,16 +39,10 @@ export default function PlanIntervalToggle({
         </TabsTrigger>
         <TabsTrigger value="yearly" className="px-4 gap-2">
           Yearly
-          {sale ? (
+          {saving > 0 && (
             <span className="text-xs font-semibold text-primary">
-              {sale.percent}% off
+              Save {saving}%
             </span>
-          ) : (
-            saving > 0 && (
-              <span className="text-xs font-semibold text-primary">
-                Save {saving}%
-              </span>
-            )
           )}
         </TabsTrigger>
       </TabsList>
