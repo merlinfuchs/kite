@@ -27,6 +27,8 @@ import LoadingButton from "../common/LoadingButton";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { Label } from "../ui/label";
 import { MessageData } from "@/lib/types/message.gen";
+import { parsePreviewMessage } from "@/lib/message/documentConvert";
+import dynamic from "next/dynamic";
 import { useMissingFlowIntegrations } from "@/lib/integrations/hooks";
 import { Integration } from "@/lib/integrations/types";
 import { AppIntegrationEnableButton } from "./AppIntegrationList";
@@ -304,6 +306,9 @@ export function TemplateInstallCard({
               {message.description}
             </div>
           )}
+          <CustomMessagePreview
+            data={customMessages[message.key] ?? message.data}
+          />
           <MessageEditorDialog
             message={customMessages[message.key] ?? message.data}
             onClose={(data, changed) => {
@@ -313,7 +318,7 @@ export function TemplateInstallCard({
             }}
           >
             <Button variant="outline" className="w-full">
-              {customMessages[message.key] ? "Edit message" : "Write message"}
+              Edit message
             </Button>
           </MessageEditorDialog>
         </div>
@@ -494,4 +499,16 @@ function ItemRow({
       </div>
     </label>
   );
+}
+
+const MessagePreviewBox = dynamic(
+  () => import("../message/MessagePreviewBox"),
+  { ssr: false }
+);
+
+// CustomMessagePreview shows a message the server writes like Discord, so it
+// can see what's posted without opening the editor, also for embeds.
+function CustomMessagePreview({ data }: { data: MessageData }) {
+  const message = useMemo(() => parsePreviewMessage(data), [data]);
+  return message ? <MessagePreviewBox msg={message} /> : null;
 }
