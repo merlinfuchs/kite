@@ -10,6 +10,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppCommandPage() {
@@ -73,7 +74,7 @@ export default function AppCommandPage() {
         }
         return true;
       } catch (err) {
-        toast.error(`Failed to update command: ${err}`);
+        toast.error(`Failed to update command: ${errorMessage(err)}`);
         return false;
       }
     },
