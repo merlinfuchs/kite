@@ -11,6 +11,7 @@ import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { Message, Variable } from "../types/wire.gen";
 import { useMessages, useVariables } from "../hooks/api";
+import { FlowTestState, initialFlowTestState } from "./flowTest";
 
 // Read-only previews, like the flows of a template, don't show the validation
 // markers on blocks. Their parameters are only filled in when the template is
@@ -94,6 +95,9 @@ export interface FlowContextStore {
   // the user keeps or undoes the changes.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
+  // The form and result of the test panel, kept while it's closed.
+  test: FlowTestState;
+  setTest(update: (test: FlowTestState) => FlowTestState): void;
 }
 
 export const createFlowContextStore = () => {
@@ -104,6 +108,8 @@ export const createFlowContextStore = () => {
       setType: (type) => set({ type }),
       aiChangedNodeIds: [],
       setAIChangedNodeIds: (ids) => set({ aiChangedNodeIds: ids }),
+      test: initialFlowTestState,
+      setTest: (update) => set({ test: update(get().test) }),
     }))
   );
 };

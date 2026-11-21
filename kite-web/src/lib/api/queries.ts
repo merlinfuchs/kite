@@ -430,7 +430,7 @@ export interface ItemVersionTarget {
   id: string;
 }
 
-const itemVersionPathSegments = {
+export const itemVersionPathSegments = {
   command: "commands",
   event_listener: "event-listeners",
   message: "messages",
