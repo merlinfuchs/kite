@@ -112,7 +112,12 @@ func (h *BundleInstallHandler) importItems(c *handler.Context, b *bundle.Bundle,
 	if err != nil {
 		return nil, err
 	}
-	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created); err != nil {
+	if keepIDs {
+		err = h.bundleInstallStore.RestoreBundleContents(c.Context(), created, c.Session.UserID)
+	} else {
+		err = h.bundleInstallStore.ImportBundleContents(c.Context(), created)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("failed to import bundle: %w", err)
 	}
 

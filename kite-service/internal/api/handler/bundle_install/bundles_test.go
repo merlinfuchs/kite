@@ -402,6 +402,10 @@ func (s *importStore) ImportBundleContents(ctx context.Context, contents store.B
 	return nil
 }
 
+func (s *importStore) RestoreBundleContents(ctx context.Context, contents store.BundleInstallContents, userID string) error {
+	return s.ImportBundleContents(ctx, contents)
+}
+
 type noPluginInstanceStore struct{ store.PluginInstanceStore }
 
 func (noPluginInstanceStore) PluginInstancesByApp(ctx context.Context, appID string) ([]*model.PluginInstance, error) {
