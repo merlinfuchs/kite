@@ -55,6 +55,7 @@ export type AnalyticsEvent =
   | "flow_exported"
   | "bundle_imported"
   | "app_deleted"
+  | "dashboard_install_clicked"
   // Premium.
   | "upsell_shown"
   | "upsell_clicked"
