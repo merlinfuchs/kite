@@ -16,8 +16,6 @@ export default function AppTemplateAside({
   from?: string;
 }) {
   const appId = useAppId();
-  // The app a listed bundle of the user is made from can add it too, the
-  // card above says it's where the template is published from.
   const own = useUserBundles()?.find((b) => b?.id === template.id);
 
   return (
