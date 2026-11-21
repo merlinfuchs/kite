@@ -3,7 +3,10 @@ import { NodeProps } from "@/lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
 import { optionColor } from "@/lib/flow/nodes";
-import { isContextMenuCommand } from "@/lib/flow/commandTypes";
+import {
+  commandTypeIconName,
+  isContextMenuCommand,
+} from "@/lib/flow/commandTypes";
 
 export default function FlowNodeEntryCommand(props: NodeProps) {
   return (
@@ -14,6 +17,7 @@ export default function FlowNodeEntryCommand(props: NodeProps) {
           ? props.data.name || ""
           : "/" + (props.data.name || "")
       }
+      icon={commandTypeIconName(props.data)}
       highlight={true}
       showConnectedMarker={false}
     >
