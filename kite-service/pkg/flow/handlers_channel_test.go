@@ -356,3 +356,11 @@ func TestChannelEmptyPositionOmitted(t *testing.T) {
 		})
 	}
 }
+
+func TestChannelInvalidPosition(t *testing.T) {
+	data := `{"channel_target":"3","channel_data":{"name":"general","position":"top"}}`
+	for _, typ := range []FlowNodeType{FlowNodeTypeActionChannelEdit, FlowNodeTypeActionChannelCreate} {
+		_, err := executeChannelBlock(t, &channelTestProvider{}, typ, data)
+		require.ErrorContains(t, err, `position "top" is not a whole number`)
+	}
+}

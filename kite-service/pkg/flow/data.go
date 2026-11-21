@@ -1093,14 +1093,18 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 		res.VoiceUserLimit = uint(userLimit.Int())
 	}
 
-	if strings.TrimSpace(d.Position) != "" {
-		position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
+	position, err := eval.EvalTemplate(ctx, d.Position, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	// An empty position keeps the channel where it is, 0 would move it to the
+	// top.
+	if raw := strings.TrimSpace(position.String()); raw != "" {
+		pos, err := strconv.Atoi(raw)
 		if err != nil {
-			return res, err
+			return res, fmt.Errorf("position %q is not a whole number", raw)
 		}
-		if strings.TrimSpace(position.String()) != "" {
-			res.Position = option.NewInt(int(position.Int()))
-		}
+		res.Position = option.NewInt(pos)
 	}
 
 	if channelTypeSupportsRateLimitPerUser(res.Type) {
