@@ -52,6 +52,8 @@ model = "gpt-6-luna"
 enabled = false
 host = "127.0.0.1"
 port = 6060
+heap_dump_dir = ""
+heap_dump_threshold = 8_000_000_000
 
 [database.postgres]
 host = "127.0.0.1"

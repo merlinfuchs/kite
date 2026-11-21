@@ -65,6 +65,8 @@ render() {
   out="${out//@CLUSTER_COUNT@/$CLUSTER_COUNT}"
   out="${out//@SERVICE_BASE_PORT@/$SERVICE_BASE_PORT}"
   out="${out//@SERVICE_DIR@/$SERVICE_DIR}"
+  out="${out//@SERVICE_MEMORY_MAX@/$SERVICE_MEMORY_MAX}"
+  out="${out//@SERVICE_GOMEMLIMIT@/$SERVICE_GOMEMLIMIT}"
   out="${out//@WEB_DOMAIN@/$WEB_DOMAIN}"
   out="${out//@DOCS_DOMAIN@/$DOCS_DOMAIN}"
   out="${out//@API_DOMAIN@/$API_DOMAIN}"
@@ -325,6 +327,10 @@ Restart=always
 RestartSec=5
 User=kite
 Group=kite
+MemoryMax=@SERVICE_MEMORY_MAX@
+Environment=GOMEMLIMIT=@SERVICE_GOMEMLIMIT@
+# /var/lib/kite, for debug.heap_dump_dir in kite.toml
+StateDirectory=kite
 @HARDENING@
 
 [Install]
@@ -352,6 +358,10 @@ Restart=always
 RestartSec=5
 User=kite
 Group=kite
+MemoryMax=@SERVICE_MEMORY_MAX@
+Environment=GOMEMLIMIT=@SERVICE_GOMEMLIMIT@
+# /var/lib/kite, for debug.heap_dump_dir in kite.toml
+StateDirectory=kite
 @HARDENING@
 
 [Install]

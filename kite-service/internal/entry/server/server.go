@@ -85,6 +85,11 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		debugCfg.Port = cfg.Debug.Port + cfg.ClusterCount
 	}
 	startDebugServer(ctx, debugCfg)
+	heapDumpName := fmt.Sprintf("cluster-%d", cfg.ClusterIndex)
+	if cfg.RunSharedBot {
+		heapDumpName = "shared"
+	}
+	go watchHeap(ctx, cfg.Debug, heapDumpName, 2*time.Second)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {

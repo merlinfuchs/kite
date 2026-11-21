@@ -16,6 +16,10 @@ Restart=always
 RestartSec=5
 User=kite
 Group=kite
+MemoryMax=16G
+Environment=GOMEMLIMIT=13GiB
+# /var/lib/kite, for debug.heap_dump_dir in kite.toml
+StateDirectory=kite
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
