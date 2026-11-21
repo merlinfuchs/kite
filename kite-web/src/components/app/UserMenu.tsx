@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/lib/hooks/api";
+import { useUser, useUserBundles } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
@@ -71,26 +71,7 @@ export default function UserMenu({
           sideOffset={4}
         >
           <DropdownMenuLabel className="p-0 font-normal">
-            {user ? (
-              <Link
-                href={creatorPath(user.discord_id)}
-                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
-              >
-                <UserAvatar className="h-8 w-8" />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user.display_name}
-                  </span>
-                  <span className="truncate text-xs">
-                    @{user.discord_username}
-                  </span>
-                </div>
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <UserAvatar className="h-8 w-8" />
-              </div>
-            )}
+            <UserMenuLabel />
             <UserBadges
               badges={user?.badges ?? []}
               size="sm"
@@ -128,6 +109,38 @@ export default function UserMenu({
         </DropdownMenuContent>
       </DropdownMenu>
     </>
+  );
+}
+
+// UserMenuLabel links to the user's creator page while they have one, which
+// is while a template of theirs is in the marketplace.
+function UserMenuLabel() {
+  const user = useUser();
+  const listed = useUserBundles()?.some(
+    (b) => b?.listed_version != null && b.removed_reason === null
+  );
+
+  const className = "flex items-center gap-2 px-1 py-1.5 text-left text-sm";
+  const content = (
+    <>
+      <UserAvatar className="h-8 w-8" />
+      <div className="grid flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-semibold">{user?.display_name}</span>
+        <span className="truncate text-xs">
+          {user && `@${user.discord_username}`}
+        </span>
+      </div>
+    </>
+  );
+
+  if (!user || !listed) return <div className={className}>{content}</div>;
+  return (
+    <Link
+      href={creatorPath(user.discord_id)}
+      className={cn(className, "rounded-md hover:bg-accent")}
+    >
+      {content}
+    </Link>
   );
 }
 
