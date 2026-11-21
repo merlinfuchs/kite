@@ -96,8 +96,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 // HandleBundleRestore adds items of the current version of the user's bundle
 // back to the app it's made from, after the app deleted them. They're the
 // originals again with their old IDs, which are their keys in the bundle, so
-// new versions keep updating them in the apps that added it. Message
-// templates and variables the app still has aren't created again.
+// new versions keep updating them in the apps that added it.
 func (h *BundleInstallHandler) HandleBundleRestore(c *handler.Context, req wire.BundleRestoreRequest) (*wire.BundleRestoreResponse, error) {
 	b, err := h.ownBundle(c)
 	if err != nil {
@@ -118,56 +117,34 @@ func (h *BundleInstallHandler) HandleBundleRestore(c *handler.Context, req wire.
 	if err != nil {
 		return nil, err
 	}
+	// Blocks use the message templates and variables the app still has.
 	has := map[string]bool{}
+	ids := bundleIDs{messages: map[string]string{}, variables: map[string]string{}}
 	for _, cmd := range all.Commands {
 		has[cmd.ID] = true
 	}
 	for _, listener := range all.EventListeners {
 		has[listener.ID] = true
 	}
-	ids := bundleIDs{messages: map[string]string{}, variables: map[string]string{}}
 	for _, msg := range all.Messages {
-		if _, ok := content.Message(msg.ID); ok {
+		has[msg.ID] = true
+		if hasMessage(content, msg.ID) {
 			ids.messages[msg.ID] = msg.ID
 		}
 	}
 	for _, v := range all.Variables {
-		if _, ok := content.Variable(v.ID); ok {
+		has[v.ID] = true
+		if hasVariable(content, v.ID) {
 			ids.variables[v.ID] = v.ID
 		}
 	}
-
-	keys := make([]string, 0, len(req.Items))
 	for _, key := range req.Items {
-		switch {
-		case has[key]:
+		if has[key] {
 			return nil, handler.ErrBadRequest("already_in_app", fmt.Sprintf("the app still has %s of the template", key))
-		case ids.messages[key] != "" || ids.variables[key] != "":
-			continue
 		}
-		keys = append(keys, key)
-	}
-	if len(keys) == 0 {
-		return nil, handler.ErrBadRequest("nothing_selected", "the app still has everything you selected")
 	}
 
-	sel, err := selectItems(content, keys, req.Parameters, "invalid_bundle_restore")
-	if err != nil {
-		return nil, err
-	}
-	created, items, err := h.prepareContents(c, sel, ids, null.String{}, true)
-	if err != nil {
-		return nil, err
-	}
-	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created); err != nil {
-		return nil, fmt.Errorf("failed to restore bundle items: %w", err)
-	}
-
-	res := &wire.BundleRestoreResponse{Items: make([]wire.BundleInstallItem, len(items))}
-	for i, item := range items {
-		res.Items[i] = wire.BundleInstallItem{Key: item.Key, Type: string(item.Type), ID: item.ID}
-	}
-	return res, nil
+	return h.importItems(c, content, req.Items, req.Parameters, ids, true, "invalid_bundle_restore")
 }
 
 // setBundleContent exports the items of the app as the content of the

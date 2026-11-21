@@ -1,7 +1,5 @@
 import { useBundleRestoreMutation } from "@/lib/api/mutations";
-import { commandLabel } from "@/lib/flow/commandTypes";
-import { discordEventType } from "@/lib/flow/eventTypes";
-import { restoreSelection } from "@/lib/flow/templateInstall";
+import { installRequest, restoreSelection } from "@/lib/flow/templateInstall";
 import { parameterDefaults, Template } from "@/lib/flow/templates";
 import {
   useCommands,
@@ -16,7 +14,7 @@ import LoadingButton from "../common/LoadingButton";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { PlanLimitNotice, useExceededLimit } from "./PlanLimit";
-import { ItemRow } from "./TemplateInstallCard";
+import { TemplateItemRows } from "./TemplateInstallCard";
 import {
   TemplateParameterFields,
   useTemplateGuild,
@@ -48,52 +46,28 @@ export function TemplateRestoreCard({ template }: { template: Template }) {
       )
     );
   }, [commands, eventListeners, messages, variables]);
-  const commandNames = useMemo(
-    () => new Set(commands?.flatMap((c) => (c ? [c.name] : []))),
-    [commands]
-  );
-
   const selection = restoreSelection(template, appIds ?? new Set(), skipped);
-  const { installedKeys, parameters } = selection;
   const exceeded = useExceededLimit({
     commands: selection.commands.length,
     eventListenerSources: selection.eventListeners.map((l) => l.source),
     messages: selection.messages.length,
     variables: selection.variables.length,
   });
+  // Restoring sends the same items and parameters adding would.
+  const { items, parameters } = installRequest(template, selection, values, {});
 
-  const deleted = {
-    commands: template.commands.filter((c) => !installedKeys.has(c.key)),
-    eventListeners: template.eventListeners.filter(
-      (l) => !installedKeys.has(l.key)
-    ),
-    messages: template.messages.filter((m) => !installedKeys.has(m.key)),
-    variables: template.variables.filter((v) => !installedKeys.has(v.key)),
-  };
-  const items = [
-    ...selection.commands,
-    ...selection.eventListeners,
-    ...selection.messages,
-    ...selection.variables,
-  ].map((i) => i.key);
-
-  if (!appIds || !Object.values(deleted).some((d) => d.length)) return null;
-
-  function toggle(key: string, included: boolean) {
-    const next = new Set(skipped);
-    if (included) next.delete(key);
-    else next.add(key);
-    setSkipped(next);
-  }
+  const deleted = [
+    ...template.commands,
+    ...template.eventListeners,
+    ...template.messages,
+    ...template.variables,
+  ].some((i) => !appIds?.has(i.key));
+  if (!appIds || !deleted) return null;
 
   async function restore() {
     const res = await restoreMutation.mutateAsync({
       bundle_version: template.version,
-      parameters: Object.fromEntries(
-        parameters.flatMap((p) =>
-          values[p.key] ? [[p.key, values[p.key]]] : []
-        )
-      ),
+      parameters,
       items,
     });
     if (!res.success) {
@@ -117,10 +91,10 @@ export function TemplateRestoreCard({ template }: { template: Template }) {
         template, so your next update also updates them in apps that added it.
       </p>
 
-      {!!parameters.length && (
+      {!!selection.parameters.length && (
         <div className="mb-5">
           <TemplateParameterFields
-            parameters={parameters}
+            parameters={selection.parameters}
             values={values}
             onChange={setValues}
             guildId={guildId}
@@ -130,42 +104,13 @@ export function TemplateRestoreCard({ template }: { template: Template }) {
       )}
 
       <div className="space-y-2.5 mb-5">
-        {deleted.commands.map((command) => (
-          <ItemRow
-            key={command.key}
-            exists={false}
-            included={!skipped.has(command.key)}
-            onToggle={(included) => toggle(command.key, included)}
-            note={
-              !skipped.has(command.key) && commandNames.has(command.name)
-                ? "name taken, gets a number"
-                : undefined
-            }
-          >
-            {commandLabel(command.name, command.flowSource)}
-          </ItemRow>
-        ))}
-        {deleted.eventListeners.map((listener) => (
-          <ItemRow
-            key={listener.key}
-            exists={false}
-            included={!skipped.has(listener.key)}
-            onToggle={(included) => toggle(listener.key, included)}
-            description={listener.description}
-          >
-            {discordEventType(listener.type)?.label ?? listener.type}
-          </ItemRow>
-        ))}
-        {deleted.messages.map((message) => (
-          <ItemRow key={message.key} exists={false}>
-            {message.name} message
-          </ItemRow>
-        ))}
-        {deleted.variables.map((variable) => (
-          <ItemRow key={variable.key} exists={false}>
-            {variable.name} stored variable
-          </ItemRow>
-        ))}
+        <TemplateItemRows
+          template={template}
+          installedKeys={appIds}
+          skipped={skipped}
+          onSkippedChange={setSkipped}
+          hideExisting
+        />
       </div>
 
       {exceeded && (

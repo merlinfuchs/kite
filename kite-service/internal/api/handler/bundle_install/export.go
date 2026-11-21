@@ -95,12 +95,20 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 		}
 	}
 
-	sel, err := selectItems(b, keys, params, "invalid_bundle_import")
+	return h.importItems(c, b, keys, params, ids, false, "invalid_bundle_import")
+}
+
+// importItems creates the items of the bundle with the keys, without linking
+// them to it, and returns what it created. ids are the messages and variables
+// of the bundle the app has already. code is the error code of items or
+// parameters that can't be added.
+func (h *BundleInstallHandler) importItems(c *handler.Context, b *bundle.Bundle, keys []string, params map[string]string, ids bundleIDs, keepIDs bool, code string) (*wire.BundleImportResponse, error) {
+	sel, err := selectItems(b, keys, params, code)
 	if err != nil {
 		return nil, err
 	}
 
-	created, items, err := h.prepareContents(c, sel, ids, null.String{}, false)
+	created, items, err := h.prepareContents(c, sel, ids, null.String{}, keepIDs)
 	if err != nil {
 		return nil, err
 	}

@@ -78,7 +78,6 @@ export function TemplateInstallCard({
   // Apps on the Kite bot can't edit what they add, and the bot isn't theirs.
   const sharedBot = useSharedBot();
   const botName = sharedBot ? "the Kite bot" : "your bot";
-  const commandNames = useCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
@@ -166,13 +165,6 @@ export function TemplateInstallCard({
     }
     return { permissions: Array.from(permissions), guildNames };
   }, [derived.permissions, guilds, guildId]);
-
-  function toggle(key: string, included: boolean) {
-    const next = new Set(skipped);
-    if (included) next.delete(key);
-    else next.add(key);
-    setSkipped(next);
-  }
 
   async function install() {
     const unposted = await add({
@@ -330,53 +322,12 @@ export function TemplateInstallCard({
         <>
           <div className="text-sm font-medium mb-2.5">Include</div>
           <div className="space-y-2.5 mb-5">
-            {template.commands.map((command) => (
-              <ItemRow
-                key={command.key}
-                exists={installedKeys.has(command.key)}
-                included={!skipped.has(command.key)}
-                onToggle={(included) => toggle(command.key, included)}
-                note={
-                  !skipped.has(command.key) && commandNames.has(command.name)
-                    ? "name taken, gets a number"
-                    : undefined
-                }
-              >
-                {commandLabel(command.name, command.flowSource)}
-              </ItemRow>
-            ))}
-            {template.eventListeners.map((listener) => (
-              <ItemRow
-                key={listener.key}
-                exists={installedKeys.has(listener.key)}
-                included={!skipped.has(listener.key)}
-                onToggle={(included) => toggle(listener.key, included)}
-                description={listener.description}
-              >
-                {discordEventType(listener.type)?.label ?? listener.type}
-              </ItemRow>
-            ))}
-            {template.messages.map((message) => {
-              const exists = installedKeys.has(message.key);
-              return (
-                <ItemRow key={message.key} exists={exists}>
-                  {message.name} message
-                  {message.sendTo && !exists && (
-                    <span className="text-muted-foreground">
-                      , posted in the channel
-                    </span>
-                  )}
-                </ItemRow>
-              );
-            })}
-            {template.variables.map((variable) => (
-              <ItemRow
-                key={variable.key}
-                exists={installedKeys.has(variable.key)}
-              >
-                {variable.name} stored variable
-              </ItemRow>
-            ))}
+            <TemplateItemRows
+              template={template}
+              installedKeys={installedKeys}
+              skipped={skipped}
+              onSkippedChange={setSkipped}
+            />
           </div>
         </>
       )}
@@ -452,9 +403,87 @@ function MissingIntegration({ integration }: { integration: Integration }) {
   );
 }
 
+// TemplateItemRows are the items of the template to include, which the app
+// doesn't have yet unless they're shown as already in it. Commands and event
+// listeners can be skipped, the messages and variables they use can't.
+export function TemplateItemRows({
+  template,
+  installedKeys,
+  skipped,
+  onSkippedChange,
+  hideExisting,
+}: {
+  template: Template;
+  installedKeys: Set<string>;
+  skipped: Set<string>;
+  onSkippedChange: (skipped: Set<string>) => void;
+  // Leaves out the items the app has instead of showing them as in it.
+  hideExisting?: boolean;
+}) {
+  const commandNames = useCommandNames();
+  const shown = <T extends { key: string }>(items: T[]) =>
+    hideExisting ? items.filter((i) => !installedKeys.has(i.key)) : items;
+
+  function toggle(key: string, included: boolean) {
+    const next = new Set(skipped);
+    if (included) next.delete(key);
+    else next.add(key);
+    onSkippedChange(next);
+  }
+
+  return (
+    <>
+      {shown(template.commands).map((command) => (
+        <ItemRow
+          key={command.key}
+          exists={installedKeys.has(command.key)}
+          included={!skipped.has(command.key)}
+          onToggle={(included) => toggle(command.key, included)}
+          note={
+            !skipped.has(command.key) && commandNames.has(command.name)
+              ? "name taken, gets a number"
+              : undefined
+          }
+        >
+          {commandLabel(command.name, command.flowSource)}
+        </ItemRow>
+      ))}
+      {shown(template.eventListeners).map((listener) => (
+        <ItemRow
+          key={listener.key}
+          exists={installedKeys.has(listener.key)}
+          included={!skipped.has(listener.key)}
+          onToggle={(included) => toggle(listener.key, included)}
+          description={listener.description}
+        >
+          {discordEventType(listener.type)?.label ?? listener.type}
+        </ItemRow>
+      ))}
+      {shown(template.messages).map((message) => {
+        const exists = installedKeys.has(message.key);
+        return (
+          <ItemRow key={message.key} exists={exists}>
+            {message.name} message
+            {message.sendTo && !exists && (
+              <span className="text-muted-foreground">
+                , posted in the channel
+              </span>
+            )}
+          </ItemRow>
+        );
+      })}
+      {shown(template.variables).map((variable) => (
+        <ItemRow key={variable.key} exists={installedKeys.has(variable.key)}>
+          {variable.name} stored variable
+        </ItemRow>
+      ))}
+    </>
+  );
+}
+
 // ItemRow is an item of the template to include. Without onToggle it's always
 // included, unless the app has it already.
-export function ItemRow({
+function ItemRow({
   exists,
   included = true,
   onToggle,

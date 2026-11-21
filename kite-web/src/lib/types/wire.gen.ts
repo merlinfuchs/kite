@@ -692,13 +692,12 @@ export interface BundleRestoreRequest {
   parameters: { [key: string]: string};
   /**
    * Items are the keys of the commands, event listeners, messages and
-   * variables to restore.
+   * variables to restore. The app can't have any of them.
    */
   items: string[];
 }
 /**
- * BundleRestoreResponse is what the restore created. Messages and variables
- * the app still had aren't created again.
+ * BundleRestoreResponse is what the restore created.
  */
 export type BundleRestoreResponse = BundleImportResponse;
 /**

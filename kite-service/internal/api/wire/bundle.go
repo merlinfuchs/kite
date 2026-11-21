@@ -234,7 +234,7 @@ type BundleRestoreRequest struct {
 	BundleVersion int               `json:"bundle_version"`
 	Parameters    map[string]string `json:"parameters"`
 	// Items are the keys of the commands, event listeners, messages and
-	// variables to restore.
+	// variables to restore. The app can't have any of them.
 	Items []string `json:"items"`
 }
 
@@ -250,8 +250,7 @@ func (req BundleRestoreRequest) Validate() error {
 	)
 }
 
-// BundleRestoreResponse is what the restore created. Messages and variables
-// the app still had aren't created again.
+// BundleRestoreResponse is what the restore created.
 type BundleRestoreResponse = BundleImportResponse
 
 // BundleUpdateRequest changes the page of a bundle that isn't in the

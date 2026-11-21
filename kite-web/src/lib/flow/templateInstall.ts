@@ -28,14 +28,7 @@ export function restoreSelection(
   appIds: Set<string>,
   skipped: Set<string>
 ) {
-  const keys = [
-    ...template.commands,
-    ...template.eventListeners,
-    ...template.messages,
-    ...template.variables,
-  ].map((i) => i.key);
-  const installedKeys = new Set(keys.filter((k) => appIds.has(k)));
-  return selectionOf(template, installedKeys, undefined, skipped);
+  return selectionOf(template, appIds, undefined, skipped);
 }
 
 // selectionOf is the selection of the items the app doesn't have.
