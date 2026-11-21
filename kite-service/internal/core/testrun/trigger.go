@@ -553,6 +553,16 @@ func (s *testSession) listenerEvent(root *flow.CompiledFlowNode, test Test) (gat
 			"action_type": discord.GuildUpdate,
 		}
 		return decodeEvent[gateway.GuildAuditLogEntryCreateEvent](base, test.Event)
+	case model.EventListenerTypeDiscordThreadCreate:
+		base := map[string]any{
+			"id":        flow.TestSnowflake().String(),
+			"guild_id":  s.guildID.String(),
+			"parent_id": s.channelID.String(),
+			"owner_id":  s.userID.String(),
+			"name":      "new-thread",
+			"type":      discord.GuildPublicThread,
+		}
+		return decodeEvent[gateway.ThreadCreateEvent](base, test.Event)
 	}
 	return nil, testErrorf("test runs don't support %s event listeners yet", eventType)
 }
