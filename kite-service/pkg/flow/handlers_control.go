@@ -199,6 +199,39 @@ func conditionListValues(value thing.Thing, ignoreCase bool) []string {
 	return values
 }
 
+// memberHasPermissions reports whether member holds all bits in required within
+// the current guild, accounting for @everyone, Administrator, and server ownership.
+func memberHasPermissions(ctx *FlowContext, member discord.Member, required discord.Permissions) (bool, error) {
+	guildID := ctx.Data.GuildID()
+	if !guildID.IsValid() {
+		return false, nil
+	}
+
+	roles, err := ctx.Discord.GuildRoles(ctx, guildID)
+	if err != nil {
+		return false, err
+	}
+
+	var permission discord.Permissions
+	everyoneRoleID := discord.RoleID(guildID)
+	for _, role := range roles {
+		// Discord omits the @everyone role (ID == guild ID) from member.RoleIDs.
+		if role.ID == everyoneRoleID || slices.Contains(member.RoleIDs, role.ID) {
+			permission |= role.Permissions
+		}
+	}
+
+	if permission.Has(discord.PermissionAdministrator) || permission&required == required {
+		return true, nil
+	}
+
+	guild, err := ctx.Discord.Guild(ctx, guildID)
+	if err != nil {
+		return false, err
+	}
+	return guild != nil && guild.OwnerID == member.User.ID, nil
+}
+
 func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) error {
 	parent := n.FindDirectParentWithType(
 		FlowNodeTypeControlConditionUser,
@@ -243,48 +276,22 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 			return nil
 		}
 		conditionMet = !slices.Contains(member.RoleIDs, discord.RoleID(itemValue.Int()))
-	case ComparsionModeHasPermission:
+	case ComparsionModeHasPermission, ComparsionModeNotHasPermission:
 		member := baseValue.DiscordMember()
 		if !member.User.ID.IsValid() {
 			// TODO?: fetch member by id from discord?
 			return nil
 		}
 
-		roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
+		has, err := memberHasPermissions(ctx, member, discord.Permissions(itemValue.Int()))
 		if err != nil {
 			return err
 		}
 
-		var permission discord.Permissions
-		for _, role := range roles {
-			if slices.Contains(member.RoleIDs, role.ID) {
-				permission |= role.Permissions
-			}
+		conditionMet = has
+		if n.Data.ConditionItemMode == ComparsionModeNotHasPermission {
+			conditionMet = !has
 		}
-
-		itemPermissions := discord.Permissions(itemValue.Int())
-		conditionMet = permission&itemPermissions == itemPermissions
-	case ComparsionModeNotHasPermission:
-		member := baseValue.DiscordMember()
-		if !member.User.ID.IsValid() {
-			// TODO?: fetch member by id from discord?
-			return nil
-		}
-
-		roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
-		if err != nil {
-			return err
-		}
-
-		var permission discord.Permissions
-		for _, role := range roles {
-			if slices.Contains(member.RoleIDs, role.ID) {
-				permission |= role.Permissions
-			}
-		}
-
-		itemPermissions := discord.Permissions(itemValue.Int())
-		conditionMet = permission&itemPermissions != itemPermissions
 	}
 
 	if conditionMet {
