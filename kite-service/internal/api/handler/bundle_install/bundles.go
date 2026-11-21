@@ -93,7 +93,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 	return wire.UserBundleToWire(b), nil
 }
 
-// HandleBundleRestore adds items of the current version of the user's bundle
+// HandleBundleRestore adds items of the newest version of the user's bundle
 // back to the app it's made from, after the app deleted them. They're the
 // originals again with their old IDs, which are their keys in the bundle, so
 // new versions keep updating them in the apps that added it.
@@ -104,6 +104,9 @@ func (h *BundleInstallHandler) HandleBundleRestore(c *handler.Context, req wire.
 	}
 	if b.SourceAppID.String != c.App.ID {
 		return nil, handler.ErrBadRequest("wrong_app", "restore items in the app the template was made from")
+	}
+	if err := bundle.LoadLatest(c.Context(), h.bundleStore, b); err != nil {
+		return nil, err
 	}
 	if req.BundleVersion != b.Version {
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")

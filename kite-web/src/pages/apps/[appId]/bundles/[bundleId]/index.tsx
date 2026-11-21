@@ -84,7 +84,7 @@ export default function AppBundlePage() {
                   <OtherSourceAppCard bundle={own} />
                 ))}
               {fromHere ? (
-                <TemplateRestoreCard template={template} />
+                <TemplateRestoreCard templateId={template.id} />
               ) : (
                 <>
                   <TemplateInstalledCard template={template} />

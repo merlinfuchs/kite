@@ -24,7 +24,7 @@ export default function AppTemplateAside({
     return (
       <div className="space-y-5">
         <SourceAppCard bundle={own} />
-        <TemplateRestoreCard template={template} />
+        <TemplateRestoreCard templateId={template.id} />
       </div>
     );
   }

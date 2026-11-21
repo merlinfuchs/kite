@@ -112,6 +112,14 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 
+	// The owner can load the newest version, which apps don't get before Kite
+	// approves it.
+	if c.Query("version") == "latest" && b.OwnedBy(userID) {
+		if err := bundle.LoadLatest(c.Context(), h.bundleStore, b); err != nil {
+			return nil, err
+		}
+	}
+
 	res := wire.BundleToWire(b)
 	res.Yours = b.OwnedBy(userID)
 	if b.OwnerUserID.Valid {

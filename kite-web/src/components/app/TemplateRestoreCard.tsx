@@ -8,6 +8,7 @@ import {
   useVariables,
 } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import { useLatestTemplate } from "@/lib/hooks/templates";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
@@ -21,10 +22,17 @@ import {
 } from "./TemplateParameterFields";
 
 // TemplateRestoreCard is for the app a template is made from, to add back the
-// items of the template it deleted. They're the originals again, so publishing
-// an update still updates them in the apps that added the template. It shows
-// nothing while the app has everything.
-export function TemplateRestoreCard({ template }: { template: Template }) {
+// items of the template it deleted, as they are in its newest version. They're
+// the originals again, so publishing an update still updates them in the apps
+// that added the template. It shows nothing while the app has everything.
+export function TemplateRestoreCard({ templateId }: { templateId: string }) {
+  const template = useLatestTemplate(templateId);
+  if (!template) return null;
+  // A new version starts over with its own parameters.
+  return <RestoreCard key={template.version} template={template} />;
+}
+
+function RestoreCard({ template }: { template: Template }) {
   const appId = useAppId();
   const commands = useCommands();
   const eventListeners = useEventListeners();

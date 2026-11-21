@@ -160,6 +160,23 @@ var official = func() []officialBundle {
 	return res
 }()
 
+// LoadLatest gives a bundle loaded with the version apps install the content
+// of its newest version instead. That's the one the app it's made from
+// published last, also while a review of it is pending or after one rejected
+// it.
+func LoadLatest(ctx context.Context, s store.BundleStore, b *model.Bundle) error {
+	if b.Version == b.LatestVersion {
+		return nil
+	}
+	content, err := s.BundleVersionContent(ctx, b.ID, b.LatestVersion)
+	if err != nil {
+		return fmt.Errorf("failed to get bundle version: %w", err)
+	}
+	b.Content = content
+	b.Version = b.LatestVersion
+	return nil
+}
+
 // Parse reads the stored content of a bundle version.
 func Parse(content []byte) (*Bundle, error) {
 	var b Bundle

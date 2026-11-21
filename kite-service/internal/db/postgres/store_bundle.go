@@ -16,6 +16,20 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+func (c *Client) BundleVersionContent(ctx context.Context, id string, version int) ([]byte, error) {
+	content, err := c.Q.GetBundleVersionContent(ctx, pgmodel.GetBundleVersionContentParams{
+		BundleID: id,
+		Version:  int32(version),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return content, nil
+}
+
 func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 	row, err := c.Q.GetBundleCurrentVersion(ctx, id)
 	if err != nil {

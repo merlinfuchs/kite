@@ -371,6 +371,18 @@ export function useBundleQuery(
   });
 }
 
+// useLatestBundleQuery loads the user's bundle with the content of its newest
+// version, which apps don't get before Kite approves it.
+export function useLatestBundleQuery(bundleId: string) {
+  return useQuery({
+    queryKey: ["bundles", bundleId, "latest"],
+    queryFn: () =>
+      apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}?version=latest`),
+    enabled: !!bundleId,
+    staleTime: 60_000,
+  });
+}
+
 // useBundlesByIdQueries loads several bundles with everything in them. The
 // result of combine stays the same until one of them changes.
 export function useBundlesByIdQueries<T>(

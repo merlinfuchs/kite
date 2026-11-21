@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   useBundleQuery,
+  useLatestBundleQuery,
   useBundlesByIdQueries,
   useBundlesQuery,
   useStarredBundlesQuery,
@@ -31,6 +32,17 @@ export function useTemplate(
   placeholder?: BundleGetResponse | null
 ): Template | null | undefined {
   const { data } = useBundleQuery(id, placeholder);
+  return useMemo(() => {
+    if (!data) return undefined;
+    if (!data.success) return null;
+    return templateFromBundle(data.data) ?? null;
+  }, [data]);
+}
+
+// useLatestTemplate is the user's template with its newest version, or null
+// if it can't be loaded.
+export function useLatestTemplate(id: string): Template | null | undefined {
+  const { data } = useLatestBundleQuery(id);
   return useMemo(() => {
     if (!data) return undefined;
     if (!data.success) return null;

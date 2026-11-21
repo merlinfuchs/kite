@@ -679,7 +679,7 @@ export interface BundleVersionCreateRequest extends BundleContentRequest {
 }
 export type BundleVersionCreateResponse = UserBundle;
 /**
- * BundleRestoreRequest adds items of the current version of the user's bundle
+ * BundleRestoreRequest adds items of the newest version of the user's bundle
  * back to the app it's made from, after the app deleted them. They get their
  * old IDs, which are their keys, so new versions keep updating them in the
  * apps that added the bundle.
