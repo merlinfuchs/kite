@@ -14,6 +14,7 @@ import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 import KiteBanDialog from "@/components/common/KiteBanDialog";
 import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
+import { listenForInstallPrompt } from "@/lib/hooks/installApp";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -29,6 +30,8 @@ type AppPropsWithLayout = AppProps & {
 };
 
 const noIconSvgs = {};
+
+if (typeof window !== "undefined") listenForInstallPrompt();
 
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);

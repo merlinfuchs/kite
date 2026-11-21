@@ -1,6 +1,7 @@
 import { UserBadges } from "@/components/badges/Badges";
 import {
   ClipboardCheckIcon,
+  DownloadIcon,
   HomeIcon,
   KeyRoundIcon,
   LogOutIcon,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useUser, useUserBundles } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import { installApp, useInstallApp } from "@/lib/hooks/installApp";
 import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
@@ -42,6 +44,7 @@ export default function UserMenu({
 }) {
   const user = useUser();
   const logout = useLogout();
+  const canInstall = useInstallApp() !== null;
   const router = useRouter();
   const [tokensOpen, setTokensOpen] = useState(false);
   const tokensLinked = router.query["api-tokens"] !== undefined;
@@ -93,6 +96,15 @@ export default function UserMenu({
                 <ClipboardCheckIcon className="size-4" />
                 Marketplace reviews
               </Link>
+            </DropdownMenuItem>
+          )}
+          {canInstall && (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onClick={installApp}
+            >
+              <DownloadIcon className="size-4" />
+              Install Kite
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
