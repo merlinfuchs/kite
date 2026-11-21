@@ -145,3 +145,12 @@ export function saveErrorMessage(
   }
   return `Failed to update ${thing}: ${error.message} (${error.code})`;
 }
+
+// saveRequestErrorMessage is the message for a save whose request failed
+// without an answer, like when the connection dropped.
+export function saveRequestErrorMessage(thing: string, err: unknown) {
+  if (!navigator.onLine) {
+    return `You're offline, so the ${thing} wasn't saved. Your changes are still here. Save again when you're back online.`;
+  }
+  return `Failed to update ${thing}: ${err}`;
+}

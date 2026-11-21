@@ -5,7 +5,11 @@ import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
-import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
+import {
+  saveErrorMessage,
+  saveRequestErrorMessage,
+  useSaveBase,
+} from "@/lib/hooks/versionHistory";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -82,7 +86,7 @@ export default function AppEventListenerPage() {
         }
         return true;
       } catch (err) {
-        toast.error(`Failed to update ${name.singular}: ${err}`);
+        toast.error(saveRequestErrorMessage(name.singular, err));
         return false;
       }
     },

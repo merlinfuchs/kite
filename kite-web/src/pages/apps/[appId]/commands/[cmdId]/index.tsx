@@ -4,7 +4,11 @@ import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
-import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
+import {
+  saveErrorMessage,
+  saveRequestErrorMessage,
+  useSaveBase,
+} from "@/lib/hooks/versionHistory";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -73,7 +77,7 @@ export default function AppCommandPage() {
         }
         return true;
       } catch (err) {
-        toast.error(`Failed to update command: ${err}`);
+        toast.error(saveRequestErrorMessage("command", err));
         return false;
       }
     },

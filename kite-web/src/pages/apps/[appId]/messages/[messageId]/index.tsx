@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   saveErrorMessage,
+  saveRequestErrorMessage,
   useEditorSession,
   useVersionHistory,
 } from "@/lib/hooks/versionHistory";
@@ -137,6 +138,9 @@ function AppMessagePageInner() {
               if (res.error.code === "item_outdated") base.current = null;
               toast.error(saveErrorMessage("message", res.error));
             }
+          },
+          onError(err) {
+            toast.error(saveRequestErrorMessage("message", err));
           },
           onSettled() {
             setIsSaving(false);
