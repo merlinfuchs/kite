@@ -19,6 +19,7 @@ import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { aiScore } from "./aiScore";
 import { aiTranslate } from "./aiTranslate";
+import { ttsSpeak } from "./ttsSpeak";
 import { controlAiCheck } from "./controlAiCheck";
 import { controlConditionAiChoice } from "./controlConditionAiChoice";
 import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
@@ -188,6 +189,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelLeave,
   discordMemberVoiceEdit,
   discordVoiceAudioPlay,
+  ttsSpeak,
   discordVoiceAudioStop,
   discordSoundboardSoundPlay,
   discordStatusSet,

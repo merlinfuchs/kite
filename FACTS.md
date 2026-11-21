@@ -42,7 +42,7 @@ Features (feature | what it means for the user | free or paid):
 - Custom status | your own status instead of "Powered by Kite.onl" | free
 - Rotating status and the Set status block | up to 10 statuses that change every minute | Kite Plus and up
 - Animated avatar and banner | GIF or animated WebP profile | Kite Plus and up
-- Play audio in voice channels | upload a sound and the bot plays it | Kite Plus and up
+- Play audio in voice channels | upload a sound and the bot plays it, or use the Speak Text block to have it say up to 1,000 characters of text, 2 credits a run | Kite Plus and up
 - Profile per server | another nickname, avatar, banner, About Me, and name style in each server. The name style is a font, an effect, and colors. Servers show the font. The profile also shows the effect and colors | Kite Premium and up
 - Send message as | one message with another name and avatar, like the user who ran the command | Kite Premium and up
 - Priority support | Kite Premium and up

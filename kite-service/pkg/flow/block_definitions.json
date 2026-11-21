@@ -1794,6 +1794,20 @@
       "result": null
     },
     {
+      "type": "action_tts_speak",
+      "title": "Speak Text",
+      "credits": 2,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_voice_audio_stop",
       "title": "Stop audio",
       "credits": 1,

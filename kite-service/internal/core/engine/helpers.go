@@ -46,6 +46,7 @@ type Env struct {
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	OpenRouterAPIKey     string
+	OpenAIAPIKey         string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
 	// Voice keeps the voice connections that play audio. Without it, flows
@@ -102,6 +103,12 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(appID, s.OpenaiClient)
 	}
 
+	// Speak Text fails without an OpenAI API key.
+	var ttsProvider provider.TTSProvider = provider.NoTTSProvider{}
+	if s.OpenAIAPIKey != "" && s.HttpClient != nil && s.FeatureProvider != nil {
+		ttsProvider = NewTTSProvider(appID, s.FeatureProvider, s.HttpClient, s.OpenAIAPIKey)
+	}
+
 	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
 	if s.OpenRouterAPIKey != "" {
 		decisionProvider = NewDecisionProvider(s.HttpClient, s.OpenRouterAPIKey)
@@ -122,6 +129,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
+		TTS:             ttsProvider,
 		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableStore, s.VariableValueStore),

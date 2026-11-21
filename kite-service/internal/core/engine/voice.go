@@ -130,20 +130,26 @@ func (m *VoiceManager) remove(p *voicePlayer) {
 
 // Play joins the voice channel and starts playing the sound in the background.
 func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.State, opts provider.PlayAudioOpts) error {
-	asset, err := m.assets.AssetWithContent(ctx, opts.AssetID)
-	if errors.Is(err, store.ErrNotFound) || (err == nil && asset.AppID != appID) {
-		return fmt.Errorf("the sound doesn't exist anymore, upload it again")
-	}
-	if err != nil {
-		return fmt.Errorf("failed to get the sound: %w", err)
-	}
-	if asset.ContentType != sound.ContentType {
-		return fmt.Errorf("the file isn't a sound, upload it again in the block")
+	// Generated sounds come with the options, uploaded ones are stored.
+	content := opts.Sound
+	if content == nil {
+		asset, err := m.assets.AssetWithContent(ctx, opts.AssetID)
+		if errors.Is(err, store.ErrNotFound) || (err == nil && asset.AppID != appID) {
+			return fmt.Errorf("the sound doesn't exist anymore, upload it again")
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get the sound: %w", err)
+		}
+		if asset.ContentType != sound.ContentType {
+			return fmt.Errorf("the file isn't a sound, upload it again in the block")
+		}
+		content = asset.Content
 	}
 
 	key := voiceKey{appID: appID, guildID: opts.GuildID}
 
 	var p *voicePlayer
+	var err error
 	for {
 		p, err = m.player(key, true)
 		if err != nil {
@@ -219,7 +225,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 			p.disconnect()
 		}
 		m.remove(p)
-	}(p.voice, asset.Content)
+	}(p.voice, content)
 
 	return nil
 }
