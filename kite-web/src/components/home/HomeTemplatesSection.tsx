@@ -43,13 +43,18 @@ export default function HomeTemplatesSection({
         </Button>
       </div>
 
-      <div className="mt-8 md:mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* A row to swipe on phones, so six cards don't fill the screen. */}
+      <div className="mt-8 md:mt-10 -mx-8 px-8 md:mx-0 md:px-0 flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 [scrollbar-width:none] md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible">
         {templates.map((template) => (
-          <FeaturedTemplateEntry
+          <div
             key={template.id}
-            template={template}
-            href={templatePath(template.id)}
-          />
+            className="flex w-[85%] max-w-sm flex-none snap-center md:w-auto [&>a]:w-full"
+          >
+            <FeaturedTemplateEntry
+              template={template}
+              href={templatePath(template.id)}
+            />
+          </div>
         ))}
       </div>
     </section>
