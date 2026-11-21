@@ -29,7 +29,7 @@ func (q *Queries) DeleteUserBadgeGrant(ctx context.Context, arg DeleteUserBadgeG
 }
 
 const getUserBadgeGrants = `-- name: GetUserBadgeGrants :many
-SELECT user_badge_grants.user_id, user_badge_grants.badge, user_badge_grants.granted_by_user_id, user_badge_grants.created_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+SELECT user_badge_grants.user_id, user_badge_grants.badge, user_badge_grants.granted_by_user_id, user_badge_grants.created_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio
 FROM user_badge_grants
 JOIN users ON users.id = user_badge_grants.user_id
 ORDER BY user_badge_grants.created_at DESC, user_badge_grants.user_id, user_badge_grants.badge
@@ -62,6 +62,7 @@ func (q *Queries) GetUserBadgeGrants(ctx context.Context) ([]GetUserBadgeGrantsR
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.Bio,
 		); err != nil {
 			return nil, err
 		}

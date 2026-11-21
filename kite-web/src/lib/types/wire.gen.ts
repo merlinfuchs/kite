@@ -571,6 +571,11 @@ export interface BundleOwner {
   discord_username: string;
   discord_avatar: null | string;
   /**
+   * Bio is the text they show on their creator page, empty if they have
+   * none.
+   */
+  bio?: string;
+  /**
    * Badges are the badges of the user, only set in the list of all
    * templates.
    */
@@ -1871,6 +1876,10 @@ export interface User {
   discord_username: string;
   discord_avatar: null | string;
   /**
+   * Bio is the text they show on their creator page in the marketplace.
+   */
+  bio: string;
+  /**
    * IsAdmin is whether the current user can review bundles, false for
    * other users.
    */
@@ -1883,6 +1892,18 @@ export interface User {
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+/**
+ * UserUpdateRequest changes the profile of the current user.
+ */
+export interface UserUpdateRequest {
+  /**
+   * Bio is the text they show on their creator page in the marketplace, up
+   * to MaxUserBioLength characters on MaxUserBioLines lines. Empty removes
+   * it.
+   */
+  bio: string;
+}
+export type UserUpdateResponse = User;
 
 //////////
 // source: user_badge.go

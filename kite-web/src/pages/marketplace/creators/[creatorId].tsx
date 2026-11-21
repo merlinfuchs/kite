@@ -6,6 +6,7 @@ import {
   TemplateListEntry,
 } from "@/components/app/TemplateListEntry";
 import { UserBadges } from "@/components/badges/Badges";
+import CreatorBio from "@/components/app/CreatorBio";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
@@ -92,9 +93,16 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   return (
     <HomeLayout
       title={`Discord bot templates by ${owner.display_name}`}
-      description={`Free templates for Discord bots that ${
-        owner.display_name
-      } made with Kite: ${templates.map((t) => t.name).join(", ")}.`}
+      description={
+        // Their bio says who they are, the templates what they made.
+        owner.bio
+          ? `${owner.bio.replace(/\s+/g, " ")} Templates: ${templates
+              .map((t) => t.name)
+              .join(", ")}.`
+          : `Free templates for Discord bots that ${
+              owner.display_name
+            } made with Kite: ${templates.map((t) => t.name).join(", ")}.`
+      }
       image={ogImagePath("creators", creatorId, creatorImageVersion(templates))}
       embedButtons={[
         { label: "View templates", path: creatorPath(creatorId) },
@@ -126,6 +134,11 @@ export default function CreatorPage({ creatorId, listed }: Props) {
                 @{owner.discord_username}
                 {since && ` · Creator since ${since}`}
               </div>
+              <CreatorBio
+                creatorId={creatorId}
+                bio={owner.bio}
+                className="mt-3"
+              />
               <UserBadges
                 badges={owner.badges ?? []}
                 className="mt-4"

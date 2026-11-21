@@ -61,6 +61,9 @@ type BundleOwner struct {
 	DiscordID       string      `json:"discord_id"`
 	DiscordUsername string      `json:"discord_username"`
 	DiscordAvatar   null.String `json:"discord_avatar"`
+	// Bio is the text they show on their creator page, empty if they have
+	// none.
+	Bio string `json:"bio,omitempty"`
 	// Badges are the badges of the user, only set in the list of all
 	// templates.
 	Badges []UserBadge `json:"badges,omitempty"`
@@ -72,6 +75,7 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 		DiscordID:       user.DiscordID,
 		DiscordUsername: user.DiscordUsername,
 		DiscordAvatar:   user.DiscordAvatar,
+		Bio:             user.Bio,
 	}
 }
 

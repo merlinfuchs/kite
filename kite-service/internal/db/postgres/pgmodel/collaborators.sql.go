@@ -117,7 +117,7 @@ func (q *Queries) DeleteCollaboratorInvite(ctx context.Context, arg DeleteCollab
 }
 
 const getCollaborator = `-- name: GetCollaborator :one
-SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
+SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
 WHERE app_id = $1 AND user_id = $2
 `
@@ -149,6 +149,7 @@ func (q *Queries) GetCollaborator(ctx context.Context, arg GetCollaboratorParams
 		&i.User.DiscordAvatar,
 		&i.User.CreatedAt,
 		&i.User.UpdatedAt,
+		&i.User.Bio,
 	)
 	return i, err
 }
@@ -191,7 +192,7 @@ func (q *Queries) GetCollaboratorInvitesByApp(ctx context.Context, arg GetCollab
 }
 
 const getCollaboratorsByApp = `-- name: GetCollaboratorsByApp :many
-SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
+SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
 WHERE app_id = $1
 `
@@ -224,6 +225,7 @@ func (q *Queries) GetCollaboratorsByApp(ctx context.Context, appID string) ([]Ge
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.Bio,
 		); err != nil {
 			return nil, err
 		}

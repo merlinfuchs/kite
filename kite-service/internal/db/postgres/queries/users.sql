@@ -35,3 +35,10 @@ RETURNING *;
 SELECT * FROM users WHERE lower(discord_username) = lower($1)
 ORDER BY updated_at DESC
 LIMIT 1;
+
+-- name: UpdateUserBio :one
+UPDATE users SET
+    bio = $2,
+    updated_at = $3
+WHERE id = $1
+RETURNING *;

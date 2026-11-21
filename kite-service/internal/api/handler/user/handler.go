@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -52,5 +54,29 @@ func (h *UserHandler) HandlerUserGet(c *handler.Context) (*wire.UserGetResponse,
 		}
 		res.Badges = wire.UserBadgesToWire(badges[user.ID])
 	}
+	return res, nil
+}
+
+// HandleUserUpdate changes the profile of the current user. Users banned from
+// the marketplace can't change their bio, since it is shown there.
+func (h *UserHandler) HandleUserUpdate(c *handler.Context, req wire.UserUpdateRequest) (*wire.UserUpdateResponse, error) {
+	ban, err := h.userStore.UserBan(c.Context(), c.Session.UserID, model.UserBanFeatureMarketplace)
+	if err == nil {
+		return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from the Marketplace: "+ban.Reason)
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get user ban: %w", err)
+	}
+
+	user, err := h.userStore.UpdateUserBio(c.Context(), c.Session.UserID, req.Bio, time.Now().UTC())
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_user", "User not found")
+		}
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	res := wire.UserToWire(user, true)
+	res.IsAdmin = slices.Contains(h.adminUserIDs, user.ID)
 	return res, nil
 }

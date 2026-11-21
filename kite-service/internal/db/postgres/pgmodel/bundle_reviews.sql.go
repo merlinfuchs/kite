@@ -67,7 +67,7 @@ SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
-    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio
 FROM bundle_reviews
 JOIN bundles ON bundles.id = bundle_reviews.bundle_id
 JOIN users ON users.id = bundles.owner_user_id
@@ -138,6 +138,7 @@ func (q *Queries) GetAutoRejectedBundleReviews(ctx context.Context, count int32)
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.Bio,
 		); err != nil {
 			return nil, err
 		}
@@ -270,7 +271,7 @@ SELECT
     bundle_versions.content,
     bundle_versions.notes,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
-    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio
 FROM bundle_reviews
 JOIN bundles ON bundles.id = bundle_reviews.bundle_id
 JOIN users ON users.id = bundles.owner_user_id
@@ -335,6 +336,7 @@ func (q *Queries) GetPendingBundleReview(ctx context.Context, id string) (GetPen
 		&i.User.DiscordAvatar,
 		&i.User.CreatedAt,
 		&i.User.UpdatedAt,
+		&i.User.Bio,
 	)
 	return i, err
 }
@@ -382,7 +384,7 @@ SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.staff_picked_at, bundles.featurable,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
-    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio
 FROM bundle_reviews
 JOIN bundles ON bundles.id = bundle_reviews.bundle_id
 JOIN users ON users.id = bundles.owner_user_id
@@ -450,6 +452,7 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.Bio,
 		); err != nil {
 			return nil, err
 		}

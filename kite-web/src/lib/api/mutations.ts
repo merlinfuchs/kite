@@ -138,6 +138,8 @@ import {
   OAuthAuthorizeRequest,
   OAuthAuthorizeResponse,
   APITokenCreateResponse,
+  UserUpdateRequest,
+  UserUpdateResponse,
   APITokenDeleteResponse,
   UserBadgeGrantCreateRequest,
   UserBadgeGrantCreateResponse,
@@ -1926,6 +1928,28 @@ export function useFlowAIChatMutation(appId: string) {
       } else {
         // Answers that couldn't be used count too.
         client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
+      }
+    },
+  });
+}
+
+// useUserUpdateMutation changes the profile of the current user, like the bio
+// on their creator page.
+export function useUserUpdateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserUpdateRequest) =>
+      apiRequest<UserUpdateResponse>(`/v1/users/@me`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["users", "@me"], res);
       }
     },
   });

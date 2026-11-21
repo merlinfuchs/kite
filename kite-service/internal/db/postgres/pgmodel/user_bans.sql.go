@@ -51,7 +51,7 @@ func (q *Queries) GetUserBan(ctx context.Context, arg GetUserBanParams) (UserBan
 }
 
 const getUserBans = `-- name: GetUserBans :many
-SELECT user_bans.user_id, user_bans.feature, user_bans.reason, user_bans.banned_by_user_id, user_bans.created_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+SELECT user_bans.user_id, user_bans.feature, user_bans.reason, user_bans.banned_by_user_id, user_bans.created_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.bio
 FROM user_bans
 JOIN users ON users.id = user_bans.user_id
 ORDER BY user_bans.created_at DESC, user_bans.user_id, user_bans.feature
@@ -85,6 +85,7 @@ func (q *Queries) GetUserBans(ctx context.Context) ([]GetUserBansRow, error) {
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.Bio,
 		); err != nil {
 			return nil, err
 		}

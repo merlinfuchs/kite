@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
@@ -13,6 +14,9 @@ type UserStore interface {
 	UserByAppDiscordID(ctx context.Context, discordID string) (*model.User, error)
 	UserByDiscordUsername(ctx context.Context, discordUsername string) (*model.User, error)
 	UpsertUser(ctx context.Context, user *model.User) (*model.User, error)
+	// UpdateUserBio sets the bio of the user. It returns ErrNotFound if there
+	// is no user with the ID.
+	UpdateUserBio(ctx context.Context, userID string, bio string, updatedAt time.Time) (*model.User, error)
 	// UserBan returns the user's ban from the feature, or ErrNotFound if
 	// they aren't banned from it.
 	UserBan(ctx context.Context, userID string, feature model.UserBanFeature) (*model.UserBan, error)
