@@ -196,6 +196,11 @@ type DebugConfig struct {
 	Host    string `toml:"host"`
 	// Port of cluster 0, cluster N listens on Port + N.
 	Port int `toml:"port"`
+	// HeapDumpDir gets a heap and a goroutine profile when the Go heap of a
+	// process passes HeapDumpThreshold bytes, for finding out afterwards what
+	// filled it. Empty turns it off.
+	HeapDumpDir       string `toml:"heap_dump_dir"`
+	HeapDumpThreshold uint64 `toml:"heap_dump_threshold" validate:"gt=0"`
 }
 
 type UserLimitsConfig struct {
