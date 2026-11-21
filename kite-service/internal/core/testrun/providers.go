@@ -38,6 +38,7 @@ func (s *testSession) testProviders(run *flow.TestRun) flow.FlowProviders {
 		Log:             testLogProvider{run: run},
 		HTTP:            testHTTPProvider{},
 		AI:              testAIProvider{},
+		TTS:             testTTSProvider{},
 		Decision:        testDecisionProvider{run: run},
 		MessageTemplate: &testMessageTemplateProvider{real: real.MessageTemplate, s: s},
 		Variable:        &testVariableProvider{real: real.Variable, s: s, run: run},
@@ -648,6 +649,14 @@ func (testHTTPProvider) HTTPRequest(ctx context.Context, req *http.Request) (*ht
 
 func (testHTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
 	return nil, errNotInTestRuns
+}
+
+// testTTSProvider doesn't speak, test runs don't call external services. Speak
+// Text isn't run unless it's mocked, so this is a safeguard.
+type testTTSProvider struct{}
+
+func (testTTSProvider) Speak(ctx context.Context, opts provider.SpeakOpts) (provider.TTSAudio, error) {
+	return provider.TTSAudio{}, errNotInTestRuns
 }
 
 type testAIProvider struct{}

@@ -47,8 +47,8 @@ type DiscordProvider interface {
 	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
-	// PlayAudio joins the voice channel and plays the uploaded sound in the
-	// background, replacing what the bot plays in the server. It returns once
+	// PlayAudio joins the voice channel and plays the uploaded sound, or the
+	// sound of the options, in the background, replacing what the bot plays in the server. It returns once
 	// playback started.
 	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
 	// StopAudio stops what the bot plays in the server. The bot stays in the
@@ -72,8 +72,12 @@ type DiscordProvider interface {
 type PlayAudioOpts struct {
 	GuildID   discord.GuildID
 	ChannelID discord.ChannelID
-	// AssetID is the ID of the asset of the uploaded sound.
+	// AssetID is the ID of the asset of the uploaded sound. Not used if Sound
+	// is set.
 	AssetID string
+	// Sound is the Ogg Opus file to play, like generated speech, instead of an
+	// uploaded sound.
+	Sound []byte `json:"-"`
 	// LeaveAfter makes the bot leave the voice channel once the sound ended.
 	LeaveAfter bool
 }

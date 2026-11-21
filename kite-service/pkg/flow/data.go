@@ -223,6 +223,7 @@ const (
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionAITranslate           FlowNodeType = "action_ai_translate"
+	FlowNodeTypeActionTTSSpeak              FlowNodeType = "action_tts_speak"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionJavaScriptRun         FlowNodeType = "action_javascript_run"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
@@ -464,6 +465,9 @@ type FlowNodeData struct {
 
 	// AI Translate
 	AITranslateData *AITranslateData `json:"ai_translate_data,omitempty"`
+
+	// Speak Text
+	TTSData *TTSData `json:"tts_data,omitempty"`
 
 	// Random Generate
 	RandomMode RandomMode `json:"random_mode,omitempty"`
@@ -742,6 +746,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// AI Translate
 		validation.Field(&d.AITranslateData, validation.When(
 			nodeType == FlowNodeTypeActionAITranslate,
+			validation.Required,
+		)),
+
+		// Speak Text
+		validation.Field(&d.TTSData, validation.When(
+			nodeType == FlowNodeTypeActionTTSSpeak,
 			validation.Required,
 		)),
 
@@ -1502,6 +1512,57 @@ func (d *FlowNodeData) RemapVariableIDs(f func(id string) (string, error)) error
 		}
 	}
 	return nil
+}
+
+// Limits of Speak Text. Mirrors ttsMaxLength, ttsMinSpeed and ttsMaxSpeed in
+// kite-web/src/lib/blocks/ttsSpeak.ts.
+const (
+	ttsMaxLength = 1000
+	ttsMinSpeed  = 0.25
+	ttsMaxSpeed  = 4.0
+)
+
+// ttsVoices are the voices of Speak Text. Mirrors ttsVoices in
+// kite-web/src/lib/blocks/ttsSpeak.ts.
+var ttsVoices = map[string]string{
+	"alloy":   "Alloy",
+	"ash":     "Ash",
+	"coral":   "Coral",
+	"echo":    "Echo",
+	"fable":   "Fable",
+	"nova":    "Nova",
+	"onyx":    "Onyx",
+	"sage":    "Sage",
+	"shimmer": "Shimmer",
+}
+
+type TTSData struct {
+	// What to say, with placeholders.
+	Text string `json:"text,omitempty"`
+	// A key of ttsVoices, alloy if empty.
+	Voice string `json:"voice,omitempty"`
+	// How fast the text is spoken, normal speed if 0.
+	Speed float64 `json:"speed,omitempty"`
+}
+
+func (d TTSData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Text, validation.Required, validation.Length(1, ttsMaxLength)),
+		validation.Field(&d.Voice, validation.By(func(value any) error {
+			voice := value.(string)
+			if _, ok := ttsVoices[voice]; voice != "" && !ok {
+				return errors.New("unsupported voice")
+			}
+			return nil
+		})),
+		validation.Field(&d.Speed, validation.By(func(value any) error {
+			speed := value.(float64)
+			if speed != 0 && (speed < ttsMinSpeed || speed > ttsMaxSpeed) {
+				return fmt.Errorf("must be between %g and %g", ttsMinSpeed, ttsMaxSpeed)
+			}
+			return nil
+		})),
+	)
 }
 
 type AITranslateData struct {
