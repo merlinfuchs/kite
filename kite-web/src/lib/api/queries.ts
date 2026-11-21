@@ -30,6 +30,7 @@ import {
   LogEntry,
   LogEntryListResponse,
   LogSummaryGetResponse,
+  LookupUserGetResponse,
   MessageGetResponse,
   BundleGetResponse,
   BundleInstallListResponse,
@@ -108,6 +109,16 @@ export function useAppStateUserQuery(appId: string) {
     queryFn: () =>
       apiRequest<StateUserGetResponse>(`/v1/apps/${appId}/state/user`),
     enabled: !!appId,
+  });
+}
+
+export function useLookupUserQuery(userId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["lookup", "users", userId],
+    queryFn: () =>
+      apiRequest<LookupUserGetResponse>(`/v1/lookup/users/${userId}`),
+    enabled: !!userId && enabled,
+    staleTime: 10 * 60 * 1000,
   });
 }
 

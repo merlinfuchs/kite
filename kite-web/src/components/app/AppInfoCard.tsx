@@ -5,7 +5,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAppStateStatusQuery, useUserQuery } from "@/lib/api/queries";
+import {
+  useAppStateStatusQuery,
+  useAppStateUserQuery,
+  useLookupUserQuery,
+  useUserQuery,
+} from "@/lib/api/queries";
 import {
   useApp,
   useAppPlan,
@@ -13,11 +18,13 @@ import {
   useUsageCredits,
 } from "@/lib/hooks/api";
 import { formatDate, formatNumber } from "@/lib/utils";
-import { CopyIcon } from "lucide-react";
+import { BotIcon, CopyIcon } from "lucide-react";
 import { useCallback } from "react";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import AppInviteButton from "./AppInviteButton";
 
 export default function AppInfoCard() {
@@ -25,6 +32,22 @@ export default function AppInfoCard() {
   const plan = useAppPlan();
 
   const ownerUser = useResponseData(useUserQuery(app?.owner_user_id));
+  const botUserQuery = useAppStateUserQuery(app?.id || "");
+  const botUser = useResponseData(botUserQuery);
+  const fallbackBotUser = useResponseData(
+    useLookupUserQuery(
+      app?.discord_id || "",
+      botUserQuery.isFetched && !botUser?.avatar_url
+    )
+  );
+  const botAvatarUrl = botUser?.avatar_url
+    ? botUser.avatar_url
+    : fallbackBotUser
+    ? userAvatar({
+        id: fallbackBotUser.id,
+        avatar: fallbackBotUser.avatar,
+      })
+    : undefined;
 
   const appStatus = useResponseData(useAppStateStatusQuery(app?.id));
 
@@ -37,7 +60,15 @@ export default function AppInfoCard() {
       <CardHeader className="flex flex-row items-start bg-muted/50">
         <div className="grid gap-0.5">
           <CardTitle className="text-lg">
-            {app?.name || "Unknown app"}
+            <span className="flex items-center gap-2">
+              <Avatar className="size-10 rounded-full">
+                {botAvatarUrl && <AvatarImage src={botAvatarUrl} alt="" />}
+                <AvatarFallback className="rounded-full">
+                  <BotIcon className="size-5" />
+                </AvatarFallback>
+              </Avatar>
+              {app?.name || "Unknown app"}
+            </span>
           </CardTitle>
           <CardDescription className="group flex items-center gap-2">
             {app?.id}
