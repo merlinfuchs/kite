@@ -43,6 +43,12 @@
       "guild_id",
       "user_is_bot"
     ],
+    "guild_member_update": [
+      "user_id",
+      "guild_id",
+      "role_id",
+      "user_is_bot"
+    ],
     "message_create": [
       "message_content",
       "user_id",

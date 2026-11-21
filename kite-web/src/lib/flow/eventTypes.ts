@@ -16,6 +16,7 @@ import {
   SmileIcon,
   SatelliteDishIcon,
   TimerIcon,
+  UserCogIcon,
   WebhookIcon,
 } from "lucide-react";
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
@@ -129,6 +130,15 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: LogOutIcon,
     category: "Members",
     placeholders: ["user_account", "server"],
+    note: membersIntent,
+  },
+  {
+    value: "guild_member_update",
+    label: "Server member update",
+    description: "A member's roles, nickname, or profile in the server changes",
+    icon: UserCogIcon,
+    category: "Members",
+    placeholders: ["user", "server"],
     note: membersIntent,
   },
   {

@@ -47,6 +47,10 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 	"guild_member_remove": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeUserIsBot,
 	},
+	"guild_member_update": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeRoleID,
+		EventFilterTypeUserIsBot,
+	},
 	"message_reaction_add": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
 		EventFilterTypeMessageID, EventFilterTypeRoleID, EventFilterTypeEmoji,
@@ -243,6 +247,8 @@ func eventFilterBool(target EventFilterTarget, event any, botID discord.UserID) 
 			return e.User.Bot
 		case *gateway.GuildMemberRemoveEvent:
 			return e.User.Bot
+		case *gateway.GuildMemberUpdateEvent:
+			return e.User.Bot
 		case *gateway.MessageReactionAddEvent:
 			return e.Member != nil && e.Member.User.Bot
 		case *gateway.VoiceStateUpdateEvent:
@@ -280,6 +286,8 @@ func eventMemberHasRole(event any, value string) bool {
 		member = e.Member
 	case *gateway.GuildMemberAddEvent:
 		member = &e.Member
+	case *gateway.GuildMemberUpdateEvent:
+		member = &discord.Member{RoleIDs: e.RoleIDs}
 	case *gateway.VoiceStateUpdateEvent:
 		member = e.Member
 	case *guildevent.VoiceStateUpdate:

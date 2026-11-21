@@ -518,6 +518,9 @@ func (s *testSession) listenerEvent(root *flow.CompiledFlowNode, test Test) (gat
 	case model.EventListenerTypeDiscordGuildMemberRemove:
 		base := map[string]any{"guild_id": s.guildID.String(), "user": user}
 		return decodeEvent[gateway.GuildMemberRemoveEvent](base, test.Event)
+	case model.EventListenerTypeDiscordGuildMemberUpdate:
+		base := map[string]any{"guild_id": s.guildID.String(), "user": user, "roles": []string{}}
+		return decodeEvent[gateway.GuildMemberUpdateEvent](base, test.Event)
 	case model.EventListenerTypeDiscordMessageReactionAdd:
 		base := reaction()
 		if member != nil {
