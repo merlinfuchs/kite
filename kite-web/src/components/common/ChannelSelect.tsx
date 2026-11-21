@@ -12,7 +12,10 @@ import { useMemo } from "react";
 import EntitySelect from "./EntitySelect";
 
 // Text, voice, announcement, stage
-const sendableChannelTypes = [0, 2, 5, 13];
+export const sendableChannelTypes = [0, 2, 5, 13];
+
+// Everything above plus forum and media channels, for parameters that accept any channel.
+export const allChannelTypes = [...sendableChannelTypes, 15, 16];
 
 const channelTypeIcons: Record<number, typeof HashIcon> = {
   0: HashIcon,
@@ -33,7 +36,7 @@ export default function ChannelSelect({
   guildId,
   value,
   onChange,
-  types = sendableChannelTypes,
+  types = allChannelTypes,
   placeholder = "Select channel...",
   searchPlaceholder = "Search channel...",
   emptyText = "No channel found.",
@@ -41,7 +44,7 @@ export default function ChannelSelect({
   guildId: string | null;
   value: string | null;
   onChange: (value: string | null) => void;
-  // The channel types to list, the ones messages can be sent to by default.
+  // The channel types to list, text, voice, announcement, stage, forum and media by default.
   types?: number[];
   placeholder?: string;
   searchPlaceholder?: string;
