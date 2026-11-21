@@ -136,6 +136,11 @@ export default function HomeFooter() {
               Bot templates
             </Link>
           </div>
+          <div>
+            <Link href="/contributors" className="opacity-60 hover:opacity-100">
+              Contributors
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -178,14 +183,12 @@ export default function HomeFooter() {
             Merlin Fuchs
           </a>{" "}
           and{" "}
-          <a
-            target="_blank"
-            rel="noreferrer noopener"
-            href="https://github.com/merlinfuchs/kite/graphs/contributors?all=1"
+          <Link
+            href="/contributors"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             contributors
-          </a>
+          </Link>
         </h3>
       </section>
     </footer>
