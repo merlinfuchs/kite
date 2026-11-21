@@ -542,6 +542,7 @@ func (s *APIServer) RegisterRoutes(
 	appBundlesGroup := appGroup.Group("/bundles", handler.RateLimitByUser(10, time.Minute))
 	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
+	appBundlesGroup.Post("/{bundleID}/restore", handler.TypedWithBody(bundleInstallHandler.HandleBundleRestore))
 
 	usersGroup.AllowAPIToken().Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
 	usersGroup.Get("/@me/starred-bundles", handler.Typed(bundleHandler.HandleStarredBundleList))

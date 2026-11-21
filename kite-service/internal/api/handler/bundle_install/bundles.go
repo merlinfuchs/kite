@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -90,6 +91,63 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		h.notifier.BundleVersionInReview(b)
 	}
 	return wire.UserBundleToWire(b), nil
+}
+
+// HandleBundleRestore adds items of the newest version of the user's bundle
+// back to the app it's made from, after the app deleted them. They're the
+// originals again with their old IDs, which are their keys in the bundle, so
+// new versions keep updating them in the apps that added it.
+func (h *BundleInstallHandler) HandleBundleRestore(c *handler.Context, req wire.BundleRestoreRequest) (*wire.BundleRestoreResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if b.SourceAppID.String != c.App.ID {
+		return nil, handler.ErrBadRequest("wrong_app", "restore items in the app the template was made from")
+	}
+	if err := bundle.LoadLatest(c.Context(), h.bundleStore, b); err != nil {
+		return nil, err
+	}
+	if req.BundleVersion != b.Version {
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
+	}
+	content, err := bundle.Parse(b.Content)
+	if err != nil {
+		return nil, err
+	}
+
+	all, err := h.appContents(c)
+	if err != nil {
+		return nil, err
+	}
+	// Blocks use the message templates and variables the app still has.
+	has := map[string]bool{}
+	ids := bundleIDs{messages: map[string]string{}, variables: map[string]string{}}
+	for _, cmd := range all.Commands {
+		has[cmd.ID] = true
+	}
+	for _, listener := range all.EventListeners {
+		has[listener.ID] = true
+	}
+	for _, msg := range all.Messages {
+		has[msg.ID] = true
+		if hasMessage(content, msg.ID) {
+			ids.messages[msg.ID] = msg.ID
+		}
+	}
+	for _, v := range all.Variables {
+		has[v.ID] = true
+		if hasVariable(content, v.ID) {
+			ids.variables[v.ID] = v.ID
+		}
+	}
+	for _, key := range req.Items {
+		if has[key] {
+			return nil, handler.ErrBadRequest("already_in_app", fmt.Sprintf("the app still has %s of the template", key))
+		}
+	}
+
+	return h.importItems(c, content, req.Items, req.Parameters, ids, true, "invalid_bundle_restore")
 }
 
 // setBundleContent exports the items of the app as the content of the
