@@ -41,6 +41,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
 - [Publish message](./actions/action_message_publish.md) - Publish messages from announcement channels to following servers
 - [Create poll](./actions/action_poll_create.md) - Send polls to channels
+- [End poll](./actions/action_poll_end.md) - Immediately end polls
 
 ## User and member blocks
 

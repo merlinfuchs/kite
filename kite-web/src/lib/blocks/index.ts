@@ -85,6 +85,7 @@ import { discordOptionCommandCooldown } from "./discordOptionCommandCooldown";
 import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
+import { discordPollEnd } from "./discordPollEnd";
 import { discordPrivateMessageCreate } from "./discordPrivateMessageCreate";
 import { discordResponseCreate } from "./discordResponseCreate";
 import { discordResponseDefer } from "./discordResponseDefer";
@@ -159,6 +160,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageUnpin,
   discordMessagePublish,
   discordPollCreate,
+  discordPollEnd,
   discordMessageList,
   discordMessageBulkDelete,
   discordMemberBan,

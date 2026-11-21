@@ -121,6 +121,10 @@
     "url": "/channels/11/pins/11",
     "reason": "reason"
   },
+  "action_poll_end": {
+    "method": "POST",
+    "url": "/channels/11/polls/11/expire"
+  },
   "action_role_create": {
     "method": "POST",
     "url": "/guilds/11/roles",
