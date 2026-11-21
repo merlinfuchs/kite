@@ -27,6 +27,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
 - [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
+- [Send webhook message](./actions/action_webhook_message_create.md) - Send messages through a webhook
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
@@ -63,6 +64,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
+- [Create webhook](./actions/action_webhook_create.md) - Create webhooks in channels
 - [Create forum post](./actions/action_forum_post_create.md) - Create posts in forum and media channels
 
 ## Voice blocks

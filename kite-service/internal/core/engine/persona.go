@@ -91,7 +91,7 @@ func (c *WebhookCache) delete(appID string, channelID discord.ChannelID) {
 // webhook.ExecuteData has no flags, which components v2 messages need.
 type personaMessageData struct {
 	Content         string                     `json:"content,omitempty"`
-	Username        string                     `json:"username"`
+	Username        string                     `json:"username,omitempty"`
 	AvatarURL       string                     `json:"avatar_url,omitempty"`
 	TTS             bool                       `json:"tts,omitempty"`
 	Embeds          []discord.Embed            `json:"embeds,omitempty"`
@@ -156,6 +156,24 @@ func (p *DiscordProvider) CreatePersonaMessage(ctx context.Context, channelID di
 		// The URL of the error has the webhook's token.
 		return nil, fmt.Errorf("failed to send message: %w", util.WithoutRequestURL(err))
 	}
+}
+
+func (p *DiscordProvider) CreateWebhookMessage(ctx context.Context, webhook provider.WebhookTarget, message api.SendMessageData) (*discord.Message, error) {
+	data := personaMessageData{
+		Content:         message.Content,
+		TTS:             message.TTS,
+		Embeds:          message.Embeds,
+		Components:      message.Components,
+		AllowedMentions: message.AllowedMentions,
+		Flags:           message.Flags,
+	}
+
+	msg, err := p.executeWebhook(ctx, channelWebhook{ID: webhook.ID, Token: webhook.Token}, webhook.ThreadID, data)
+	if err != nil {
+		// The URL of the error has the webhook's token.
+		return nil, fmt.Errorf("failed to send message: %w", util.WithoutRequestURL(err))
+	}
+	return msg, nil
 }
 
 // channelWebhook returns a webhook the bot made in the channel, and makes one

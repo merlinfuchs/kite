@@ -30,6 +30,9 @@ type DiscordProvider interface {
 	// CreatePersonaMessage sends a message with another name and avatar
 	// through a webhook of the app in the channel.
 	CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error)
+	// CreateWebhookMessage sends a message through the given webhook, which
+	// doesn't have to be one of the app's, with its name and avatar.
+	CreateWebhookMessage(ctx context.Context, webhook WebhookTarget, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
@@ -82,6 +85,14 @@ type PlayAudioOpts struct {
 type Persona struct {
 	Name      string
 	AvatarURL string
+}
+
+// WebhookTarget is a webhook to send a message through, and the thread of its
+// channel the message goes to, if any.
+type WebhookTarget struct {
+	ID       discord.WebhookID
+	Token    string
+	ThreadID discord.ChannelID
 }
 
 // ServerProfileData is the body of a Modify Current Member request, the bot's
@@ -316,6 +327,10 @@ func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord
 }
 
 func (p *MockDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) CreateWebhookMessage(ctx context.Context, webhook WebhookTarget, message api.SendMessageData) (*discord.Message, error) {
 	return nil, nil
 }
 

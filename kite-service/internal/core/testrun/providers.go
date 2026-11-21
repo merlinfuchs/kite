@@ -191,6 +191,20 @@ func (p *testDiscordProvider) CreateMessage(ctx context.Context, channelID disco
 	return &msg, nil
 }
 
+// CreateWebhookMessage records the message instead of sending it. The webhook's
+// token isn't recorded, it's a secret.
+func (p *testDiscordProvider) CreateWebhookMessage(ctx context.Context, webhook provider.WebhookTarget, data api.SendMessageData) (*discord.Message, error) {
+	p.record("create_webhook_message", map[string]any{"webhook_id": webhook.ID, "thread_id": webhook.ThreadID, "message": data})
+	msg := p.s.addMessage(discord.Message{
+		ChannelID:  webhook.ThreadID,
+		Content:    data.Content,
+		Embeds:     data.Embeds,
+		Components: data.Components,
+		Flags:      data.Flags,
+	})
+	return &msg, nil
+}
+
 func (p *testDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona provider.Persona, data api.SendMessageData) (*discord.Message, error) {
 	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionManageWebhooks)
 	p.record("create_message", map[string]any{"channel_id": channelID, "message": data, "name": persona.Name, "avatar_url": persona.AvatarURL}, warnings...)
