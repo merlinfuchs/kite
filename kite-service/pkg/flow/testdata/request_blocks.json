@@ -46,6 +46,11 @@
     "body": "{\"max_age\":60,\"max_uses\":60,\"temporary\":true,\"unique\":true}",
     "reason": "reason"
   },
+  "action_invite_delete": {
+    "method": "DELETE",
+    "url": "/invites/text",
+    "reason": "reason"
+  },
   "action_member_ban": {
     "method": "PUT",
     "url": "/guilds/11/bans/11",
