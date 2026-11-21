@@ -13,6 +13,7 @@ import { track } from "@/lib/analytics";
 import { ArrowUpCircleIcon, CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
@@ -365,7 +366,7 @@ function PostMessages({
         }
       }
     } catch (e) {
-      toast.error(`Failed to post the ${label}: ${e}`);
+      toast.error(`Failed to post the ${label}: ${errorMessage(e)}`);
     } finally {
       setPosting(false);
     }

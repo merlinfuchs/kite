@@ -4,16 +4,13 @@ import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
-import {
-  saveErrorMessage,
-  saveRequestErrorMessage,
-  useSaveBase,
-} from "@/lib/hooks/versionHistory";
+import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppCommandPage() {
@@ -77,7 +74,7 @@ export default function AppCommandPage() {
         }
         return true;
       } catch (err) {
-        toast.error(saveRequestErrorMessage("command", err));
+        toast.error(`Failed to update command: ${errorMessage(err)}`);
         return false;
       }
     },

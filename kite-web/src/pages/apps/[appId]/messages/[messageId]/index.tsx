@@ -20,9 +20,9 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import {
   saveErrorMessage,
-  saveRequestErrorMessage,
   useEditorSession,
   useVersionHistory,
 } from "@/lib/hooks/versionHistory";
@@ -140,7 +140,7 @@ function AppMessagePageInner() {
             }
           },
           onError(err) {
-            toast.error(saveRequestErrorMessage("message", err));
+            toast.error(`Failed to update message: ${errorMessage(err)}`);
           },
           onSettled() {
             setIsSaving(false);

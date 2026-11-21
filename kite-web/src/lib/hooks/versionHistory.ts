@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "../api/client";
 import {
   getItemVersion,
   ItemVersionTarget,
@@ -69,7 +70,7 @@ export function useVersionHistory({
         apply(res.data.content);
         setUndoChainId(isUndo ? versionId : null);
       } catch (err) {
-        toast.error(`Failed to load save: ${err}`);
+        toast.error(`Failed to load save: ${errorMessage(err)}`);
       } finally {
         setRestoringId(null);
       }
@@ -144,13 +145,4 @@ export function saveErrorMessage(
     return `This ${thing} was changed since you opened it, like in another tab or by an AI client. Save again to overwrite that change, or reload to see it.`;
   }
   return `Failed to update ${thing}: ${error.message} (${error.code})`;
-}
-
-// saveRequestErrorMessage is the message for a save whose request failed
-// without an answer, like when the connection dropped.
-export function saveRequestErrorMessage(thing: string, err: unknown) {
-  if (!navigator.onLine) {
-    return `You're offline, so the ${thing} wasn't saved. Your changes are still here. Save again when you're back online.`;
-  }
-  return `Failed to update ${thing}: ${err}`;
 }
