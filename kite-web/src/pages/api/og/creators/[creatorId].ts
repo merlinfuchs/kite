@@ -13,7 +13,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!owner) return undefined;
     const templates = listed.flatMap((b) => templateFromBundle(b) ?? []);
     return {
-      version: creatorImageVersion(templates),
+      version: creatorImageVersion(templates, owner.badges ?? []),
       render: () => renderCreatorImage(owner, templates),
     };
   });
