@@ -39,6 +39,7 @@ import {
   createNode,
   getNodeValues,
   getDeletedNodeIds,
+  withPlacedNodes,
 } from "@/lib/flow/nodes";
 import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
@@ -120,7 +121,6 @@ export default function FlowEditor({
     fitView,
     setNodes: editNodes,
     setEdges: editEdges,
-    addNodes,
     addEdges,
     deleteElements,
   } = useReactFlow<Node<NodeData>>();
@@ -326,18 +326,11 @@ export default function FlowEditor({
       });
       const [newNodes, newEdges] = createNode(type, position);
 
-      if (newNodes.some((n) => n.selected)) {
-        editNodes((nodes) => [
-          ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
-          ...newNodes,
-        ]);
-      } else {
-        addNodes(newNodes);
-      }
+      editNodes((nodes) => withPlacedNodes(nodes, newNodes));
       addEdges(newEdges);
       track("block_added", { type, source: "drag" });
     },
-    [screenToFlowPosition, editNodes, addNodes, addEdges]
+    [screenToFlowPosition, editNodes, addEdges]
   );
 
   const { onMouseMove, copy, cut, duplicate, deleteNodes, paste } =

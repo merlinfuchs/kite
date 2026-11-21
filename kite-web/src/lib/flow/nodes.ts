@@ -227,6 +227,17 @@ export function useNodeValues(nodeType: string): NodeValues {
   return useMemo(() => getNodeValues(nodeType), [nodeType]);
 }
 
+// withPlacedNodes adds blocks a user placed. A block placed with the blocks it
+// owns, like a condition with its items, is selected with them on its own, so
+// they can be moved together right away.
+export function withPlacedNodes<T extends Node>(nodes: T[], placed: T[]): T[] {
+  if (placed.length < 2) return [...nodes, ...placed];
+  return [
+    ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+    ...placed.map((n) => ({ ...n, selected: true })),
+  ];
+}
+
 // Where blocks created together with an owner go, relative to it: the first
 // to the right, like the else branch of a condition, the second to the left.
 const ownedOffsets = [
@@ -240,12 +251,6 @@ export function createNode(
   props?: Partial<Node<NodeData>>
 ): [Node<NodeData>[], Edge[]] {
   const id = getNodeId(type);
-  const ownedChildTypes = getOwnedChildTypes(type);
-  const isCompound = ownedChildTypes.length > 0;
-
-  // Blocks with perma-connected sub-blocks (like conditions or loops) are
-  // selected together by default so they can be moved as a whole when placed.
-  const selected = props?.selected ?? (isCompound ? true : undefined);
 
   const nodes: Node<NodeData>[] = [
     {
@@ -254,23 +259,18 @@ export function createNode(
       position,
       data: {},
       ...props,
-      ...(selected !== undefined ? { selected } : {}),
     },
   ];
   const edges: Edge[] = [];
 
   // TODO?: connect option types to entry automatically?
 
-  ownedChildTypes.forEach((ownedType, i) => {
+  getOwnedChildTypes(type).forEach((ownedType, i) => {
     const offset = ownedOffsets[i] ?? ownedOffsets[ownedOffsets.length - 1];
-    const [ownedNodes, ownedEdges] = createNode(
-      ownedType,
-      {
-        x: position.x + offset.x,
-        y: position.y + offset.y,
-      },
-      selected !== undefined ? { selected } : undefined
-    );
+    const [ownedNodes, ownedEdges] = createNode(ownedType, {
+      x: position.x + offset.x,
+      y: position.y + offset.y,
+    });
 
     nodes.push(...ownedNodes);
     edges.push({

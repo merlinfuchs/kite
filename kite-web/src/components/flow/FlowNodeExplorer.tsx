@@ -4,7 +4,12 @@ import {
   nodeCategories,
 } from "@/lib/flow/categories";
 import { useFlowContext } from "@/lib/flow/context";
-import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
+import {
+  NodeValues,
+  createNode,
+  getNodeValues,
+  withPlacedNodes,
+} from "@/lib/flow/nodes";
 import { useReactFlow, useStore } from "@xyflow/react";
 import { ChevronDownIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
@@ -208,7 +213,7 @@ function AvailableNode({
 }) {
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(type);
-  const { addNodes, addEdges, getViewport, setNodes } = useReactFlow();
+  const { addEdges, getViewport, setNodes } = useReactFlow();
   // The canvas is not the window: it sits right of the w-96 block explorer,
   // inside a dialog. Ask react-flow for its own pane size rather than reading
   // window dimensions, so blocks don't spawn off-centre or under the menu.
@@ -240,14 +245,7 @@ function AvailableNode({
       x: center.x + 200 * Math.random() - 100,
       y: center.y + 100 * Math.random() - 50,
     });
-    if (nodes.some((n) => n.selected)) {
-      setNodes((nds) => [
-        ...nds.map((n) => (n.selected ? { ...n, selected: false } : n)),
-        ...nodes,
-      ]);
-    } else {
-      addNodes(nodes);
-    }
+    setNodes((nds) => withPlacedNodes(nds, nodes));
     addEdges(edges);
     track("block_added", { type, source: onSelect ? "drawer" : "click" });
     onSelect?.();

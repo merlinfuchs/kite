@@ -4,6 +4,7 @@ import {
   getDeletedNodeIds,
   getNodeId,
   withOwnedNodes,
+  withPlacedNodes,
 } from "./nodes";
 import { testEdge as edge, testNode as node } from "./testUtils";
 
@@ -63,49 +64,23 @@ describe("getNodeId", () => {
   });
 });
 
-describe("createNode", () => {
-  it("selects compound blocks and their permanently connected sub-blocks together", () => {
-    const [nodes, edges] = createNode("control_condition_compare", {
-      x: 100,
-      y: 100,
-    });
+describe("withPlacedNodes", () => {
+  const existing = [{ ...node("a", "action_log"), selected: true }];
 
-    expect(nodes.length).toBeGreaterThan(1);
-    expect(nodes.every((n) => n.selected === true)).toBe(true);
-    expect(edges.every((e) => e.type === "fixed")).toBe(true);
+  it("selects a block placed with the blocks it owns, and only them", () => {
+    const [placed] = createNode("control_loop", { x: 0, y: 0 });
+    const res = withPlacedNodes(existing, placed);
+
+    expect(res).toHaveLength(1 + placed.length);
+    expect(res[0].selected).toBe(false);
+    expect(res.slice(1).every((n) => n.selected)).toBe(true);
   });
 
-  it("selects loops and their loop-end and loop-each children together", () => {
-    const [nodes] = createNode("control_loop", { x: 0, y: 0 });
+  it("leaves the selection alone for a single block", () => {
+    const [placed] = createNode("action_log", { x: 0, y: 0 });
+    const res = withPlacedNodes(existing, placed);
 
-    expect(nodes).toHaveLength(3);
-    expect(nodes.every((n) => n.selected === true)).toBe(true);
-  });
-
-  it("does not select standalone blocks without owned children by default", () => {
-    const [nodes] = createNode("action_log", { x: 0, y: 0 });
-
-    expect(nodes).toHaveLength(1);
-    expect(nodes[0].selected).toBeUndefined();
-  });
-
-  it("respects explicit selected prop on compound blocks", () => {
-    const [nodes] = createNode(
-      "control_condition_compare",
-      { x: 0, y: 0 },
-      { selected: false }
-    );
-
-    expect(nodes.every((n) => n.selected === false)).toBe(true);
-  });
-
-  it("propagates explicit selected: true prop to all nodes", () => {
-    const [nodes] = createNode(
-      "action_log",
-      { x: 0, y: 0 },
-      { selected: true }
-    );
-
-    expect(nodes[0].selected).toBe(true);
+    expect(res[0].selected).toBe(true);
+    expect(res[1].selected).toBeUndefined();
   });
 });
