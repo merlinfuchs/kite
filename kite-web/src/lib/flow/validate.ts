@@ -25,6 +25,7 @@ import {
 import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
 import { isNoteNode } from "./notes";
+import { getMultiRunCounts } from "./multiRun";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -197,6 +198,7 @@ export function validateFlow(
   }
 
   const connections = new Set<string>();
+  const uniqueEdges: Edge[] = [];
   for (const edge of edges) {
     const connection = `${edge.source}:${normalizeHandle(edge.sourceHandle)}:${
       edge.target
@@ -207,8 +209,10 @@ export function validateFlow(
         "Two connections join the same blocks, so the second block runs twice.",
         { edgeId: edge.id }
       );
+    } else {
+      connections.add(connection);
+      uniqueEdges.push(edge);
     }
-    connections.add(connection);
 
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
       report("error", "Connection to a block that doesn't exist.", {
@@ -239,6 +243,19 @@ export function validateFlow(
       edges
     );
     if (issue) report("error", issue, { edgeId: edge.id });
+  }
+
+  for (const [nodeId, count] of getMultiRunCounts(knownNodes, uniqueEdges)) {
+    const node = knownById.get(nodeId);
+    if (node) {
+      report(
+        "warning",
+        `'${getNodeTitle(
+          node
+        )}' can run up to ${count} times per run because multiple paths lead into it. Remove an extra connection if it should only run once.`,
+        { nodeId }
+      );
+    }
   }
 
   for (const node of knownNodes) {

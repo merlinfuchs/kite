@@ -774,4 +774,36 @@ describe("validateFlow", () => {
       "Unknown block type 'toString'.",
     ]);
   });
+
+  it("warns when converging paths run a block more than once, unless branches are mutually exclusive", () => {
+    expect(
+      validateFlow(
+        [entry, log("a"), log("b")],
+        [edge("entry", "a"), edge("a", "b"), edge("entry", "b")],
+        "command"
+      )
+    ).toEqual([
+      {
+        severity: "warning",
+        message:
+          "'Log Message' can run up to 2 times per run because multiple paths lead into it. Remove an extra connection if it should only run once.",
+        nodeId: "b",
+      },
+    ]);
+
+    const ifNode = node("cond", "control_if", { condition_base_value: "true" });
+    expect(
+      validateFlow(
+        [entry, ifNode, log("yes"), log("no"), log("after")],
+        [
+          edge("entry", "cond"),
+          edge("cond", "yes", "yes"),
+          edge("cond", "no", "no"),
+          edge("yes", "after"),
+          edge("no", "after"),
+        ],
+        "command"
+      )
+    ).toEqual([]);
+  });
 });
