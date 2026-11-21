@@ -195,7 +195,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		}
 	}
 
-	created, items, err := h.prepareContents(c, sel, contents.bundleIDs(install), null.StringFrom(install.ID))
+	created, items, err := h.prepareContents(c, sel, contents.bundleIDs(install), null.StringFrom(install.ID), false)
 	if err != nil {
 		return nil, err
 	}
@@ -256,8 +256,9 @@ func (h *BundleInstallHandler) updateInstall(c *handler.Context, install *model.
 // prepareContents checks the selected items like an import and returns them
 // ready to be created, pointing at the messages and variables in ids and the
 // ones it adds. installID is null for imports, which aren't linked to the
-// bundle.
-func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.Selection, ids bundleIDs, installID null.String) (store.BundleInstallContents, []model.BundleInstallItem, error) {
+// bundle. keepIDs gives the items their keys as IDs, for restoring them to the
+// app they were exported from.
+func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.Selection, ids bundleIDs, installID null.String, keepIDs bool) (store.BundleInstallContents, []model.BundleInstallItem, error) {
 	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
 	for i, cmd := range sel.Commands {
 		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
@@ -307,6 +308,21 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 	variables, err := h.variableHandler.PrepareImport(c, variableReqs)
 	if err != nil {
 		return store.BundleInstallContents{}, nil, err
+	}
+
+	if keepIDs {
+		for i, command := range commands {
+			command.ID = sel.Commands[i].ID
+		}
+		for i, listener := range eventListeners {
+			listener.ID = sel.EventListeners[i].ID
+		}
+		for i, msg := range messages {
+			msg.ID = sel.Messages[i].ID
+		}
+		for i, variable := range variables {
+			variable.ID = sel.Variables[i].ID
+		}
 	}
 
 	for i, msg := range messages {
@@ -469,7 +485,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 			return nil, err
 		}
 		var createdItems []model.BundleInstallItem
-		if created, createdItems, err = h.prepareContents(c, used, ids, null.StringFrom(install.ID)); err != nil {
+		if created, createdItems, err = h.prepareContents(c, used, ids, null.StringFrom(install.ID), false); err != nil {
 			return nil, err
 		}
 		items = append(items, createdItems...)

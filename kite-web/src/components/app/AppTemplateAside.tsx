@@ -4,6 +4,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { SourceAppCard } from "./BundleManageCards";
 import { TemplateInstallCard } from "./TemplateInstallCard";
 import { TemplateInstalledCard } from "./TemplateInstalledCard";
+import { TemplateRestoreCard } from "./TemplateRestoreCard";
 
 // AppTemplateAside is what goes next to a template's page in an app: the cards
 // for adding it and for what the app has of it.
@@ -16,10 +17,16 @@ export default function AppTemplateAside({
   from?: string;
 }) {
   const appId = useAppId();
-  // The app a listed bundle of the user is made from can't add it.
+  // The app a listed bundle of the user is made from can't add it, only
+  // restore what it deleted.
   const own = useUserBundles()?.find((b) => b?.id === template.id);
   if (own && own.source_app_id === appId) {
-    return <SourceAppCard bundle={own} />;
+    return (
+      <div className="space-y-5">
+        <SourceAppCard bundle={own} />
+        <TemplateRestoreCard template={template} />
+      </div>
+    );
   }
 
   return (

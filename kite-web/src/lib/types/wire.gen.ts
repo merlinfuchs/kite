@@ -679,6 +679,29 @@ export interface BundleVersionCreateRequest extends BundleContentRequest {
 }
 export type BundleVersionCreateResponse = UserBundle;
 /**
+ * BundleRestoreRequest adds items of the current version of the user's bundle
+ * back to the app it's made from, after the app deleted them. They get their
+ * old IDs, which are their keys, so new versions keep updating them in the
+ * apps that added the bundle.
+ */
+export interface BundleRestoreRequest {
+  /**
+   * BundleVersion is the version the user chose the items and parameters for.
+   */
+  bundle_version: number /* int */;
+  parameters: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners, messages and
+   * variables to restore.
+   */
+  items: string[];
+}
+/**
+ * BundleRestoreResponse is what the restore created. Messages and variables
+ * the app still had aren't created again.
+ */
+export type BundleRestoreResponse = BundleImportResponse;
+/**
  * BundleUpdateRequest changes the page of a bundle that isn't in the
  * marketplace. Kite reviews changes to one that is, so they're submitted with
  * BundleListingSubmitRequest instead.

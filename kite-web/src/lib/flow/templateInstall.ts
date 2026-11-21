@@ -17,6 +17,35 @@ export function installSelection(
   const installedKeys = new Set(
     install?.items.filter((i) => !i.deleted).map((i) => i.key)
   );
+  return selectionOf(template, installedKeys, install?.parameters, skipped);
+}
+
+// restoreSelection is what restoring a template in the app it's made from adds
+// back: the items the app deleted that aren't skipped. Their keys are their
+// IDs in the app, appIds are the IDs of everything the app has.
+export function restoreSelection(
+  template: Template,
+  appIds: Set<string>,
+  skipped: Set<string>
+) {
+  const keys = [
+    ...template.commands,
+    ...template.eventListeners,
+    ...template.messages,
+    ...template.variables,
+  ].map((i) => i.key);
+  const installedKeys = new Set(keys.filter((k) => appIds.has(k)));
+  return selectionOf(template, installedKeys, undefined, skipped);
+}
+
+// selectionOf is the selection of the items the app doesn't have.
+// installParameters are the values the app has already.
+function selectionOf(
+  template: Template,
+  installedKeys: Set<string>,
+  installParameters: Record<string, string> | undefined,
+  skipped: Set<string>
+) {
   const commands = template.commands.filter(
     (c) => !skipped.has(c.key) && !installedKeys.has(c.key)
   );
@@ -39,8 +68,7 @@ export function installSelection(
   const postTo = new Set(messages.flatMap((m) => (m.sendTo ? [m.sendTo] : [])));
   const parameters = template.parameters.filter(
     (p) =>
-      postTo.has(p.key) ||
-      (usedKeys.has(p.key) && !install?.parameters?.[p.key])
+      postTo.has(p.key) || (usedKeys.has(p.key) && !installParameters?.[p.key])
   );
 
   return {
@@ -54,7 +82,7 @@ export function installSelection(
   };
 }
 
-export type InstallSelection = ReturnType<typeof installSelection>;
+export type InstallSelection = ReturnType<typeof selectionOf>;
 
 // installRequest adds the selected items with the values of the parameters
 // and the messages the user wrote, by their keys.

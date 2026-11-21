@@ -81,6 +81,8 @@ When you change the items of your template, open it in the app you made it from 
 
 Items you leave out of the new version stay in those apps, but don't get updates anymore. If the app you made it from is deleted, the template keeps working but can't get new versions.
 
+If you delete an item of the template from the app you made it from, open the template there and pick it under `Restore deleted items`. It comes back as it is in the template. You fill in its parameters again, because the template only keeps the values you shared as defaults. The restored item is still part of the template, so your next update also updates it in apps that added the template.
+
 ### Editing its page
 
 Click on `Edit page` on the page of your template to change its name, description, icon and category, and to write `How it works` and `Before you start`. The page isn't part of a version, so apps that added the template don't get an update for it. Its link shows the changes right away, unless it's in the Marketplace.

@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -387,4 +389,64 @@ func TestSetInstallSource(t *testing.T) {
 			}
 		})
 	}
+}
+
+// importStore keeps what imports and restores create.
+type importStore struct {
+	store.BundleInstallStore
+	imported []store.BundleInstallContents
+}
+
+func (s *importStore) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents) error {
+	s.imported = append(s.imported, contents)
+	return nil
+}
+
+type noPluginInstanceStore struct{ store.PluginInstanceStore }
+
+func (noPluginInstanceStore) PluginInstancesByApp(ctx context.Context, appID string) ([]*model.PluginInstance, error) {
+	return nil, nil
+}
+
+// The app a bundle is made from gets items it deleted back with their old
+// IDs, so new versions keep updating them in the apps that added it.
+func TestBundleRestore(t *testing.T) {
+	h, _ := bundlesHandler(2)
+	commands := h.commandStore.(*memoryCommandStore)
+	imports := &importStore{}
+	h.bundleInstallStore = imports
+	h.commandHandler = commandhandler.NewCommandHandler(commands, command.NewCommandManager(nil, commands, noPluginInstanceStore{}, nil, nil, nil))
+	// Restored commands are checked like new ones, which need a description.
+	for _, cmd := range commands.commands {
+		cmd.FlowSource.Nodes[0].Data.Description = "Does things."
+	}
+
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0", "cmd1"))
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	commands.commands = commands.commands[:1]
+	restore := handler.TypedWithBody(h.HandleBundleRestore)
+	req := wire.BundleRestoreRequest{BundleVersion: 1, Items: []string{"cmd1"}}
+
+	code, res = callAs(t, restore, "user", "other_app", id, req)
+	assert.Equal(t, "wrong_app", errorCode(res), code)
+	code, res = callAs(t, restore, "other_user", "app", id, req)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 2, Items: []string{"cmd1"}})
+	assert.Equal(t, "bundle_version_changed", errorCode(res), code)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 1, Items: []string{"cmd0"}})
+	assert.Equal(t, "already_in_app", errorCode(res), code)
+	assert.Empty(t, imports.imported)
+
+	code, res = callAs(t, restore, "user", "app", id, req)
+	require.Equal(t, http.StatusOK, code, res)
+	require.Len(t, imports.imported, 1)
+	restored := imports.imported[0].Commands
+	require.Len(t, restored, 1)
+	assert.Equal(t, "cmd1", restored[0].ID)
+	assert.Equal(t, "cmd1", restored[0].Name)
+	// It's the original again, not part of an install.
+	assert.False(t, restored[0].BundleInstallID.Valid)
 }

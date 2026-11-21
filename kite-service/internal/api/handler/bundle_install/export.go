@@ -100,7 +100,7 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 		return nil, err
 	}
 
-	created, items, err := h.prepareContents(c, sel, ids, null.String{})
+	created, items, err := h.prepareContents(c, sel, ids, null.String{}, false)
 	if err != nil {
 		return nil, err
 	}

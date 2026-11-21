@@ -454,7 +454,7 @@ function MissingIntegration({ integration }: { integration: Integration }) {
 
 // ItemRow is an item of the template to include. Without onToggle it's always
 // included, unless the app has it already.
-function ItemRow({
+export function ItemRow({
   exists,
   included = true,
   onToggle,

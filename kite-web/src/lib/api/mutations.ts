@@ -104,6 +104,8 @@ import {
   BundleCreateResponse,
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
+  BundleRestoreRequest,
+  BundleRestoreResponse,
   BundleDeleteResponse,
   BundleUpdateRequest,
   BundleUpdateResponse,
@@ -989,7 +991,28 @@ export function useBundleImportMutation(appId: string) {
   });
 }
 
-// Installs and imports change the commands, event listeners, messages and
+// useBundleRestoreMutation adds items of the user's bundle back to the app
+// it's made from, after the app deleted them.
+export function useBundleRestoreMutation(appId: string, bundleId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleRestoreRequest) =>
+      apiRequest<BundleRestoreResponse>(
+        `/v1/apps/${appId}/bundles/${bundleId}/restore`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+// Installs, imports and restores change the commands, event listeners, messages and
 // variables of the app.
 function invalidateBundleInstalls(client: QueryClient, appId: string) {
   client.invalidateQueries({
