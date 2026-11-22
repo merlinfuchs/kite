@@ -273,6 +273,7 @@ type runState struct {
 	deadline time.Time
 	log      func(level LogLevel, message string)
 	pending  []byte
+	random   func() float64
 
 	// The calls the code can start, see Options.Host, and the context they
 	// run in.
@@ -448,7 +449,12 @@ func instantiateHost(ctx context.Context, rt wazero.Runtime) error {
 		}
 		return id
 	}).Export("start").
-		NewFunctionBuilder().WithFunc(func() float64 { return rand.Float64() }).Export("random").
+		NewFunctionBuilder().WithFunc(func(ctx context.Context) float64 {
+		if st := stateFrom(ctx); st != nil && st.random != nil {
+			return st.random()
+		}
+		return rand.Float64()
+	}).Export("random").
 		Instantiate(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate host module: %w", err)

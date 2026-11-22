@@ -155,7 +155,7 @@ return results.map((r) => r.status === "fulfilled" ? "ok" : r.reason.message)`, 
 
 func TestJavaScriptRunAIInTestRuns(t *testing.T) {
 	c := javaScriptTestContext(t, FlowProviders{Log: &provider.MockLogProvider{}, AI: &recordingAIProvider{}, Decision: &fakeDecisionProvider{}}, 1000, eval.Env{})
-	c.Test = NewTestRun(nil)
+	c.Test = NewTestRun(nil, nil)
 	node := &CompiledFlowNode{ID: "js_1", Type: FlowNodeTypeActionJavaScriptRun, Data: FlowNodeData{JavaScriptData: &JavaScriptData{Code: `
 const errors = []
 for (const call of [

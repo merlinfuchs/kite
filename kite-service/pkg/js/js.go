@@ -140,6 +140,9 @@ type Options struct {
 	// background while the code waits. Every call has returned when Run does.
 	Host func(name string) HostFunc
 
+	// Random is Math.random, so test runs can pick the same each time.
+	Random func() float64
+
 	// timeout replaces Timeout in tests, which can't rely on getting a busy
 	// CI machine's CPU for 25 ms. wallTime replaces MaxWallTime.
 	timeout  time.Duration
@@ -250,6 +253,7 @@ func Run(ctx context.Context, opts Options) (json.RawMessage, error) {
 		input:    input,
 		log:      opts.Log,
 		host:     opts.Host,
+		random:   opts.Random,
 		timeout:  opts.timeout,
 		wallTime: opts.wallTime,
 	})
@@ -271,6 +275,8 @@ type script struct {
 	load bool
 	log  func(level LogLevel, message string)
 	host func(name string) HostFunc
+	// random is Math.random, nil for the default.
+	random func() float64
 	// Replace the limits in tests, like in Options.
 	timeout, wallTime time.Duration
 }
@@ -321,6 +327,7 @@ func runScript(ctx context.Context, s script) (out json.RawMessage, snapshot []b
 	logged, entries := 0, 0
 	st := &runState{
 		limits:  l,
+		random:  s.random,
 		host:    s.host,
 		loading: s.load,
 		hostCtx: hostCtx,

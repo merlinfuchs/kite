@@ -3,6 +3,7 @@ import {
   buildFlowTestRequest,
   flowTestEffectMessage,
   flowTestEffectTitle,
+  flowTestNodeStatus,
   initialFlowTestState,
 } from "./flowTest";
 
@@ -52,7 +53,7 @@ describe("flowTestEffectTitle", () => {
       flowTestEffectTitle({ action: "respond", data: { type: "modal" } })
     ).toBe("Would show a modal");
     expect(flowTestEffectTitle({ action: "something_new" })).toBe(
-      "Would something new"
+      "Would make a change in Discord"
     );
   });
 });
@@ -142,5 +143,36 @@ describe("buildFlowTestRequest", () => {
     expect(req.message?.flow_sources.f1).toBe(flow);
     expect(req.flow_source_id).toBe("f1");
     expect(req.values).toEqual(["1", "2"]);
+  });
+});
+
+describe("flowTestNodeStatus", () => {
+  it("shows the worst of a block that ran more than once", () => {
+    const status = flowTestNodeStatus({
+      credits: 0,
+      executions: [
+        {
+          trigger: "Command /loop",
+          steps: [
+            { node_id: "a", node_type: "action_message_create" },
+            {
+              node_id: "a",
+              node_type: "action_message_create",
+              effects: [{ action: "create_message", warnings: ["No access"] }],
+            },
+            { node_id: "b", node_type: "action_message_create", error: "x" },
+            { node_id: "b", node_type: "action_message_create" },
+          ],
+        },
+        {
+          trigger: 'Click "Ping"',
+          other_flow: true,
+          steps: [
+            { node_id: "a", node_type: "action_message_create", error: "x" },
+          ],
+        },
+      ],
+    });
+    expect(status).toEqual({ a: "warning", b: "error" });
   });
 });

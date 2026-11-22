@@ -7,7 +7,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -414,7 +413,7 @@ func (n *CompiledFlowNode) prepareMessage(ctx *FlowContext) (message.MessageData
 	var resumePointID string
 	if n.Data.MessageTemplateID == "" && data.HasInteractiveComponents() {
 		// The resume point will be created after the message has been sent, we just need the ID here already
-		resumePointID = util.UniqueID()
+		resumePointID = ctx.uniqueID()
 	}
 
 	opts := message.ConvertOptions{

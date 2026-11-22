@@ -18,6 +18,10 @@ The `Test` tab on the left side of the flow editor runs the flow as if someone u
 
 Fill in what the flow starts with, like the arguments of a command or the text of a message, and click `Run test`. You see every block that ran in order, with its result or error. You also see what the bot would have done, like the messages it would have sent, with a warning when Discord would reject it. That happens when the bot is missing a permission, or when a role is above the bot's highest role.
 
+Blocks that ran get a mark on the canvas: green when they worked, yellow when Discord would likely reject what they do, and red when they failed. `Clear result` removes the marks.
+
+Click the buttons and select menus of the messages in the result, or fill in and submit a modal, to test what happens next. The test runs again with your click, and random picks stay the same, so the bot sends the same messages as before.
+
 Nothing is sent or changed, and tests don't cost credits. Changes to stored variables only last for the test. The bot still reads your server for real, so a wrong channel or role ID shows up as an error. Blocks that call services other than Discord, like `Send API Request` and the AI blocks, don't run in a test and have no result. `Wait` blocks are skipped.
 
 Your app has to be online to run a test.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { createContext, memo, useContext, useMemo, useState } from "react";
 import { useStore } from "@xyflow/react";
 import { AlertTriangleIcon, ChevronRightIcon } from "lucide-react";
 import { getNodeTitle, getNodeValues } from "@/lib/flow/nodes";
@@ -8,6 +8,7 @@ import {
   flowTestEffectTitle,
 } from "@/lib/flow/flowTest";
 import {
+  FlowTestAction,
   FlowTestEffect,
   FlowTestExecution,
   FlowTestResponse,
@@ -15,35 +16,86 @@ import {
 } from "@/lib/types/wire.gen";
 import DynamicIcon from "../icons/DynamicIcon";
 import MessagePreviewBox from "../message/MessagePreviewBox";
+import { PreviewComponentActionsContext } from "../message/MessagePreviewComponents";
+import { MessageComponentSelectMenu } from "@/lib/message/schema";
 import { ShowBlockButton } from "./FlowLogList";
+import FlowTestModalForm from "./FlowTestModalForm";
+import FlowTestSelectDialog from "./FlowTestSelectDialog";
 
-export default function FlowTestResult({
+type Actions = {
+  // What the user does in the result, like clicking a button the flow sent,
+  // runs the test again with it.
+  onAction(action: FlowTestAction): void;
+  onShowNode(id: string): void;
+  pending: boolean;
+};
+
+const ActionsContext = createContext<Actions | null>(null);
+
+// Memoized, as the panel renders on every change of its form.
+export default memo(function FlowTestResult({
   result,
+  onAction,
   onShowNode,
-}: {
-  result: FlowTestResponse;
-  onShowNode: (id: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4">
-      {result.executions.map((execution, i) => (
-        <Execution key={i} execution={execution} onShowNode={onShowNode} />
-      ))}
-      <div className="text-sm text-muted-foreground">
-        {result.credits === 1
-          ? "A real run would cost 1 credit."
-          : `A real run would cost ${result.credits} credits.`}
-      </div>
-    </div>
+  pending,
+}: { result: FlowTestResponse } & Actions) {
+  const [selectMenu, setSelectMenu] =
+    useState<MessageComponentSelectMenu | null>(null);
+
+  const actions = useMemo(
+    () => ({ onAction, onShowNode, pending }),
+    [onAction, onShowNode, pending]
   );
+  const componentActions = useMemo(
+    () => ({
+      onClick: (button: { flow_source_id: string }) =>
+        onAction({ click: button.flow_source_id }),
+      onSelect: setSelectMenu,
+      disabled: pending,
+    }),
+    [onAction, pending]
+  );
+
+  const last = result.executions.length - 1;
+
+  return (
+    <ActionsContext.Provider value={actions}>
+      <PreviewComponentActionsContext.Provider value={componentActions}>
+        <div className="flex flex-col gap-4">
+          {result.executions.map((execution, i) => (
+            <Execution key={i} execution={execution} isLast={i === last} />
+          ))}
+          <div className="text-sm text-muted-foreground">
+            {result.credits === 1
+              ? "A real run would cost 1 credit."
+              : `A real run would cost ${result.credits} credits.`}
+          </div>
+        </div>
+        <FlowTestSelectDialog
+          selectMenu={selectMenu}
+          onClose={() => setSelectMenu(null)}
+          onSelect={(values) => {
+            if (!selectMenu) return;
+            onAction({ select: selectMenu.flow_source_id, values });
+            setSelectMenu(null);
+          }}
+        />
+      </PreviewComponentActionsContext.Provider>
+    </ActionsContext.Provider>
+  );
+});
+
+function useActions() {
+  return useContext(ActionsContext)!;
 }
 
+// isLast is set for the last run, whose modal is the one that's open.
 function Execution({
   execution,
-  onShowNode,
+  isLast,
 }: {
   execution: FlowTestExecution;
-  onShowNode: (id: string) => void;
+  isLast: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -56,7 +108,12 @@ function Execution({
       )}
 
       {execution.steps.map((step, i) => (
-        <Step key={i} step={step} onShowNode={onShowNode} />
+        <Step
+          key={i}
+          step={step}
+          isLast={isLast}
+          inFlow={!execution.other_flow}
+        />
       ))}
 
       {execution.truncated && (
@@ -78,14 +135,21 @@ function Execution({
   );
 }
 
+// inFlow is unset for steps of other flows, like the flow of a button on a
+// message template, whose blocks can have the IDs of blocks in this one.
 function Step({
   step,
-  onShowNode,
+  isLast,
+  inFlow,
 }: {
   step: FlowTestStep;
-  onShowNode: (id: string) => void;
+  isLast: boolean;
+  inFlow: boolean;
 }) {
-  const node = useStore((s) => s.nodeLookup.get(step.node_id));
+  const { onShowNode } = useActions();
+  const node = useStore((s) =>
+    inFlow ? s.nodeLookup.get(step.node_id) : undefined
+  );
   const values = getNodeValues(step.node_type);
   const title = node
     ? getNodeTitle(node as { type?: string; data: NodeData })
@@ -104,7 +168,9 @@ function Step({
           />
         </div>
         <div className="flex-auto text-sm font-medium truncate">{title}</div>
-        <ShowBlockButton nodeId={step.node_id} onShowNode={onShowNode} />
+        {node && (
+          <ShowBlockButton nodeId={step.node_id} onShowNode={onShowNode} />
+        )}
       </div>
 
       {step.error && (
@@ -116,7 +182,7 @@ function Step({
       ))}
 
       {step.effects?.map((effect, i) => (
-        <Effect key={i} effect={effect} />
+        <Effect key={i} effect={effect} isLast={isLast} />
       ))}
 
       {step.result !== undefined && step.result !== null && (
@@ -126,8 +192,19 @@ function Step({
   );
 }
 
-function Effect({ effect }: { effect: FlowTestEffect }) {
+function Effect({
+  effect,
+  isLast,
+}: {
+  effect: FlowTestEffect;
+  isLast: boolean;
+}) {
+  const { onAction, pending } = useActions();
   const message = useMemo(() => flowTestEffectMessage(effect), [effect]);
+  const modal =
+    effect.action === "respond" && effect.data?.type === "modal"
+      ? effect.data.modal
+      : null;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -141,7 +218,13 @@ function Effect({ effect }: { effect: FlowTestEffect }) {
           {warning}
         </div>
       ))}
-      {message ? (
+      {modal && isLast ? (
+        <FlowTestModalForm
+          modal={modal}
+          pending={pending}
+          onSubmit={(values) => onAction({ submit: values })}
+        />
+      ) : message ? (
         <MessagePreviewBox msg={message} />
       ) : (
         effect.data != null && <Details summary="Details" value={effect.data} />
