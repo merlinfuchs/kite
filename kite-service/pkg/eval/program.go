@@ -121,8 +121,9 @@ const maxCheckCost = 20_000
 // checkCost estimates the work of expr's type checker for an expression. It
 // tries the overloads of a builtin like replace or sort one after another and
 // checks all arguments again for each, so its work multiplies with every level
-// of nested builtins. Calls of other functions are checked once. Remove this
-// once expr's checker reuses the types of a builtin's arguments.
+// of nested builtins. Kite's own functions have one type each, so their
+// arguments are checked once. Remove this once expr's checker reuses the types
+// of a builtin's arguments.
 func checkCost(node ast.Node) int {
 	var children []ast.Node
 	factor := 1
