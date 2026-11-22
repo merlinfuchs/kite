@@ -77,6 +77,9 @@ export default function CreatorPage({ creatorId, listed }: Props) {
     (sum, t) => sum + (t.activeInstalls ?? 0),
     0
   );
+  // How many other users added any of them, each counted once: what the
+  // Template creator badges go by.
+  const otherUsers = owner.installer_count ?? 0;
   const stars = templates.reduce((sum, t) => sum + (t.stars ?? 0), 0);
   const byInstalls = [...templates].sort(
     (a, b) => (b.installs ?? 0) - (a.installs ?? 0)
@@ -148,6 +151,17 @@ export default function CreatorPage({ creatorId, listed }: Props) {
               value={installs}
               label={installs === 1 ? "bot added them" : "bots added them"}
             />
+            {otherUsers > 0 && (
+              <Stat
+                value={otherUsers}
+                label={
+                  otherUsers === 1
+                    ? "other user added them"
+                    : "other users added them"
+                }
+                title={otherUsersTitle}
+              />
+            )}
             {activeInstalls > 0 && (
               <Stat
                 value={activeInstalls}
@@ -232,6 +246,9 @@ function Stat({
     </div>
   );
 }
+
+const otherUsersTitle =
+  "Users other than the creator who added any of their templates, each counted once. This is what the Template creator badges go by.";
 
 // firstCreatedAt is when their oldest listed template was made.
 function firstCreatedAt(templates: Template[]) {
