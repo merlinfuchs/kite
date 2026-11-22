@@ -23,6 +23,22 @@ function linkButton(label: string, url: string) {
 
 export type EmbedButton = { label: string; url: string };
 
+// Discord doesn't render a masked link whose text has characters it thinks
+// could hide where it goes, or looks like a URL. Which ones isn't documented,
+// so only text of letters, numbers and plain punctuation is linked. The Hangul
+// fillers are letters that show as nothing.
+function linkableText(text: string) {
+  return (
+    /^[\p{L}\p{M}\p{N} .,:'!?&+\-]+$/u.test(text) &&
+    !/[\u115f\u1160\u3164\uffa0]/.test(text) &&
+    !/\.\S/.test(text)
+  );
+}
+
+function escapeMarkdown(text: string) {
+  return text.replace(/[\\*_~`|<>[\]()#]/g, "\\$&");
+}
+
 export function buildKiteComponentEmbed({
   title,
   description,
@@ -39,6 +55,8 @@ export function buildKiteComponentEmbed({
   buttons?: EmbedButton[];
 }) {
   const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  const linked = linkableText(title);
+  const headline = linked ? `[${title}](${url})` : escapeMarkdown(title);
 
   return {
     component: {
@@ -46,7 +64,10 @@ export function buildKiteComponentEmbed({
       accent_color: KITE_ACCENT_COLOR,
       components: [
         { type: 10, content: `-# ${KITE_EMOJI}  Kite` },
-        { type: 10, content: `## [${title}](${url})\n${description}` },
+        {
+          type: 10,
+          content: `## ${headline}\n${escapeMarkdown(description)}`,
+        },
         {
           type: 12,
           items: [
@@ -59,7 +80,7 @@ export function buildKiteComponentEmbed({
         { type: 14, divider: false, spacing: 1 },
         {
           type: 1,
-          // The headline already links to the page itself
+          // A linked headline already links to the page itself
           components: (
             buttons ?? [
               { label: "Get started", url: `${site}/apps` },
@@ -70,7 +91,7 @@ export function buildKiteComponentEmbed({
               { label: "Docs", url: env.NEXT_PUBLIC_DOCS_LINK },
             ]
           )
-            .filter((b) => b.url !== url)
+            .filter((b) => !linked || b.url !== url)
             .map((b) => linkButton(b.label, b.url)),
         },
       ],

@@ -1,7 +1,14 @@
 import { Template } from "@/lib/flow/templates";
 import { BundleOwner } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
-import { fetchAvatar, muted, Pill, plural, renderOgImage } from "./frame";
+import {
+  drawableText,
+  fetchAvatar,
+  muted,
+  Pill,
+  plural,
+  renderOgImage,
+} from "./frame";
 
 // The pills that fit next to the count, the others are summed up.
 const shownTemplates = 3;
@@ -17,6 +24,7 @@ export async function renderCreatorImage(
     256
   );
   const more = templates.length - shownTemplates;
+  const name = drawableText(owner.display_name) || owner.discord_username;
 
   return renderOgImage({
     label: "creator",
@@ -37,14 +45,14 @@ export async function renderCreatorImage(
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div
             style={{
-              fontSize: owner.display_name.length > 20 ? 60 : 76,
+              fontSize: name.length > 20 ? 60 : 76,
               fontWeight: 700,
               lineHeight: 1.1,
               lineClamp: 1,
               display: "block",
             }}
           >
-            {owner.display_name}
+            {name}
           </div>
           <div style={{ display: "flex", fontSize: 34, color: muted }}>
             {`@${owner.discord_username} · ${plural(
@@ -59,7 +67,7 @@ export async function renderCreatorImage(
       ...templates.slice(0, shownTemplates).map((t) => (
         <Pill key={t.id}>
           <span style={{ lineClamp: 1, display: "block", maxWidth: 300 }}>
-            {t.name}
+            {drawableText(t.name)}
           </span>
         </Pill>
       )),
