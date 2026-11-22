@@ -143,8 +143,34 @@ const highlights: {
   },
 ];
 
-export function planHighlights(plan: BillingPlan, previous?: BillingPlan) {
-  return highlights
+// kiteBotHighlights are what apps on the Kite bot get of a plan, besides its
+// credits. They only run official templates, so the other limits don't apply.
+const kiteBotHighlights: typeof highlights = [
+  {
+    // Free for them, see the server profile of the service.
+    shown: (p, q) => !q,
+    text: () => "Your own name, avatar & banner in your server",
+  },
+  {
+    shown: more((p) => Number(p.feature_animated_profile)),
+    text: () => "Animated avatar & banner",
+  },
+  {
+    shown: more((p) => Number(p.feature_server_profiles)),
+    text: () => "Name styles",
+  },
+  {
+    shown: more((p) => Number(p.feature_priority_support)),
+    text: () => "Priority support",
+  },
+];
+
+export function planHighlights(
+  plan: BillingPlan,
+  previous?: BillingPlan,
+  kiteBot = false
+) {
+  return (kiteBot ? kiteBotHighlights : highlights)
     .filter((h) => h.shown(plan, previous))
     .map((h) => h.text(plan));
 }

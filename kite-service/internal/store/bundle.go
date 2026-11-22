@@ -13,6 +13,9 @@ type BundleStore interface {
 	// its listing, if it has one, or the page of a user's bundle, whether it's
 	// in review, and the notes of its versions.
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
+	// BundleVersionContent returns the content of the version of the bundle,
+	// or ErrNotFound.
+	BundleVersionContent(ctx context.Context, id string, version int) ([]byte, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
 	// BundleSummaries returns the bundles with the IDs that exist, without
@@ -120,6 +123,13 @@ type BundleStore interface {
 	// SetBundleStaffPick picks a user's bundle at the time, or unpicks it if
 	// it's null. It returns ErrNotFound if it's official or taken down.
 	SetBundleStaffPick(ctx context.Context, id string, at null.Time) error
+	// UncheckedFeaturableBundles returns up to count users' bundles in the
+	// marketplace whose listed version the Featured check didn't check yet,
+	// at that version.
+	UncheckedFeaturableBundles(ctx context.Context, count int) ([]*model.Bundle, error)
+	// SetBundleFeaturable stores the Featured check of the version of a
+	// user's bundle. It does nothing if another version was approved since.
+	SetBundleFeaturable(ctx context.Context, id string, version int, featurable bool) error
 	// CreatorStats returns the stats of the users who have a template in the
 	// marketplace, and nothing for the others.
 	CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error)

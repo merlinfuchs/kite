@@ -33,11 +33,13 @@ import {
 import MessageDuplicateDialog from "./MessageDuplicateDialog";
 import FlowExportDialog from "./FlowExportDialog";
 import { messageToShared } from "@/lib/flow/messageTemplates";
+import { useMoveToFolder } from "./ItemFolders";
 
 export default function MessageListEntry({ message }: { message: Message }) {
   const router = useRouter();
 
   const deleteMutation = useMessageDeleteMutation(useAppId(), message.id);
+  const folder = useMoveToFolder(message);
 
   function remove() {
     deleteMutation.mutate(undefined, {
@@ -125,9 +127,11 @@ export default function MessageListEntry({ message }: { message: Message }) {
                   Export message
                 </DropdownMenuItem>
               </FlowExportDialog>
+              {folder.menu}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        {folder.dialog}
       </CardFooter>
     </Card>
   );

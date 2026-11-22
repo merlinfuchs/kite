@@ -20,9 +20,13 @@ func (g *Gateway) paused() bool {
 	return model.HasNoCredits(g.currentApp())
 }
 
-// respondPaused tells the user why the bot doesn't respond and when it starts
-// again.
 func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCreateEvent) {
+	RespondPaused(session, e, g.currentApp(), g.appBaseURL)
+}
+
+// RespondPaused tells the user why the bot of the paused app doesn't respond
+// and when it starts again.
+func RespondPaused(session *state.State, e *gateway.InteractionCreateEvent, app *model.App, appBaseURL string) {
 	var resp api.InteractionResponse
 	switch e.Data.(type) {
 	case *discord.PingInteraction:
@@ -36,7 +40,7 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 		resp = api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
-				Content: option.NewNullableString(g.pausedMessage(g.currentApp(), time.Now().UTC())),
+				Content: option.NewNullableString(pausedMessage(app, time.Now().UTC(), appBaseURL)),
 				Flags:   discord.EphemeralMessage,
 			},
 		}
@@ -45,14 +49,14 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 	if err := session.RespondInteraction(e.ID, e.Token, resp); err != nil {
 		slog.Warn(
 			"Failed to respond to interaction of paused app",
-			slog.String("app_id", g.appID),
+			slog.String("app_id", app.ID),
 			slog.String("error", err.Error()),
 		)
 	}
 }
 
-func (g *Gateway) pausedMessage(app *model.App, now time.Time) string {
-	footer := fmt.Sprintf("\n-# Made with [Kite](<%s>), the no-code Discord bot builder", g.appBaseURL)
+func pausedMessage(app *model.App, now time.Time, appBaseURL string) string {
+	footer := fmt.Sprintf("\n-# Made with [Kite](<%s>), the no-code Discord bot builder", appBaseURL)
 
 	start, _ := util.StartAndEndOfMonth(now)
 	if app.CreditsPausedAt.Time.Before(start) {

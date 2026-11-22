@@ -5,6 +5,9 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/expr-lang/expr/parser"
 )
 
 func testContext() Context {
@@ -391,5 +394,60 @@ func TestEvalReadsFieldsOfUnknownValues(t *testing.T) {
 		} else if got != want {
 			t.Errorf("%s: got %q, want %q", template, got, want)
 		}
+	}
+}
+
+// Type checking these takes longer the deeper they nest, a few levels more
+// than these never finish.
+func TestEvalRejectsDeeplyNestedCalls(t *testing.T) {
+	for _, expression := range []string{
+		strings.Repeat("replace(", 42) + `"a"` + strings.Repeat(`, "a", "b")`, 42),
+		strings.Repeat("sort(", 8) + `["a"]` + strings.Repeat(`, "a", "b")`, 8),
+		strings.Repeat("join(", 12) + `["a"]` + strings.Repeat(`, "a", "b")`, 12),
+	} {
+		start := time.Now()
+		_, err := Eval(context.Background(), expression, testContext())
+		if !errors.Is(err, ErrExpressionTooNested) {
+			t.Fatalf("expected ErrExpressionTooNested, got %v", err)
+		}
+		if d := time.Since(start); d > time.Second {
+			t.Fatalf("took %v to reject", d)
+		}
+	}
+}
+
+// The most nested expressions under the limit still compile quickly.
+func TestCompileNestedCallsUnderLimit(t *testing.T) {
+	for _, call := range []string{`split(`, `trimSuffix(`, `sort(`, `join(`} {
+		depth := 1
+		for {
+			tree, err := parser.Parse(strings.Repeat(call, depth+1) + `"a"` + strings.Repeat(`)`, depth+1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if checkCost(tree.Node) > maxCheckCost {
+				break
+			}
+			depth++
+		}
+
+		expression := strings.Repeat(call, depth) + `"a"` + strings.Repeat(`)`, depth)
+		start := time.Now()
+		_, _ = compileUncached(expression, testContext())
+		if d := time.Since(start); d > time.Second {
+			t.Fatalf("%s nested %d deep took %v to compile", call, depth, d)
+		}
+	}
+}
+
+// The deepest nesting in flows on kite.onl.
+func TestEvalAllowsNestedReplace(t *testing.T) {
+	expression := `replace(replace(replace(replace(replace(replace(replace(trim(lower("A b?")), "%", "%25"), " ", "%20"), "?", "%3F"), "&", "%26"), "#", "%23"), "/", "%2F"), "+", "%2B")`
+	res, err := Eval(context.Background(), expression, testContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.String() != "a%20b%3F" {
+		t.Fatalf("got %q", res.String())
 	}
 }

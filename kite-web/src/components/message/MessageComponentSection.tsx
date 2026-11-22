@@ -3,6 +3,7 @@ import {
   useChildIds,
   useDocument,
   useDocumentStoreApi,
+  useNoInteractive,
   useNode,
   useNodeActions,
 } from "@/lib/message/state";
@@ -22,6 +23,7 @@ export default function MessageComponentSection({
   id: NodeId;
   disableFlowEditor?: boolean;
 }) {
+  const noInteractive = useNoInteractive();
   const data = useNode<SectionNode>(id);
   const childIds = useChildIds(id, "components");
   const actions = useNodeActions(id);
@@ -93,7 +95,9 @@ export default function MessageComponentSection({
             value={accessoryType ?? ""}
             options={[
               { label: "Thumbnail", value: "thumbnail" },
-              { label: "Button", value: "button" },
+              ...(noInteractive && accessoryType !== "button"
+                ? []
+                : [{ label: "Button", value: "button" }]),
             ]}
             placeholder="Select an accessory"
             onChange={setAccessoryType}

@@ -7,7 +7,7 @@ import { BundleGetResponse } from "../types/wire.gen";
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (err) => {
-      toast.error(`Error: ${err}`);
+      toast.error(errorMessage(err));
     },
   }),
   defaultOptions: {
@@ -42,12 +42,37 @@ export function loginUrlTo(path: string) {
 
 export const loginUrl = loginUrlTo("/apps");
 
+// installUrl logs in and adds the Kite bot to a server on one page of
+// Discord. The query can pick the server with guild_id, and the rest goes to
+// the setup page, like templates=verification,giveaway.
+export function installUrl(query?: string) {
+  return getApiUrl(`/v1/auth/install${query ? `?${query}` : ""}`);
+}
+
+// errorMessage is the text of an error for a toast, without the "Error:" it
+// starts with as a string.
+export function errorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+// React Query holds requests while the browser is offline, so one that fails
+// without an answer while offline was cut off by the connection dropping. The
+// server has no navigator.onLine.
+function fetchOrOffline(...args: Parameters<typeof fetch>) {
+  return fetch(...args).catch((err) => {
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      throw new Error("You're offline. Try again once you're back online.");
+    }
+    throw err;
+  });
+}
+
 export function apiRequest<T>(
   path: string,
   options?: RequestInit,
   baseUrl = getApiUrl()
 ) {
-  return fetch(baseUrl + path, {
+  return fetchOrOffline(baseUrl + path, {
     ...options,
     credentials: "include",
   }).then(async (res) => {

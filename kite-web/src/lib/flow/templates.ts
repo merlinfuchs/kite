@@ -162,37 +162,32 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplates are the templates the marketplace shows first, two of
-// Kite's and one a user made, picked again every day. day is the number of
+// featuredTemplates are the templates the marketplace shows first: up to
+// three made by users, one per creator, picked again every day. Kite's own
+// have their own rows, so the community's get the spot. Only staff picks and
+// the ones an AI check found good enough are featured. day is the number of
 // days since 1970 in UTC, so everyone sees the same ones.
 export function featuredTemplates(templates: Template[], day: number) {
-  // A different order of them every day.
-  const pick = (pool: Template[], count: number) =>
-    pool
+  const seen = new Set<string>();
+  return (
+    templates
+      .filter(
+        (t) =>
+          t.author.kind === "user" && t.listed && (t.staffPick || t.featurable)
+      )
+      // A different order of them every day.
       .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
       .sort((a, b) => a.rank - b.rank)
-      .slice(0, count)
-      .map(({ t }) => t);
-
-  const community = pick(
-    templates.filter(
-      (t) =>
-        t.author.kind === "user" &&
-        t.listed &&
-        (t.installs ?? 0) >= minFeaturedInstalls
-    ),
-    1
+      .map(({ t }) => t)
+      .filter((t) => {
+        const creator = t.author.kind === "user" ? t.author.discordId : "";
+        if (seen.has(creator)) return false;
+        seen.add(creator);
+        return true;
+      })
+      .slice(0, 3)
   );
-  const official = pick(
-    templates.filter((t) => t.author.kind === "kite"),
-    3 - community.length
-  );
-  return [...official.slice(0, 1), ...community, ...official.slice(1)];
 }
-
-// Users' templates need a few installs to be featured, so the ones nobody
-// tried yet don't get the top of the marketplace.
-const minFeaturedInstalls = 5;
 
 // utcDay is the day featuredTemplates picks for.
 export function utcDay(date = new Date()) {
@@ -239,12 +234,12 @@ export const templateParameterSchema = z.object({
   key: z.string().regex(parameterKeyPattern),
   label: z.string().min(1),
   description: z.string().min(1),
-  // channel and role are picked from a server the app is in, and their ID is
-  // the value. boolean is yes or no, picked from a menu, as true or false.
-  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
+  // channel, category and role are picked from a server the app is in, and
+  // their ID is the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "category", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Channels and roles
-  // don't have one.
+  // The value it starts with when the template is added. Channels, categories
+  // and roles don't have one.
   default: z.string().optional(),
 });
 
@@ -254,6 +249,7 @@ export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
   text: "Text",
   textarea: "Long text",
   channel: "Channel",
+  category: "Category",
   role: "Role",
   boolean: "Yes/No",
 };
@@ -328,6 +324,30 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
+  // Whether servers can add the template to an app on the Kite bot, which
+  // runs it in their server without a bot of their own. The service checks
+  // that it only uses what the Kite bot can run.
+  shared_bot: z.boolean().optional(),
+  // The about for apps on the Kite bot, if it has to differ, like when it
+  // mentions the editor or message templates, which they don't have.
+  shared_bot_about: z.array(z.string().min(1)).min(1).optional(),
+  // The gateway intents the template needs, like guild_messages for a
+  // Message Create listener or message_content to read the text of messages.
+  // The service checks that they match the flows. On the Kite bot, templates
+  // that need a privileged intent show up once Discord granted it.
+  intents: z
+    .array(
+      z.enum([
+        "guild_members",
+        "guild_moderation",
+        "guild_voice_states",
+        "guild_messages",
+        "guild_message_reactions",
+        "direct_messages",
+        "message_content",
+      ])
+    )
+    .optional(),
   parameters: z.array(
     templateParameterSchema.refine(
       (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
@@ -424,6 +444,8 @@ export const bundleContentSchema = z.object({
   version: z.number(),
   name: z.string(),
   description: z.string(),
+  shared_bot: z.boolean().optional(),
+  shared_bot_about: z.array(z.string()).optional(),
   parameters: z.array(bundleParameterSchema),
   commands: z.array(
     z.object({ id: z.string(), flow_source: bundleFlowSchema })
@@ -509,6 +531,13 @@ export type Template = {
   stars?: number;
   // Whether Kite picked it, which only templates of users can be.
   staffPick?: boolean;
+  // Whether an AI check found a user's template good enough to be featured.
+  featurable?: boolean;
+  // Whether apps on the Kite bot can add it, which only official templates
+  // can be.
+  sharedBot: boolean;
+  // What apps on the Kite bot show instead of about, see shared_bot_about.
+  sharedBotAbout?: string[];
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -590,8 +619,10 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
-// Below this, a star count makes a template look unused, so it isn't shown.
-export const minShownStars = 5;
+// Only a count of zero is hidden, since it says nothing. Any higher threshold
+// made a creator's total (all of their stars) disagree with the cards, where
+// only the templates over it showed theirs.
+export const minShownStars = 1;
 
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing,
@@ -648,6 +679,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     activeInstalls: bundle.active_install_count,
     stars: bundle.star_count,
     staffPick: bundle.staff_pick,
+    featurable: bundle.featurable,
     createdAt: bundle.created_at,
   };
 }
@@ -666,6 +698,8 @@ export function loadTemplate(
     icon: file.icon,
     category: file.category,
     author,
+    sharedBot: author.kind === "kite" && !!file.shared_bot,
+    sharedBotAbout: file.shared_bot_about,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,
     about: file.about,

@@ -36,7 +36,7 @@ Features (feature | what it means for the user | free or paid):
 - Flow AI, opened with the Ask AI button in the editor | describe a command and it adds and connects the blocks | free, 2 prompts a month, more on paid plans
 - AI blocks (Ask AI, Search the Web, AI Check, AI Choice, AI Score, AI Translate) | the bot answers questions and sorts messages | free, paid in credits
 - HTTP Request and Discord API Request blocks | call any API | free
-- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from Discord, ER:LC, and Cookie API, use stored variables, and send requests to other websites | free, 10 credits a run, plus 1 for each read from ER:LC or Cookie API, 1 for each change or list of a stored variable, and 3 for each request to another website
+- Run JavaScript block | a short piece of JavaScript for logic that would take many blocks, up to 4,000 characters and 25 ms, can read from and change things in Discord, use ER:LC and Cookie API and stored variables, use the AI blocks, and send requests to other websites | free, 3 credits a run, plus 1 for each change in Discord, each call of ER:LC or Cookie API, and each change or list of a stored variable, 3 for each request to another website, and what the AI blocks cost for each AI call
 - Integrations: ER:LC, Roblox, Roblox Open Cloud, Bloxlink, and Cookie API | ready blocks for ER:LC private servers, Roblox users, ranking in Roblox groups, Bloxlink verification, and Cookie API | free, ER:LC needs your server key, Roblox Open Cloud and Bloxlink need your API key
 - Collaborators | others edit the same bot with you | free, 3 including you, more on paid plans
 - MCP server at https://kite.onl/api/mcp | build and change the bot from Claude, ChatGPT, Codex, Cursor, or VS Code | free
@@ -67,6 +67,7 @@ Paid plans (monthly, yearly), read from https://api.kite.onl/v1/billing/plans on
 - Yearly costs 10 times the monthly price, so 2 months are free.
 - A plan belongs to one app, and prices are per app and month. Your other apps stay on the free plan.
 - Prices are in USD and include tax. Payment goes through Lemon Squeezy as merchant of record.
+- A sale takes a percent off the first year of yearly plans, with a code that checkout applies itself. While it runs, the site has a strip above the navbar, and the pricing and Plans pages show the sale price. Monthly subscribers who switch to yearly get the percent refunded by email, as a switch can't take a code. It's set in `[billing.sale]` of kite.toml. Black Week 2026 is 30% off with BLACKWEEK2026 until November 30.
 - A donation link sits under the plans on the app's Plans page.
 Trial, refunds, cancellation:
 - No trial. The free plan has no time limit.
@@ -99,8 +100,10 @@ Exact names of things users see:
 - Editor: flow, block, and the Ask AI button, which opens Flow AI. Ask AI is also the name of a block and a template.
 - Block names as in kite-web/src/lib/blocks titles, like Send message, Ban member, Ask AI, Search the Web, AI Check, HTTP Request, Edit server profile, Send message as, Set status.
 - Integrations: Discord, ER:LC, Roblox, Roblox Open Cloud, Bloxlink, Cookie API.
-- Badges: Template creator (listed, then 10, 100 or 1,000 users), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
+- Badges: Template creator (listed, then 10, 100 or 1,000 users), Star creator (5, 20 or 50 stars), Early creator, Early supporter, Kite Plus/Premium/Ultimate subscriber, Contributor and Staff on creator pages and in the account menu. Staff pick on templates.
 - Plans: Basic, Plus, Premium, and Ultimate. Basic is the free plan.
+- The two ways to set up an app: Quick setup and Custom setup. Quick setup adds the Kite bot and turns on templates, without a bot of your own. Custom setup uses a custom bot and has the editor. Use these names wherever people choose between the two, like the create dialog and marketing pages, so a page doesn't have to explain them each time.
+- The two bots an app can run on: the Kite bot and a custom bot. The Kite bot is Kite's own bot, which runs official templates in one server without a bot of your own. A custom bot is the user's own bot from the Discord Developer Portal, with its own name, avatar, and the editor. Apps on the Kite bot can give it their own name, avatar, banner, and About Me in their server for free. Animated ones need Plus, and name styles Premium. Apps on the Kite bot can't be used with MCP or API tokens. They can switch to Custom setup in their settings and keep their templates, stored variables, logs, and plan, the Kite bot stays in the server. Whoever switches becomes the app's owner, and others need to be added as collaborators again, except whoever pays for its plan. Adding the Kite bot is off on kite.onl until it launches.
 - The plan page in the dashboard is titled Plans, and its sidebar link says Upgrade, or Plan on a paid plan. There's no Premium page.
 - Pages: /pricing, /marketplace, /alternatives, /guides, /tools, /refund. Docs at docs.kite.onl. The dashboard is kite.onl/apps.
 - Discord permissions by Discord's names: Administrator, Manage Server, Manage Roles, Manage Webhooks, Ban Members.
@@ -117,6 +120,7 @@ Words to never use:
 - "plugin" for anything new. Plugins are hidden for new bots.
 - "no branding".
 - "Premium" for every paid plan. Say "paid plans".
+- "Lite", "Kite Lite", or "shared bot" for apps on the Kite bot. Lite sounds like a plan. Say "Quick setup" for the way to set up, and "the Kite bot" and "a custom bot" for the bots.
 - "Kite's AI" or "AI builder" as a name. The name is Flow AI.
 - Plan IDs or setting keys, like basic, feature_max_guilds, or temporary_name.
 - "entitlement", "execution", "operation", "node", or "handle". Say plan, run, step, block, or output.
@@ -130,7 +134,7 @@ Project-specific rules:
 - "Plus and up" or "Premium and up" for features of more than one plan.
 - Name a locked feature with the cheapest plan that has it.
 - "Online 24/7" and "always online" are fine. Don't add a credits caveat to them.
-- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
+- Feature words are common nouns, lowercase in sentences: stored variables, message templates, event listeners, scheduled tasks, webhooks, secrets, credits, flows, blocks, and templates. Capitalize only names: Kite and its plans, Flow AI, Quick setup and Custom setup, the Marketplace, integrations like Cookie API and ER:LC, and Discord's own names like Server Members Intent.
 - A UI label is written as it appears, in sentence case, and marked as something to click: backticks in the docs, bold on the site. "Open **Stored variables** in the sidebar." Block names work the same way: "add a Send message block".
 - "template" for official and community templates alike. "Made by Kite" and "From the community" tell them apart.
 - Kite pages say "Discord bot templates", not "server templates", which are copies of a server's channels and roles.
@@ -155,6 +159,8 @@ Update these when the free plan, prices, or the description change. Listings tha
 | Open Launch | https://open-launch.com/projects/kite-discord-bot-maker, launches 2026-11-14 | Yes | Edit the project while logged in |
 | Uneed | https://www.uneed.best/tool/kite-discord-bot-maker, launches 2026-11-27 | Yes | Edit the product while logged in |
 | Startup Stash | Submitted 2026-11-13, waiting for approval | Yes | Email hello@startupstash.com |
+| StackShare | https://stackshare.io/kite-mwg7b97a | No | Edit the tool while logged in |
+| SourceForge | https://sourceforge.net/software/product/Kite.onl/ | No, but lists every plan price | Vendor dashboard while logged in |
 | Official MCP Registry | `onl.kite/kite` | No | `kite-web/src/lib/mcp/server.json`, then `mcp-publisher publish` with a higher version |
 | Glama | `onl.kite/kite`, imported from the registry | No | Claimed through `kite-web/public/.well-known/glama.json` |
 | LobeHub | `merlinfuchs-kite` | No | `lhm` CLI |

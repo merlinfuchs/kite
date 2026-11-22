@@ -49,7 +49,7 @@ Regular expressions support named groups, lookbehind and Unicode properties like
 
 `console.log`, `console.info`, `console.warn` and `console.error` write to the app's logs, up to 50 lines and 4 KB per run.
 
-The code can read from Discord and the app's integrations, use stored variables and send requests to other websites, see below. Changes in Discord, like sending a message, still need the other blocks, before or after this one. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
+The code can read from and change things in Discord and the app's integrations, use stored variables and send requests to other websites, see below. There's no `setTimeout` or `setInterval`, and no `require`, `import`, `process` or `Buffer`. `URL`, `URLSearchParams`, `TextEncoder`, `TextDecoder`, `crypto` and `structuredClone` aren't available either.
 
 `await`, `async` functions and `queueMicrotask` work. There are no timers, so the code can't wait for time to pass. If it waits for a promise that never finishes, the block fails. An error in a `queueMicrotask` callback is logged and doesn't stop the code.
 
@@ -73,9 +73,9 @@ return formatDate(Date.now(), "dddd [at] HH:mm", "Europe/Berlin");
 
 Text in `[brackets]` stays as it is. The time zone is a name like `America/New_York`, and defaults to `UTC`. To show a time to each member in their own time zone, use Discord's timestamps instead, like `<t:{{user.created_at}}:F>`.
 
-## Reading from Discord and integrations
+## Discord and integrations
 
-The code can read from Discord, ER:LC and Cookie API with the endpoints of their APIs. Each one is a function that returns a promise, so use `await`:
+The code can call Discord, ER:LC and Cookie API with the endpoints of their APIs. Each one is a function that returns a promise, so use `await`:
 
 ```js
 const [channel, messages] = await Promise.all([
@@ -85,9 +85,9 @@ const [channel, messages] = await Promise.all([
 return `${channel.name} has ${messages.length} recent messages`;
 ```
 
-For Discord, the names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. ER:LC has `erlc.getServer`, with the parameters `Players`, `Staff`, `JoinLogs`, `Queue`, `KillLogs`, `CommandLogs`, `ModCalls`, `EmergencyCalls` and `Vehicles` written like that. Cookie API has `cookieApi.getCaptcha` with `captcha_id`, `cookieApi.getMinecraftUser` with `code`, and `cookieApi.getCurrentTime`.
+For Discord, the names are the endpoints of the [Discord API Request](./action_discord_api_request.md) block in camel case, so `get_guild_member` is `discord.getGuildMember`. ER:LC has `erlc.getServer`, with the parameters `Players`, `Staff`, `JoinLogs`, `Queue`, `KillLogs`, `CommandLogs`, `ModCalls`, `EmergencyCalls` and `Vehicles` written like that, and `erlc.runCommand`. Cookie API has `cookieApi.getCaptcha` with `captcha_id`, `cookieApi.getMinecraftUser` with `code`, `cookieApi.getCurrentTime`, and the endpoints that create transcripts, cards, QR codes and captchas. The editor completes all of them.
 
-The argument is an object with the endpoint's parameters by name, like `{ channel_id: "123", limit: 50 }` or `{ Players: true }`. A call with a wrong parameter fails without being sent or billed.
+The argument is an object with the endpoint's parameters by name, like `{ channel_id: "123", limit: 50 }` or `{ Players: true }`. The body of a request that sends one goes under `body`. A call with a wrong parameter fails without being sent or billed.
 
 The result is the JSON the API returns, with its own field names. A member has `nick` and `user.global_name`, not the `display_name` of placeholders.
 
@@ -102,7 +102,27 @@ try {
 }
 ```
 
-Only reading works for now. Sending messages and other changes still need the other blocks. Reading from Discord is free, and reading from other integrations costs [1 credit](../../credit-system.md#cost-breakdown) each time. The integration has to be enabled in the app.
+## Changing things in Discord
+
+The code can send messages, give roles, create channels, ban members and make the other changes the Discord API Request block can. Put what the endpoint takes under `body`, and the reason that shows in the server's audit log under `reason`:
+
+```js
+const msg = await discord.createMessage({
+  channel_id: input.channel,
+  body: { content: `Welcome, ${input.user.mention}!` },
+});
+await discord.addGuildMemberRole({
+  guild_id: input.guild,
+  user_id: input.user.id,
+  role_id: input.role,
+  reason: "Finished onboarding",
+});
+return msg.id;
+```
+
+The code can't reply to the command or button the flow runs with. Return what to say, and reply with a [Create response message](./action_response_create.md) block after this one.
+
+Reading from Discord is free. Members, roles and channels come from what Kite already knows about the server when it can, so reading them is fast. Each change in Discord and each call of another integration costs [1 credit](../../credit-system.md#cost-breakdown). The integration has to be enabled in the app. Test runs show the changes instead of making them.
 
 ## Stored variables
 
@@ -125,6 +145,25 @@ Runs at the same time don't overwrite each other's `append`, `prepend` and `incr
 
 A scoped variable needs a `scope`, like a user ID, and an unscoped one ignores it. The name stays the same when the variable is renamed, and when the flow is part of a template, apps that add it get their own copy of the variable. Getting a value is free, the others cost [1 credit](../../credit-system.md#cost-breakdown) each, like the blocks.
 
+## AI
+
+The code can use the AI blocks with `ai.ask`, `ai.check`, `ai.choose`, `ai.score` and `ai.translate`. Each call costs what its block costs, so the code can sort or answer several messages in one run. Calls with `Promise.all` run at the same time:
+
+```js
+const spam = await Promise.all(
+  input.messages.map((m) => ai.check({ question: "Is this spam?", input: m.content }))
+);
+return input.messages.filter((m, i) => spam[i] > 0.8).map((m) => m.id);
+```
+
+- `ai.ask({ prompt, system_prompt, model, max_tokens })` returns the answer of [Ask AI](./action_ai_chat_completion.md). The model is `small`, `medium` or `large`, and `small` if it's left out. It costs 5, 20 or 100 credits, and more for long prompts and answers, like the block.
+- `ai.check({ question, input })` returns how likely the answer to a yes or no question is yes, from 0 to 1, like [AI Check](../controls/control_ai_check.md).
+- `ai.choose({ question, input, options })` picks one of the options, which is an object with a description of each, like `{ bug: "Something broke", idea: "" }`. It returns `{ choice, confidence }`, with `choice` set to `null` if no option fits, like [AI Choice](../controls/control_condition_ai_choice.md).
+- `ai.score({ question, input, levels })` rates the input with 2 to 10 levels from the lowest to the highest, and returns the level from 1, like [AI Score](./action_ai_score.md).
+- `ai.translate({ text, language })` returns `{ text, source_language }`, like [AI Translate](./action_ai_translate.md).
+
+Check, choose and score cost [1 credit](../../credit-system.md#cost-breakdown) each, and translate 1 credit for each 1,000 characters. Searching the web isn't available, as it takes longer than the 10 seconds a run can take. Use the [Search the Web](./action_ai_web_search.md) block instead. A run that asks the `medium` or `large` model several times can also take too long, so ask those once per run.
+
 ## Sending requests to other websites
 
 `fetch` sends a request to any URL, like the [Send API Request](./action_http_request.md) block. It takes the method, the headers and a text body. The response has `ok`, `status`, `statusText`, `headers.get()`, `text()` and `json()`.
@@ -142,7 +181,7 @@ if (!res.ok) throw new Error(`The API answered ${res.status}`);
 return await res.json();
 ```
 
-`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Other placeholders aren't filled in, pass values in as inputs instead.
+`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Write each secret out in the code like that. A request can only use the secrets the code names, so a name the code puts together, like `"{{secrets." + name + "}}"`, fails. Other placeholders aren't filled in, pass values in as inputs instead.
 
 The body has to be text, so turn objects into JSON with `JSON.stringify` and set the `Content-Type` header. Without that header, the body is sent as plain text. Like in a browser, a response with an error status like 404 doesn't throw. Check `res.ok` or `res.status` instead. Only a request that gets no response at all throws, like one to a website that doesn't exist. The response can be up to 1 MB, and it's read as text, so images and other files don't come through.
 
@@ -150,14 +189,14 @@ The body has to be text, so turn objects into JSON with `JSON.stringify` and set
 
 ## Writing the code
 
-The editor completes the calls, their parameters, the inputs and the stored variables of the block. To write the code in your own editor, like VS Code, download [kite.d.ts](pathname:///kite.d.ts), put it next to your file and add `/// <reference path="kite.d.ts" />` as the file's first line. The editor then knows the calls and what they take. Write the code inside `async function run() { ... }` there, as editors don't allow `return` and `await` outside a function, and paste the body into the block.
+The editor completes the calls, their parameters, the inputs and the stored variables of the block. To write the code in your own editor, like VS Code, download [kite.d.ts](pathname:///kite.d.ts), put it next to your file and add `/// <reference path="kite.d.ts" />` as the file's first line. The editor then knows the calls, what they take and what they return, like the fields of a Discord message. The types of Discord's objects are in the `discord` namespace, like `discord.MessageResponse`. Write the code inside `async function run() { ... }` there, as editors don't allow `return` and `await` outside a function, and paste the body into the block.
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like reads from Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 50 calls per run that cost credits, like sending a message, changing or listing stored variables, asking AI, reading from ER:LC or a `fetch` request. Free calls, like reads from Discord and getting a stored variable, don't count toward the 50. Every call also counts as one of the 100 steps a flow can take in a run, like a block. A run can take 10 seconds in all, and waiting for calls doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 
-The block costs [10 credits](../../credit-system.md#cost-breakdown) each time it runs.
+The block costs [3 credits](../../credit-system.md#cost-breakdown) each time it runs.
 
 <NodeInfoExplorer type="action_javascript_run" />

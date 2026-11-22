@@ -28,6 +28,9 @@ const (
 	// UserBadgeCreator is for users with a template in the marketplace, with
 	// a Milestone once enough other users added them.
 	UserBadgeCreator UserBadgeKind = "creator"
+	// UserBadgeStar is for users whose templates in the marketplace got
+	// enough stars from other users. Its Milestone is how many.
+	UserBadgeStar UserBadgeKind = "star"
 )
 
 // GrantableUserBadges are the badges admins give by hand.
@@ -38,7 +41,8 @@ type UserBadge struct {
 	// Plan is the title of the plan of a subscriber.
 	Plan string
 	// Milestone is how many other users at least added the templates of a
-	// creator, or 0 if fewer than the lowest milestone.
+	// creator, or how many stars at least they got for a star badge. It's 0
+	// for a creator with fewer than the lowest milestone.
 	Milestone int
 }
 
@@ -60,4 +64,6 @@ type CreatorStats struct {
 	FirstListedAt time.Time
 	// InstallerCount is how many other users added any of them.
 	InstallerCount int
+	// StarCount is how many stars other users gave any of them.
+	StarCount int
 }

@@ -1,7 +1,13 @@
 import { useApp, useAppPlan, useUser } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useEffect } from "react";
-import { openPanel, setAppGroup, updateAppGroup, track } from "@/lib/analytics";
+import {
+  openPanel,
+  setAppGroup,
+  setAppRef,
+  updateAppGroup,
+  track,
+} from "@/lib/analytics";
 
 // Accounts this new count as signing up on this visit.
 const signUpWindowMs = 10 * 60 * 1000;
@@ -56,6 +62,12 @@ function AppGroup() {
   const guildCount = app?.discord_guild_count ?? 0;
   const userInstallCount = app?.discord_user_install_count ?? 0;
   const planId = plan?.id;
+  const ref = app?.ref ?? undefined;
+
+  useEffect(() => {
+    setAppRef(ref);
+    return () => setAppRef(undefined);
+  }, [ref]);
 
   useEffect(() => {
     if (!id || !name) return;
@@ -68,9 +80,10 @@ function AppGroup() {
         guild_count: guildCount,
         user_install_count: userInstallCount,
         ...(planId && { plan: planId }),
+        ...(ref && { ref }),
       }
     );
-  }, [id, name, enabled, createdAt, guildCount, userInstallCount, planId]);
+  }, [id, name, enabled, createdAt, guildCount, userInstallCount, planId, ref]);
 
   return null;
 }

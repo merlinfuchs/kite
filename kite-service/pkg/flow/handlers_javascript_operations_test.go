@@ -28,6 +28,7 @@ type operationsTestProvider struct {
 	responses map[string]string
 	errors    map[string]error
 	paths     []string
+	reasons   []string
 }
 
 func (p *operationsTestProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
@@ -35,6 +36,9 @@ func (p *operationsTestProvider) APIRequest(ctx context.Context, req provider.Di
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.paths = append(p.paths, req.Method+" "+req.Path)
+	if req.Reason != "" {
+		p.reasons = append(p.reasons, string(req.Reason))
+	}
 	if err := p.errors[req.Path]; err != nil {
 		return nil, err
 	}
@@ -68,7 +72,23 @@ return [channel.name, member.nick, messages.length]`, p, 1000)
 	assert.JSONEq(t, `["general","Kite",2]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.ElementsMatch(t, []string{"GET /channels/5", "GET /guilds/7/members/8", "GET /channels/5/messages?limit=2"}, p.paths)
 	// The block's credits, Discord reads are free.
-	assert.Equal(t, 10, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits, c.CreditsUsed())
+}
+
+func TestJavaScriptRunWritesDiscord(t *testing.T) {
+	p := &operationsTestProvider{responses: map[string]string{
+		"/channels/5/messages": `{"id":"9"}`,
+	}}
+	c, err := runJavaScriptOperations(t, `
+const msg = await discord.createMessage({channel_id: "5", body: {content: "Hi"}})
+await discord.deleteGuildMemberRole({guild_id: "7", user_id: "8", role_id: "6", reason: "Expired"})
+return msg.id`, p, 1000)
+	require.NoError(t, err)
+	assert.Equal(t, "9", c.GetNodeResult("js_1").String())
+	assert.Equal(t, []string{"POST /channels/5/messages", "DELETE /guilds/7/members/8/roles/6"}, p.paths)
+	assert.Equal(t, []string{"Expired"}, p.reasons)
+	// The block's credits and 1 per write.
+	assert.Equal(t, javaScriptCredits+2, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationErrors(t *testing.T) {
@@ -77,7 +97,10 @@ func TestJavaScriptRunOperationErrors(t *testing.T) {
 		code string
 		want string
 	}{
-		{"write", `await discord.createMessage({channel_id: "5", content: "hi"})`, "Error: discord.createMessage isn't available"},
+		{"interaction", `await discord.createFollowupMessage({body: {content: "hi"}})`, "Error: discord.createFollowupMessage isn't available"},
+		{"body outside of body", `await discord.createMessage({channel_id: "5", content: "hi"})`, "Error: discord.createMessage: it has no parameter content"},
+		{"reason of a read", `await discord.getChannel({channel_id: "5", reason: "hi"})`, "Error: discord.getChannel: it has no parameter reason"},
+		{"reason not text", `await discord.deleteMessage({channel_id: "5", message_id: "6", reason: 1})`, "Error: discord.deleteMessage: the reason must be text"},
 		{"unknown", `await discord.doSomething()`, "Error: discord.doSomething isn't available"},
 		{"missing parameter", `await discord.getChannel({})`, "Error: discord.getChannel: missing path parameter channel_id"},
 		{"unknown parameter", `await discord.getChannel({channel_id: "5", foo: 1})`, "Error: discord.getChannel: it has no parameter foo"},
@@ -118,7 +141,7 @@ func TestJavaScriptRunOperationCredits(t *testing.T) {
 
 	c, err := runJavaScriptOperations(t, `await discord.getPaidThing(); return 1`, &operationsTestProvider{}, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 
 	// A call over the credit limit fails, like a block, and the code can
 	// catch that like an Error handler block can.
@@ -128,17 +151,17 @@ const errors = []
 for (let i = 0; i < 2; i++) {
   try { await discord.getPaidThing() } catch (e) { errors.push(e.message) }
 }
-return errors`, p, 15)
+return errors`, p, javaScriptCredits+5)
 	require.NoError(t, err)
-	assert.JSONEq(t, `["discord.getPaidThing: credits limit exceeded: 15"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.JSONEq(t, fmt.Sprintf(`["discord.getPaidThing: credits limit exceeded: %d"]`, javaScriptCredits+5), toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.Len(t, p.paths, 1)
 	// Only the call that was sent is billed.
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 
 	// So is a call with an argument it can't send.
 	c, err = runJavaScriptOperations(t, `try { await discord.getPaidThing({foo: 1}) } catch {} return 1`, p, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 10, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationsLimit(t *testing.T) {
@@ -150,6 +173,20 @@ await discord.getChannel({channel_id: "5"})
 try { await discord.getChannel({channel_id: "5"}) } catch (e) { return e.message }`}}}
 	require.NoError(t, node.Execute(c))
 	assert.Equal(t, "discord.getChannel: operations limit exceeded: 2", c.GetNodeResult("js_1").String())
+}
+
+func TestJavaScriptRunPaidCallsLimit(t *testing.T) {
+	p := &operationsTestProvider{}
+	c, err := runJavaScriptOperations(t, `
+for (let i = 0; i < 60; i++) await discord.getChannel({channel_id: "5"})
+const results = await Promise.allSettled(Array.from({length: 51}, () => discord.createMessage({channel_id: "5", body: {content: "Hi"}})))
+return results.filter((r) => r.status === "rejected").map((r) => r.reason.message)`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["discord.createMessage: the code made more than 50 calls that cost credits"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.Len(t, p.paths, 110)
+	// The block, the reads and the calls that were sent.
+	assert.Equal(t, 111, c.operations)
+	assert.Equal(t, javaScriptCredits+50, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationsInTestRuns(t *testing.T) {
@@ -188,19 +225,19 @@ func TestEveryIntegrationHasANamespace(t *testing.T) {
 }
 
 func TestOperationRequestBody(t *testing.T) {
-	path, body, err := operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","body":{"content":"Hi"}}`))
+	path, body, _, err := operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","body":{"content":"Hi"}}`))
 	require.NoError(t, err)
 	assert.Equal(t, "/channels/5/messages", path)
 	assert.JSONEq(t, `{"content":"Hi"}`, string(body))
 
 	// Bodies that are lists work the same.
-	_, body, err = operationRequest(operations["discord"]["bulk_update_guild_roles"], json.RawMessage(`{"guild_id":"7","body":[{"id":"8","position":1}]}`))
+	_, body, _, err = operationRequest(operations["discord"]["bulk_update_guild_roles"], json.RawMessage(`{"guild_id":"7","body":[{"id":"8","position":1}]}`))
 	require.NoError(t, err)
 	assert.JSONEq(t, `[{"id":"8","position":1}]`, string(body))
 
-	_, _, err = operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","content":"Hi"}`))
+	_, _, _, err = operationRequest(operations["discord"]["create_message"], json.RawMessage(`{"channel_id":"5","content":"Hi"}`))
 	assert.EqualError(t, err, "it has no parameter content")
-	_, _, err = operationRequest(operations["discord"]["get_channel"], json.RawMessage(`{"channel_id":"5","body":{}}`))
+	_, _, _, err = operationRequest(operations["discord"]["get_channel"], json.RawMessage(`{"channel_id":"5","body":{}}`))
 	assert.EqualError(t, err, "it has no parameter body")
 }
 

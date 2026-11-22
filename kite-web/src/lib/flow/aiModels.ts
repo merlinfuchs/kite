@@ -9,21 +9,21 @@ export const aiModelTiers = [
     label: "Fast",
     model: "gpt-6-luna",
     maxInputLength: 64000,
-    credits: { chat: 5, search: 25 },
+    credits: { chat: 5, search: 250 },
   },
   {
     value: AIModelMedium,
     label: "Balanced",
     model: "gpt-6-luna with reasoning",
     maxInputLength: 64000,
-    credits: { chat: 20, search: 100 },
+    credits: { chat: 20, search: 300 },
   },
   {
     value: AIModelLarge,
     label: "Smartest",
     model: "gpt-6-sol",
     maxInputLength: 8000,
-    credits: { chat: 100, search: 500 },
+    credits: { chat: 100, search: 600 },
   },
 ] as const;
 

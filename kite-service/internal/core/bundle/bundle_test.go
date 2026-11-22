@@ -34,7 +34,7 @@ func TestEveryBundleInstalls(t *testing.T) {
 	for _, b := range Official() {
 		values := map[string]string{}
 		for _, p := range b.Parameters {
-			if p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole {
+			if p.Type.Picked() {
 				values[p.Key] = "123456789012345678"
 			} else {
 				values[p.Key] = "text"
@@ -175,4 +175,13 @@ func TestSelectionCustomize(t *testing.T) {
 		require.NoError(t, err)
 		assert.ErrorContains(t, sel.Customize(map[string]message.MessageData{key: custom}), "the message "+key+" can't be changed")
 	}
+
+	var withButton message.MessageData
+	require.NoError(t, json.Unmarshal([]byte(`{"components":[{"type":1,"components":[{"type":2,"style":1,"label":"Hi","custom_id":"hi"}]}]}`), &withButton))
+	var withLink message.MessageData
+	require.NoError(t, json.Unmarshal([]byte(`{"components":[{"type":1,"components":[{"type":2,"style":5,"label":"Rules","url":"https://example.com"}]}]}`), &withLink))
+	sel, err = b.Select([]string{"sticky"}, map[string]string{})
+	require.NoError(t, err)
+	assert.ErrorContains(t, sel.Customize(map[string]message.MessageData{"sticky": withButton}), "can only have link buttons")
+	assert.NoError(t, sel.Customize(map[string]message.MessageData{"sticky": withLink}))
 }

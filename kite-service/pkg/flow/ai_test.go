@@ -148,7 +148,7 @@ func TestAINodeChargesSteps(t *testing.T) {
 		{"short answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 400, 20},
 		{"long answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 501, 40},
 		{"reported past the max", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "", 900, 20},
-		{"search steps at chat credits", FlowNodeTypeActionAISearchWeb, AIModelMedium, 16000, "1000", 1000, 140},
+		{"search steps at chat credits", FlowNodeTypeActionAISearchWeb, AIModelMedium, 16000, "1000", 1000, 340},
 	}
 
 	for _, tc := range cases {

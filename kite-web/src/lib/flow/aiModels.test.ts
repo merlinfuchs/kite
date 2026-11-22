@@ -45,16 +45,16 @@ describe("AI model tiers", () => {
 
   it("prices old models like the tier they now run as", () => {
     const cases: [string | undefined, number, number][] = [
-      [undefined, 5, 25],
-      ["small", 5, 25],
-      ["gpt-4o-mini", 5, 25],
-      ["gpt-5-nano", 5, 25],
-      ["gpt-5.4-nano", 5, 25],
-      ["medium", 20, 100],
-      ["gpt-4.1-mini", 20, 100],
-      ["large", 100, 500],
-      ["gpt-4.1", 100, 500],
-      ["unknown", 100, 500],
+      [undefined, 5, 250],
+      ["small", 5, 250],
+      ["gpt-4o-mini", 5, 250],
+      ["gpt-5-nano", 5, 250],
+      ["gpt-5.4-nano", 5, 250],
+      ["medium", 20, 300],
+      ["gpt-4.1-mini", 20, 300],
+      ["large", 100, 600],
+      ["gpt-4.1", 100, 600],
+      ["unknown", 100, 600],
     ];
     for (const [model, chat, search] of cases) {
       expect(credits("action_ai_chat_completion", model), model).toBe(chat);

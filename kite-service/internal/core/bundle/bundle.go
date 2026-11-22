@@ -32,6 +32,18 @@ type Bundle struct {
 	EventListeners []EventListener `json:"event_listeners"`
 	Messages       []Message       `json:"messages"`
 	Variables      []Variable      `json:"variables"`
+	// SharedBot is set on official bundles that apps on the Kite bot can add.
+	// They only use what the Kite bot can run, which a test checks.
+	SharedBot bool `json:"shared_bot,omitempty"`
+	// SharedBotAbout is what apps on the Kite bot show instead of the
+	// listing's about, if it has to differ.
+	SharedBotAbout []string `json:"shared_bot_about,omitempty"`
+	// Intents are the gateway intents the bundle needs, like guild_messages
+	// for a Message Create listener or message_content to read the text of
+	// messages. A test checks that they match its flows. On the Kite bot it
+	// can only be added once Discord granted the privileged ones, see
+	// SyncOfficial.
+	Intents model.Intents `json:"intents,omitempty"`
 }
 
 // Variable is a stored variable the blocks of the bundle use by its ID.
@@ -91,6 +103,12 @@ type Message struct {
 	Customize bool `json:"customize,omitempty"`
 }
 
+// SharedBotGranted reports whether Discord granted the Kite bot every
+// privileged intent the bundle needs.
+func (b *Bundle) SharedBotGranted(granted model.Intents) bool {
+	return granted.Has(b.Intents & model.PrivilegedIntents)
+}
+
 // Official returns the bundles of templates.json.
 func Official() []*Bundle {
 	res := make([]*Bundle, len(official))
@@ -142,6 +160,23 @@ var official = func() []officialBundle {
 	return res
 }()
 
+// LoadLatest gives a bundle loaded with the version apps install the content
+// of its newest version instead. That's the one the app it's made from
+// published last, also while a review of it is pending or after one rejected
+// it.
+func LoadLatest(ctx context.Context, s store.BundleStore, b *model.Bundle) error {
+	if b.Version == b.LatestVersion {
+		return nil
+	}
+	content, err := s.BundleVersionContent(ctx, b.ID, b.LatestVersion)
+	if err != nil {
+		return fmt.Errorf("failed to get bundle version: %w", err)
+	}
+	b.Content = content
+	b.Version = b.LatestVersion
+	return nil
+}
+
 // Parse reads the stored content of a bundle version.
 func Parse(content []byte) (*Bundle, error) {
 	var b Bundle
@@ -153,11 +188,18 @@ func Parse(content []byte) (*Bundle, error) {
 
 // SyncOfficial stores the official bundles, so they're installed from the
 // store like any other. The embedded ones are the source of truth for them,
-// so a stored version gets their content.
-func SyncOfficial(ctx context.Context, s store.BundleStore) error {
+// so a stored version gets their content. Bundles that read an intent the
+// Kite bot wasn't granted are stored without SharedBot, so apps on it can't
+// add them yet.
+func SyncOfficial(ctx context.Context, s store.BundleStore, sharedBotIntents model.Intents) error {
 	now := time.Now().UTC()
 	for i, o := range official {
 		b := o.bundle
+		if b.SharedBot && !b.SharedBotGranted(sharedBotIntents) {
+			copied := *b
+			copied.SharedBot = false
+			b = &copied
+		}
 		listing := o.listing
 		listing.Position = i
 		listing.UpdatedAt = now
@@ -269,12 +311,15 @@ type SelectedMessage struct {
 
 // Customize replaces the data of the messages the user changed while adding
 // the bundle, by their keys. Only selected messages that allow it can be
-// changed.
+// changed, and only with buttons and select menus that have a flow.
 func (s *Selection) Customize(data map[string]message.MessageData) error {
 	for key, d := range data {
 		i := slices.IndexFunc(s.Messages, func(m SelectedMessage) bool { return m.ID == key })
 		if i == -1 || !s.Messages[i].Customize {
 			return invalid("the message %s can't be changed", key)
+		}
+		if message.HasComponentsWithoutFlow(&d, s.Messages[i].FlowSources) {
+			return invalid("the message %s can only have link buttons", key)
 		}
 		def := s.Messages[i].Data
 		s.Messages[i].Default = &def

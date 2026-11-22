@@ -7,12 +7,13 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
+import { useBundleInstalls, useCommands, useSharedBot } from "@/lib/hooks/api";
 import { BundleInstall, BundleInstallItem } from "@/lib/types/wire.gen";
 import { track } from "@/lib/analytics";
 import { ArrowUpCircleIcon, CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
@@ -56,6 +57,9 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
   const updateMutation = useBundleInstallUpdateMutation(appId);
+  // Apps on the Kite bot show it under the template's name, and only have
+  // what templates add.
+  const sharedBot = useSharedBot();
 
   const [updateOpen, setUpdateOpen] = useState(false);
   const [overwrite, setOverwrite] = useState<Set<string>>(new Set());
@@ -102,12 +106,21 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
   return (
     <Card className="p-5">
-      <div className="font-semibold mb-1">In your app</div>
-      <p className="text-sm text-muted-foreground mb-4">
-        {items.length === 1
-          ? `1 item of this template is in your app.`
-          : `${items.length} items of this template are in your app.`}
-      </p>
+      {!sharedBot && (
+        <>
+          <div className="font-semibold mb-1">In your app</div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {items.length === 1
+              ? `1 item of this template is in your app.`
+              : `${items.length} items of this template are in your app.`}
+          </p>
+        </>
+      )}
+      {sharedBot && !template.parameters.length && (
+        <p className="text-sm text-muted-foreground mb-4">
+          {template.name} has no settings to change.
+        </p>
+      )}
 
       <InstallParameters template={template} install={install} />
 
@@ -259,6 +272,7 @@ export function RemoveInstallButton({
 }) {
   const appId = useAppId();
   const deleteMutation = useBundleInstallDeleteMutation(appId);
+  const sharedBot = useSharedBot();
   const hasVariables = install.items.some(
     (item) => !item.deleted && item.type === "variable"
   );
@@ -291,7 +305,7 @@ export function RemoveInstallButton({
         className="w-full"
         disabled={deleteMutation.isPending}
       >
-        Remove from app
+        {sharedBot ? "Remove template" : "Remove from app"}
       </Button>
     </ConfirmDialog>
   );
@@ -352,7 +366,7 @@ function PostMessages({
         }
       }
     } catch (e) {
-      toast.error(`Failed to post the ${label}: ${e}`);
+      toast.error(`Failed to post the ${label}: ${errorMessage(e)}`);
     } finally {
       setPosting(false);
     }
@@ -417,6 +431,7 @@ function InstallParameters({
   const appId = useAppId();
   const label = useItemLabel(template);
   const mutation = useBundleInstallParametersMutation(appId);
+  const sharedBot = useSharedBot();
   const [guildId, setGuildId] = useTemplateGuild();
   const [values, setValues] = useState<Record<string, string> | null>(null);
 
@@ -480,15 +495,20 @@ function InstallParameters({
       return;
     }
     setValues(null);
-    toast.success(`Saved the parameters of ${template.name}`);
+    toast.success(
+      `Saved the ${sharedBot ? "settings" : "parameters"} of ${template.name}`
+    );
   }
 
   return (
     <div className="mb-5">
-      <div className="text-sm font-medium mb-1.5">Parameters</div>
+      <div className="text-sm font-medium mb-1.5">
+        {sharedBot ? "Settings" : "Parameters"}
+      </div>
       <p className="text-sm text-muted-foreground mb-3">
-        Changes go into every command, event listener and message the template
-        added, also into messages that were already posted.
+        {sharedBot
+          ? "Changes apply right away, also to messages that were already posted."
+          : "Changes go into every command, event listener and message the template added, also into messages that were already posted."}
       </p>
       <TemplateParameterFields
         parameters={fields}
@@ -505,7 +525,7 @@ function InstallParameters({
         loading={mutation.isPending}
         disabled={!changed.length}
       >
-        Save parameters
+        {sharedBot ? "Save settings" : "Save parameters"}
       </LoadingButton>
     </div>
   );

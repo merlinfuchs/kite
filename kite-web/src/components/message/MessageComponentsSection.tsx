@@ -2,6 +2,7 @@ import {
   useChildIds,
   useComponentsV2Enabled,
   useDocumentStoreApi,
+  useNoInteractive,
   useRootId,
 } from "@/lib/message/state";
 import { ChevronDownIcon } from "lucide-react";
@@ -27,9 +28,15 @@ export default function MessageComponentsSection({
   const rootId = useRootId();
   const componentIds = useChildIds(rootId, "components");
   const componentsV2 = useComponentsV2Enabled();
+  const noInteractive = useNoInteractive();
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   const limit = slotLimit("message", "components", componentsV2);
+
+  // Without components v2 there are only buttons and select menus.
+  if (noInteractive && !componentsV2 && componentIds.length === 0) {
+    return null;
+  }
 
   return (
     <CollapsibleSection
@@ -52,45 +59,47 @@ export default function MessageComponentsSection({
             disabled={componentIds.length >= limit}
           />
         ) : (
-          <>
-            <Button
-              onClick={() =>
-                insert(rootId, "components", "end", { type: "actionRow" })
-              }
-              disabled={componentIds.length >= limit}
-            >
-              Add button row
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                asChild
+          !noInteractive && (
+            <>
+              <Button
+                onClick={() =>
+                  insert(rootId, "components", "end", { type: "actionRow" })
+                }
                 disabled={componentIds.length >= limit}
               >
-                <Button className="space-x-2">
-                  <div>Add select menu</div>
-                  <ChevronDownIcon className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {selectMenuTypes.map((t) => (
-                  <DropdownMenuItem
-                    key={t.type}
-                    onClick={() => {
-                      const rowId = insert(rootId, "components", "end", {
-                        type: "actionRow",
-                      });
-                      insert(rowId, "components", "end", {
-                        type: "selectMenu",
-                        select_type: t.type === 3 ? undefined : t.type,
-                      });
-                    }}
-                  >
-                    {t.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+                Add button row
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  asChild
+                  disabled={componentIds.length >= limit}
+                >
+                  <Button className="space-x-2">
+                    <div>Add select menu</div>
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {selectMenuTypes.map((t) => (
+                    <DropdownMenuItem
+                      key={t.type}
+                      onClick={() => {
+                        const rowId = insert(rootId, "components", "end", {
+                          type: "actionRow",
+                        });
+                        insert(rowId, "components", "end", {
+                          type: "selectMenu",
+                          select_type: t.type === 3 ? undefined : t.type,
+                        });
+                      }}
+                    >
+                      {t.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )
         )}
         <Button
           onClick={() => removeChildren(rootId, "components")}

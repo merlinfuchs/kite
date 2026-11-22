@@ -9,12 +9,12 @@ import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 import LegalUpdateDialog from "../common/LegalUpdateDialog";
 
-// Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
-// open state and scroll position when navigating between app pages.
-export default function AppShell({ children }: { children: ReactNode }) {
+// useAppOrLeave loads the app, and goes back to the app list if it doesn't
+// exist or the user can't open it.
+export function useAppOrLeave() {
   const router = useRouter();
 
-  useApp((res) => {
+  return useApp((res) => {
     if (!res.success) {
       toast.error(
         `Failed to load app: ${res?.error.message} (${res?.error.code})`
@@ -29,6 +29,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
       }
     }
   });
+}
+
+// Rendered from _app via getLayout, so the sidebar stays mounted and keeps its
+// open state and scroll position when navigating between app pages.
+export default function AppShell({ children }: { children: ReactNode }) {
+  useAppOrLeave();
 
   // TODO: remember open state of sidebar on desktop
   return (

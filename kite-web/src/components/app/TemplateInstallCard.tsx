@@ -1,20 +1,17 @@
 import { parameterDefaults, Template } from "@/lib/flow/templates";
-import { installRequest, installSelection } from "@/lib/flow/templateInstall";
+import { installSelection } from "@/lib/flow/templateInstall";
 import { BundleInstall } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import {
-  useBundleInstallCreateMutation,
-  useMessageInstanceCreateMutation,
-} from "@/lib/api/mutations";
+import { useAddTemplate } from "@/lib/hooks/addTemplate";
 import { useAppId } from "@/lib/hooks/params";
 import { PermissionFlag } from "@/lib/discord/permissions";
 import {
   useAppStateGuilds,
   useBundleInstalls,
   useCommands,
+  useSharedBot,
 } from "@/lib/hooks/api";
-import { track } from "@/lib/analytics";
 import {
   CircleAlertIcon,
   CircleCheckIcon,
@@ -23,7 +20,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
@@ -31,6 +27,8 @@ import LoadingButton from "../common/LoadingButton";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { Label } from "../ui/label";
 import { MessageData } from "@/lib/types/message.gen";
+import { parsePreviewMessage } from "@/lib/message/documentConvert";
+import dynamic from "next/dynamic";
 import { useMissingFlowIntegrations } from "@/lib/integrations/hooks";
 import { Integration } from "@/lib/integrations/types";
 import { AppIntegrationEnableButton } from "./AppIntegrationList";
@@ -59,23 +57,37 @@ function useCommandNames() {
 export function TemplateInstallCard({
   template,
   from,
+  initialValues,
+  title = "Add to your app",
+  actionLabel,
+  onInstalled,
 }: {
   template: Template;
   // Where the template is added from, like "flow_ai", for analytics.
   from?: string;
+  // Values of its parameters to start with, like from a link.
+  initialValues?: Record<string, string>;
+  title?: string;
+  // The label of the button that adds it, "Add 3 items" without one.
+  actionLabel?: string;
+  // Called once it's added, with the messages that couldn't be posted. The
+  // card shows what was added when it stays.
+  onInstalled?: (unposted: { name: string; error: string }[]) => void;
 }) {
   const appId = useAppId();
-  const commandNames = useCommandNames();
+  // Apps on the Kite bot can't edit what they add, and the bot isn't theirs.
+  const sharedBot = useSharedBot();
+  const botName = sharedBot ? "the Kite bot" : "your bot";
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
-  const bundleInstallMutation = useBundleInstallCreateMutation(appId);
-  const postMutation = useMessageInstanceCreateMutation(appId);
+  const { add, pending } = useAddTemplate();
 
-  const [values, setValues] = useState(() =>
-    parameterDefaults(template.parameters)
-  );
+  const [values, setValues] = useState(() => ({
+    ...parameterDefaults(template.parameters),
+    ...initialValues,
+  }));
   // The messages the user wrote in the message editor, by their key.
   const [customMessages, setCustomMessages] = useState<
     Record<string, MessageData>
@@ -154,67 +166,17 @@ export function TemplateInstallCard({
     return { permissions: Array.from(permissions), guildNames };
   }, [derived.permissions, guilds, guildId]);
 
-  function toggle(key: string, included: boolean) {
-    const next = new Set(skipped);
-    if (included) next.delete(key);
-    else next.add(key);
-    setSkipped(next);
-  }
-
   async function install() {
-    const res = await bundleInstallMutation.mutateAsync(
-      installRequest(template, selection, values, customMessages)
-    );
-    if (!res.success) {
-      toast.error(
-        `Failed to add ${template.name}: ${res.error.message} (${res.error.code})`
-      );
-      return;
-    }
-
-    const analytics = {
-      source: "template",
-      template: template.id,
-      template_version: template.version,
-    };
-    // first is false when items are added to an install the app already has.
-    track("template_added", {
-      ...analytics,
-      count: itemCount,
+    const unposted = await add({
+      template,
+      selection,
+      values,
+      customMessages,
+      guildId,
       first: !existing,
-      ...(from && { from }),
+      from,
     });
-    if (commands.length) {
-      track("command_created", { ...analytics, count: commands.length });
-    }
-    if (eventListeners.length) {
-      track("event_listener_created", {
-        ...analytics,
-        count: eventListeners.length,
-      });
-    }
-
-    // Messages are posted after they were created, a message that can't be
-    // posted can be posted again from this page.
-    const unposted: { name: string; error: string }[] = [];
-    for (const message of messages) {
-      const channelId = message.sendTo && values[message.sendTo];
-      const item = res.data.items.find(
-        (i) => i.type === "message" && i.key === message.key
-      );
-      if (!channelId || !guildId || !item) continue;
-
-      const postRes = await postMutation.mutateAsync({
-        messageId: item.id,
-        discord_guild_id: guildId,
-        discord_channel_id: channelId,
-      });
-      if (postRes.success) {
-        track("message_sent", analytics);
-      } else {
-        unposted.push({ name: message.name, error: postRes.error.message });
-      }
-    }
+    if (!unposted) return;
 
     setInstalled({
       commands: commands.length,
@@ -222,6 +184,7 @@ export function TemplateInstallCard({
       messages: messages.length,
       unposted,
     });
+    onInstalled?.(unposted);
   }
 
   if (installed) {
@@ -232,8 +195,9 @@ export function TemplateInstallCard({
           Added to your app
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          It&apos;s enabled and yours to change in the editor, like anything you
-          built yourself.
+          {sharedBot
+            ? "It's running in your server now."
+            : "It's enabled and yours to change in the editor, like anything you built yourself."}
         </p>
         {missingIntegrations.map((integration) => (
           <MissingIntegration key={integration.id} integration={integration} />
@@ -246,42 +210,52 @@ export function TemplateInstallCard({
             <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
             <span>
               Couldn&apos;t post the {m.name} message: {m.error}. Post it again
-              from this page once that&apos;s fixed.
+              from {sharedBot ? "its settings on the dashboard" : "this page"}{" "}
+              once that&apos;s fixed.
             </span>
           </div>
         ))}
-        <div className="flex flex-col gap-2">
-          {!!installed.commands && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{ pathname: "/apps/[appId]/commands", query: { appId } }}
-              >
-                View commands
-              </Link>
-            </Button>
-          )}
-          {!!installed.eventListeners && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{
-                  pathname: eventSourceName("discord").path,
-                  query: { appId },
-                }}
-              >
-                View event listeners
-              </Link>
-            </Button>
-          )}
-          {!!installed.messages && (
-            <Button variant="outline" asChild>
-              <Link
-                href={{ pathname: "/apps/[appId]/messages", query: { appId } }}
-              >
-                View message templates
-              </Link>
-            </Button>
-          )}
-        </div>
+        {/* Apps on the Kite bot can't open what they added. */}
+        {!sharedBot && (
+          <div className="flex flex-col gap-2">
+            {!!installed.commands && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/commands",
+                    query: { appId },
+                  }}
+                >
+                  View commands
+                </Link>
+              </Button>
+            )}
+            {!!installed.eventListeners && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: eventSourceName("discord").path,
+                    query: { appId },
+                  }}
+                >
+                  View event listeners
+                </Link>
+              </Button>
+            )}
+            {!!installed.messages && (
+              <Button variant="outline" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/messages",
+                    query: { appId },
+                  }}
+                >
+                  View message templates
+                </Link>
+              </Button>
+            )}
+          </div>
+        )}
       </Card>
     );
   }
@@ -302,7 +276,7 @@ export function TemplateInstallCard({
 
   return (
     <Card className="p-5">
-      <div className="font-semibold mb-4">Add to your app</div>
+      <div className="font-semibold mb-4">{title}</div>
 
       {!!parameters.length && (
         <div className="mb-5">
@@ -318,14 +292,18 @@ export function TemplateInstallCard({
 
       {customizable.map((message) => (
         <div key={message.key} className="space-y-1.5 mb-5">
-          <Label>{message.name} Message</Label>
+          <Label>{message.name} message</Label>
           {message.description && (
             <div className="text-xs text-muted-foreground">
               {message.description}
             </div>
           )}
+          <CustomMessagePreview
+            data={customMessages[message.key] ?? message.data}
+          />
           <MessageEditorDialog
             message={customMessages[message.key] ?? message.data}
+            disableInteractive
             onClose={(data, changed) => {
               // Unchanged, it stays the template's, which updates replace.
               if (!changed) return;
@@ -333,59 +311,26 @@ export function TemplateInstallCard({
             }}
           >
             <Button variant="outline" className="w-full">
-              {customMessages[message.key] ? "Edit message" : "Write message"}
+              Edit message
             </Button>
           </MessageEditorDialog>
         </div>
       ))}
 
-      <div className="text-sm font-medium mb-2.5">Include</div>
-      <div className="space-y-2.5 mb-5">
-        {template.commands.map((command) => (
-          <ItemRow
-            key={command.key}
-            exists={installedKeys.has(command.key)}
-            included={!skipped.has(command.key)}
-            onToggle={(included) => toggle(command.key, included)}
-            note={
-              !skipped.has(command.key) && commandNames.has(command.name)
-                ? "name taken, gets a number"
-                : undefined
-            }
-          >
-            {commandLabel(command.name, command.flowSource)}
-          </ItemRow>
-        ))}
-        {template.eventListeners.map((listener) => (
-          <ItemRow
-            key={listener.key}
-            exists={installedKeys.has(listener.key)}
-            included={!skipped.has(listener.key)}
-            onToggle={(included) => toggle(listener.key, included)}
-            description={listener.description}
-          >
-            {discordEventType(listener.type)?.label ?? listener.type}
-          </ItemRow>
-        ))}
-        {template.messages.map((message) => {
-          const exists = installedKeys.has(message.key);
-          return (
-            <ItemRow key={message.key} exists={exists}>
-              {message.name} message
-              {message.sendTo && !exists && (
-                <span className="text-muted-foreground">
-                  , posted in the channel
-                </span>
-              )}
-            </ItemRow>
-          );
-        })}
-        {template.variables.map((variable) => (
-          <ItemRow key={variable.key} exists={installedKeys.has(variable.key)}>
-            {variable.name} stored variable
-          </ItemRow>
-        ))}
-      </div>
+      {/* Apps on the Kite bot add all of it, the parts are code to them. */}
+      {!sharedBot && (
+        <>
+          <div className="text-sm font-medium mb-2.5">Include</div>
+          <div className="space-y-2.5 mb-5">
+            <TemplateItemRows
+              template={template}
+              installedKeys={installedKeys}
+              skipped={skipped}
+              onSkippedChange={setSkipped}
+            />
+          </div>
+        </>
+      )}
 
       {missingIntegrations.map((integration) => (
         <MissingIntegration key={integration.id} integration={integration} />
@@ -396,7 +341,7 @@ export function TemplateInstallCard({
           <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
           <div>
             <span className="font-semibold">Missing permissions: </span>
-            Your bot needs the{" "}
+            {botName.charAt(0).toUpperCase() + botName.slice(1)} needs the{" "}
             {new Intl.ListFormat("en").format(
               missing.permissions.map(permissionLabel)
             )}{" "}
@@ -416,7 +361,7 @@ export function TemplateInstallCard({
             <span className="font-semibold text-foreground">
               Role hierarchy:{" "}
             </span>
-            Put your bot&apos;s role above the roles of the members it acts on
+            Put {botName}&apos;s role above the roles of the members it acts on
             so it can manage them.
           </div>
         </div>
@@ -435,9 +380,10 @@ export function TemplateInstallCard({
           className="w-full"
           onClick={install}
           disabled={!!exceeded}
-          loading={bundleInstallMutation.isPending}
+          loading={pending}
         >
-          Add {itemCount} {itemCount === 1 ? "item" : "items"}
+          {actionLabel ??
+            `Add ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
         </LoadingButton>
       )}
     </Card>
@@ -454,6 +400,84 @@ function MissingIntegration({ integration }: { integration: Integration }) {
       </div>
       <AppIntegrationEnableButton integration={integration} />
     </div>
+  );
+}
+
+// TemplateItemRows are the items of the template to include, which the app
+// doesn't have yet unless they're shown as already in it. Commands and event
+// listeners can be skipped, the messages and variables they use can't.
+export function TemplateItemRows({
+  template,
+  installedKeys,
+  skipped,
+  onSkippedChange,
+  hideExisting,
+}: {
+  template: Template;
+  installedKeys: Set<string>;
+  skipped: Set<string>;
+  onSkippedChange: (skipped: Set<string>) => void;
+  // Leaves out the items the app has instead of showing them as in it.
+  hideExisting?: boolean;
+}) {
+  const commandNames = useCommandNames();
+  const shown = <T extends { key: string }>(items: T[]) =>
+    hideExisting ? items.filter((i) => !installedKeys.has(i.key)) : items;
+
+  function toggle(key: string, included: boolean) {
+    const next = new Set(skipped);
+    if (included) next.delete(key);
+    else next.add(key);
+    onSkippedChange(next);
+  }
+
+  return (
+    <>
+      {shown(template.commands).map((command) => (
+        <ItemRow
+          key={command.key}
+          exists={installedKeys.has(command.key)}
+          included={!skipped.has(command.key)}
+          onToggle={(included) => toggle(command.key, included)}
+          note={
+            !skipped.has(command.key) && commandNames.has(command.name)
+              ? "name taken, gets a number"
+              : undefined
+          }
+        >
+          {commandLabel(command.name, command.flowSource)}
+        </ItemRow>
+      ))}
+      {shown(template.eventListeners).map((listener) => (
+        <ItemRow
+          key={listener.key}
+          exists={installedKeys.has(listener.key)}
+          included={!skipped.has(listener.key)}
+          onToggle={(included) => toggle(listener.key, included)}
+          description={listener.description}
+        >
+          {discordEventType(listener.type)?.label ?? listener.type}
+        </ItemRow>
+      ))}
+      {shown(template.messages).map((message) => {
+        const exists = installedKeys.has(message.key);
+        return (
+          <ItemRow key={message.key} exists={exists}>
+            {message.name} message
+            {message.sendTo && !exists && (
+              <span className="text-muted-foreground">
+                , posted in the channel
+              </span>
+            )}
+          </ItemRow>
+        );
+      })}
+      {shown(template.variables).map((variable) => (
+        <ItemRow key={variable.key} exists={installedKeys.has(variable.key)}>
+          {variable.name} stored variable
+        </ItemRow>
+      ))}
+    </>
   );
 }
 
@@ -505,4 +529,16 @@ function ItemRow({
       </div>
     </label>
   );
+}
+
+const MessagePreviewBox = dynamic(
+  () => import("../message/MessagePreviewBox"),
+  { ssr: false }
+);
+
+// CustomMessagePreview shows a message the server writes like Discord, so it
+// can see what's posted without opening the editor, also for embeds.
+function CustomMessagePreview({ data }: { data: MessageData }) {
+  const message = useMemo(() => parsePreviewMessage(data), [data]);
+  return message ? <MessagePreviewBox msg={message} /> : null;
 }

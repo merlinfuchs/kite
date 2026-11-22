@@ -1,11 +1,14 @@
 import { useMemo } from "react";
 import {
   useBundleQuery,
+  useLatestBundleQuery,
+  useBundlesByIdQueries,
   useBundlesQuery,
   useStarredBundlesQuery,
   useUserQuery,
 } from "../api/queries";
 import { Template, templateFromBundle } from "../flow/templates";
+import { APIResponse } from "../api/response";
 import { BundleGetResponse } from "../types/wire.gen";
 import { useResponseData } from "./api";
 
@@ -34,6 +37,33 @@ export function useTemplate(
     if (!data.success) return null;
     return templateFromBundle(data.data) ?? null;
   }, [data]);
+}
+
+// useLatestTemplate is the user's template with its newest version, or null
+// if it can't be loaded.
+export function useLatestTemplate(id: string): Template | null | undefined {
+  const { data } = useLatestBundleQuery(id);
+  return useMemo(() => {
+    if (!data) return undefined;
+    if (!data.success) return null;
+    return templateFromBundle(data.data) ?? null;
+  }, [data]);
+}
+
+// useFullTemplates are the templates with these IDs with their flows, which
+// the list of useTemplates leaves out, or undefined while one loads.
+export function useFullTemplates(ids: string[]): Template[] | undefined {
+  return useBundlesByIdQueries(ids, fullTemplates);
+}
+
+function fullTemplates(
+  results: { data?: APIResponse<BundleGetResponse> }[]
+): Template[] | undefined {
+  if (results.some((r) => !r.data)) return undefined;
+  return results.flatMap((r) => {
+    const template = r.data?.success ? templateFromBundle(r.data.data) : null;
+    return template ? [template] : [];
+  });
 }
 
 // useStarredTemplateIds are the IDs of the templates the user starred, or

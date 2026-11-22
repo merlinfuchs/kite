@@ -37,14 +37,14 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "ping")]; got == nil || got.(*Command).cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "config set")]; got == nil || got.(*Command).cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
 	if got := app.commandsByKey[command.NewKey(discord.ChatInputCommand, "missing")]; got != nil {
-		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
+		t.Errorf("lookup of unknown name resolved to %v, want nil", got.(*Command).cmd.ID)
 	}
 }
 
@@ -88,9 +88,9 @@ func TestCommandIndexByType(t *testing.T) {
 		got := app.commandsByKey[interactionCommandKey(test.data)]
 		if test.want == "" {
 			if got != nil {
-				t.Errorf("%+v resolved to %s, want none", test.data, got.cmd.ID)
+				t.Errorf("%+v resolved to %s, want none", test.data, got.(*Command).cmd.ID)
 			}
-		} else if got == nil || got.cmd.ID != test.want {
+		} else if got == nil || got.(*Command).cmd.ID != test.want {
 			t.Errorf("%+v did not resolve to %s", test.data, test.want)
 		}
 	}
@@ -181,8 +181,8 @@ func TestListenerIndexRebuildDoesNotMutateExistingSlice(t *testing.T) {
 	if len(snapshot) != 1 {
 		t.Errorf("snapshot taken before rebuild changed length to %d, want 1", len(snapshot))
 	}
-	if snapshot[0].listener.ID != "l-1" {
-		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].listener.ID)
+	if snapshot[0].handler.(*EventListener).listener.ID != "l-1" {
+		t.Errorf("snapshot contents changed: got %q, want l-1", snapshot[0].handler.(*EventListener).listener.ID)
 	}
 }
 
@@ -321,6 +321,41 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Handlers only get the events shouldHandleEvent lets through for their type,
+// so bots and the app's own reactions don't run listeners, and boost
+// listeners only run on boosts.
+func TestRoutesForEventFilters(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost))
+	app.AddEventListener(testListener("reaction", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageReactionAdd))
+
+	const botID = discord.UserID(42)
+	botMessage := discord.Message{GuildID: 1, Author: discord.User{ID: 7, Bot: true}}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"member message", &gateway.MessageCreateEvent{Message: discord.Message{GuildID: 1}}, []string{"create"}},
+		{"bot message", &gateway.MessageCreateEvent{Message: botMessage}, nil},
+		{"bot message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: botMessage}}, nil},
+		{"boost", testBoostEvent(discord.NitroBoostMessage), []string{"create", "boost"}},
+		{"member reaction", &gateway.MessageReactionAddEvent{UserID: 7}, []string{"reaction"}},
+		{"own reaction", &gateway.MessageReactionAddEvent{UserID: botID}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routes, _ := app.routesForEvent(tt.event, botID)
+			if got := listenerIDs(routes); !slices.Equal(got, tt.want) {
 				t.Errorf("listeners = %v, want %v", got, tt.want)
 			}
 		})

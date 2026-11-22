@@ -48,6 +48,10 @@ type DiscordProvider struct {
 	webhooks        *WebhookCache
 	session         *state.State
 	voice           *VoiceManager
+	// shared is set for apps on the Kite bot. Their session only reaches
+	// their own server, but commands sent over the bot's gateway connection
+	// aren't checked by it.
+	shared bool
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -377,12 +381,21 @@ func (p *DiscordProvider) BotToken() string {
 }
 
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	if res, ok := p.cachedAPIResponse(req); ok {
+		return res, nil
+	}
 	return util.DiscordAPIRequest(ctx, p.session.Client, req)
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
+	}
+	if p.shared {
+		// The session of a shared app has no other servers.
+		if _, err := p.session.Guild(guildID); err != nil {
+			return fmt.Errorf("failed to update voice state: %w", err)
+		}
 	}
 
 	// Joining another channel or leaving stops the audio and closes the
@@ -418,6 +431,15 @@ func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudio
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
 	}
+	if p.shared {
+		// Playing joins the channel over the gateway, like UpdateVoiceState.
+		if _, err := p.session.Channel(opts.ChannelID); err != nil {
+			return fmt.Errorf("failed to play audio: %w", err)
+		}
+		if _, err := p.session.Guild(opts.GuildID); err != nil {
+			return fmt.Errorf("failed to play audio: %w", err)
+		}
+	}
 
 	return p.voice.Play(ctx, p.appID, p.session, opts)
 }
@@ -430,6 +452,10 @@ func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID
 }
 
 func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	if p.shared {
+		return fmt.Errorf("this app runs on the Kite bot, whose status is the same in every server and can't be changed")
+	}
+
 	// Part of the same paid feature as rotating statuses in the app settings
 	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
 	if err != nil {
@@ -616,11 +642,13 @@ func (p *HTTPProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *htt
 }
 
 type AIProvider struct {
+	appID  string
 	client *openai.Client
 }
 
-func NewAIProvider(client *openai.Client) *AIProvider {
+func NewAIProvider(appID string, client *openai.Client) *AIProvider {
 	return &AIProvider{
+		appID:  appID,
 		client: client,
 	}
 }
@@ -682,6 +710,24 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	if err != nil {
 		return provider.AIResponse{}, fmt.Errorf("failed to create response: %w", err)
 	}
+
+	webSearches := 0
+	for _, item := range resp.Output {
+		if item.Type == "web_search_call" {
+			webSearches++
+		}
+	}
+	// What each app costs in AI, which credits don't tell.
+	slog.Info(
+		"AI block response",
+		slog.String("app_id", p.appID),
+		slog.String("model", opts.Model),
+		slog.String("status", string(resp.Status)),
+		slog.Int("input_tokens", int(resp.Usage.InputTokens)),
+		slog.Int("cached_input_tokens", int(resp.Usage.InputTokensDetails.CachedTokens)),
+		slog.Int("output_tokens", int(resp.Usage.OutputTokens)),
+		slog.Int("web_searches", webSearches),
+	)
 
 	res := provider.AIResponse{
 		Text:         resp.OutputText(),

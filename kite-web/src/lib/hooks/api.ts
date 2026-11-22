@@ -13,6 +13,7 @@ import {
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
+  useBillingSaleQuery,
   useCommandQuery,
   useCommandsQuery,
   useEventListenerQuery,
@@ -120,6 +121,12 @@ export function useApp(callback?: (res: APIResponse<AppGetResponse>) => void) {
 
   const query = useAppQuery(router.query.appId as string);
   return useResponseData(query, callback);
+}
+
+// useSharedBot is whether the app runs on the Kite bot, which only runs the
+// official templates it adds, instead of a custom bot.
+export function useSharedBot() {
+  return useApp()?.bot_type === "shared";
 }
 
 export function useAppEntities(
@@ -428,6 +435,11 @@ export function useBillingPlans(
 ) {
   const query = useBillingPlansQuery();
   return useResponseData(query, callback);
+}
+
+// useBillingSale is the sale that runs now, if there is one.
+export function useBillingSale() {
+  return useResponseData(useBillingSaleQuery())?.sale ?? undefined;
 }
 
 export function useFlowAIUsage(

@@ -131,8 +131,18 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 	}
 
 	cmdData := mergeCommands(commands)
+	hashKey := app.DiscordID
+	if app.IsShared() {
+		// They only run in the app's server, as commands of the Kite bot there,
+		// so they get no contexts or install types of their own.
+		for i := range cmdData {
+			cmdData[i].Contexts = nil
+			cmdData[i].IntegrationTypes = nil
+		}
+		hashKey = "guild:" + app.DiscordGuildID.String
+	}
 
-	hash, err := hashCommands(app.DiscordID, cmdData)
+	hash, err := hashCommands(hashKey, cmdData)
 	if err != nil {
 		return "", fmt.Errorf("failed to hash commands: %w", err)
 	}
@@ -142,19 +152,11 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 		return hash, nil
 	}
 
-	appID, err := strconv.ParseUint(app.DiscordID, 10, 64)
-	if err != nil {
-		return "", &DeployError{Message: "The app has an invalid Discord ID."}
+	if app.IsShared() {
+		err = m.overwriteSharedCommands(ctx, app, cmdData)
+	} else {
+		err = m.overwriteOwnCommands(ctx, app, cmdData)
 	}
-
-	token, err := m.tokenCrypt.DecryptString(app.DiscordToken)
-	if err != nil {
-		return "", &DeployError{Message: "Kite couldn't read the bot token. Update it in the settings."}
-	}
-
-	client := api.NewClient("Bot " + token).WithContext(ctx)
-
-	err = overwriteCommands(client, discord.AppID(appID), cmdData)
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && isRejection(httpErr.Status) {
@@ -164,6 +166,40 @@ func (m *CommandManager) sendCommands(ctx context.Context, app *model.App) (stri
 	}
 
 	return hash, nil
+}
+
+func (m *CommandManager) overwriteOwnCommands(ctx context.Context, app *model.App, cmdData []api.CreateCommandData) error {
+	appID, err := strconv.ParseUint(app.DiscordID, 10, 64)
+	if err != nil {
+		return &DeployError{Message: "The app has an invalid Discord ID."}
+	}
+
+	token, err := m.tokenCrypt.DecryptString(app.DiscordToken)
+	if err != nil {
+		return &DeployError{Message: "Kite couldn't read the bot token. Update it in the settings."}
+	}
+
+	client := api.NewClient("Bot " + token).WithContext(ctx)
+	return overwriteCommands(client, discord.AppID(appID), cmdData)
+}
+
+// overwriteSharedCommands deploys a shared app's commands to its server.
+func (m *CommandManager) overwriteSharedCommands(ctx context.Context, app *model.App, cmdData []api.CreateCommandData) error {
+	if m.sharedBot == nil {
+		return &DeployError{Message: "This app runs on the Kite bot, which isn't set up."}
+	}
+
+	guildID, err := discord.ParseSnowflake(app.DiscordGuildID.String)
+	if err != nil {
+		return &DeployError{Message: "The app has an invalid server."}
+	}
+	appID, err := m.sharedBot.AppID(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = m.sharedBot.Client(ctx).BulkOverwriteGuildCommands(appID, discord.GuildID(guildID), cmdData)
+	return err
 }
 
 // errCodeEntryPointRemoved is Discord's error for leaving out an app's Entry

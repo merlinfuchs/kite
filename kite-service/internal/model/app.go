@@ -4,6 +4,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"gopkg.in/guregu/null.v4"
 )
@@ -16,11 +17,17 @@ type App struct {
 	DisabledReason null.String
 	OwnerUserID    string
 	CreatorUserID  string
-	DiscordToken   string
-	DiscordID      string
-	DiscordStatus  *AppDiscordStatus
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// DiscordToken and DiscordID are the app's own bot, empty for shared apps.
+	DiscordToken  string
+	DiscordID     string
+	DiscordStatus *AppDiscordStatus
+	BotType       AppBotType
+	// DiscordGuildID is the server a shared app runs in, null for own apps.
+	DiscordGuildID null.String
+	// Ref is where the app came from, like "xenon" for links from Xenon.
+	Ref       null.String
+	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	// CommandsDeployAt is when the commands are deployed to Discord next, or
 	// null if Discord is up to date.
@@ -48,6 +55,42 @@ type App struct {
 	CreditNoticesEnabled bool
 }
 
+// AppBotType is whose bot an app runs on.
+type AppBotType string
+
+const (
+	// AppBotTypeOwn apps run on a bot of their own, with its token.
+	AppBotTypeOwn AppBotType = "own"
+	// AppBotTypeShared apps run on the Kite bot in one server, see
+	// design/kite-lite.md. The shared process runs them, the clusters don't.
+	AppBotTypeShared AppBotType = "shared"
+)
+
+// IsShared is whether the app runs on the Kite bot instead of its own bot.
+func (a *App) IsShared() bool {
+	return a.BotType == AppBotTypeShared
+}
+
+// SharedAppMember is a user in the server of an app on the Kite bot, as
+// Discord says right now. Who can change the app follows Manage Server, not
+// its owner and collaborators, which only list it in their apps.
+type SharedAppMember struct {
+	// BotInServer is false when the Kite bot isn't in the server, so the
+	// user's permissions there aren't known.
+	BotInServer   bool
+	ManagesServer bool
+	// ServerOwner can give every role, others only the roles below their
+	// HighestRole, by its position.
+	ServerOwner bool
+	HighestRole int
+}
+
+// CanGiveRole is whether the member could give the role at the position
+// themselves, which Discord only allows below their highest role.
+func (m SharedAppMember) CanGiveRole(position int) bool {
+	return m.ServerOwner || position < m.HighestRole
+}
+
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
 type CommandsDeployError struct {
 	Message string `json:"message"`
@@ -69,6 +112,11 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // AppDisabledReasonDisallowedIntents is the reason an app is disabled when it
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
+
+// AppDisabledReasonSharedBotRemoved is the reason an app on the Kite bot is
+// disabled when the bot was removed from its server. Adding the bot again
+// starts it.
+const AppDisabledReasonSharedBotRemoved = "The Kite bot was removed from this server. Add it again to start the app."
 
 // AppDisabledReasonOwnerBanned is the reason the apps of a user Kite banned
 // are stopped. Unbanning them starts the apps stopped for this reason again.
@@ -112,6 +160,32 @@ type AppGatewayRequirements struct {
 	// UsesVoice reports whether the app has flows that play audio. Joining a
 	// voice channel for that needs the bot's own voice state updates.
 	UsesVoice bool
+}
+
+// Intents are the intents the app needs for what it consumes. Message Content
+// isn't among them, as event listeners can't tell whether flows read the
+// text. Bots of their own get it with guild messages when it's permitted.
+func (r AppGatewayRequirements) Intents() Intents {
+	var res Intents
+	if r.NeedsGuildMessages() {
+		res |= Intents(gateway.IntentGuildMessages)
+	}
+	if r.NeedsDirectMessages() {
+		res |= Intents(gateway.IntentDirectMessages)
+	}
+	if r.NeedsGuildMembers() {
+		res |= Intents(gateway.IntentGuildMembers)
+	}
+	if r.NeedsGuildMessageReactions() {
+		res |= Intents(gateway.IntentGuildMessageReactions)
+	}
+	if r.NeedsGuildModeration() {
+		res |= Intents(gateway.IntentGuildModeration)
+	}
+	if r.NeedsGuildVoiceStates() {
+		res |= Intents(gateway.IntentGuildVoiceStates)
+	}
+	return res
 }
 
 // NeedsGuildMessages reports whether the app consumes guild message events.

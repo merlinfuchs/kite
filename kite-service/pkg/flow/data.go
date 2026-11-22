@@ -121,14 +121,16 @@ const (
 	FlowParameterTypeTextarea FlowParameterType = "textarea"
 	FlowParameterTypeChannel  FlowParameterType = "channel"
 	FlowParameterTypeRole     FlowParameterType = "role"
+	// A channel category, like the one tickets are created in.
+	FlowParameterTypeCategory FlowParameterType = "category"
 	// Yes or no, picked from a menu. The value is true or false.
 	FlowParameterTypeBoolean FlowParameterType = "boolean"
 )
 
-// Picked is whether the value is picked from a server, as the ID of a channel
-// or role.
+// Picked is whether the value is picked from a server, as the ID of a channel,
+// category or role.
 func (t FlowParameterType) Picked() bool {
-	return t == FlowParameterTypeChannel || t == FlowParameterTypeRole
+	return t == FlowParameterTypeChannel || t == FlowParameterTypeCategory || t == FlowParameterTypeRole
 }
 
 // FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
@@ -138,7 +140,7 @@ type FlowParameter struct {
 	Description string            `json:"description,omitempty"`
 	Type        FlowParameterType `json:"type"`
 	Required    bool              `json:"required,omitempty"`
-	// Value is the ID of the channel or role for those types.
+	// Value is the ID of the channel, category or role for those types.
 	Value string `json:"value"`
 }
 
@@ -152,6 +154,7 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeTextarea,
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
+			FlowParameterTypeCategory,
 			FlowParameterTypeBoolean,
 		)),
 		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
@@ -1097,7 +1100,15 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	if err != nil {
 		return res, err
 	}
-	res.Position = option.NewInt(int(position.Int()))
+	// An empty position keeps the channel where it is, 0 would move it to the
+	// top.
+	if raw := strings.TrimSpace(position.String()); raw != "" {
+		pos, err := strconv.Atoi(raw)
+		if err != nil {
+			return res, fmt.Errorf("position %q is not a whole number", raw)
+		}
+		res.Position = option.NewInt(pos)
+	}
 
 	if channelTypeSupportsRateLimitPerUser(res.Type) {
 		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
@@ -1579,7 +1590,9 @@ type aiModelTier struct {
 	aiModelCost
 }
 
-// Credits for a plain completion versus one with web search.
+// Credits for a plain completion versus one with web search. Search adds about
+// 250 credits to Chat for the search itself, which OpenAI bills at about
+// $0.015 a call on top of the tokens.
 type aiModelCost struct {
 	Chat   int
 	Search int
@@ -1587,7 +1600,7 @@ type aiModelCost struct {
 
 // aiMaxWebSearches bounds what one web search block costs, since every search
 // is billed per call. The tiers' Search credits assume it.
-const aiMaxWebSearches = 2
+const aiMaxWebSearches = 1
 
 // aiDefaultOutputTokens and aiMaxOutputTokens cap reasoning and answer
 // together. Reasoning isn't given extra room on top: the model spends whatever
@@ -1627,19 +1640,19 @@ var aiModelTiers = map[string]aiModelTier{
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "none",
 		MaxInputLength:  64000,
-		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
+		aiModelCost:     aiModelCost{Chat: 5, Search: 250},
 	},
 	AIModelMedium: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "low",
 		MaxInputLength:  64000,
-		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
+		aiModelCost:     aiModelCost{Chat: 20, Search: 300},
 	},
 	AIModelLarge: {
 		Model:           "gpt-6-sol",
 		ReasoningEffort: "none",
 		MaxInputLength:  8000,
-		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
+		aiModelCost:     aiModelCost{Chat: 100, Search: 600},
 	},
 }
 

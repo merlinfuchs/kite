@@ -3,6 +3,8 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"log/slog"
 	"net/http"
 	"time"
@@ -21,6 +23,8 @@ type AppHandler struct {
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
+	// appStateManager reaches the Kite bot for apps on it.
+	appStateManager store.AppStateManager
 }
 
 func NewAppHandler(
@@ -28,12 +32,15 @@ func NewAppHandler(
 	userStore store.UserStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
+	appStateManager store.AppStateManager,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
+
+		appStateManager: appStateManager,
 	}
 }
 
@@ -45,7 +52,8 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 
 	res := make([]*wire.App, 0, len(apps))
 	for _, app := range apps {
-		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+		// Apps on the Kite bot can't be used with tokens, see CustomBotOnly.
+		if c.APIToken != nil && (app.IsShared() || !c.APIToken.CanUseApp(app.ID)) {
 			continue
 		}
 		res = append(res, wire.AppToWire(app))
@@ -149,7 +157,9 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		h.retryFailedCommandsDeploy(c)
 	}
 
-	if req.Name != c.App.Name || req.Description != c.App.Description {
+	// The Kite bot's name is the same in every server, so a shared app's name
+	// is only its name in Kite.
+	if !app.IsShared() && (req.Name != c.App.Name || req.Description != c.App.Description) {
 		if err := h.updateDiscordApp(c.Context(), app); err != nil {
 			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
 				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
@@ -164,7 +174,7 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 		}
 	}
 
-	if req.Name != c.App.Name {
+	if !app.IsShared() && req.Name != c.App.Name {
 		if err := h.updateDiscordBotUser(c.Context(), app); err != nil {
 			if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
 				return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
@@ -221,6 +231,77 @@ func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.A
 	app, err := h.appStore.UpdateAppCreditNotices(c.Context(), c.App.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app credit notices: %w", err)
+	}
+
+	return wire.AppToWire(app), nil
+}
+
+// HandleAppSwitchToCustom moves an app on the Kite bot to the user's own bot,
+// Custom setup. It keeps its templates, which become editable, its stored
+// variables, logs and plan. The Kite bot stays in the server, its commands
+// for the app are removed.
+// The user becomes its only owner, see design/kite-lite.md.
+func (h *AppHandler) HandleAppSwitchToCustom(c *handler.Context, req wire.AppSwitchToCustomRequest) (*wire.AppSwitchToCustomResponse, error) {
+	if !c.App.IsShared() {
+		return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
+	}
+	// Taking the app over needs Manage Server now, not access through an old
+	// record while the bot isn't in the server.
+	if c.SharedAppMember == nil {
+		return nil, handler.ErrForbidden("kite_bot_missing", "Add the Kite bot to your server again to switch this app.")
+	}
+	// So a banned owner can't get the app running again through someone else.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+	if c.App.OwnerUserID != c.Session.UserID {
+		appCount, err := h.appStore.CountAppsByUser(c.Context(), c.Session.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count apps: %w", err)
+		}
+		if appCount >= h.maxAppsPerUser {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("You already have the maximum number of apps (%d). Switching makes this app yours, so delete one of your apps first.", h.maxAppsPerUser))
+		}
+	}
+
+	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
+	if err != nil {
+		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
+		}
+		return nil, fmt.Errorf("failed to get discord app info: %w", err)
+	}
+
+	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
+	// Before the switch, as only the app on the Kite bot reaches them.
+	h.removeSharedCommands(c)
+
+	app, err := h.appStore.SwitchSharedAppToOwn(c.Context(), store.SharedAppSwitchOpts{
+		ID:               c.App.ID,
+		OwnerUserID:      c.Session.UserID,
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		DiscordID:        appInfo.ID,
+		DiscordToken:     encryptedToken,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		UpdatedAt:        time.Now().UTC(),
+	})
+	if err != nil {
+		// The Kite bot sends the commands it had again.
+		if err := h.appStore.QueueAppCommandsDeploy(c.Context(), c.App.ID, true); err != nil {
+			slog.Error("Failed to queue commands deploy", slog.String("app_id", c.App.ID), slog.String("error", err.Error()))
+		}
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already an app in Kite. Create a new bot for this app in the Discord Developer Portal.")
+		}
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrBadRequest("not_shared_app", "This app already has a bot of its own.")
+		}
+		return nil, fmt.Errorf("failed to switch app: %w", err)
 	}
 
 	return wire.AppToWire(app), nil
@@ -298,6 +379,10 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
 	}
 
+	if c.App.IsShared() {
+		h.removeSharedCommands(c)
+	}
+
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {
 		return nil, fmt.Errorf("failed to delete app: %w", err)
 	}
@@ -305,7 +390,42 @@ func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteRespons
 	return &wire.AppDeleteResponse{}, nil
 }
 
+// removeSharedCommands removes the commands of an app on the Kite bot from its
+// server, where nothing would answer them anymore. The bot stays in the
+// server, adding it again sets up a new app. A failure doesn't stop the app
+// from being deleted.
+func (h *AppHandler) removeSharedCommands(c *handler.Context) {
+	err := func() error {
+		client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+		if err != nil {
+			return err
+		}
+		bot, err := client.CurrentApplication()
+		if err != nil {
+			return err
+		}
+		guildID, err := discord.ParseSnowflake(c.App.DiscordGuildID.String)
+		if err != nil {
+			return err
+		}
+		_, err = client.BulkOverwriteGuildCommands(bot.ID, discord.GuildID(guildID), []api.CreateCommandData{})
+		return err
+	}()
+	if err != nil {
+		slog.Error(
+			"Failed to remove the commands of a deleted app on the Kite bot",
+			slog.String("app_id", c.App.ID),
+			slog.String("error", err.Error()),
+		)
+	}
+}
+
 func (h *AppHandler) HandleAppEmojisList(c *handler.Context) (*wire.AppEmojiListResponse, error) {
+	// The Kite bot's emojis aren't the app's.
+	if c.App.IsShared() {
+		return &wire.AppEmojiListResponse{}, nil
+	}
+
 	emojis, err := h.getAppEmojis(c.Context(), c.App)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app emojis: %w", err)

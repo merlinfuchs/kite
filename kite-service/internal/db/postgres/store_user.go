@@ -37,7 +37,7 @@ func (c *Client) UserByDiscordID(ctx context.Context, discordID string) (*model.
 }
 
 func (c *Client) UserByAppDiscordID(ctx context.Context, discordID string) (*model.User, error) {
-	row, err := c.Q.GetUserByAppDiscordID(ctx, discordID)
+	row, err := c.Q.GetUserByAppDiscordID(ctx, pgtype.Text{String: discordID, Valid: true})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound

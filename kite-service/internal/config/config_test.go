@@ -1,9 +1,14 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/go-playground/validator/v10"
+
+	tomlparser "github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/knadh/koanf/v2"
 )
 
@@ -88,5 +93,74 @@ func TestDebugServerDefaultsToDisabledAndLocal(t *testing.T) {
 	}
 	if cfg.Debug.Host != "127.0.0.1" {
 		t.Errorf("debug.host = %q, want %q", cfg.Debug.Host, "127.0.0.1")
+	}
+}
+
+// Identifying with an intent Discord doesn't know fails, so a typo stops the
+// start instead.
+func TestSharedBotIntentsValidate(t *testing.T) {
+	validate := validator.New(validator.WithRequiredStructEnabled())
+	for intents, ok := range map[string]bool{
+		"":                              true,
+		"message_content":               true,
+		"message_content,guild_members": true,
+		"presence":                      false,
+		"message-content":               false,
+	} {
+		cfg := SharedBotConfig{}
+		if intents != "" {
+			cfg.Intents = strings.Split(intents, ",")
+		}
+		if err := validate.Struct(cfg); (err == nil) != ok {
+			t.Errorf("intents %q: err = %v, want ok %v", intents, err, ok)
+		}
+	}
+}
+
+// The times of a sale can be TOML datetimes or quoted strings, and the sale
+// only runs from its start until its end.
+func TestBillingSaleParse(t *testing.T) {
+	for name, toml := range map[string]string{
+		"datetime": "[billing.sale]\nname = \"Black Week\"\ncode = \"BW\"\npercent = 30\nends_at = 2026-12-01T00:00:00+01:00\n",
+		"string":   "[billing.sale]\nname = \"Black Week\"\ncode = \"BW\"\npercent = 30\nends_at = \"2026-12-01T00:00:00+01:00\"\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			k, err := defaultBase()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := k.Load(rawbytes.Provider([]byte(toml)), tomlparser.Parser()); err != nil {
+				t.Fatal(err)
+			}
+			var cfg Config
+			if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "toml"}); err != nil {
+				t.Fatal(err)
+			}
+
+			sale := cfg.Billing.Sale
+			end := time.Date(2026, 11, 30, 23, 0, 0, 0, time.UTC)
+			if !sale.EndsAt.Equal(end) {
+				t.Fatalf("ends_at = %v, want %v", sale.EndsAt, end)
+			}
+			if !sale.Active(end.Add(-time.Second)) {
+				t.Error("sale should run until its end")
+			}
+			if sale.Active(end) {
+				t.Error("sale should be over at its end")
+			}
+			if err := validator.New(validator.WithRequiredStructEnabled()).Struct(sale); err != nil {
+				t.Errorf("valid sale fails validation: %v", err)
+			}
+		})
+	}
+}
+
+func TestBillingSaleWithoutCode(t *testing.T) {
+	cfg := unmarshalDefaults(t)
+	if cfg.Billing.Sale.Active(time.Now()) {
+		t.Error("the default config has no sale")
+	}
+	if err := validator.New(validator.WithRequiredStructEnabled()).Struct(BillingSaleConfig{Code: "BW"}); err == nil {
+		t.Error("a sale with a code but no percent or end should fail validation")
 	}
 }

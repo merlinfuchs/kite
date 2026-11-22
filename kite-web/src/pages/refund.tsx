@@ -10,8 +10,8 @@ export default function RefundPolicyPage() {
         <h1>Refund Policy</h1>
         <p>Last updated: {formatLegalDate(legalUpdatedAt)}</p>
         <p>
-          Kite&apos;s paid plans are sold by Lemon Squeezy as merchant of
-          record, as described in our{" "}
+          Kite&apos;s paid plans are sold by Paddle.com or Lemon Squeezy as
+          merchant of record, as described in our{" "}
           <Link href="/terms#plans">Terms of Service</Link>. This policy
           explains when you get your money back.
         </p>
@@ -43,21 +43,29 @@ export default function RefundPolicyPage() {
 
         <h2 id="payout">3. How you get the money</h2>
         <p>
-          Lemon Squeezy pays the refund back to the payment method you used,
-          within 14 days of your request. How long it then takes to show up
-          depends on your bank or payment provider.
+          The reseller that sold your plan pays the refund back to the payment
+          method you used, within 14 days of your request. How long it then
+          takes to show up depends on your bank or payment provider.
         </p>
         <p>
-          Lemon Squeezy&apos;s{" "}
+          The buyer terms of{" "}
+          <a
+            href="https://www.paddle.com/legal/checkout-buyer-terms"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Paddle
+          </a>{" "}
+          or{" "}
           <a
             href="https://www.lemonsqueezy.com/buyer-terms"
             target="_blank"
             rel="noreferrer"
           >
-            buyer terms
-          </a>{" "}
-          also apply to your purchase. This policy gives you a refund even where
-          they don&apos;t.
+            Lemon Squeezy
+          </a>
+          , whichever sold your plan, also apply to your purchase. This policy
+          gives you a refund even where they don&apos;t.
         </p>
       </div>
 

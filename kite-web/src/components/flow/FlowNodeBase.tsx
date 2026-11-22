@@ -14,18 +14,20 @@ interface Props extends NodeProps {
   highlight?: boolean;
   showConnectedMarker?: boolean;
   color?: string;
+  icon?: string;
   showId?: boolean;
 }
 
 export default function FlowNodeBase(props: Props) {
   const {
     color: defaultColor,
-    icon,
+    icon: defaultIcon,
     defaultTitle,
     defaultDescription,
   } = useNodeValues(props.type);
 
   const color = props.color || defaultColor;
+  const icon = props.icon || defaultIcon;
   const changedByAI = useChangedByAI(props.id);
   const missingIntegrations = useMissingIntegrations(props.type);
   const readOnly = useContext(FlowReadOnlyContext);

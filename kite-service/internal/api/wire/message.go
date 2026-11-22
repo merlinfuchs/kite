@@ -17,6 +17,7 @@ type Message struct {
 	Description     null.String              `json:"description"`
 	AppID           string                   `json:"app_id"`
 	BundleInstallID null.String              `json:"bundle_install_id"`
+	Folder          null.String              `json:"folder"`
 	CreatorUserID   string                   `json:"creator_user_id"`
 	Data            message.MessageData      `json:"data"`
 	FlowSources     map[string]flow.FlowData `json:"flow_sources"`
@@ -92,6 +93,16 @@ func (req MessageUpdateRequest) Validate() error {
 
 type MessageUpdateResponse = Message
 
+// MessageDataUpdateRequest changes only what a message says and keeps its
+// flows, for apps on the Kite bot, which can't change flows.
+type MessageDataUpdateRequest struct {
+	Data message.MessageData `json:"data"`
+}
+
+type MessageDataUpdateResponse = Message
+
+type MessagesUpdateFolderResponse = []*Message
+
 type MessageDeleteResponse = Empty
 
 func MessageToWire(variable *model.Message) *Message {
@@ -105,6 +116,7 @@ func MessageToWire(variable *model.Message) *Message {
 		Description:     variable.Description,
 		AppID:           variable.AppID,
 		BundleInstallID: variable.BundleInstallID,
+		Folder:          variable.Folder,
 		CreatorUserID:   variable.CreatorUserID,
 		Data:            variable.Data,
 		FlowSources:     variable.FlowSources,

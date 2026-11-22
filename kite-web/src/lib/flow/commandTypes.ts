@@ -27,3 +27,16 @@ export function commandTypeOf(flow: FlowData): CommandType {
   const type = entry?.data.command_type;
   return type === "user" || type === "message" ? type : "chat_input";
 }
+
+// The icon of a command's block in the editor, matching the icons of the
+// command cards in the commands list. Names are those of lucide icons.
+export function commandTypeIconName(data: { command_type?: string }) {
+  switch (data.command_type) {
+    case "user":
+      return "user";
+    case "message":
+      return "message-square";
+    default:
+      return "square-slash";
+  }
+}

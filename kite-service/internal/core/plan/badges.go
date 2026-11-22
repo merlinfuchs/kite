@@ -22,6 +22,11 @@ var earlyCreatorCutoff = time.Date(2026, 11, 13, 0, 0, 0, 0, time.UTC)
 // what the creator role in the Kite server needs too.
 var creatorMilestones = []int{1000, 100, creatorMinInstallers}
 
+// starMilestones are how many stars users must have given a creator's
+// templates, all of them together, for each star badge, highest first. Users
+// can't star their own templates. Below the lowest there's no star badge.
+var starMilestones = []int{50, 20, 5}
+
 // UserBadges returns the badges of the users by their ID. Users without a
 // badge aren't in it.
 func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[string][]model.UserBadge, error) {
@@ -90,7 +95,7 @@ func userBadges(
 	}
 
 	// Badges are in the same order for everyone: what admins gave, then
-	// support, then templates.
+	// support, then templates, then stars.
 	for userID, kinds := range granted {
 		for _, kind := range model.GrantableUserBadges {
 			if kinds[kind] {
@@ -117,6 +122,12 @@ func userBadges(
 			}
 		}
 		add(s.UserID, badge)
+		for _, milestone := range starMilestones {
+			if s.StarCount >= milestone {
+				add(s.UserID, model.UserBadge{Kind: model.UserBadgeStar, Milestone: milestone})
+				break
+			}
+		}
 	}
 	return res
 }

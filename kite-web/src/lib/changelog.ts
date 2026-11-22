@@ -16,6 +16,58 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-16",
+    title: "Folders for commands, event listeners, and message templates",
+    description:
+      "Put items into folders with Move to folder in their menu, and fold the folders you don't need right now. Items you added with a template are listed under the template's name until you move them, and they still get the template's updates.",
+  },
+  {
+    date: "2026-11-16",
+    title: "Search message templates when you pick one in a block",
+  },
+  {
+    date: "2026-11-15",
+    title: "Star creator badge",
+    description:
+      "Your creator page and the account menu show the Star creator badge once other users gave your listed templates 5, 20, or 50 stars in total.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates#after-its-listed`,
+  },
+  {
+    date: "2026-11-15",
+    title: "Community templates in the Featured row of the Marketplace",
+    description:
+      "The Featured row shows a few templates from the community each day. They're staff picks and listed templates an AI check found worth featuring, one per creator.",
+    href: "/marketplace",
+  },
+  {
+    date: "2026-11-15",
+    title: "Category parameters",
+    description:
+      "A parameter can be a category, like the one tickets are created in. It's picked from a server your bot is in, so nobody has to copy its ID.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/parameters`,
+  },
+  {
+    date: "2026-11-14",
+    title: "User lookup, invite resolver, and application lookup",
+    description:
+      "Look up a Discord user by ID, see the server behind an invite before you join, or check the permissions a bot asks for before you add it. User lookup needs you to log in with Discord. Links to dis.wtf open these tools now.",
+    href: "/tools",
+  },
+  {
+    date: "2026-11-14",
+    title: "Run JavaScript can use AI",
+    description:
+      "The code of a Run JavaScript block can ask AI, check, choose, score, and translate like the AI blocks, for the same credits. Sort a list of messages with AI in one block instead of a loop of blocks.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#ai`,
+  },
+  {
+    date: "2026-11-14",
+    title: "Run JavaScript can change things in Discord",
+    description:
+      "The code of a Run JavaScript block can send messages, give roles, create channels, and make the other changes the Discord API Request block can. Each change costs 1 credit.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run#changing-things-in-discord`,
+  },
+  {
     date: "2026-11-13",
     title: "Disabled commands and event listeners don't count toward your plan",
     description:

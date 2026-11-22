@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 type MessageHandler struct {
@@ -173,6 +174,45 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 	}
 
 	return wire.MessageToWire(message), nil
+}
+
+func (h *MessageHandler) HandleMessageDataUpdate(c *handler.Context, req wire.MessageDataUpdateRequest) (*wire.MessageDataUpdateResponse, error) {
+	// The flows can't be changed here, so a new button or select menu would
+	// have none to run.
+	if message.HasComponentsWithoutFlow(&req.Data, c.Message.FlowSources) {
+		return nil, handler.ErrBadRequest("interactive_components", "This message can only have link buttons")
+	}
+
+	updated, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
+		ID:          c.Message.ID,
+		Name:        c.Message.Name,
+		Description: c.Message.Description,
+		AppID:       c.App.ID,
+		Data:        req.Data,
+		FlowSources: c.Message.FlowSources,
+		UpdatedAt:   time.Now().UTC(),
+	}, c.ItemChange(""))
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_message", "Message not found")
+		}
+		return nil, fmt.Errorf("failed to update message: %w", err)
+	}
+
+	return wire.MessageToWire(updated), nil
+}
+
+func (h *MessageHandler) HandleMessagesUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.MessagesUpdateFolderResponse, error) {
+	messages, err := h.messageStore.UpdateMessagesFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update folder of messages: %w", err)
+	}
+
+	res := make(wire.MessagesUpdateFolderResponse, len(messages))
+	for i, message := range messages {
+		res[i] = wire.MessageToWire(message)
+	}
+	return &res, nil
 }
 
 func (h *MessageHandler) HandleMessageDelete(c *handler.Context) (*wire.MessageDeleteResponse, error) {

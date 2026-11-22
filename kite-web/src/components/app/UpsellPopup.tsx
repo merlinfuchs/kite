@@ -7,7 +7,7 @@ import { Card } from "../ui/card";
 import { useAppId } from "@/lib/hooks/params";
 import env from "@/lib/env/client";
 import { track } from "@/lib/analytics";
-import { useAppPlan, useBillingPlans } from "@/lib/hooks/api";
+import { useAppPlan, useBillingPlans, useSharedBot } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { planHighlights } from "@/lib/planLimits";
 import { planPrice } from "@/lib/billing";
@@ -37,6 +37,8 @@ export default function UpsellPopup() {
   const appId = useAppId();
   // Only apps on the free plan are asked, about the cheapest paid plan.
   const current = useAppPlan();
+  // Apps on the Kite bot only use the credits and look of a plan.
+  const sharedBot = useSharedBot();
   const plans = useBillingPlans();
   const plan = plans
     ?.filter((p): p is BillingPlan => !!p && !p.hidden && p.price > 0)
@@ -52,7 +54,7 @@ export default function UpsellPopup() {
   }
 
   const perks = [
-    ...(plan.feature_max_commands > current.feature_max_commands
+    ...(!sharedBot && plan.feature_max_commands > current.feature_max_commands
       ? [`${formatNumber(plan.feature_max_commands)} commands`]
       : []),
     ...(plan.feature_usage_credits_per_month >
@@ -63,7 +65,7 @@ export default function UpsellPopup() {
           )} credits a month`,
         ]
       : []),
-    ...planHighlights(plan, current),
+    ...planHighlights(plan, current, sharedBot),
   ].slice(0, 4);
 
   return (
