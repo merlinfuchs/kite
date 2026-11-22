@@ -2635,7 +2635,7 @@
     {
       "type": "action_javascript_run",
       "title": "Run JavaScript",
-      "credits": 10,
+      "credits": 3,
       "audit_log_reason": false,
       "requires": [],
       "run": {

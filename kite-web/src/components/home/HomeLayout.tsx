@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import HomeNavbar from "./HomeNavbar";
+import HomeSaleBanner from "./HomeSaleBanner";
 import BaseLayout from "../common/BaseLayout";
 
 export default function HomeLayout({
@@ -18,6 +19,7 @@ export default function HomeLayout({
     <BaseLayout {...props}>
       {/* overflow-x-clip instead of overflow-hidden, so the sticky navbar works */}
       <div className="min-h-[100dvh] flex flex-col overflow-x-clip">
+        <HomeSaleBanner />
         <HomeNavbar />
         <div className="flex-auto overflow-hidden">{children}</div>
       </div>

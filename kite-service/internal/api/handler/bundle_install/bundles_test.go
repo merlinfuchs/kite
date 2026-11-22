@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -26,6 +28,23 @@ type userBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
 	reviews []*model.BundleReview
+	// versions are the contents of the versions of each bundle.
+	versions map[string]map[int][]byte
+}
+
+func (s *userBundleStore) BundleVersionContent(ctx context.Context, id string, version int) ([]byte, error) {
+	content, ok := s.versions[id][version]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return content, nil
+}
+
+func (s *userBundleStore) addVersion(b *model.Bundle) {
+	if s.versions[b.ID] == nil {
+		s.versions[b.ID] = map[int][]byte{}
+	}
+	s.versions[b.ID][b.Version] = b.Content
 }
 
 func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
@@ -34,6 +53,11 @@ func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle,
 		return nil, store.ErrNotFound
 	}
 	copied := *b
+	// Apps install the approved version once there is one.
+	if b.ApprovedVersion > 0 {
+		copied.Version = b.ApprovedVersion
+		copied.Content = s.versions[id][b.ApprovedVersion]
+	}
 	for _, r := range s.reviews {
 		if r.BundleID == id && r.Status == model.BundleReviewStatusPending {
 			copied.InReview = true
@@ -53,6 +77,7 @@ func (s *userBundleStore) CreateBundle(ctx context.Context, b *model.Bundle, max
 		return store.ErrLimitReached
 	}
 	s.bundles[b.ID] = b
+	s.addVersion(b)
 	return nil
 }
 
@@ -60,7 +85,9 @@ func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bun
 	if s.bundles[b.ID].LatestVersion != fromVersion {
 		return false, store.ErrOutdated
 	}
+	b.ApprovedVersion = s.bundles[b.ID].ApprovedVersion
 	s.bundles[b.ID] = b
+	s.addVersion(b)
 	return false, nil
 }
 
@@ -117,10 +144,10 @@ func bundlesHandler(commandCount int) (*BundleInstallHandler, *userBundleStore) 
 			}},
 		})
 	}
-	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}}
+	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}, versions: map[string]map[int][]byte{}}
 	h := NewBundleInstallHandler(
 		nil, bundles, commands, &appEventListenerStore{}, &appMessageStore{}, &memoryVariableStore{},
-		&bannedUserStore{bans: map[string]string{}}, nil, nil, nil, nil, 2, nil,
+		&bannedUserStore{bans: map[string]string{}}, nil, nil, nil, nil, 2, nil, nil,
 	)
 	return h, bundles
 }
@@ -387,4 +414,102 @@ func TestSetInstallSource(t *testing.T) {
 			}
 		})
 	}
+}
+
+// importStore keeps what imports and restores create.
+type importStore struct {
+	store.BundleInstallStore
+	imported []store.BundleInstallContents
+}
+
+func (s *importStore) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents) error {
+	s.imported = append(s.imported, contents)
+	return nil
+}
+
+func (s *importStore) RestoreBundleContents(ctx context.Context, contents store.BundleInstallContents, userID string) error {
+	return s.ImportBundleContents(ctx, contents)
+}
+
+type noPluginInstanceStore struct{ store.PluginInstanceStore }
+
+func (noPluginInstanceStore) PluginInstancesByApp(ctx context.Context, appID string) ([]*model.PluginInstance, error) {
+	return nil, nil
+}
+
+// The app a bundle is made from gets items it deleted back with their old
+// IDs, so new versions keep updating them in the apps that added it.
+func TestBundleRestore(t *testing.T) {
+	h, _ := bundlesHandler(2)
+	commands := h.commandStore.(*memoryCommandStore)
+	imports := &importStore{}
+	h.bundleInstallStore = imports
+	h.commandHandler = commandhandler.NewCommandHandler(commands, command.NewCommandManager(nil, commands, noPluginInstanceStore{}, nil, nil, nil))
+	// Restored commands are checked like new ones, which need a description.
+	for _, cmd := range commands.commands {
+		cmd.FlowSource.Nodes[0].Data.Description = "Does things."
+	}
+
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0", "cmd1"))
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	commands.commands = commands.commands[:1]
+	restore := handler.TypedWithBody(h.HandleBundleRestore)
+	req := wire.BundleRestoreRequest{BundleVersion: 1, Items: []string{"cmd1"}}
+
+	code, res = callAs(t, restore, "user", "other_app", id, req)
+	assert.Equal(t, "wrong_app", errorCode(res), code)
+	code, res = callAs(t, restore, "other_user", "app", id, req)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 2, Items: []string{"cmd1"}})
+	assert.Equal(t, "bundle_version_changed", errorCode(res), code)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 1, Items: []string{"cmd0"}})
+	assert.Equal(t, "already_in_app", errorCode(res), code)
+	assert.Empty(t, imports.imported)
+
+	code, res = callAs(t, restore, "user", "app", id, req)
+	require.Equal(t, http.StatusOK, code, res)
+	require.Len(t, imports.imported, 1)
+	restored := imports.imported[0].Commands
+	require.Len(t, restored, 1)
+	assert.Equal(t, "cmd1", restored[0].ID)
+	assert.Equal(t, "cmd1", restored[0].Name)
+	// It's the original again, not part of an install.
+	assert.False(t, restored[0].BundleInstallID.Valid)
+}
+
+// Restoring uses the newest version, which the app published last, also
+// while apps still get an older approved one.
+func TestBundleRestoreNewestVersion(t *testing.T) {
+	h, bundles := bundlesHandler(2)
+	commands := h.commandStore.(*memoryCommandStore)
+	imports := &importStore{}
+	h.bundleInstallStore = imports
+	h.commandHandler = commandhandler.NewCommandHandler(commands, command.NewCommandManager(nil, commands, noPluginInstanceStore{}, nil, nil, nil))
+	for _, cmd := range commands.commands {
+		cmd.FlowSource.Nodes[0].Data.Description = "Does things."
+	}
+
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+	bundles.bundles[id].ApprovedVersion = 1
+
+	publish := handler.TypedWithBody(h.HandleBundleVersionCreate)
+	code, res = callAs(t, publish, "user", "app", id, wire.BundleVersionCreateRequest{
+		BundleContentRequest: wire.BundleContentRequest{BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0", "cmd1"}}},
+	})
+	require.Equal(t, http.StatusOK, code, res)
+
+	commands.commands = commands.commands[:1]
+	restore := handler.TypedWithBody(h.HandleBundleRestore)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 1, Items: []string{"cmd1"}})
+	assert.Equal(t, "bundle_version_changed", errorCode(res), code)
+	code, res = callAs(t, restore, "user", "app", id, wire.BundleRestoreRequest{BundleVersion: 2, Items: []string{"cmd1"}})
+	require.Equal(t, http.StatusOK, code, res)
+	require.Len(t, imports.imported, 1)
+	assert.Equal(t, "cmd1", imports.imported[0].Commands[0].ID)
 }

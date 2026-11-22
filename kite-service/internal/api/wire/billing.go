@@ -121,3 +121,17 @@ type BillingPlan struct {
 }
 
 type BillingPlanListResponse = []*BillingPlan
+
+// BillingSale is a discount on the first payment of yearly plans. Checkouts
+// of yearly plans apply its code.
+type BillingSale struct {
+	Name    string    `json:"name"`
+	Code    string    `json:"code"`
+	Percent int       `json:"percent"`
+	EndsAt  time.Time `json:"ends_at"`
+}
+
+// BillingSaleGetResponse has the sale that runs now, if there is one.
+type BillingSaleGetResponse struct {
+	Sale *BillingSale `json:"sale"`
+}

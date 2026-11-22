@@ -41,6 +41,12 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
+function formatPercent(value: number, total: number) {
+  if (total <= 0 || value <= 0) return "0%";
+  const pct = (value / total) * 100;
+  return pct < 1 ? "<1%" : `${Math.round(pct)}%`;
+}
+
 export default function UsageCreditsByTypeChart() {
   const creditsByType = useUsageCreditsByType();
 
@@ -54,46 +60,69 @@ export default function UsageCreditsByTypeChart() {
     [creditsByType]
   );
 
+  const total = useMemo(
+    () => chartData.reduce((sum, d) => sum + d.credits_used, 0),
+    [chartData]
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardDescription>Usage by type</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mt-4 h-[150px] sm:h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ChartContainer config={chartConfig}>
-              <PieChart>
-                <ChartTooltip
-                  content={<ChartTooltipContent nameKey="type" hideLabel />}
-                />
-                <Pie
-                  data={chartData}
-                  dataKey="credits_used"
-                  labelLine={false}
-                  label={({ payload, ...props }) => {
-                    return (
-                      <text
-                        cx={props.cx}
-                        cy={props.cy}
-                        x={props.x}
-                        y={props.y}
-                        textAnchor={props.textAnchor}
-                        dominantBaseline={props.dominantBaseline}
-                        fill="hsla(var(--foreground))"
-                      >
-                        {
-                          chartConfig[payload.type as keyof typeof chartConfig]
-                            ?.label
-                        }
-                      </text>
-                    );
+        <div className="mt-4 flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+          <div className="h-[150px] w-full sm:h-[200px] sm:w-1/2">
+            <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig}>
+                <PieChart>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        nameKey="type"
+                        hideLabel
+                        className="min-w-0"
+                      />
+                    }
+                  />
+                  <Pie
+                    data={chartData}
+                    dataKey="credits_used"
+                    nameKey="type"
+                    outerRadius="95%"
+                    strokeWidth={0}
+                  />
+                </PieChart>
+              </ChartContainer>
+            </ResponsiveContainer>
+          </div>
+          <ul className="flex w-full flex-col gap-2 text-sm sm:w-1/2">
+            {chartData.map((d) => (
+              <li key={d.type} className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor:
+                      chartConfig[d.type as keyof typeof chartConfig] &&
+                      "color" in chartConfig[d.type as keyof typeof chartConfig]
+                        ? (
+                            chartConfig[d.type as keyof typeof chartConfig] as {
+                              color: string;
+                            }
+                          ).color
+                        : undefined,
                   }}
-                  nameKey="type"
                 />
-              </PieChart>
-            </ChartContainer>
-          </ResponsiveContainer>
+                <span className="truncate">
+                  {chartConfig[d.type as keyof typeof chartConfig]?.label ??
+                    d.type}
+                </span>
+                <span className="ml-auto tabular-nums text-muted-foreground">
+                  {formatPercent(d.credits_used, total)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </CardContent>
     </Card>

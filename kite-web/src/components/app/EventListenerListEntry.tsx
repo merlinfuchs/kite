@@ -51,6 +51,7 @@ import {
   schedulePresets,
 } from "@/lib/flow/eventTypes";
 import { describeSchedule } from "@/lib/flow/schedule";
+import { useMoveToFolder } from "./ItemFolders";
 
 export default function EventListenerListEntry({
   listener,
@@ -105,6 +106,7 @@ export default function EventListenerListEntry({
   }, [webhookUrl]);
 
   const deleteMutation = useEventListenerDeleteMutation(appId, listener.id);
+  const folder = useMoveToFolder(listener);
 
   const updateEnabledMutation = useEventListenerUpdateEnabledMutation(
     appId,
@@ -250,9 +252,11 @@ export default function EventListenerListEntry({
                   Export {name.title}
                 </DropdownMenuItem>
               </FlowExportDialog>
+              {folder.menu}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        {folder.dialog}
       </CardFooter>
     </Card>
   );

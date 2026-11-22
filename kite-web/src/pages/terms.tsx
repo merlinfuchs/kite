@@ -27,15 +27,16 @@ export default function TermsOfServicePage() {
           You log in with your Discord account. You&apos;re responsible for what
           happens through your account and for the apps you create.
           Collaborators you invite to an app can change it, so only invite
-          people you trust.
+          people you trust. Everyone with the Manage Server permission in the
+          server of a Quick setup app can also change and delete it.
         </p>
 
         <h2 id="bots">2. Your bots</h2>
         <p>
-          Every app in Kite is a Discord application that you create in the
-          Discord Developer Portal and own. You give Kite its bot token so Kite
-          can run the bot for you. Towards Discord, you stay the developer of
-          the application.
+          Apps with Custom setup run on a custom bot, a Discord application that
+          you create in the Discord Developer Portal and own. You give Kite its
+          bot token so Kite can run the bot for you. Towards Discord, you stay
+          the developer of the application.
         </p>
         <p>
           You must follow the{" "}
@@ -75,6 +76,22 @@ export default function TermsOfServicePage() {
           Kite isn&apos;t affiliated with or endorsed by Discord. Discord can
           take action against your application on its own, and we have no
           influence on that.
+        </p>
+        <p id="kite-bot">
+          Apps with Quick setup run on the Kite bot, which is our own Discord
+          application. It only runs templates we make, which we can change,
+          update and remove. You choose which of them run in your server and how
+          they&apos;re set up. You&apos;re responsible for the settings, texts
+          and images you add, like the bot&apos;s name and avatar in your
+          server. We are the developer of the Kite bot towards Discord and the
+          controller of its data. The{" "}
+          <Link href="/privacy#kite-bot">Privacy Policy</Link> explains how we
+          handle it. Sections 3 and 4 don&apos;t apply to these apps.
+        </p>
+        <p>
+          When you switch an app to Custom setup, you become its owner and it
+          runs on your custom bot from then on. Sections 3 and 4 then apply to
+          it. The Kite bot stays in your server until you remove it.
         </p>
 
         <h2 id="service-provider">3. Kite as your service provider</h2>
@@ -234,10 +251,12 @@ export default function TermsOfServicePage() {
           and tells anyone who uses it why.
         </p>
         <p>
-          Payments are handled by Lemon Squeezy, which sells the subscription to
-          you as merchant of record. Its terms apply to the purchase. You can
-          cancel a subscription at any time, and it then ends with the current
-          billing period. Refunds are covered by our{" "}
+          Paid plans are sold by a reseller that acts as merchant of record for
+          your order. Orders through the Paddle checkout are sold by Paddle.com.
+          Orders through the Lemon Squeezy checkout are sold by Lemon Squeezy.
+          Your receipt names the reseller, and its terms apply to the purchase.
+          You can cancel a subscription at any time, and it then ends with the
+          current billing period. Refunds are covered by our{" "}
           <Link href="/refund">Refund Policy</Link>.
         </p>
         <p>

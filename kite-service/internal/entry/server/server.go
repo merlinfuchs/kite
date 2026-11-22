@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
+	"github.com/kitecloud/kite/kite-service/internal/core/sharedbot"
 	"github.com/kitecloud/kite/kite-service/internal/core/testrun"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
@@ -46,7 +48,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 	metrics.PublishDBPool(func() any { return pg.PoolStats() })
 
-	if err := bundle.SyncOfficial(c, pg); err != nil {
+	if err := bundle.SyncOfficial(c, pg, cfg.SharedBot.GrantedIntents()); err != nil {
 		return fmt.Errorf("failed to sync official bundles: %w", err)
 	}
 
@@ -78,7 +80,16 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	// Clusters run on the same host, so each gets its own port, like the API.
 	debugCfg := cfg.Debug
 	debugCfg.Port += cfg.ClusterIndex
+	if cfg.RunSharedBot {
+		// After the ports of the clusters.
+		debugCfg.Port = cfg.Debug.Port + cfg.ClusterCount
+	}
 	startDebugServer(ctx, debugCfg)
+	heapDumpName := fmt.Sprintf("cluster-%d", cfg.ClusterIndex)
+	if cfg.RunSharedBot {
+		heapDumpName = "shared"
+	}
+	go watchHeap(ctx, cfg.Debug, heapDumpName, 2*time.Second)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {
@@ -130,6 +141,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 				MaxCredits:             cfg.Engine.MaxCredits,
 				ClusterCount:           cfg.ClusterCount,
 				ClusterIndex:           cfg.ClusterIndex,
+				SharedApps:             cfg.RunSharedBot,
 				PopulateInterval:       cfg.Engine.PopulateInterval,
 				RemoveDanglingInterval: cfg.Engine.RemoveDanglingInterval,
 				PopulateOverlap:        cfg.Engine.PopulateOverlap,
@@ -160,9 +172,36 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	)
 	engine.Run(ctx)
 
-	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt)
-
 	handler := event.NewEventHandlerWrapper(engine, pg)
+
+	sharedBot := sharedbot.New(cfg.SharedBot.Token)
+	if cfg.RunSharedBot {
+		if sharedBot == nil {
+			return errors.New("the Kite bot needs shared_bot.token")
+		}
+
+		sharedGateway := sharedbot.NewGateway(sharedBot, pg, handler, sharedbot.GatewayConfig{
+			Intents:          cfg.SharedBot.GrantedIntents(),
+			PopulateInterval: cfg.Engine.PopulateInterval,
+			AppBaseURL:       cfg.App.PublicBaseURL,
+		})
+		if err := sharedGateway.Run(ctx); err != nil {
+			return fmt.Errorf("failed to start the Kite bot: %w", err)
+		}
+		engine.RunScheduler(ctx, sharedGateway)
+		js.Warm(ctx, time.Minute)
+
+		// The API, command deploys and other jobs run in the clusters.
+		<-c.Done()
+		return nil
+	}
+
+	// A nil *sharedbot.Bot would be a SharedBot that isn't nil.
+	var commandSharedBot command.SharedBot
+	if sharedBot != nil {
+		commandSharedBot = sharedBot
+	}
+	commandManager := command.NewCommandManager(pg, pg, pg, pluginRegistry, tokenCrypt, commandSharedBot)
 
 	gateway := gateway.NewGatewayManager(pg, pg, planManager, handler, tokenCrypt, pluginRegistry, gateway.GatewayManagerConfig{
 		ClusterCount:           cfg.ClusterCount,
@@ -203,28 +242,32 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
-		ClusterCount:        cfg.ClusterCount,
-		ClusterIndex:        cfg.ClusterIndex,
-		SecureCookies:       cfg.API.SecureCookies,
-		StrictCookies:       cfg.API.StrictCookies,
-		APIPublicBaseURL:    cfg.API.PublicBaseURL,
-		AppPublicBaseURL:    cfg.App.PublicBaseURL,
-		DiscordClientID:     cfg.Discord.ClientID,
-		DiscordClientSecret: cfg.Discord.ClientSecret,
-		UserLimits:          cfg.UserLimits,
-		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
-		AdminUserIDs:        cfg.App.AdminUserIDs,
-		HTTPClient:          httpClient,
+		ClusterCount:          cfg.ClusterCount,
+		ClusterIndex:          cfg.ClusterIndex,
+		SecureCookies:         cfg.API.SecureCookies,
+		StrictCookies:         cfg.API.StrictCookies,
+		APIPublicBaseURL:      cfg.API.PublicBaseURL,
+		AppPublicBaseURL:      cfg.App.PublicBaseURL,
+		DiscordClientID:       cfg.Discord.ClientID,
+		DiscordClientSecret:   cfg.Discord.ClientSecret,
+		DiscordBotToken:       cfg.Discord.BotToken,
+		UserLimits:            cfg.UserLimits,
+		AssistantMaxRepairs:   cfg.Assistant.MaxRepairs,
+		AdminUserIDs:          cfg.App.AdminUserIDs,
+		HTTPClient:            httpClient,
+		SharedBot:             sharedBot,
+		SharedBotClientSecret: cmp.Or(cfg.SharedBot.ClientSecret, cfg.Discord.ClientSecret),
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
 			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
 			TestMode:                  cfg.Billing.TestMode,
 			Plans:                     cfg.Billing.Plans,
+			Sale:                      cfg.Billing.Sale,
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, sharedbot.NewAppStateManager(gateway, pg, sharedBot), engine.WebhookRunner(gateway), testrun.NewRunner(engine.Env(), gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,
 	)

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/kitecloud/kite/kite-service/internal/core/sharedbot"
 	"log/slog"
 	"net/http"
 	"time"
@@ -29,6 +30,9 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
+	// DiscordBotToken is the bot of the Kite server, which looks up users for
+	// the user lookup tool.
+	DiscordBotToken     string
 	UserLimits          config.UserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int
@@ -37,6 +41,10 @@ type APIServerConfig struct {
 	// HTTPClient is for requests to URLs anyone can give, like the metadata
 	// documents of OAuth clients, so it should use the egress proxy.
 	HTTPClient *http.Client
+	// SharedBot is the Kite bot, nil without one. SharedBotClientSecret is the
+	// OAuth2 secret of its application.
+	SharedBot             *sharedbot.Bot
+	SharedBotClientSecret string
 }
 
 type BillingConfig struct {
@@ -45,6 +53,7 @@ type BillingConfig struct {
 	LemonSqueezyStoreID       string
 	TestMode                  bool
 	Plans                     []config.BillingPlanConfig
+	Sale                      config.BillingSaleConfig
 }
 
 type APIServer struct {

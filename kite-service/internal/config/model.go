@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
 type Config struct {
@@ -26,9 +27,15 @@ type Config struct {
 	// Kite's own registration at the services of integrations, by
 	// integration ID, like [integrations.erlc].
 	Integrations map[string]IntegrationConfig `toml:"integrations"`
+	// SharedBot is the Kite bot, which shared apps run on. See
+	// design/kite-lite.md.
+	SharedBot SharedBotConfig `toml:"shared_bot"`
 
 	ClusterCount int `toml:"cluster_count"`
 	ClusterIndex int `toml:"cluster_index"`
+	// RunSharedBot is set in the process of the Kite bot, which runs the
+	// shared apps instead of a cluster's share of the others.
+	RunSharedBot bool `toml:"-"`
 }
 
 func (cfg *Config) Validate() error {
@@ -89,6 +96,29 @@ type AppConfig struct {
 
 type EncryptionConfig struct {
 	TokenEncryptionKey string `toml:"token_encryption_key" validate:"required"`
+}
+
+type SharedBotConfig struct {
+	// Token is the Kite bot's token, from the environment like other secrets.
+	// Without it, shared apps don't run.
+	Token string `toml:"token"`
+	// ClientSecret is the OAuth2 secret of the Kite bot's application, for
+	// logging in and adding the bot on one page. Without it, it's
+	// discord.client_secret, as on kite.onl users log in with the Kite bot's
+	// application.
+	ClientSecret string `toml:"client_secret"`
+	// Intents are the privileged intents Discord granted the Kite bot, like
+	// "message_content" and "guild_members". It asks for them, and templates
+	// that read them can be added to its apps. Identifying with an intent
+	// Discord didn't grant fails, so only list granted ones.
+	Intents []string `toml:"intents" validate:"dive,oneof=message_content guild_members"`
+}
+
+// GrantedIntents are Intents as flags.
+func (c SharedBotConfig) GrantedIntents() model.Intents {
+	// The names are validated, so parsing can't fail.
+	intents, _ := model.ParseIntents(c.Intents)
+	return intents
 }
 
 type DiscordConfig struct {
@@ -166,6 +196,11 @@ type DebugConfig struct {
 	Host    string `toml:"host"`
 	// Port of cluster 0, cluster N listens on Port + N.
 	Port int `toml:"port"`
+	// HeapDumpDir gets a heap and a goroutine profile when the Go heap of a
+	// process passes HeapDumpThreshold bytes, for finding out afterwards what
+	// filled it. Empty turns it off.
+	HeapDumpDir       string `toml:"heap_dump_dir"`
+	HeapDumpThreshold uint64 `toml:"heap_dump_threshold" validate:"gt=0"`
 }
 
 type UserLimitsConfig struct {
@@ -220,6 +255,25 @@ type BillingConfig struct {
 	LemonSqueezyStoreID       string              `toml:"lemonsqueezy_store_id"`
 	TestMode                  bool                `toml:"test_mode"`
 	Plans                     []BillingPlanConfig `toml:"plans"`
+	Sale                      BillingSaleConfig   `toml:"sale"`
+}
+
+// BillingSaleConfig is a discount on the first payment of yearly plans, with
+// a discount code that has to exist in Lemon Squeezy. The site and dashboard
+// show it between StartsAt and EndsAt, and checkouts of yearly plans apply the
+// code. Without a code there's no sale.
+type BillingSaleConfig struct {
+	// Name is what the site calls the sale, like "Black Week".
+	Name     string    `toml:"name" validate:"required_with=Code"`
+	Code     string    `toml:"code"`
+	Percent  int       `toml:"percent" validate:"required_with=Code,omitempty,min=1,max=100"`
+	StartsAt time.Time `toml:"starts_at"`
+	EndsAt   time.Time `toml:"ends_at" validate:"required_with=Code"`
+}
+
+// Active is whether the sale runs at now.
+func (c BillingSaleConfig) Active(now time.Time) bool {
+	return c.Code != "" && !now.Before(c.StartsAt) && now.Before(c.EndsAt)
 }
 
 type BillingPlanConfig struct {

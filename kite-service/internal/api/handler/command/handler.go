@@ -226,6 +226,19 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 	return wire.CommandToWire(command), nil
 }
 
+func (h *CommandHandler) HandleCommandsUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.CommandsUpdateFolderResponse, error) {
+	commands, err := h.commandStore.UpdateCommandsFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update folder of commands: %w", err)
+	}
+
+	res := make(wire.CommandsUpdateFolderResponse, len(commands))
+	for i, command := range commands {
+		res[i] = wire.CommandToWire(command)
+	}
+	return &res, nil
+}
+
 func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandDeleteResponse, error) {
 	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID, c.Session.UserID)
 	if err != nil {

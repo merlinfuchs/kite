@@ -1,0 +1,102 @@
+package access
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+)
+
+// Apps on the Kite bot can only change things with the routes that allow
+// them, and read with all.
+func TestCustomBotOnly(t *testing.T) {
+	m := &AccessManager{}
+
+	for _, botType := range []model.AppBotType{model.AppBotTypeShared, model.AppBotTypeOwn} {
+		withApp := func(next handler.HandlerFunc) handler.HandlerFunc {
+			return func(c *handler.Context) error {
+				c.App = &model.App{ID: "app", BotType: botType}
+				return next(c)
+			}
+		}
+		ok := func(c *handler.Context) error {
+			return c.Send(http.StatusNoContent, nil)
+		}
+
+		mux := http.NewServeMux()
+		group := handler.Group(mux, "/app", withApp, m.CustomBotOnly)
+		group.Post("/build", ok)
+		group.Get("/read", ok)
+		group.AllowSharedApp().Post("/templates", ok)
+		group.AllowSharedApp().Group("/nested").Post("/x", ok)
+
+		tests := []struct {
+			method, path  string
+			sharedAllowed bool
+		}{
+			{"POST", "/app/build", false},
+			{"GET", "/app/read", true},
+			{"POST", "/app/templates", true},
+			{"POST", "/app/nested/x", true},
+		}
+		for _, tt := range tests {
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, httptest.NewRequest(tt.method, tt.path, nil))
+
+			allowed := rec.Code == http.StatusNoContent
+			want := botType == model.AppBotTypeOwn || tt.sharedAllowed
+			if allowed != want {
+				t.Errorf("%s app, %s %s: allowed = %v, want %v (status %d)", botType, tt.method, tt.path, allowed, want, rec.Code)
+			}
+		}
+	}
+}
+
+// API tokens, and so MCP, can't use apps on the Kite bot, not even to read.
+func TestCustomBotOnlyRefusesAPITokens(t *testing.T) {
+	m := &AccessManager{}
+	ok := func(c *handler.Context) error {
+		return c.Send(http.StatusNoContent, nil)
+	}
+
+	for _, botType := range []model.AppBotType{model.AppBotTypeShared, model.AppBotTypeOwn} {
+		withToken := func(next handler.HandlerFunc) handler.HandlerFunc {
+			return func(c *handler.Context) error {
+				c.APIToken = &model.APIToken{ID: "token"}
+				c.App = &model.App{ID: "app", BotType: botType}
+				return next(c)
+			}
+		}
+
+		mux := http.NewServeMux()
+		handler.Group(mux, "/app", withToken, m.CustomBotOnly).AllowSharedApp().Get("/read", ok)
+
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest("GET", "/app/read", nil))
+		if allowed := rec.Code == http.StatusNoContent; allowed != (botType == model.AppBotTypeOwn) {
+			t.Errorf("%s app with a token: status %d", botType, rec.Code)
+		}
+	}
+}
+
+func TestSharedAppAccess(t *testing.T) {
+	tests := []struct {
+		name    string
+		member  *model.SharedAppMember
+		decided bool
+		refused bool
+	}{
+		{"not an app on the Kite bot", nil, false, false},
+		{"bot removed from the server", &model.SharedAppMember{}, false, false},
+		{"Manage Server", &model.SharedAppMember{BotInServer: true, ManagesServer: true}, true, false},
+		{"lost Manage Server or left", &model.SharedAppMember{BotInServer: true}, true, true},
+	}
+	for _, tt := range tests {
+		decided, err := sharedAppAccess(tt.member)
+		if decided != tt.decided || (err != nil) != tt.refused {
+			t.Errorf("%s: decided = %v, err = %v", tt.name, decided, err)
+		}
+	}
+}

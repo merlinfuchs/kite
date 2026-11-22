@@ -1,6 +1,7 @@
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import { toolJsonLd } from "@/lib/seo";
 import { kiteTools } from "@/tools/registry";
 import { ChevronRightIcon } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +29,11 @@ export default function ToolLayout({
   const otherTools = kiteTools.filter((t) => t.id !== toolId);
 
   return (
-    <HomeLayout title={title} description={description} jsonLd={jsonLd}>
+    <HomeLayout
+      title={title}
+      description={description}
+      jsonLd={[...toolJsonLd(title, tool.href, description), ...(jsonLd ?? [])]}
+    >
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl py-10 md:py-14">
           <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-6">

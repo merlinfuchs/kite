@@ -99,6 +99,9 @@ INSERT INTO bundle_versions (
 )
 ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content, notes = EXCLUDED.notes;
 
+-- name: GetBundleVersionContent :one
+SELECT content FROM bundle_versions WHERE bundle_id = $1 AND version = $2;
+
 -- name: SetBundleVersionNotes :exec
 UPDATE bundle_versions SET notes = $3 WHERE bundle_id = $1 AND version = $2;
 
@@ -276,8 +279,29 @@ LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 LEFT JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.id = ANY(@ids::text[]);
 
+-- The Featured check runs again on what was approved.
 -- name: SetBundleApprovedVersion :exec
-UPDATE bundles SET approved_version = @approved_version WHERE id = @id;
+UPDATE bundles SET approved_version = @approved_version, featurable = NULL WHERE id = @id;
+
+-- Users' bundles listed in the marketplace that the Featured check didn't
+-- check yet, with their approved version.
+-- name: GetUncheckedFeaturableBundles :many
+SELECT
+    sqlc.embed(bundles),
+    sqlc.embed(bundle_listings),
+    bundle_versions.content
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
+WHERE bundles.owner_user_id IS NOT NULL AND bundles.removed_at IS NULL AND bundles.featurable IS NULL
+ORDER BY bundles.id
+LIMIT $1;
+
+-- Only if the version is still the approved one, so a check of an older one
+-- doesn't count for a newer one.
+-- name: SetBundleFeaturable :exec
+UPDATE bundles SET featurable = @featurable
+WHERE id = @id AND approved_version = @approved_version;
 
 -- Only users' bundles that weren't taken down can be picked.
 -- name: SetBundleStaffPickedAt :execrows
@@ -285,8 +309,8 @@ UPDATE bundles SET staff_picked_at = @staff_picked_at
 WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;
 
 -- How long the users have had a bundle listed in the marketplace, by when the
--- oldest of their listed bundles was made, and how many other users added any
--- of them. Users without a listed bundle aren't in it.
+-- oldest of their listed bundles was made, how many other users added any of
+-- them and how many stars they got. Users without a listed bundle aren't in it.
 -- name: GetCreatorStats :many
 SELECT
     bundles.owner_user_id::text AS user_id,
@@ -300,7 +324,16 @@ SELECT
         WHERE owned.owner_user_id = bundles.owner_user_id
             AND owned.removed_at IS NULL
             AND apps.owner_user_id != owned.owner_user_id
-    )::int AS installer_count
+    )::int AS installer_count,
+    (
+        SELECT count(*)
+        FROM bundles AS owned
+        JOIN bundle_listings AS owned_listings ON owned_listings.bundle_id = owned.id
+        JOIN bundle_stars ON bundle_stars.bundle_id = owned.id
+        WHERE owned.owner_user_id = bundles.owner_user_id
+            AND owned.removed_at IS NULL
+            AND bundle_stars.user_id != owned.owner_user_id
+    )::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 WHERE bundles.owner_user_id = ANY(@user_ids::text[]) AND bundles.removed_at IS NULL

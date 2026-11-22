@@ -102,6 +102,20 @@ func TestHasInteractiveComponentsIgnoresLinkButtons(t *testing.T) {
 	assert.False(t, data.HasInteractiveComponents())
 }
 
+func TestHasComponentsWithoutFlow(t *testing.T) {
+	data := MessageData{
+		Components: []ComponentData{
+			{Type: ComponentTypeActionRow, Components: []ComponentData{
+				{Type: ComponentTypeButton, Style: 1, FlowSourceID: "a"},
+				{Type: ComponentTypeButton, Style: ButtonStyleLink, URL: "https://example.com"},
+			}},
+		},
+	}
+
+	assert.False(t, HasComponentsWithoutFlow(&data, map[string]int{"a": 1}))
+	assert.True(t, HasComponentsWithoutFlow(&data, map[string]int{}))
+}
+
 func TestToSendMessageDataComponentsV2(t *testing.T) {
 	data := componentsV2Message.Copy()
 	data.Content = "should be dropped"

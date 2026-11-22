@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "../api/client";
 import {
   getItemVersion,
   ItemVersionTarget,
@@ -69,7 +70,7 @@ export function useVersionHistory({
         apply(res.data.content);
         setUndoChainId(isUndo ? versionId : null);
       } catch (err) {
-        toast.error(`Failed to load save: ${err}`);
+        toast.error(`Failed to load save: ${errorMessage(err)}`);
       } finally {
         setRestoringId(null);
       }

@@ -31,6 +31,9 @@
   <url><loc>https://kite.onl/tools/timestamp-generator</loc></url>
   <url><loc>https://kite.onl/tools/snowflake-decoder</loc></url>
   <url><loc>https://kite.onl/tools/webhook-info</loc></url>
+  <url><loc>https://kite.onl/tools/user-lookup</loc></url>
+  <url><loc>https://kite.onl/tools/invite-resolver</loc></url>
+  <url><loc>https://kite.onl/tools/application-lookup</loc></url>
   <url><loc>https://kite.onl/marketplace</loc></url>
   <url><loc>https://kite.onl/marketplace/categories/moderation</loc></url>
   <url><loc>https://kite.onl/marketplace/categories/ai</loc></url>

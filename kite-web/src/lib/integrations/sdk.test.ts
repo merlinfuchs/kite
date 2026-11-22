@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { codeDeclarations, codeOperations, codeSignature } from "./sdk";
+import { codeOperations, codeSignature } from "./sdk";
+import { codeDeclarations } from "./sdkDeclarations";
 
 describe("sdk", () => {
   it("matches the kite.d.ts of the docs", async () => {
@@ -15,5 +16,6 @@ describe("sdk", () => {
     expect(codeSignature(op)).toContain("channel_id: string;");
     expect(codeSignature(op)).toContain("limit?: number;");
     expect(codeSignature(op)).toContain("Costs nothing.");
+    expect(codeSignature(op)).toContain("Promise<discord.MessageResponse[]>");
   });
 });

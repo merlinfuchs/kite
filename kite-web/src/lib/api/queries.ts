@@ -1,5 +1,6 @@
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   OAuthAuthorizeGetResponse,
@@ -11,6 +12,7 @@ import {
   AppSetupGetResponse,
   AssetGetResponse,
   BillingPlanListResponse,
+  BillingSaleGetResponse,
   CommandGetResponse,
   CommandListResponse,
   OpenBundleReportListResponse,
@@ -362,15 +364,42 @@ export function useBundleQuery(
 ) {
   // The list only has what the cards show, so the bundle is always loaded.
   return useQuery({
+    ...bundleQuery(bundleId),
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
+  });
+}
+
+// useLatestBundleQuery loads the user's bundle with the content of its newest
+// version, which apps don't get before Kite approves it.
+export function useLatestBundleQuery(bundleId: string) {
+  return useQuery({
+    queryKey: ["bundles", bundleId, "latest"],
+    queryFn: () =>
+      apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}?version=latest`),
+    enabled: !!bundleId,
+    staleTime: 60_000,
+  });
+}
+
+// useBundlesByIdQueries loads several bundles with everything in them. The
+// result of combine stays the same until one of them changes.
+export function useBundlesByIdQueries<T>(
+  bundleIds: string[],
+  combine: (results: { data?: APIResponse<BundleGetResponse> }[]) => T
+) {
+  return useQueries({ queries: bundleIds.map(bundleQuery), combine });
+}
+
+function bundleQuery(bundleId: string) {
+  return {
     queryKey: ["bundles", bundleId],
     queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
     enabled: !!bundleId,
     // Users' bundles get new versions or are deleted at any time.
     staleTime: 60_000,
-    placeholderData: placeholder
-      ? { success: true as const, data: placeholder }
-      : undefined,
-  });
+  };
 }
 
 export function useBundleInstallsQuery(appId: string) {
@@ -703,6 +732,13 @@ export function useBillingPlansQuery(enabled = true) {
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
     enabled,
+  });
+}
+
+export function useBillingSaleQuery() {
+  return useQuery({
+    queryKey: ["billing", "sale"],
+    queryFn: () => apiRequest<BillingSaleGetResponse>(`/v1/billing/sale`),
   });
 }
 

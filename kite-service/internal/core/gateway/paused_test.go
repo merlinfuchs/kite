@@ -16,17 +16,17 @@ func TestPausedMessage(t *testing.T) {
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
 	app := &model.App{ID: "app", CreditsPausedAt: null.TimeFrom(now.Add(-time.Hour))}
 
-	msg := g.pausedMessage(app, now)
+	msg := pausedMessage(app, now, g.appBaseURL)
 	if !strings.Contains(msg, "November 1 (UTC)") || !strings.Contains(msg, "[Kite](<https://kite.onl>)") {
 		t.Errorf("message = %q, want reset date and Kite link", msg)
 	}
 
-	lastMonth := g.pausedMessage(app, time.Date(2026, 11, 1, 0, 3, 0, 0, time.UTC))
+	lastMonth := pausedMessage(app, time.Date(2026, 11, 1, 0, 3, 0, 0, time.UTC), g.appBaseURL)
 	if !strings.Contains(lastMonth, "in a few minutes") {
 		t.Errorf("message after the month of the pause = %q, want it to start in a few minutes", lastMonth)
 	}
 
-	december := g.pausedMessage(&model.App{CreditsPausedAt: null.TimeFrom(time.Date(2026, 12, 2, 0, 0, 0, 0, time.UTC))}, time.Date(2026, 12, 31, 23, 0, 0, 0, time.UTC))
+	december := pausedMessage(&model.App{CreditsPausedAt: null.TimeFrom(time.Date(2026, 12, 2, 0, 0, 0, 0, time.UTC))}, time.Date(2026, 12, 31, 23, 0, 0, 0, time.UTC), g.appBaseURL)
 	if !strings.Contains(december, "January 1") {
 		t.Errorf("message in December = %q, want January 1", december)
 	}

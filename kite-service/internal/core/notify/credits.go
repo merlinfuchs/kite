@@ -78,19 +78,22 @@ func (n *AppOwnerNotifier) dm(app *model.App, content string) {
 			return
 		}
 
-		token, err := n.tokenCrypt.DecryptString(app.DiscordToken)
-		if err == nil {
-			err = dm(api.NewClient("Bot "+token).WithContext(ctx), discord.UserID(ownerID), content)
-		}
-		if err == nil {
-			return
-		}
+		// Shared apps have no bot of their own to send it with.
+		if !app.IsShared() {
+			token, err := n.tokenCrypt.DecryptString(app.DiscordToken)
+			if err == nil {
+				err = dm(api.NewClient("Bot "+token).WithContext(ctx), discord.UserID(ownerID), content)
+			}
+			if err == nil {
+				return
+			}
 
-		slog.Info(
-			"Failed to DM owner with their bot, using Kite's bot",
-			slog.String("app_id", app.ID),
-			slog.String("error", err.Error()),
-		)
+			slog.Info(
+				"Failed to DM owner with their bot, using Kite's bot",
+				slog.String("app_id", app.ID),
+				slog.String("error", err.Error()),
+			)
+		}
 		n.fallback.DM(owner.DiscordID, content)
 	}()
 }

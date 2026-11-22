@@ -79,8 +79,25 @@ export interface App {
   description: null | string;
   enabled: boolean;
   disabled_reason: null | string;
+  /**
+   * DiscordID is empty for apps on the Kite bot, which have no bot of
+   * their own.
+   */
   discord_id: string;
   discord_status?: AppDiscordStatus;
+  /**
+   * BotType is "own" for apps with a custom bot and "shared" for apps on
+   * the Kite bot.
+   */
+  bot_type: string;
+  /**
+   * DiscordGuildID is the server of an app on the Kite bot.
+   */
+  discord_guild_id: null | string;
+  /**
+   * Ref is where the app came from, like "xenon" for links from Xenon.
+   */
+  ref: null | string;
   owner_user_id: string;
   creator_user_id: string;
   created_at: string /* RFC3339 */;
@@ -162,6 +179,14 @@ export interface AppTokenUpdateRequest {
   discord_token: string;
 }
 export type AppTokenUpdateResponse = App;
+/**
+ * AppSwitchToCustomRequest moves an app on the Kite bot to the user's own
+ * bot, with its token.
+ */
+export interface AppSwitchToCustomRequest {
+  discord_token: string;
+}
+export type AppSwitchToCustomResponse = App;
 export type AppDeleteResponse = Empty;
 export type AppListResponse = (App | undefined)[];
 export type AppEmojiListResponse = (AppEmoji | undefined)[];
@@ -245,6 +270,11 @@ export interface StateGuildProfile {
   avatar_url: string;
   banner_url: string;
   name_style?: NameStyle;
+  /**
+   * RoleIDs are the roles the bot has in the server. It can only give and
+   * take roles below its highest one.
+   */
+  role_ids: string[];
 }
 /**
  * NameStyle is the font, effect and colors of the bot's name in a server, by
@@ -442,6 +472,22 @@ export interface BillingPlan {
   feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
+/**
+ * BillingSale is a discount on the first payment of yearly plans. Checkouts
+ * of yearly plans apply its code.
+ */
+export interface BillingSale {
+  name: string;
+  code: string;
+  percent: number /* int */;
+  ends_at: string /* RFC3339 */;
+}
+/**
+ * BillingSaleGetResponse has the sale that runs now, if there is one.
+ */
+export interface BillingSaleGetResponse {
+  sale?: BillingSale;
+}
 
 //////////
 // source: bundle.go
@@ -500,6 +546,11 @@ export interface Bundle {
    * StaffPick is whether Kite picked it.
    */
   staff_pick: boolean;
+  /**
+   * Featurable is whether an AI check found it good enough for the Featured
+   * row of the marketplace.
+   */
+  featurable: boolean;
   /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
@@ -627,6 +678,28 @@ export interface BundleVersionCreateRequest extends BundleContentRequest {
   notes: string;
 }
 export type BundleVersionCreateResponse = UserBundle;
+/**
+ * BundleRestoreRequest adds items of the newest version of the user's bundle
+ * back to the app it's made from, after the app deleted them. They get their
+ * old IDs, which are their keys, so new versions keep updating them in the
+ * apps that added the bundle.
+ */
+export interface BundleRestoreRequest {
+  /**
+   * BundleVersion is the version the user chose the items and parameters for.
+   */
+  bundle_version: number /* int */;
+  parameters: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners, messages and
+   * variables to restore. The app can't have any of them.
+   */
+  items: string[];
+}
+/**
+ * BundleRestoreResponse is what the restore created.
+ */
+export type BundleRestoreResponse = BundleImportResponse;
 /**
  * BundleUpdateRequest changes the page of a bundle that isn't in the
  * marketplace. Kite reviews changes to one that is, so they're submitted with
@@ -1012,6 +1085,7 @@ export interface Command {
   enabled: boolean;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
@@ -1049,6 +1123,7 @@ export interface CommandUpdateEnabledRequest {
   enabled: boolean;
 }
 export type CommandUpdateEnabledResponse = Command;
+export type CommandsUpdateFolderResponse = (Command | undefined)[];
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
 
@@ -1088,6 +1163,7 @@ export interface EventListener {
   enabled: boolean;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
@@ -1127,6 +1203,7 @@ export interface EventListenerUpdateEnabledRequest {
   enabled: boolean;
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
+export type EventListenersUpdateFolderResponse = (EventListener | undefined)[];
 export type EventListenerDeleteResponse = Empty;
 export type EventListenerWebhookSecretRegenerateResponse = EventListener;
 export type EventListenerWebhookResponse = Empty;
@@ -1417,6 +1494,19 @@ export interface FlowTestEffect {
 }
 
 //////////
+// source: folder.go
+
+/**
+ * FolderUpdateRequest moves commands, event listeners or messages into a
+ * folder, or out of any with a null or empty folder. Renaming a folder moves
+ * all of its items.
+ */
+export interface FolderUpdateRequest {
+  ids: string[];
+  folder: null | string;
+}
+
+//////////
 // source: http_request_test_run.go
 
 /**
@@ -1570,6 +1660,39 @@ export interface LogSummary {
 export type LogSummaryGetResponse = LogSummary;
 
 //////////
+// source: lookup.go
+
+/**
+ * LookupUserGetResponse is the public profile of a Discord user, for the user
+ * lookup tool on the website.
+ */
+export interface LookupUserGetResponse {
+  id: string;
+  username: string;
+  global_name: null | string;
+  discriminator: string;
+  avatar: null | string;
+  banner: null | string;
+  accent_color: null | number;
+  bot: boolean;
+  system: boolean;
+  public_flags: number /* int */;
+  /**
+   * AvatarDecoration is the asset of the decoration around the avatar.
+   */
+  avatar_decoration: null | string;
+  /**
+   * PrimaryGuild is the server tag the user shows next to their name.
+   */
+  primary_guild?: LookupUserPrimaryGuild;
+}
+export interface LookupUserPrimaryGuild {
+  guild_id: string;
+  tag: string;
+  badge: string;
+}
+
+//////////
 // source: message.go
 
 export interface Message {
@@ -1578,6 +1701,7 @@ export interface Message {
   description: null | string;
   app_id: string;
   bundle_install_id: null | string;
+  folder: null | string;
   creator_user_id: string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
@@ -1613,6 +1737,15 @@ export interface MessageUpdateRequest {
   base_version?: string;
 }
 export type MessageUpdateResponse = Message;
+/**
+ * MessageDataUpdateRequest changes only what a message says and keeps its
+ * flows, for apps on the Kite bot, which can't change flows.
+ */
+export interface MessageDataUpdateRequest {
+  data: MessageData;
+}
+export type MessageDataUpdateResponse = Message;
+export type MessagesUpdateFolderResponse = (Message | undefined)[];
 export type MessageDeleteResponse = Empty;
 export interface MessageInstance {
   id: number /* uint64 */;
@@ -1812,7 +1945,7 @@ export type UserGetResponse = User;
 export interface UserBadge {
   /**
    * Kind is staff, contributor, early_supporter, subscriber,
-   * early_creator or creator.
+   * early_creator, creator or star.
    */
   kind: string;
   /**
@@ -1821,7 +1954,8 @@ export interface UserBadge {
   plan?: string;
   /**
    * Milestone is how many other users at least added the templates of a
-   * creator, missing if fewer than the lowest milestone.
+   * creator, or how many stars at least they got for a star badge. Missing
+   * if fewer than the lowest milestone.
    */
   milestone?: number /* int */;
 }

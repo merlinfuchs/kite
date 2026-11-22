@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type MessageStore interface {
@@ -13,6 +14,8 @@ type MessageStore interface {
 	Message(ctx context.Context, appID string, id string) (*model.Message, error)
 	CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error)
 	UpdateMessage(ctx context.Context, variable *model.Message, change ItemChange) (*model.Message, error)
+	// UpdateMessagesFolder is UpdateCommandsFolder for messages.
+	UpdateMessagesFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.Message, error)
 	// DeleteMessage keeps the message's content in its version history.
 	DeleteMessage(ctx context.Context, id string, userID string) error
 }

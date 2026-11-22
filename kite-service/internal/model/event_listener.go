@@ -69,12 +69,14 @@ type EventListener struct {
 	Enabled         bool
 	AppID           string
 	BundleInstallID null.String
-	CreatorUserID   string
-	Filter          *EventListenerFilter
-	FlowSource      flow.FlowData
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	LastRunAt       null.Time
+	// Folder is the folder the dashboard lists it under, null for none.
+	Folder        null.String
+	CreatorUserID string
+	Filter        *EventListenerFilter
+	FlowSource    flow.FlowData
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	LastRunAt     null.Time
 	// WebhookSecret is the last part of the webhook URL, only set for webhook
 	// listeners. It's kept out of the flow, which is exported and shared.
 	WebhookSecret null.String

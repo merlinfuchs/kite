@@ -23,6 +23,11 @@ type Engine struct {
 	lastUpdate time.Time
 	apps       map[string]*App
 
+	// sharedAppIDs are the apps on the Kite bot, refreshed on each poll. The
+	// shared process runs them, so the clusters don't load their entities.
+	// Only the populate goroutine uses it.
+	sharedAppIDs map[string]struct{}
+
 	// scheduledApps are the apps that had a scheduled listener added, so the
 	// scheduler doesn't have to walk every app each second. Apps whose
 	// scheduled listeners are all gone are pruned by the scheduler.
@@ -91,6 +96,18 @@ func (e *Engine) populate(ctx context.Context) {
 	tickStart := time.Now().UTC()
 	lastUpdate := e.lastUpdate
 
+	// Refreshed before the entities, so an entity of a new shared app is
+	// never loaded: its app is created before it.
+	sharedAppIDs, err := e.env.AppStore.SharedAppIDs(ctx)
+	if err != nil {
+		slog.Error(
+			"Failed to get shared apps in engine",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	e.sharedAppIDs = util.IDSet(sharedAppIDs)
+
 	ok := true
 
 	if err := e.populatePlugins(ctx, lastUpdate); err != nil {
@@ -156,6 +173,16 @@ func (e *Engine) removeDangling(ctx context.Context) {
 	}
 }
 
+// runsApp is whether this process runs the app. The shared process runs the
+// shared apps, and each cluster its share of the others.
+func (e *Engine) runsApp(appID string) bool {
+	_, shared := e.sharedAppIDs[appID]
+	if e.env.Config.SharedApps {
+		return shared
+	}
+	return !shared && util.CluserForKey(appID, e.env.Config.ClusterCount) == e.env.Config.ClusterIndex
+}
+
 // appForID returns the app with the given ID, creating it if necessary. The
 // registry lock is held only for the map access, never across flow
 // compilation or plugin construction.
@@ -196,7 +223,7 @@ func (e *Engine) populatePlugins(ctx context.Context, lastUpdate time.Time) erro
 	}
 
 	for _, pluginInstance := range pluginInstances {
-		if util.CluserForKey(pluginInstance.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
+		if !e.runsApp(pluginInstance.AppID) {
 			continue
 		}
 
@@ -236,7 +263,7 @@ func (e *Engine) populateCommands(ctx context.Context, lastUpdate time.Time) err
 	}
 
 	for _, command := range commands {
-		if util.CluserForKey(command.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
+		if !e.runsApp(command.AppID) {
 			continue
 		}
 
@@ -281,7 +308,7 @@ func (e *Engine) populateEventListeners(ctx context.Context, lastUpdate time.Tim
 	}
 
 	for _, listener := range listeners {
-		if util.CluserForKey(listener.AppID, e.env.Config.ClusterCount) != e.env.Config.ClusterIndex {
+		if !e.runsApp(listener.AppID) {
 			continue
 		}
 
@@ -419,6 +446,9 @@ type EngineConfig struct {
 	MaxCredits    int
 	ClusterCount  int
 	ClusterIndex  int
+	// SharedApps is set in the process of the Kite bot, which runs only the
+	// shared apps.
+	SharedApps bool
 
 	PopulateInterval       time.Duration
 	RemoveDanglingInterval time.Duration

@@ -84,6 +84,95 @@ WHERE owner_user_id = @owner_user_id AND NOT enabled AND disabled_reason = @disa
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
 
+-- name: GetSharedAppIDs :many
+SELECT id FROM apps WHERE bot_type = 'shared';
+
+-- name: GetEnabledSharedApps :many
+SELECT * FROM apps WHERE bot_type = 'shared' AND enabled;
+
+-- name: GetSharedAppByGuild :one
+SELECT * FROM apps WHERE bot_type = 'shared' AND discord_guild_id = $1;
+
+-- name: CreateSharedApp :one
+INSERT INTO apps (
+    id,
+    name,
+    owner_user_id,
+    creator_user_id,
+    bot_type,
+    discord_guild_id,
+    ref,
+    created_at,
+    updated_at
+) VALUES (
+    @id, @name, @owner_user_id, @owner_user_id, 'shared', @discord_guild_id, @ref, @created_at, @created_at
+) RETURNING *;
+
+-- Starts the shared app of the server again if it was stopped for the reason,
+-- like the Kite bot being removed from the server, so it can't undo the user
+-- stopping it.
+-- name: EnableSharedAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at
+WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND NOT enabled AND disabled_reason = @disabled_reason;
+
+-- A shared app moves to the user's own bot and keeps everything else. The
+-- commands are sent again with the new bot. Its commands and event listeners
+-- count as changed, so the engine of its cluster loads them, which skipped
+-- them while the app was shared. Whoever switches it becomes its owner, and
+-- the collaborators and invites from while it was shared are removed. Users
+-- paying for a subscription of the app stay or become admins, so they can
+-- still manage it. The other statements run even when the app isn't shared
+-- anymore, so they only touch the app that shared locks.
+-- name: SwitchSharedAppToOwn :one
+WITH shared AS (
+    SELECT apps.id FROM apps WHERE apps.id = @app_id AND apps.bot_type = 'shared' FOR UPDATE
+), payers AS (
+    SELECT DISTINCT subscriptions.user_id FROM subscriptions
+    JOIN entitlements ON entitlements.subscription_id = subscriptions.id
+    WHERE entitlements.app_id IN (SELECT id FROM shared)
+        AND subscriptions.status <> 'expired'
+        AND subscriptions.user_id <> @owner_user_id
+), removed_collaborators AS (
+    DELETE FROM collaborators WHERE collaborators.app_id IN (SELECT id FROM shared)
+        AND collaborators.user_id NOT IN (SELECT user_id FROM payers)
+), added_payers AS (
+    INSERT INTO collaborators (user_id, app_id, role, created_at, updated_at)
+    SELECT payers.user_id, shared.id, 'admin', @updated_at, @updated_at FROM payers, shared
+    ON CONFLICT DO NOTHING
+), removed_collaborator_invites AS (
+    DELETE FROM collaborator_invites WHERE collaborator_invites.app_id IN (SELECT id FROM shared)
+), touched_commands AS (
+    UPDATE commands SET updated_at = @updated_at WHERE commands.app_id IN (SELECT id FROM shared)
+), touched_event_listeners AS (
+    UPDATE event_listeners SET updated_at = @updated_at WHERE event_listeners.app_id IN (SELECT id FROM shared)
+)
+UPDATE apps SET
+    bot_type = 'own',
+    owner_user_id = @owner_user_id,
+    discord_guild_id = NULL,
+    discord_id = @discord_id,
+    discord_token = @discord_token,
+    discord_verify_key = @discord_verify_key,
+    name = @name,
+    description = @description,
+    enabled = TRUE,
+    disabled_reason = NULL,
+    commands_deployed_hash = NULL,
+    commands_deploy_at = @updated_at,
+    updated_at = @updated_at
+WHERE apps.id IN (SELECT id FROM shared)
+RETURNING *;
+
+-- The name of a shared app is the name of its server.
+-- name: RenameSharedApp :execrows
+UPDATE apps SET
+    name = @name,
+    updated_at = @updated_at
+WHERE bot_type = 'shared' AND discord_guild_id = @discord_guild_id AND name <> @name;
+
 -- name: GetEnabledAppIDs :many
 SELECT id FROM apps WHERE enabled = TRUE;
 

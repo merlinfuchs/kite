@@ -41,6 +41,9 @@ type Bundle struct {
 	StarCount int `json:"star_count"`
 	// StaffPick is whether Kite picked it.
 	StaffPick bool `json:"staff_pick"`
+	// Featurable is whether an AI check found it good enough for the Featured
+	// row of the marketplace.
+	Featurable bool `json:"featurable"`
 	// CreatedAt is when it was made, which the marketplace shows the newest
 	// by.
 	CreatedAt time.Time `json:"created_at"`
@@ -106,6 +109,7 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		ActiveInstallCount: bundle.ActiveInstallCount,
 		StarCount:          bundle.StarCount,
 		StaffPick:          bundle.StaffPickedAt.Valid,
+		Featurable:         bundle.Listed && bundle.Featurable.Bool,
 		CreatedAt:          bundle.CreatedAt,
 	}
 	for i, n := range bundle.VersionNotes {
@@ -220,6 +224,34 @@ func (req BundleVersionCreateRequest) Validate() error {
 }
 
 type BundleVersionCreateResponse = UserBundle
+
+// BundleRestoreRequest adds items of the newest version of the user's bundle
+// back to the app it's made from, after the app deleted them. They get their
+// old IDs, which are their keys, so new versions keep updating them in the
+// apps that added the bundle.
+type BundleRestoreRequest struct {
+	// BundleVersion is the version the user chose the items and parameters for.
+	BundleVersion int               `json:"bundle_version"`
+	Parameters    map[string]string `json:"parameters"`
+	// Items are the keys of the commands, event listeners, messages and
+	// variables to restore. The app can't have any of them.
+	Items []string `json:"items"`
+}
+
+func (req BundleRestoreRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
+		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
+		validation.Field(&req.Items,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+		),
+	)
+}
+
+// BundleRestoreResponse is what the restore created.
+type BundleRestoreResponse = BundleImportResponse
 
 // BundleUpdateRequest changes the page of a bundle that isn't in the
 // marketplace. Kite reviews changes to one that is, so they're submitted with

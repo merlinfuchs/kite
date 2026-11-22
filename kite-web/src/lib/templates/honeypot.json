@@ -1,6 +1,7 @@
 {
   "id": "honeypot",
   "version": 1,
+  "intents": ["guild_messages"],
   "name": "Honeypot",
   "description": "A channel that catches spam bots: anyone but staff who sends a message in it gets softbanned and logged.",
   "about": [

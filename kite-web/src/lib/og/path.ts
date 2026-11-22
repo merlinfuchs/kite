@@ -1,5 +1,6 @@
 import { isExport } from "@/lib/env/client";
 import { Template } from "@/lib/flow/templates";
+import { UserBadge } from "@/lib/types/wire.gen";
 
 // The path of the link preview image of a template, bundle or creator, or
 // undefined in the export, which has no server for the API routes. The version
@@ -23,11 +24,17 @@ export function templateImageVersion(template: Template) {
 }
 
 // creatorImageVersion is the version of the link preview of a creator's page.
-// It changes when they list or remove a template or one of them changes.
-export function creatorImageVersion(templates: Template[]) {
+// It changes when they list or remove a template, one of them changes, or
+// their badges change.
+export function creatorImageVersion(
+  templates: Template[],
+  badges: UserBadge[]
+) {
   return hash(
-    templates
-      .map((t) => `${t.id}:${templateImageVersion(t)}`)
+    [
+      ...templates.map((t) => `${t.id}:${templateImageVersion(t)}`),
+      ...badges.map((b) => `${b.kind}:${b.plan ?? ""}:${b.milestone ?? ""}`),
+    ]
       .sort()
       .join(",")
   );

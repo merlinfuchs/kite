@@ -13,6 +13,9 @@ import (
 )
 
 // javaScriptTestContext is the context of a Run JavaScript block in tests.
+// javaScriptCredits is what the block costs, without its calls.
+var javaScriptCredits = *blockDefinitions[FlowNodeTypeActionJavaScriptRun].Credits
+
 func javaScriptTestContext(t *testing.T, providers FlowProviders, maxCredits int, env eval.Env) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
