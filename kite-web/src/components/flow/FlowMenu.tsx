@@ -19,7 +19,12 @@ import FlowParameterList from "./FlowParameterList";
 import { useStoreApi } from "@xyflow/react";
 import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 import { FlowTestTarget } from "@/lib/flow/flowTest";
-import FlowTestPanel from "./FlowTestPanel";
+import dynamic from "next/dynamic";
+
+// Most people never open the Test tab, so it loads when they do.
+const FlowTestPanel = dynamic(() => import("./FlowTestPanel"), {
+  ssr: false,
+});
 
 type Tab =
   | "action"

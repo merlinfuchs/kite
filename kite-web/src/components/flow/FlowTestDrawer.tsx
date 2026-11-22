@@ -8,7 +8,12 @@ import {
 } from "@/components/ui/drawer";
 import { FlowTestTarget } from "@/lib/flow/flowTest";
 import { XIcon } from "lucide-react";
-import FlowTestPanel from "./FlowTestPanel";
+import dynamic from "next/dynamic";
+
+// Most people never open the Test tab, so it loads when they do.
+const FlowTestPanel = dynamic(() => import("./FlowTestPanel"), {
+  ssr: false,
+});
 
 interface Props {
   target: FlowTestTarget;
