@@ -17,9 +17,18 @@ import (
 // heap passes cfg.HeapDumpThreshold, and again each time it grows by another
 // quarter of it. A process that runs out of memory gets killed before anyone
 // can take a profile, so these are all that's left of what filled it.
-func watchHeap(ctx context.Context, cfg config.DebugConfig, name string, interval time.Duration) {
+//
+// It starts after delay, as the heap passes the threshold for a moment while
+// the apps load after a start.
+func watchHeap(ctx context.Context, cfg config.DebugConfig, name string, delay time.Duration, interval time.Duration) {
 	if cfg.HeapDumpDir == "" {
 		return
+	}
+
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(delay):
 	}
 
 	step := max(cfg.HeapDumpThreshold/4, 1)

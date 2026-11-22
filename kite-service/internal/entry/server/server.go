@@ -89,7 +89,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.RunSharedBot {
 		heapDumpName = "shared"
 	}
-	go watchHeap(ctx, cfg.Debug, heapDumpName, 2*time.Second)
+	go watchHeap(ctx, cfg.Debug, heapDumpName, 5*time.Minute, 2*time.Second)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {
