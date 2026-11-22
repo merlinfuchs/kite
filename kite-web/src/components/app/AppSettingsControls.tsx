@@ -8,7 +8,7 @@ import {
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
 import LoadingButton from "../common/LoadingButton";
-import { useApp } from "@/lib/hooks/api";
+import { useApp, useSharedBot } from "@/lib/hooks/api";
 import {
   useAppCreditNoticesUpdateMutation,
   useAppUpdateMutation,
@@ -20,6 +20,8 @@ import { toast } from "sonner";
 
 export default function AppSettingsControls() {
   const app = useApp();
+  // The Kite bot stays online in the server when the app is stopped.
+  const sharedBot = useSharedBot();
 
   const appId = useAppId();
   const updateMutation = useAppUpdateMutation(appId);
@@ -73,8 +75,9 @@ export default function AppSettingsControls() {
           <div>
             <div className="font-bold pb-1">Start app</div>
             <div className="text-muted-foreground">
-              Starting your app will make it appear as online in Discord and
-              allow users to interact with it.
+              {sharedBot
+                ? "The Kite bot runs your templates in your server again."
+                : "Starting your app will make it appear as online in Discord and allow users to interact with it."}
             </div>
           </div>
           <Button
@@ -89,8 +92,9 @@ export default function AppSettingsControls() {
           <div>
             <div className="font-bold pb-1">Stop app</div>
             <div className="text-muted-foreground">
-              Stopping your app will make it appear as offline in Discord and
-              prevent users from interacting with it.
+              {sharedBot
+                ? "The Kite bot stays in your server, but stops answering the commands and buttons of your templates."
+                : "Stopping your app will make it appear as offline in Discord and prevent users from interacting with it."}
             </div>
           </div>
           <Button
@@ -101,28 +105,32 @@ export default function AppSettingsControls() {
             Stop app
           </Button>
         </div>
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="font-bold pb-1">Sync commands</div>
-            <div className="text-muted-foreground">
-              Kite updates your commands in Discord after every change. If they
-              look out of date in Discord, send them again.
+        {/* Kite keeps the Kite bot's commands in sync itself. */}
+        {!sharedBot && (
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="font-bold pb-1">Sync commands</div>
+              <div className="text-muted-foreground">
+                Kite updates your commands in Discord after every change. If
+                they look out of date in Discord, send them again.
+              </div>
             </div>
+            <LoadingButton
+              variant="secondary"
+              loading={isRedeploying}
+              onClick={redeploy}
+            >
+              Sync commands
+            </LoadingButton>
           </div>
-          <LoadingButton
-            variant="secondary"
-            loading={isRedeploying}
-            onClick={redeploy}
-          >
-            Sync commands
-          </LoadingButton>
-        </div>
+        )}
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">Credit messages</div>
             <div className="text-muted-foreground">
-              Your bot sends its owner a direct message when it has used 80% of
-              its credits for the month, and when it has used all of them.
+              {sharedBot
+                ? "Kite sends the owner a direct message when the app has used 80% of its credits for the month, and when it has used all of them."
+                : "Your bot sends its owner a direct message when it has used 80% of its credits for the month, and when it has used all of them."}
             </div>
           </div>
           <Switch

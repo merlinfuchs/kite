@@ -8,6 +8,7 @@ import { eventFlowContext } from "../flow/bundleExport";
 import { buildFlowCatalog } from "../flow/catalog";
 import { flowContextTypes } from "../flow/context";
 import { codeOperations, codeSignature } from "../integrations/sdk";
+import { codeTypeDeclarations } from "../integrations/sdkDeclarations";
 import { matchesSearch } from "../search";
 import {
   App,
@@ -579,7 +580,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     {
       title: "Get code calls",
       description:
-        "Gets calls the code of a Run JavaScript block can make as TypeScript: what each does and costs, and the parameters of the one object it takes. Calls return promises.",
+        "Gets calls the code of a Run JavaScript block can make as TypeScript: what each does and costs, and the parameters of the one object it takes. Calls return promises. types declares the Discord objects they take and return, and the discord types those use are the objects of Discord's API with the same name.",
       inputSchema: {
         names: z
           .array(z.string())
@@ -610,6 +611,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
           // A method of the namespace, in TypeScript.
           signature: codeSignature(op),
         })),
+        types: codeTypeDeclarations(found, false),
         unknown_calls: unknown.length ? unknown : undefined,
       });
     }

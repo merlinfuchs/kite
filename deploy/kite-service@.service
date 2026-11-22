@@ -14,6 +14,32 @@ ExecStartPre=/opt/kite/kite-service database migrate postgres up
 ExecStart=/bin/sh -c 'exec /opt/kite/kite-service server start --cluster_count 4 --cluster_index %i --port $$((8080 + %i))'
 Restart=always
 RestartSec=5
+User=kite
+Group=kite
+MemoryMax=16G
+Environment=GOMEMLIMIT=13GiB
+# /var/lib/kite, for debug.heap_dump_dir in kite.toml
+StateDirectory=kite
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectProc=invisible
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
 
 [Install]
 WantedBy=multi-user.target

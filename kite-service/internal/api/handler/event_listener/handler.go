@@ -224,6 +224,19 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 	return wire.EventListenerToWire(eventListener), nil
 }
 
+func (h *EventListenerHandler) HandleEventListenersUpdateFolder(c *handler.Context, req wire.FolderUpdateRequest) (*wire.EventListenersUpdateFolderResponse, error) {
+	listeners, err := h.eventListenerStore.UpdateEventListenersFolder(c.Context(), c.App.ID, req.IDs, req.NormalizedFolder())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update folder of event listeners: %w", err)
+	}
+
+	res := make(wire.EventListenersUpdateFolderResponse, len(listeners))
+	for i, listener := range listeners {
+		res[i] = wire.EventListenerToWire(listener)
+	}
+	return &res, nil
+}
+
 func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*wire.EventListenerDeleteResponse, error) {
 	err := h.eventListenerStore.DeleteEventListener(c.Context(), c.EventListener.ID, c.Session.UserID)
 	if err != nil {

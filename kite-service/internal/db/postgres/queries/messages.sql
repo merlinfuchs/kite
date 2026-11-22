@@ -32,6 +32,11 @@ UPDATE messages SET
     updated_at = $6
 WHERE id = $1 RETURNING *;
 
+-- name: UpdateMessagesFolder :many
+-- Doesn't change updated_at, the folder is only how the dashboard lists them.
+UPDATE messages SET folder = sqlc.narg(folder)
+WHERE app_id = @app_id AND id = ANY(@ids::text[]) RETURNING *;
+
 -- name: DeleteMessage :one
 DELETE FROM messages WHERE id = $1 RETURNING *;
 

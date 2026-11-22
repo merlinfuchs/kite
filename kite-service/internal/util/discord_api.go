@@ -112,3 +112,21 @@ func WithoutRequestURL(err error) error {
 	}
 	return err
 }
+
+// DiscordAPISegments splits the path of a request to Discord after the API
+// version, like [channels 123 messages] for /api/v10/channels/123/messages.
+func DiscordAPISegments(path string) []string {
+	path = strings.Trim(path, "/")
+	if rest, ok := strings.CutPrefix(path, "api/"); ok {
+		path = rest
+		if i := strings.IndexByte(path, '/'); i != -1 && strings.HasPrefix(path, "v") {
+			path = path[i+1:]
+		} else if strings.HasPrefix(path, "v") {
+			path = ""
+		}
+	}
+	if path == "" {
+		return nil
+	}
+	return strings.Split(path, "/")
+}

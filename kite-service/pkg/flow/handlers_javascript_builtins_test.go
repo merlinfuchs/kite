@@ -79,7 +79,7 @@ return [res.status, res.statusText, res.headers.get("x-thing"), await res.json()
 	assert.Equal(t, "Bearer s3cret-t0ken", req.Header.Get("Authorization"))
 	// Only secrets are filled in, code has no placeholders.
 	assert.JSONEq(t, `{"name":"s3cret-t0ken","other":"{{user.id}}"}`, p.reqBody)
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 }
 
 func TestJavaScriptRunHTTPRequest(t *testing.T) {
@@ -117,6 +117,8 @@ func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 		{"wrong type", `await http.request({url: "https://example.com", body: {a: 1}})`, "http.request: invalid value for parameter body"},
 		{"not an object", `await http.request("https://example.com")`, "http.request: the argument must be an object of its parameters"},
 		{"unknown secret", `await fetch("https://example.com/{{secrets.NOPE}}")`, "http.request: the app has no secret named NOPE"},
+		// TOKEN exists, but code can't build the name of a secret it doesn't name.
+		{"built secret name", `await fetch("https://example.com/{{" + "secrets." + "TOK" + "EN}}")`, "http.request: the code can only use the secret TOKEN if it's written in the code as {{secrets.TOKEN}}"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -125,7 +127,7 @@ func TestJavaScriptRunHTTPRequestErrors(t *testing.T) {
 			assert.ErrorContains(t, err, tt.want)
 			assert.Empty(t, p.reqs)
 			// Only the block is billed.
-			assert.Equal(t, 10, c.CreditsUsed())
+			assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 		})
 	}
 }
@@ -239,7 +241,7 @@ return {before, motd: await variables.get({name: "motd", scope: "ignored"}), xp,
 		"after": [{"scope": "1", "value": 3, "updated_at": 100}]
 	}`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	// The block, and set, 4 increments, 2 lists and a delete. Gets are free.
-	assert.Equal(t, 10+8, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+8, c.CreditsUsed())
 }
 
 func TestJavaScriptRunVariableAppend(t *testing.T) {
@@ -276,7 +278,7 @@ func TestJavaScriptRunVariableErrors(t *testing.T) {
 			c, err := runJavaScriptVariables(t, tt.code, p, 1000)
 			assert.ErrorContains(t, err, tt.want)
 			assert.Empty(t, p.values)
-			assert.Equal(t, 10, c.CreditsUsed())
+			assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 		})
 	}
 }

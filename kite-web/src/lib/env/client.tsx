@@ -15,6 +15,12 @@ export const clientEnvSchema = z.object({
   // Lemon Squeezy variant of a pay what you want product. The plans page only
   // asks for donations when set.
   NEXT_PUBLIC_DONATION_VARIANT_ID: z.string().optional(),
+  // Offers adding the Kite bot next to creating a custom bot. It needs the
+  // shared_bot settings of the service.
+  NEXT_PUBLIC_KITE_BOT_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 // The export for self-hosting, which has no server for ISR or API routes.
@@ -30,4 +36,5 @@ export default clientEnvSchema.parse({
   NEXT_PUBLIC_CONTACT_EMAIL: process.env.NEXT_PUBLIC_CONTACT_EMAIL,
   NEXT_PUBLIC_OPENPANEL_CLIENT_ID: process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID,
   NEXT_PUBLIC_DONATION_VARIANT_ID: process.env.NEXT_PUBLIC_DONATION_VARIANT_ID,
+  NEXT_PUBLIC_KITE_BOT_ENABLED: process.env.NEXT_PUBLIC_KITE_BOT_ENABLED,
 });

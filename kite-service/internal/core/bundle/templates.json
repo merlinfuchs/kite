@@ -25,6 +25,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -535,6 +536,11 @@
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages."
     ],
+    "shared_bot": true,
+    "intents": [
+      "guild_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "log_channel_id",
@@ -1006,6 +1012,10 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "guild_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "system_prompt",
@@ -1239,6 +1249,10 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages it translates."
+    ],
+    "intents": [
+      "guild_message_reactions",
+      "message_content"
     ],
     "parameters": [],
     "commands": [],
@@ -1822,13 +1836,13 @@
   },
   {
     "id": "welcomer",
-    "version": 2,
+    "version": 3,
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
     "icon": "user-round-plus",
     "category": "welcome",
     "about": [
-      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
+      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel. You write both messages when you add the template and can change them later, also as embeds with the member's avatar. Uncheck the leave listener if you only want welcomes.",
       "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
     ],
     "faq": [
@@ -1846,6 +1860,13 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Whenever someone joins your server, the Kite bot posts a message that mentions them in the channel you pick. When a member leaves, it posts a goodbye in the same channel. You write both messages when you add the template and can change them on its page later."
+    ],
+    "intents": [
+      "guild_members"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -1883,9 +1904,7 @@
               },
               "data": {
                 "channel_target": "{{params.channel_id}}",
-                "message_data": {
-                  "content": "Welcome {{event.user.mention}} to the server!"
-                }
+                "message_template_id": "welcome"
               }
             }
           ],
@@ -1924,9 +1943,7 @@
               },
               "data": {
                 "channel_target": "{{params.channel_id}}",
-                "message_data": {
-                  "content": "**{{event.user.display_name}}** has left the server."
-                }
+                "message_template_id": "goodbye"
               }
             }
           ],
@@ -1940,9 +1957,34 @@
         }
       }
     ],
-    "messages": [],
+    "messages": [
+      {
+        "id": "welcome",
+        "name": "Welcome",
+        "description": "Posted when someone joins. {{event.user.mention}} mentions them and {{event.user.display_name}} is their name.",
+        "data": {
+          "content": "Welcome {{event.user.mention}} to the server!"
+        },
+        "flow_sources": {},
+        "customize": true
+      },
+      {
+        "id": "goodbye",
+        "name": "Goodbye",
+        "description": "Posted when someone leaves. {{event.user.display_name}} is their name.",
+        "data": {
+          "content": "**{{event.user.display_name}}** has left the server."
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
     "variables": [],
     "changelog": [
+      {
+        "version": 3,
+        "notes": "The welcome and goodbye messages are message templates now, so you can change their text without opening the flows."
+      },
       {
         "version": 2,
         "notes": "The channel is now a parameter, so you can change it on this page without opening the flows."
@@ -1977,6 +2019,11 @@
     "setup": [
       "In your server settings, put your bot's role above the verified role, so it can give the role.",
       "Hide your channels from @everyone and show them to the verified role instead."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "When you add the template, the Kite bot posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+      "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The Verify button keeps working for as long as the message exists, and you can post the message again from the template's page on the dashboard."
     ],
     "parameters": [
       {
@@ -2153,6 +2200,11 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Members use /suggest to post an idea in the suggestions channel you pick. The bot posts it as an embed with their name and avatar, then adds 👍 and 👎 reactions so everyone can vote. The member gets a reply only they see, with a link to the channel.",
+      "Each member can suggest something once a minute, so the channel doesn't get spammed."
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -2350,6 +2402,15 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the starboard posts show the text of messages."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+      "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
+    ],
+    "intents": [
+      "guild_message_reactions",
+      "message_content"
     ],
     "parameters": [
       {
@@ -2770,19 +2831,19 @@
   },
   {
     "id": "leveling",
-    "version": 1,
+    "version": 2,
     "name": "Leveling",
     "description": "Members earn XP for chatting and level up, with /rank, /leaderboard, and an optional reward role.",
     "icon": "trophy",
     "category": "community",
     "about": [
-      "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in.",
+      "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in. You write that message when you add the template and can change it later.",
       "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept in a stored variable, so it stays when the bot restarts."
     ],
     "faq": [
       {
         "question": "How many credits does it use?",
-        "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
+        "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up uses 2 more, one to work out the level and one for the message, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
       },
       {
         "question": "Does the bot need the Message Content Intent?",
@@ -2802,6 +2863,14 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in. You write that message when you add the template and can change it on its page later.",
+      "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept when the bot restarts."
+    ],
+    "intents": [
+      "guild_messages"
+    ],
     "parameters": [
       {
         "key": "level_up_channel",
@@ -3146,23 +3215,29 @@
               }
             },
             {
+              "id": "calc_l3v",
+              "type": "action_expression_evaluate",
+              "position": {
+                "x": 0,
+                "y": 1470
+              },
+              "data": {
+                "custom_label": "Work out the new level",
+                "expression": "int((int(result('variable_n4w')) / 100) ** 0.5)",
+                "temporary_name": "level"
+              }
+            },
+            {
               "id": "message_l8v",
               "type": "action_message_create",
               "position": {
                 "x": -250,
-                "y": 1470
+                "y": 1680
               },
               "data": {
                 "custom_label": "Level-up message",
                 "channel_target": "{{(params.level_up_channel ?? \"\") != \"\" ? params.level_up_channel : event.channel.id}}",
-                "message_data": {
-                  "content": "🎉 {{event.user.mention}} reached level **{{int((int(result('variable_n4w')) / 100) ** 0.5)}}**!",
-                  "allowed_mentions": {
-                    "parse": [
-                      "users"
-                    ]
-                  }
-                }
+                "message_template_id": "level-up"
               }
             },
             {
@@ -3170,11 +3245,11 @@
               "type": "control_if",
               "position": {
                 "x": 250,
-                "y": 1470
+                "y": 1680
               },
               "data": {
                 "custom_label": "Reward role due?",
-                "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
+                "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && var('level') >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
               }
             },
             {
@@ -3182,7 +3257,7 @@
               "type": "control_error_handler",
               "position": {
                 "x": 250,
-                "y": 1680
+                "y": 1890
               },
               "data": {
                 "custom_label": "Skip if the role can't be given"
@@ -3193,7 +3268,7 @@
               "type": "action_member_role_add",
               "position": {
                 "x": 250,
-                "y": 1890
+                "y": 2100
               },
               "data": {
                 "custom_label": "Give the reward role",
@@ -3237,14 +3312,18 @@
             {
               "id": "300047514",
               "source": "if_u5p",
-              "target": "if_r2w",
+              "target": "calc_l3v",
               "sourceHandle": "yes"
             },
             {
               "id": "300055433",
-              "source": "if_u5p",
-              "target": "message_l8v",
-              "sourceHandle": "yes"
+              "source": "calc_l3v",
+              "target": "message_l8v"
+            },
+            {
+              "id": "300079190",
+              "source": "calc_l3v",
+              "target": "if_r2w"
             },
             {
               "id": "300063352",
@@ -3262,7 +3341,23 @@
         }
       }
     ],
-    "messages": [],
+    "messages": [
+      {
+        "id": "level-up",
+        "name": "Level-up",
+        "description": "Posted when a member reaches a new level. {{event.user.mention}} mentions them and {{var('level')}} is their new level.",
+        "data": {
+          "content": "🎉 {{event.user.mention}} reached level **{{var('level')}}**!",
+          "allowed_mentions": {
+            "parse": [
+              "users"
+            ]
+          }
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
     "variables": [
       {
         "id": "xp",
@@ -3275,7 +3370,12 @@
         "scoped": true
       }
     ],
-    "changelog": []
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The level-up message is a message template now, so you can change its text without opening the flow."
+      }
+    ]
   },
   {
     "id": "economy",
@@ -4350,6 +4450,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -4673,6 +4774,10 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "direct_messages",
+      "message_content"
+    ],
     "parameters": [
       {
         "key": "channel_id",
@@ -4936,6 +5041,15 @@
     ],
     "setup": [
       "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the numbers."
+    ],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
+      "The count and who counted last are kept for each channel, so it survives restarts."
+    ],
+    "intents": [
+      "guild_messages",
+      "message_content"
     ],
     "parameters": [
       {
@@ -6268,6 +6382,9 @@
       }
     ],
     "setup": [],
+    "intents": [
+      "guild_messages"
+    ],
     "parameters": [],
     "commands": [
       {
@@ -6844,6 +6961,7 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
     "parameters": [],
     "commands": [
       {
@@ -7851,6 +7969,14 @@
       }
     ],
     "setup": [],
+    "shared_bot": true,
+    "shared_bot_about": [
+      "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
+      "You write the sticky message when you set up the template, with text, embeds or images, and can change it on the template's page on the dashboard any time. It shows up after the next message in the channel."
+    ],
+    "intents": [
+      "guild_messages"
+    ],
     "parameters": [
       {
         "key": "sticky_channel",
@@ -8535,6 +8661,9 @@
     ],
     "setup": [
       "Put your bot's role above the roles of the members it should catch, so it can ban them."
+    ],
+    "intents": [
+      "guild_messages"
     ],
     "parameters": [
       {

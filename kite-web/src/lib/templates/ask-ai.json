@@ -1,6 +1,7 @@
 {
   "id": "ask-ai",
   "version": 2,
+  "intents": ["guild_messages", "message_content"],
   "changelog": [
     {
       "version": 2,

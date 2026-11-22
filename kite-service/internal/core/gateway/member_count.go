@@ -54,9 +54,9 @@ func (s *memberCountStore) change(guildID discord.GuildID, fn func(count uint64)
 	_ = s.GuildStore.GuildSet(guild, true)
 }
 
-// trackMemberCounts makes the cache of session keep member counts. It has to
+// TrackMemberCounts makes the cache of session keep member counts. It has to
 // be called before any other handler is added, so they see the new count.
-func trackMemberCounts(session *state.State) {
+func TrackMemberCounts(session *state.State) {
 	counts := &memberCountStore{GuildStore: session.Cabinet.GuildStore}
 	session.Cabinet.GuildStore = counts
 

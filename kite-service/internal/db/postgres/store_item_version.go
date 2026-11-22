@@ -137,6 +137,26 @@ func recordItemDelete(
 	return addItemVersion(ctx, q, target, change, content, rawTargetData, time.Now().UTC())
 }
 
+// recordItemRestore adds the content of a target that was created again with
+// its old ID to its history, after the version its delete added. Without a
+// history it adds nothing, the first change adds the initial version.
+func recordItemRestore(
+	ctx context.Context,
+	q *pgmodel.Queries,
+	target itemVersionTarget,
+	content []byte,
+	change store.ItemChange,
+) error {
+	_, err := q.GetNewestItemVersion(ctx, target.id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get newest item version: %w", err)
+	}
+	return addItemVersion(ctx, q, target, change, content, nil, time.Now().UTC())
+}
+
 // addItemVersion adds a version and drops the oldest ones over the limit.
 func addItemVersion(
 	ctx context.Context,

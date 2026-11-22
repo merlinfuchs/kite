@@ -31,7 +31,7 @@ interface FormFields {
 }
 
 const createDefaultMessage = (name: string) => ({
-  content: `You message template: **${name}**`,
+  content: `Your message template: **${name}**`,
   tts: false,
   embeds: [
     {

@@ -1,6 +1,7 @@
 {
   "id": "flag-translator",
   "version": 2,
+  "intents": ["guild_message_reactions", "message_content"],
   "changelog": [
     {
       "version": 2,

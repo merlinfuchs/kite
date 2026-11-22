@@ -60,6 +60,33 @@ export const kiteTools: Tool[] = [
     color: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
     href: "/tools/webhook-info",
   },
+  {
+    id: "user-lookup",
+    title: "User lookup",
+    description:
+      "Get the profile of a Discord user from their ID, with their avatar, banner, and badges.",
+    icon: UserSearchIcon,
+    color: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+    href: "/tools/user-lookup",
+  },
+  {
+    id: "invite-resolver",
+    title: "Invite resolver",
+    description:
+      "See the server behind an invite, with its ID, member count, and boosts.",
+    icon: FolderSearchIcon,
+    color: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+    href: "/tools/invite-resolver",
+  },
+  {
+    id: "application-lookup",
+    title: "Application lookup",
+    description:
+      "Get the name, description, and invite link of a Discord bot from its ID.",
+    icon: FileSearchIcon,
+    color: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
+    href: "/tools/application-lookup",
+  },
 ];
 
 export const externalTools: Tool[] = [
@@ -89,42 +116,6 @@ export const externalTools: Tool[] = [
     icon: ImageIcon,
     color: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
     href: "https://message.style/app/tools/embed-links",
-    external: true,
-  },
-  {
-    id: "user-lookup",
-    title: "User lookup",
-    description: "Get information about a Discord user from their ID.",
-    icon: UserSearchIcon,
-    color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
-    href: "https://dis.wtf/lookup/user",
-    external: true,
-  },
-  {
-    id: "server-lookup",
-    title: "Server lookup",
-    description: "Get information about a Discord server from its ID.",
-    icon: FolderSearchIcon,
-    color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
-    href: "https://dis.wtf/lookup/guild",
-    external: true,
-  },
-  {
-    id: "invite-resolver",
-    title: "Invite resolver",
-    description: "Get information about a Discord server from an invite code.",
-    icon: FolderSearchIcon,
-    color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
-    href: "https://dis.wtf/lookup/invite",
-    external: true,
-  },
-  {
-    id: "application-lookup",
-    title: "Application lookup",
-    description: "Get information about a Discord application from its ID.",
-    icon: FileSearchIcon,
-    color: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
-    href: "https://dis.wtf/lookup/app",
     external: true,
   },
 ];

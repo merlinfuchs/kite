@@ -94,8 +94,8 @@ func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCrede
 	}
 
 	return &model.AppCredentials{
-		DiscordID:    row.DiscordID,
-		DiscordToken: row.DiscordToken,
+		DiscordID:    row.DiscordID.String,
+		DiscordToken: row.DiscordToken.String,
 	}, nil
 }
 
@@ -109,8 +109,8 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		},
 		OwnerUserID:   app.OwnerUserID,
 		CreatorUserID: app.CreatorUserID,
-		DiscordToken:  app.DiscordToken,
-		DiscordID:     app.DiscordID,
+		DiscordToken:  pgtype.Text{String: app.DiscordToken, Valid: app.DiscordToken != ""},
+		DiscordID:     pgtype.Text{String: app.DiscordID, Valid: app.DiscordID != ""},
 		DiscordVerifyKey: pgtype.Text{
 			String: app.DiscordVerifyKey.String,
 			Valid:  app.DiscordVerifyKey.Valid,
@@ -143,7 +143,8 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 			String: opts.Description.String,
 			Valid:  opts.Description.Valid,
 		},
-		DiscordToken:  opts.DiscordToken,
+		// Shared apps have no token, and keep none.
+		DiscordToken:  pgtype.Text{String: opts.DiscordToken, Valid: opts.DiscordToken != ""},
 		DiscordStatus: rawStatus,
 		Enabled:       opts.Enabled,
 		DisabledReason: pgtype.Text{
@@ -193,6 +194,88 @@ func (c *Client) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
 	return c.Q.DeleteApp(ctx, id)
+}
+
+func (c *Client) SharedAppIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetSharedAppIDs(ctx)
+}
+
+func (c *Client) EnabledSharedApps(ctx context.Context) ([]*model.App, error) {
+	rows, err := c.Q.GetEnabledSharedApps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// One app that can't be decoded doesn't stop the others.
+	return decodeRows(rows, rowToApp, func(row pgmodel.App) []any {
+		return []any{slog.String("app_id", row.ID)}
+	}), nil
+}
+
+func (c *Client) SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error) {
+	row, err := c.Q.GetSharedAppByGuild(ctx, pgtype.Text{String: guildID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToApp(row)
+}
+
+func (c *Client) CreateSharedApp(ctx context.Context, opts store.SharedAppCreateOpts) (*model.App, error) {
+	row, err := c.Q.CreateSharedApp(ctx, pgmodel.CreateSharedAppParams{
+		ID:             opts.ID,
+		Name:           opts.Name,
+		OwnerUserID:    opts.OwnerUserID,
+		DiscordGuildID: pgtype.Text{String: opts.DiscordGuildID, Valid: true},
+		Ref:            pgtype.Text{String: opts.Ref.String, Valid: opts.Ref.Valid},
+		CreatedAt:      pgtype.Timestamp{Time: opts.CreatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		// A server has at most one shared app.
+		return nil, uniqueViolation(err)
+	}
+	return rowToApp(row)
+}
+
+func (c *Client) SwitchSharedAppToOwn(ctx context.Context, opts store.SharedAppSwitchOpts) (*model.App, error) {
+	row, err := c.Q.SwitchSharedAppToOwn(ctx, pgmodel.SwitchSharedAppToOwnParams{
+		AppID:            opts.ID,
+		OwnerUserID:      opts.OwnerUserID,
+		Name:             opts.Name,
+		Description:      pgtype.Text{String: opts.Description.String, Valid: opts.Description.Valid},
+		DiscordID:        pgtype.Text{String: opts.DiscordID, Valid: true},
+		DiscordToken:     pgtype.Text{String: opts.DiscordToken, Valid: true},
+		DiscordVerifyKey: pgtype.Text{String: opts.DiscordVerifyKey.String, Valid: opts.DiscordVerifyKey.Valid},
+		UpdatedAt:        pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		// The bot is another app's.
+		return nil, uniqueViolation(err)
+	}
+	return rowToApp(row)
+}
+
+func (c *Client) RenameSharedApp(ctx context.Context, guildID string, name string, now time.Time) error {
+	_, err := c.Q.RenameSharedApp(ctx, pgmodel.RenameSharedAppParams{
+		Name:           name,
+		UpdatedAt:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		DiscordGuildID: pgtype.Text{String: guildID, Valid: true},
+	})
+	return err
+}
+
+func (c *Client) EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error) {
+	n, err := c.Q.EnableSharedAppDisabledWithReason(ctx, pgmodel.EnableSharedAppDisabledWithReasonParams{
+		UpdatedAt:      pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		DiscordGuildID: pgtype.Text{String: guildID, Valid: true},
+		DisabledReason: pgtype.Text{String: reason, Valid: true},
+	})
+	return n > 0, err
 }
 
 func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
@@ -373,9 +456,12 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DisabledReason: null.NewString(row.DisabledReason.String, row.DisabledReason.Valid),
 		OwnerUserID:    row.OwnerUserID,
 		CreatorUserID:  row.CreatorUserID,
-		DiscordToken:   row.DiscordToken,
-		DiscordID:      row.DiscordID,
+		DiscordToken:   row.DiscordToken.String,
+		DiscordID:      row.DiscordID.String,
 		DiscordStatus:  status,
+		BotType:        model.AppBotType(row.BotType),
+		DiscordGuildID: null.NewString(row.DiscordGuildID.String, row.DiscordGuildID.Valid),
+		Ref:            null.NewString(row.Ref.String, row.Ref.Valid),
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
 

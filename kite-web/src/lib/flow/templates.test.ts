@@ -63,6 +63,9 @@ describe("templates", () => {
       about: t.about,
       faq: t.faq,
       setup: t.setup ?? [],
+      ...(t.shared_bot ? { shared_bot: true } : {}),
+      ...(t.shared_bot_about ? { shared_bot_about: t.shared_bot_about } : {}),
+      ...(t.intents ? { intents: t.intents } : {}),
       parameters: t.parameters,
       commands: t.commands,
       event_listeners: t.event_listeners,
@@ -227,33 +230,48 @@ describe("marketplace", () => {
     }
   });
 
-  it("features two of Kite's templates and one of a user", () => {
+  it("features staff picks and featurable templates of users, one per creator", () => {
     const official = getTemplates();
-    const user = (id: string, installs: number): Template => ({
+    const user = (
+      id: string,
+      picked: Partial<Template> = { featurable: true },
+      creator = id
+    ): Template => ({
       ...official[0]!,
       id,
-      installs,
       listed: true,
+      ...picked,
       author: {
         kind: "user",
-        discordId: id,
-        name: id,
-        username: id,
+        discordId: creator,
+        name: creator,
+        username: creator,
         avatarUrl: "",
       },
     });
-    const templates = [...official, user("tried", 5), user("new", 1)];
+    const templates = [
+      ...official.map((t) => ({ ...t, featurable: true })),
+      user("a"),
+      user("b", { staffPick: true }),
+      user("c"),
+      user("c2", { featurable: true }, "c"),
+      user("d"),
+      user("plain", {}),
+      user("unlisted", { featurable: true, listed: false }),
+    ];
 
     const featured = featuredTemplates(templates, 20000);
-    expect(featured.map((t) => t.author.kind)).toEqual([
-      "kite",
-      "user",
-      "kite",
-    ]);
-    expect(featured[1]!.id).toBe("tried");
+    expect(featured).toHaveLength(3);
+    expect(featured.every((t) => t.author.kind === "user")).toBe(true);
+    expect(featured.map((t) => t.id)).not.toContain("plain");
+    expect(featured.map((t) => t.id)).not.toContain("unlisted");
+    const creators = featured.map((t) =>
+      t.author.kind === "user" ? t.author.discordId : ""
+    );
+    expect(new Set(creators).size).toBe(3);
     expect(featuredTemplates(templates, 20000)).toEqual(featured);
     const days = new Set(
-      [20000, 20001, 20002].map((day) =>
+      [20000, 20001, 20002, 20003].map((day) =>
         featuredTemplates(templates, day)
           .map((t) => t.id)
           .join()
@@ -261,11 +279,9 @@ describe("marketplace", () => {
     );
     expect(days.size).toBeGreaterThan(1);
 
-    // Only Kite's while no user's has enough installs.
-    expect(
-      featuredTemplates([...official, user("new", 1)], 20000).map(
-        (t) => t.author.kind
-      )
-    ).toEqual(["kite", "kite", "kite"]);
+    // Nothing is featured while no user's was picked or found good enough.
+    expect(featuredTemplates([...official, user("plain", {})], 20000)).toEqual(
+      []
+    );
   });
 });

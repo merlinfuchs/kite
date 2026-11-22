@@ -31,8 +31,8 @@ type App struct {
 	Enabled                 bool
 	OwnerUserID             string
 	CreatorUserID           string
-	DiscordToken            string
-	DiscordID               string
+	DiscordToken            pgtype.Text
+	DiscordID               pgtype.Text
 	CreatedAt               pgtype.Timestamp
 	UpdatedAt               pgtype.Timestamp
 	DiscordStatus           []byte
@@ -46,6 +46,9 @@ type App struct {
 	DiscordVerifyKey        pgtype.Text
 	CreditsPausedAt         pgtype.Timestamp
 	CreditNoticesEnabled    bool
+	BotType                 string
+	DiscordGuildID          pgtype.Text
+	Ref                     pgtype.Text
 }
 
 type AppIntegration struct {
@@ -114,6 +117,7 @@ type Bundle struct {
 	About           []byte
 	Setup           []byte
 	StaffPickedAt   pgtype.Timestamp
+	Featurable      pgtype.Bool
 }
 
 type BundleInstall struct {
@@ -220,6 +224,7 @@ type Command struct {
 	FlowSource      []byte
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type Entitlement struct {
@@ -248,6 +253,7 @@ type EventListener struct {
 	UpdatedAt       pgtype.Timestamp
 	LastRunAt       pgtype.Timestamp
 	WebhookSecret   pgtype.Text
+	Folder          pgtype.Text
 }
 
 type ItemVersion struct {
@@ -290,6 +296,7 @@ type Message struct {
 	CreatorUserID   string
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+	Folder          pgtype.Text
 }
 
 type MessageInstance struct {

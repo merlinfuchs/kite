@@ -1,6 +1,7 @@
 {
   "id": "afk",
   "version": 2,
+  "intents": ["guild_messages"],
   "changelog": [
     {
       "version": 2,

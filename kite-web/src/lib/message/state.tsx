@@ -25,6 +25,7 @@ type ContextValue = {
   validationStore: ReturnType<typeof createValidationErrorStore>;
   flowStore: ReturnType<typeof createFlowStore>;
   noPlaceholders: boolean;
+  noInteractive: boolean;
 };
 
 const CurrentMessageStoreContext = createContext<ContextValue | null>(null);
@@ -32,11 +33,15 @@ const CurrentMessageStoreContext = createContext<ContextValue | null>(null);
 export function CurrentMessageStoreProvider({
   children,
   noPlaceholders = false,
+  noInteractive = false,
 }: {
   children: ReactNode;
   // Nothing fills in placeholders, like in the message creator, which sends
   // with a webhook from the browser.
   noPlaceholders?: boolean;
+  // Buttons and select menus can't be added, for messages without flows to
+  // run when they're used.
+  noInteractive?: boolean;
 }) {
   const [documentStore] = useState(() => createDocumentStore());
   const [validationStore] = useState(() => createValidationErrorStore());
@@ -48,8 +53,9 @@ export function CurrentMessageStoreProvider({
       validationStore,
       flowStore,
       noPlaceholders,
+      noInteractive,
     }),
-    [documentStore, validationStore, flowStore, noPlaceholders]
+    [documentStore, validationStore, flowStore, noPlaceholders, noInteractive]
   );
 
   return (
@@ -71,6 +77,10 @@ function useStoreContext(hook: string) {
 
 export function useNoPlaceholders() {
   return useStoreContext("useNoPlaceholders").noPlaceholders;
+}
+
+export function useNoInteractive() {
+  return useStoreContext("useNoInteractive").noInteractive;
 }
 
 export function useDocumentStoreApi() {

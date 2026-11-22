@@ -8,6 +8,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "../ui/command";
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
@@ -22,6 +23,7 @@ export default function EntitySelect({
   emptyText,
   wide,
   modal,
+  clearable,
 }: {
   items:
     | {
@@ -30,6 +32,9 @@ export default function EntitySelect({
         description?: string;
         // Shown before the name, e.g. to tell channel types apart.
         icon?: ReactNode;
+        // Items with a group are listed under it, in the order the groups
+        // first appear in.
+        group?: string;
       }[]
     | undefined;
   value: string | null;
@@ -41,9 +46,16 @@ export default function EntitySelect({
   wide?: boolean;
   // Needed for the list to scroll when the select is inside a dialog.
   modal?: boolean;
+  // Adds an item that clears the selection.
+  clearable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const selected = value ? items?.find((i) => i.id === value) : undefined;
+
+  const groups = new Map<string | undefined, NonNullable<typeof items>>();
+  for (const item of items ?? []) {
+    groups.set(item.group, [...(groups.get(item.group) ?? []), item]);
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
@@ -77,41 +89,60 @@ export default function EntitySelect({
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {items?.map((item) => (
-                <CommandItem
-                  key={item.id}
-                  value={item.id}
-                  keywords={[item.name, item.description ?? ""]}
-                  onSelect={(currentValue) => {
-                    onChange(currentValue);
-                    setOpen(false);
-                  }}
-                >
-                  <CheckIcon
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === item.id ? "opacity-100" : "opacity-0"
+            {[...groups].map(([group, groupItems]) => (
+              <CommandGroup key={group ?? ""} heading={group}>
+                {groupItems.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.id}
+                    keywords={[item.name, item.description ?? "", group ?? ""]}
+                    onSelect={(currentValue) => {
+                      onChange(currentValue);
+                      setOpen(false);
+                    }}
+                  >
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {item.icon && (
+                      <span className="mr-1.5 shrink-0 text-muted-foreground">
+                        {item.icon}
+                      </span>
                     )}
-                  />
-                  {item.icon && (
-                    <span className="mr-1.5 shrink-0 text-muted-foreground">
-                      {item.icon}
-                    </span>
-                  )}
-                  {item.description ? (
-                    <div className="min-w-0">
-                      <div>{item.name}</div>
-                      <div className="text-xs text-muted-foreground font-mono truncate">
-                        {item.description}
+                    {item.description ? (
+                      <div className="min-w-0">
+                        <div>{item.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono truncate">
+                          {item.description}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    item.name
-                  )}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+                    ) : (
+                      item.name
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+            {clearable && value && (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    value="clear-selection"
+                    onSelect={() => {
+                      onChange(null);
+                      setOpen(false);
+                    }}
+                    className="justify-center text-muted-foreground"
+                  >
+                    Clear selection
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

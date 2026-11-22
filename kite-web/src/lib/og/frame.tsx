@@ -45,6 +45,42 @@ export async function fetchAvatar(url: string, size: number) {
   }
 }
 
+// Satori draws characters none of its fonts have as boxes. It loads fonts for
+// the scripts below when the text needs them. Variants of characters like ﹒
+// or 𝓪 become the plain ones, and letters of other scripts are left out.
+const drawableScripts = [
+  "Common",
+  "Inherited",
+  "Latin",
+  "Greek",
+  "Cyrillic",
+  "Han",
+  "Hiragana",
+  "Katakana",
+  "Hangul",
+  "Thai",
+  "Arabic",
+  "Hebrew",
+  "Devanagari",
+  "Bengali",
+  "Tamil",
+  "Telugu",
+  "Kannada",
+  "Malayalam",
+];
+const undrawable = new RegExp(
+  `[^${drawableScripts.map((s) => `\\p{Script=${s}}`).join("")}]`,
+  "gu"
+);
+
+export function drawableText(text: string) {
+  return text
+    .normalize("NFKC")
+    .replace(undrawable, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }

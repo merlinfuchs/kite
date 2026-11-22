@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -594,5 +595,205 @@ func TestIfValidatesCondition(t *testing.T) {
 	}
 	for _, condition := range []string{"", "{{ x }} > 5", "yes", "{{ a }}{{ b }}"} {
 		assert.Error(t, FlowNodeData{ConditionBaseValue: condition}.Validate(FlowNodeTypeControlIf), condition)
+	}
+}
+
+type permissionTestDiscordProvider struct {
+	provider.MockDiscordProvider
+	guild           *discord.Guild
+	roles           []discord.Role
+	guildCalls      int
+	guildRolesCalls int
+}
+
+func (p *permissionTestDiscordProvider) Guild(ctx context.Context, guildID discord.GuildID) (*discord.Guild, error) {
+	p.guildCalls++
+	return p.guild, nil
+}
+
+func (p *permissionTestDiscordProvider) GuildRoles(ctx context.Context, guildID discord.GuildID) ([]discord.Role, error) {
+	p.guildRolesCalls++
+	return p.roles, nil
+}
+
+type permissionTestContextData struct {
+	TestContextData
+	guildID discord.GuildID
+}
+
+func (d *permissionTestContextData) GuildID() discord.GuildID {
+	return d.guildID
+}
+
+func TestConditionUserPermissions(t *testing.T) {
+	const guildID = discord.GuildID(100)
+	const ownerID = discord.UserID(200)
+	const otherUserID = discord.UserID(201)
+	const adminRoleID = discord.RoleID(300)
+	const modRoleID = discord.RoleID(301)
+
+	runCheck := func(
+		t *testing.T,
+		mode ComparsionMode,
+		ctxGuildID discord.GuildID,
+		guild *discord.Guild,
+		member discord.Member,
+		roles []discord.Role,
+		required discord.Permissions,
+	) ([]string, *permissionTestDiscordProvider) {
+		t.Helper()
+
+		entry, err := CompileCommand(FlowData{
+			Nodes: []FlowNode{
+				{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+				{ID: "cond", Type: FlowNodeTypeControlConditionUser, Data: FlowNodeData{ConditionBaseValue: "{{user}}"}},
+				{ID: "item", Type: FlowNodeTypeControlConditionItemUser, Data: FlowNodeData{
+					ConditionItemMode:  mode,
+					ConditionItemValue: strconv.FormatUint(uint64(required), 10),
+				}},
+				{ID: "else", Type: FlowNodeTypeControlConditionItemElse},
+				{ID: "matched", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "matched"}},
+				{ID: "unmatched", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "unmatched"}},
+			},
+			Edges: []FlowEdge{
+				{Source: "entry", Target: "cond"},
+				{Source: "cond", Target: "item"},
+				{Source: "cond", Target: "else"},
+				{Source: "item", Target: "matched"},
+				{Source: "else", Target: "unmatched"},
+			},
+		})
+		require.NoError(t, err)
+
+		logs := &recordingLogProvider{}
+		dp := &permissionTestDiscordProvider{
+			guild: guild,
+			roles: roles,
+		}
+		ctx := NewContext(
+			context.Background(),
+			5*time.Second,
+			&permissionTestContextData{guildID: ctxGuildID},
+			FlowProviders{Discord: dp, Log: logs},
+			FlowContextLimits{MaxStackDepth: 20, MaxOperations: 1000, MaxCredits: 1000},
+			eval.NewContext(eval.Env{"user": eval.NewMemberEnv(member)}),
+			nil,
+		)
+		t.Cleanup(ctx.Cancel)
+
+		require.NoError(t, entry.Execute(ctx))
+		return logs.messages, dp
+	}
+
+	cases := []struct {
+		name           string
+		invalidGuildID bool
+		nilGuild       bool
+		member         discord.Member
+		roles          []discord.Role
+		required       discord.Permissions
+		wantHas        bool
+		wantNoCalls    bool
+	}{
+		{
+			name:   "permission from @everyone role",
+			member: discord.Member{User: discord.User{ID: otherUserID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: discord.PermissionManageMessages},
+			},
+			required: discord.PermissionManageMessages,
+			wantHas:  true,
+		},
+		{
+			name:   "administrator role grants all permissions",
+			member: discord.Member{User: discord.User{ID: otherUserID}, RoleIDs: []discord.RoleID{adminRoleID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: 0},
+				{ID: adminRoleID, Permissions: discord.PermissionAdministrator},
+			},
+			required: discord.PermissionManageMessages,
+			wantHas:  true,
+		},
+		{
+			name:   "guild owner has all permissions without roles",
+			member: discord.Member{User: discord.User{ID: ownerID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: 0},
+			},
+			required: discord.PermissionManageMessages,
+			wantHas:  true,
+		},
+		{
+			name:   "missing permission",
+			member: discord.Member{User: discord.User{ID: otherUserID}, RoleIDs: []discord.RoleID{modRoleID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: 0},
+				{ID: modRoleID, Permissions: discord.PermissionSendMessages},
+			},
+			required: discord.PermissionManageMessages,
+			wantHas:  false,
+		},
+		{
+			name:   "partial bitmask fails combined permission check",
+			member: discord.Member{User: discord.User{ID: otherUserID}, RoleIDs: []discord.RoleID{modRoleID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: 0},
+				{ID: modRoleID, Permissions: discord.PermissionSendMessages},
+			},
+			required: discord.PermissionSendMessages | discord.PermissionManageMessages,
+			wantHas:  false,
+		},
+		{
+			name:           "invalid guild ID skips lookup and denies permission",
+			invalidGuildID: true,
+			member:         discord.Member{User: discord.User{ID: ownerID}},
+			roles: []discord.Role{
+				{ID: 0, Permissions: discord.PermissionManageMessages},
+			},
+			required:    discord.PermissionManageMessages,
+			wantHas:     false,
+			wantNoCalls: true,
+		},
+		{
+			name:     "uncached nil guild denies permission without panic",
+			nilGuild: true,
+			member:   discord.Member{User: discord.User{ID: otherUserID}},
+			roles: []discord.Role{
+				{ID: discord.RoleID(guildID), Permissions: 0},
+			},
+			required: discord.PermissionManageMessages,
+			wantHas:  false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctxGuildID := guildID
+			if tc.invalidGuildID {
+				ctxGuildID = 0
+			}
+			var guild *discord.Guild
+			if !tc.nilGuild {
+				guild = &discord.Guild{ID: guildID, OwnerID: ownerID}
+			}
+
+			for _, mode := range []ComparsionMode{ComparsionModeHasPermission, ComparsionModeNotHasPermission} {
+				wantMatched := tc.wantHas
+				if mode == ComparsionModeNotHasPermission {
+					wantMatched = !tc.wantHas
+				}
+				expected := "unmatched"
+				if wantMatched {
+					expected = "matched"
+				}
+
+				msgs, dp := runCheck(t, mode, ctxGuildID, guild, tc.member, tc.roles, tc.required)
+				assert.Equal(t, []string{expected}, msgs)
+				if tc.wantNoCalls {
+					assert.Zero(t, dp.guildRolesCalls)
+					assert.Zero(t, dp.guildCalls)
+				}
+			}
+		})
 	}
 }

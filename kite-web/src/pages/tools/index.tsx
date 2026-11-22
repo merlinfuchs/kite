@@ -8,14 +8,14 @@ export default function ToolsPage() {
   return (
     <HomeLayout
       title="Free Discord tools"
-      description="Free tools for Discord: calculate bot permissions, generate timestamps, decode IDs, inspect webhooks, and create messages with embeds."
+      description="Free tools for Discord: calculate bot permissions, generate timestamps, decode IDs, look up users, invites, and bots, inspect webhooks, and create messages with embeds."
     >
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl py-14 md:py-20 text-center">
           <h1 className="text-4xl md:text-5xl font-bold">Free Discord tools</h1>
           <p className="text-xl text-muted-foreground mt-4 max-w-2xl mx-auto">
             Small tools for everyone who runs a Discord server or builds a bot.
-            They run in your browser and don&apos;t need an account.
+            Only the user lookup needs you to log in.
           </p>
         </div>
       </section>
@@ -33,7 +33,7 @@ export default function ToolsPage() {
         <section>
           <h2 className="text-2xl font-bold">More tools</h2>
           <p className="text-muted-foreground mt-1 mb-6">
-            Tools on message.style and dis.wtf, which open in a new tab.
+            Tools on message.style, which open in a new tab.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {externalTools.map((tool) => (

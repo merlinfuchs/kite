@@ -16,6 +16,7 @@ type Command struct {
 	Enabled         bool          `json:"enabled"`
 	AppID           string        `json:"app_id"`
 	BundleInstallID null.String   `json:"bundle_install_id"`
+	Folder          null.String   `json:"folder"`
 	CreatorUserID   string        `json:"creator_user_id"`
 	FlowSource      flow.FlowData `json:"flow_source"`
 	CreatedAt       time.Time     `json:"created_at"`
@@ -81,6 +82,8 @@ func (req CommandUpdateEnabledRequest) Validate() error {
 
 type CommandUpdateEnabledResponse = Command
 
+type CommandsUpdateFolderResponse = []*Command
+
 type CommandDeleteResponse = Empty
 
 type CommandsDeployResponse = Empty
@@ -97,6 +100,7 @@ func CommandToWire(command *model.Command) *Command {
 		Enabled:         command.Enabled,
 		AppID:           command.AppID,
 		BundleInstallID: command.BundleInstallID,
+		Folder:          command.Folder,
 		CreatorUserID:   command.CreatorUserID,
 		FlowSource:      command.FlowSource,
 		CreatedAt:       command.CreatedAt,

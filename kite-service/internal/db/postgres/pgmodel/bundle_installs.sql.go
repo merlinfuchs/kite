@@ -167,7 +167,7 @@ func (q *Queries) GetBundleInstallsByApp(ctx context.Context, appID string) ([]B
 }
 
 const getInstalledCommandsByApp = `-- name: GetInstalledCommandsByApp :many
-SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at, folder FROM commands WHERE app_id = $1 AND bundle_install_id IS NOT NULL
 `
 
 func (q *Queries) GetInstalledCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
@@ -190,6 +190,7 @@ func (q *Queries) GetInstalledCommandsByApp(ctx context.Context, appID string) (
 			&i.FlowSource,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -202,7 +203,7 @@ func (q *Queries) GetInstalledCommandsByApp(ctx context.Context, appID string) (
 }
 
 const getInstalledEventListenersByApp = `-- name: GetInstalledEventListenersByApp :many
-SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret, folder FROM event_listeners WHERE app_id = $1 AND bundle_install_id IS NOT NULL
 `
 
 func (q *Queries) GetInstalledEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
@@ -229,6 +230,7 @@ func (q *Queries) GetInstalledEventListenersByApp(ctx context.Context, appID str
 			&i.UpdatedAt,
 			&i.LastRunAt,
 			&i.WebhookSecret,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}
@@ -241,7 +243,7 @@ func (q *Queries) GetInstalledEventListenersByApp(ctx context.Context, appID str
 }
 
 const getInstalledMessagesByApp = `-- name: GetInstalledMessagesByApp :many
-SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at, folder FROM messages WHERE app_id = $1 AND bundle_install_id IS NOT NULL
 `
 
 func (q *Queries) GetInstalledMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
@@ -264,6 +266,7 @@ func (q *Queries) GetInstalledMessagesByApp(ctx context.Context, appID string) (
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Folder,
 		); err != nil {
 			return nil, err
 		}

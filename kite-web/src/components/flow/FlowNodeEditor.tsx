@@ -10,7 +10,11 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
+import {
+  useAppFeature,
+  useBundleInstalls,
+  useFeaturePlan,
+} from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -141,6 +145,7 @@ import EmojiInsertButton from "../common/EmojiInsertButton";
 import EmojiPicker from "../common/EmojiPicker";
 import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
+import { GroupableItem, itemGroup, sortByGroup } from "@/lib/flow/itemGroups";
 import JsonEditor from "../common/JsonEditor";
 import HttpRequestTestDialog from "./HttpRequestTestDialog";
 import PlaceholderInput from "../common/PlaceholderInput";
@@ -3329,6 +3334,7 @@ function RobloxJoinRequestActionInput({
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const messages = useFlowMessages();
+  const installs = useBundleInstalls();
   const readOnly = useContext(FlowReadOnlyContext);
   const template = data.message_template_id
     ? messages?.find((m) => m.id === data.message_template_id)
@@ -3336,17 +3342,26 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   const appId = useAppId();
 
+  // Grouped like the list of message templates: by folder, or else by the
+  // template they were added with.
+  const options = sortByGroup(
+    messages?.map((m) => ({
+      value: m.id,
+      label: m.name,
+      group: itemGroup(m as GroupableItem, installs)?.name,
+    })) ?? [],
+    (o) => o.group
+  );
+
   return (
     <>
       <BaseInput
-        type="select"
+        type="combobox"
         field="message_template_id"
         title="Message template"
         description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
+        placeholder="Select a message template"
+        options={options}
         value={data.message_template_id || ""}
         updateValue={(v) => updateData({ message_template_id: v || undefined })}
         errors={errors}
@@ -3428,7 +3443,12 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <FlowMessageViewDialog message={data.message_data} />
       ) : (
         <MessageEditorDialog
-          onClose={(v) => updateData({ message_data: v })}
+          onClose={(v, changed) => {
+            // Opening the editor and backing out must not count as an edit of
+            // the flow, otherwise the command shows unsaved changes.
+            if (!changed) return;
+            updateData({ message_data: v });
+          }}
           message={data.message_data || {}}
         >
           <Button className="w-full">Edit message</Button>
@@ -5718,9 +5738,11 @@ function BaseInput({
   imageUpload,
   beside,
 }: {
-  type?: "text" | "textarea" | "select";
+  // "combobox" is a select with a search, for long lists.
+  type?: "text" | "textarea" | "select" | "combobox";
   field: string;
-  options?: { value: string; label: string }[];
+  // A group is only shown by a combobox.
+  options?: { value: string; label: string; group?: string }[];
   // Left out for an input beside others, like the value of a header.
   title?: string;
   description?: ReactNode;
@@ -5804,6 +5826,21 @@ function BaseInput({
           ref={textareaRef}
           placeholder={placeholder}
           readOnly={readOnly}
+        />
+      ) : type === "combobox" ? (
+        <EntitySelect
+          items={options?.map((o) => ({
+            id: o.value,
+            name: o.label,
+            group: o.group,
+          }))}
+          value={value || null}
+          onChange={(v) => update(v ?? "")}
+          placeholder={placeholder ?? "Select"}
+          searchPlaceholder="Search..."
+          emptyText="Nothing found."
+          clearable={clearable && !readOnly}
+          wide
         />
       ) : type === "select" ? (
         <Select value={value} onValueChange={(v) => update(v)}>

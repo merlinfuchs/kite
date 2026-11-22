@@ -2,6 +2,7 @@ import {
   useChildIds,
   useDocument,
   useDocumentStoreApi,
+  useNoInteractive,
   useNodeActions,
 } from "@/lib/message/state";
 import { NodeId } from "@/lib/message/document";
@@ -27,6 +28,7 @@ export default function MessageComponentRow({
   const actions = useNodeActions(rowId);
   const { index } = actions;
   const { insert, removeChildren } = useDocumentStoreApi().getState();
+  const noInteractive = useNoInteractive();
 
   return (
     <Card className="px-4 py-3">
@@ -56,7 +58,7 @@ export default function MessageComponentRow({
                   })
                 }
                 size="sm"
-                disabled={childIds.length >= 5}
+                disabled={childIds.length >= 5 || noInteractive}
               >
                 Add button
               </Button>

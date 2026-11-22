@@ -30,9 +30,8 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 		{"guild leave", &state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}}, true},
 	}
 
-	l := &EventListener{}
 	for _, tt := range tests {
-		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
+		if got := shouldHandleEvent("", tt.event, 0); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -41,11 +40,10 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 // Message Delete listeners get the derived event with the deleted message
 // instead of Discord's, which only has the IDs.
 func TestShouldHandleDerivedMessageDelete(t *testing.T) {
-	l := &EventListener{}
-	if l.shouldHandleEvent(&gateway.MessageDeleteEvent{GuildID: 1}, 0) {
+	if shouldHandleEvent("", &gateway.MessageDeleteEvent{GuildID: 1}, 0) {
 		t.Error("handled Discord's message delete")
 	}
-	if !l.shouldHandleEvent(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, 0) {
+	if !shouldHandleEvent("", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, 0) {
 		t.Error("ignored the derived message delete")
 	}
 }
@@ -85,9 +83,8 @@ func TestShouldHandleReactionsIgnoresOwnApp(t *testing.T) {
 		{"reaction remove by app", &gateway.MessageReactionRemoveEvent{UserID: botID}, false},
 	}
 
-	l := &EventListener{}
 	for _, tt := range tests {
-		if got := l.shouldHandleEvent(tt.event, botID); got != tt.want {
+		if got := shouldHandleEvent("", tt.event, botID); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -116,10 +113,10 @@ func testBoostEvent(msgType discord.MessageType) *gateway.MessageCreateEvent {
 	}
 }
 
-func listenerIDs(listeners []*EventListener) []string {
-	ids := make([]string, len(listeners))
-	for i, l := range listeners {
-		ids[i] = l.listener.ID
+func listenerIDs(routes []eventRoute) []string {
+	ids := make([]string, len(routes))
+	for i, r := range routes {
+		ids[i] = r.handler.(*EventListener).listener.ID
 	}
 	return ids
 }
@@ -201,13 +198,13 @@ func TestShouldHandleBoost(t *testing.T) {
 	_, boost := testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost)
 	_, message := testListener("message", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate)
 
-	if !boost.shouldHandleEvent(testBoostEvent(discord.NitroBoostMessage), 0) {
+	if !shouldHandleEvent(boost.listener.Type, testBoostEvent(discord.NitroBoostMessage), 0) {
 		t.Error("boost listener ignored a boost message")
 	}
-	if boost.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
+	if shouldHandleEvent(boost.listener.Type, testBoostEvent(discord.DefaultMessage), 0) {
 		t.Error("boost listener handled a normal message")
 	}
-	if !message.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
+	if !shouldHandleEvent(message.listener.Type, testBoostEvent(discord.DefaultMessage), 0) {
 		t.Error("message create listener ignored a normal message")
 	}
 }
@@ -267,15 +264,14 @@ func TestBoostEventPlaceholders(t *testing.T) {
 // Audit log entries of the app's own actions don't run listeners, or a flow
 // that logs channel updates by editing a channel would trigger itself.
 func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
-	l := &EventListener{}
 	const botID = discord.UserID(1)
 
 	own := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: botID}, GuildID: 2}
-	if l.shouldHandleEvent(own, botID) {
+	if shouldHandleEvent("", own, botID) {
 		t.Error("handled the app's own audit log entry")
 	}
 	other := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: 3}, GuildID: 2}
-	if !l.shouldHandleEvent(other, botID) {
+	if !shouldHandleEvent("", other, botID) {
 		t.Error("ignored a moderator's audit log entry")
 	}
 
@@ -286,12 +282,11 @@ func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
 }
 
 func TestBoostRemoveEventData(t *testing.T) {
-	l := &EventListener{}
 	event := &guildevent.BoostRemove{GuildMemberUpdateEvent: gateway.GuildMemberUpdateEvent{
 		GuildID: 2,
 		User:    discord.User{ID: 1},
 	}}
-	if !l.shouldHandleEvent(event, 0) {
+	if !shouldHandleEvent("", event, 0) {
 		t.Error("ignored the derived boost remove")
 	}
 

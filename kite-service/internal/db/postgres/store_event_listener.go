@@ -295,6 +295,27 @@ func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmo
 	return recordItemDelete(ctx, q, target, row.FlowSource, data, userID)
 }
 
+func (c *Client) UpdateEventListenersFolder(ctx context.Context, appID string, ids []string, folder null.String) ([]*model.EventListener, error) {
+	rows, err := c.Q.UpdateEventListenersFolder(ctx, pgmodel.UpdateEventListenersFolderParams{
+		Folder: pgtype.Text{String: folder.String, Valid: folder.Valid},
+		AppID:  appID,
+		Ids:    ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*model.EventListener, len(rows))
+	for i, row := range rows {
+		item, err := rowToEventListener(row)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = item
+	}
+	return res, nil
+}
+
 func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
@@ -316,6 +337,7 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 		Enabled:         row.Enabled,
 		AppID:           row.AppID,
 		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		Folder:          null.NewString(row.Folder.String, row.Folder.Valid),
 		CreatorUserID:   row.CreatorUserID,
 		Filter:          filter,
 		FlowSource:      flowSource,

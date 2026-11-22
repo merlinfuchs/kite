@@ -2,6 +2,7 @@ import { lucideName, Template } from "@/lib/flow/templates";
 import { icons, PackageIcon } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  drawableText,
   fetchAvatar,
   orange,
   Pill,
@@ -26,6 +27,7 @@ export async function renderTemplateImage(template: Template) {
     template.messages.length && plural(template.messages.length, "message"),
   ].filter(Boolean);
 
+  const name = drawableText(template.name);
   const author = template.author;
   const avatar =
     author.kind === "user" ? await fetchAvatar(author.avatarUrl, 64) : null;
@@ -54,14 +56,14 @@ export async function renderTemplateImage(template: Template) {
         <div
           style={{
             // Long names take two lines, which fit at a smaller size.
-            fontSize: template.name.length > 24 ? 60 : 76,
+            fontSize: name.length > 24 ? 60 : 76,
             fontWeight: 700,
             lineHeight: 1.1,
             lineClamp: 2,
             display: "block",
           }}
         >
-          {template.name}
+          {name}
         </div>
       </div>,
       <div
@@ -75,7 +77,7 @@ export async function renderTemplateImage(template: Template) {
           display: "block",
         }}
       >
-        {template.description}
+        {drawableText(template.description)}
       </div>,
     ],
     footer: [
@@ -100,7 +102,7 @@ export async function renderTemplateImage(template: Template) {
               alt=""
             />
           )}
-          <span style={{ color: "#fafaf9" }}>{author.name}</span>
+          <span style={{ color: "#fafaf9" }}>{drawableText(author.name)}</span>
         </div>
       ),
       author.kind === "kite" && (

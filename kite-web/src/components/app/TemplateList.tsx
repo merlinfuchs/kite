@@ -316,8 +316,8 @@ export function TemplateList({
   );
 }
 
-// Rows are picks from the templates: the featured ones, the categories, the
-// most added and the newest of the users.
+// Rows are picks from the templates: the featured ones, the categories, Kite's
+// own, and the most added and newest of the users.
 function Rows({
   templates,
   href,
@@ -336,15 +336,15 @@ function Rows({
   featuredDay?: number;
 }) {
   const featured = featuredTemplates(templates, featuredDay ?? utcDay());
-  // Without the featured ones, which are right above.
-  const mostAdded = sortTemplates(templates, "installs")
-    .filter((t) => t.installs && !featured.includes(t))
-    .slice(0, rowSize);
+  const byKite = sortTemplates(
+    templates.filter((t) => t.author.kind === "kite"),
+    "installs"
+  ).slice(0, rowSize);
   const users = templates.filter((t) => t.author.kind !== "kite");
-  // Official templates fill most added, so the community's have their own row.
+  // Without the featured ones, which are right above.
   const popular = onePerCreator(
     sortTemplates(users, "installs").filter(
-      (t) => t.installs && !featured.includes(t) && !mostAdded.includes(t)
+      (t) => t.installs && !featured.includes(t)
     )
   ).slice(0, rowSize);
   const newest = onePerCreator(
@@ -356,7 +356,7 @@ function Rows({
       {!!featured.length && (
         <Row
           title="Featured"
-          description="A few templates worth a look, new every day."
+          description="A few templates from the community worth a look, new every day."
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
@@ -395,14 +395,17 @@ function Rows({
           </div>
         </Row>
       )}
-      {!!mostAdded.length && (
+      {!!byKite.length && (
         <Row
-          title="Most added"
-          description="The templates the most bots use."
-          action={{ label: "See all", onClick: () => showAll("installs") }}
+          title="Made by Kite"
+          description="The templates we made, most added first."
+          action={{
+            label: "See all",
+            onClick: () => showAll("installs", "kite"),
+          }}
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
-            {mostAdded.map(entry)}
+            {byKite.map(entry)}
           </div>
         </Row>
       )}
