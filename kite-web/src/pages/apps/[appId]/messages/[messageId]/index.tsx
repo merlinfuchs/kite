@@ -20,6 +20,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import {
   saveErrorMessage,
   useEditorSession,
@@ -137,6 +138,9 @@ function AppMessagePageInner() {
               if (res.error.code === "item_outdated") base.current = null;
               toast.error(saveErrorMessage("message", res.error));
             }
+          },
+          onError(err) {
+            toast.error(`Failed to update message: ${errorMessage(err)}`);
           },
           onSettled() {
             setIsSaving(false);

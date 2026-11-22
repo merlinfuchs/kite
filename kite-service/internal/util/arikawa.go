@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 	"strings"
 	"unicode/utf8"
@@ -35,6 +36,13 @@ func IsDiscordRestErrorCode(err error, code httputil.ErrorCode) bool {
 	}
 
 	return false
+}
+
+// IsDiscordNotInGuild reports whether Discord rejected a request because the
+// bot isn't in the guild or the guild doesn't exist.
+func IsDiscordNotInGuild(err error) bool {
+	return IsDiscordRestStatusCode(err, http.StatusForbidden) ||
+		IsDiscordRestStatusCode(err, http.StatusNotFound)
 }
 
 func IsDiscordRestStatusCode(err error, code int) bool {

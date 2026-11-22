@@ -129,14 +129,6 @@ const config = {
   				'50%': {
   					transform: 'translateY(0) scale(1.08, 0.92)'
   				}
-  			},
-  			shimmer: {
-  				from: {
-  					transform: 'translateX(-100%)'
-  				},
-  				to: {
-  					transform: 'translateX(100%)'
-  				}
   			}
   		},
   		animation: {
@@ -144,8 +136,7 @@ const config = {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
   			'banner-shift': 'banner-shift 4s ease-in-out infinite',
-  			hop: 'hop 1.2s ease-in-out infinite',
-  			shimmer: 'shimmer 1.2s ease-in-out infinite'
+  			hop: 'hop 1.2s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [

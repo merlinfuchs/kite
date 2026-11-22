@@ -365,8 +365,9 @@ func TestHostCalls(t *testing.T) {
 
 	_, err := runHost(t, "await discord.fail()")
 	assert.EqualError(t, err, "Error: discord.fail: Missing Permissions")
-	_, err = runHost(t, `for (let i = 0; i < 21; i++) await discord.echo(i)`)
-	assert.EqualError(t, err, "Error: the code made more than 20 calls")
+	// Also checks that MAX_CALLS in kite.c has room for them.
+	_, err = runHost(t, fmt.Sprintf(`for (let i = 0; i <= %d; i++) await discord.echo(i)`, MaxCalls))
+	assert.EqualError(t, err, fmt.Sprintf("Error: the code made more than %d calls", MaxCalls))
 }
 
 func TestFetch(t *testing.T) {

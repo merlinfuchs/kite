@@ -1,7 +1,11 @@
 import { ChevronDownIcon } from "lucide-react";
 import { MessageNode, NewNode, NodeId } from "@/lib/message/document";
 import { selectMenuTypes } from "@/lib/message/selectMenu";
-import { useDocument, useDocumentStoreApi } from "@/lib/message/state";
+import {
+  useDocument,
+  useDocumentStoreApi,
+  useNoInteractive,
+} from "@/lib/message/state";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -14,14 +18,16 @@ const componentTypes: {
   label: string;
   node: NewNode;
   rootOnly?: boolean;
+  interactive?: boolean;
   needsAttachment?: boolean;
   /** A component to put inside the new one, like the select menu of its row. */
   child?: NewNode;
 }[] = [
-  { label: "Button row", node: { type: "actionRow" } },
+  { label: "Button row", node: { type: "actionRow" }, interactive: true },
   ...selectMenuTypes.map((t) => ({
     label: t.label,
     node: { type: "actionRow" } as NewNode,
+    interactive: true,
     child: {
       type: "selectMenu",
       select_type: t.type === 3 ? undefined : t.type,
@@ -54,6 +60,7 @@ export default function MessageComponentAddDropdown({
   size?: "sm";
 }) {
   const { insert } = useDocumentStoreApi().getState();
+  const noInteractive = useNoInteractive();
   // A file component can only show a file attached to the message.
   const hasAttachments = useDocument(
     (state) => (state.nodes[state.rootId] as MessageNode).attachments.length > 0
@@ -77,6 +84,7 @@ export default function MessageComponentAddDropdown({
           .filter(
             (c) =>
               (!c.rootOnly || context === "root") &&
+              (!c.interactive || !noInteractive) &&
               (!c.needsAttachment || hasAttachments)
           )
           .map((c) => (

@@ -279,6 +279,22 @@ func (q *Queries) GetBundleSummaries(ctx context.Context, ids []string) ([]GetBu
 	return items, nil
 }
 
+const getBundleVersionContent = `-- name: GetBundleVersionContent :one
+SELECT content FROM bundle_versions WHERE bundle_id = $1 AND version = $2
+`
+
+type GetBundleVersionContentParams struct {
+	BundleID string
+	Version  int32
+}
+
+func (q *Queries) GetBundleVersionContent(ctx context.Context, arg GetBundleVersionContentParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getBundleVersionContent, arg.BundleID, arg.Version)
+	var content []byte
+	err := row.Scan(&content)
+	return content, err
+}
+
 const getBundleVersionNotes = `-- name: GetBundleVersionNotes :many
 SELECT version, notes, created_at FROM bundle_versions
 WHERE bundle_id = $1 AND notes <> ''

@@ -20,10 +20,12 @@ if [ -z "${DEPLOY_HOST:-}" ]; then
   exit 1
 fi
 
+# The clusters and the Kite bot, which run the same binary.
 SERVICE_UNITS=""
 for ((i = 0; i < CLUSTER_COUNT; i++)); do
   SERVICE_UNITS="$SERVICE_UNITS kite-service@$i"
 done
+SERVICE_UNITS="$SERVICE_UNITS kite-shared"
 
 # Prefix for remote commands that need root. Root doesn't need sudo, which may
 # not even be installed.

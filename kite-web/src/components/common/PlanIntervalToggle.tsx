@@ -1,26 +1,30 @@
-import { BillingInterval } from "@/lib/billing";
-import { BillingPlan } from "@/lib/types/wire.gen";
+import { BillingInterval, saleFirstYear } from "@/lib/billing";
+import { BillingPlan, BillingSale } from "@/lib/types/wire.gen";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 export default function PlanIntervalToggle({
   plans,
   value,
   onChange,
+  sale,
 }: {
   plans: BillingPlan[];
+  sale?: BillingSale;
   value: BillingInterval;
   onChange: (value: BillingInterval) => void;
 }) {
-  // The smallest saving of any plan, so the badge holds for every plan.
+  // The smallest saving of any plan over paying monthly, so the badge holds
+  // for every plan. During a sale it's the saving of the first year.
   const saving = Math.min(
     ...plans
       .filter((plan) => plan.price > 0)
-      // Rounded first, so float error can't turn a 20% saving into 19%.
-      .map((plan) =>
-        Math.floor(
-          Math.round((1 - plan.yearly_price / (plan.price * 12)) * 1e4) / 100
-        )
-      )
+      .map((plan) => {
+        const yearly = sale ? saleFirstYear(plan, sale) : plan.yearly_price;
+        // Rounded first, so float error can't turn a 20% saving into 19%.
+        return Math.floor(
+          Math.round((1 - yearly / (plan.price * 12)) * 1e4) / 100
+        );
+      })
   );
 
   return (

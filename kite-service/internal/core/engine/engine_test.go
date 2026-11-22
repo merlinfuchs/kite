@@ -47,13 +47,28 @@ func (f *fakePluginInstanceStore) EnabledPluginInstancesUpdatedSince(ctx context
 	return nil, f.err
 }
 
+type fakeSharedAppStore struct {
+	store.AppStore
+	sharedAppIDs []string
+	err          error
+}
+
+func (f *fakeSharedAppStore) SharedAppIDs(ctx context.Context) ([]string, error) {
+	return f.sharedAppIDs, f.err
+}
+
 func newTestEngine(commands *fakeCommandStore, listeners *fakeEventListenerStore, plugins *fakePluginInstanceStore) *Engine {
+	return newTestEngineWithApps(&fakeSharedAppStore{}, commands, listeners, plugins)
+}
+
+func newTestEngineWithApps(apps *fakeSharedAppStore, commands *fakeCommandStore, listeners *fakeEventListenerStore, plugins *fakePluginInstanceStore) *Engine {
 	return NewEngine(Env{
 		Config: EngineConfig{
 			ClusterCount:    1,
 			ClusterIndex:    0,
 			PopulateOverlap: 5 * time.Second,
 		},
+		AppStore:            apps,
 		CommandStore:        commands,
 		EventListenerStore:  listeners,
 		PluginInstanceStore: plugins,
@@ -132,6 +147,54 @@ func TestPopulatePartialFailureDoesNotAdvanceCursor(t *testing.T) {
 
 	if !e.lastUpdate.IsZero() {
 		t.Errorf("cursor advanced to %v despite one of three queries failing", e.lastUpdate)
+	}
+}
+
+// Shared apps run in the shared process, so the clusters skip their entities.
+func TestPopulateSkipsSharedApps(t *testing.T) {
+	e := newTestEngineWithApps(
+		&fakeSharedAppStore{sharedAppIDs: []string{"shared"}},
+		&fakeCommandStore{},
+		&fakeEventListenerStore{},
+		&fakePluginInstanceStore{},
+	)
+
+	e.populate(context.Background())
+
+	if e.runsApp("shared") {
+		t.Error("engine runs a shared app")
+	}
+	if !e.runsApp("own") {
+		t.Error("engine doesn't run an own app in its cluster")
+	}
+
+	e.env.Config.SharedApps = true
+	if !e.runsApp("shared") {
+		t.Error("shared process doesn't run a shared app")
+	}
+	if e.runsApp("own") {
+		t.Error("shared process runs an own app")
+	}
+}
+
+// Without the shared apps, the engine could load their entities, so it
+// doesn't load anything and retries the window.
+func TestPopulateStopsWithoutSharedApps(t *testing.T) {
+	commands := &fakeCommandStore{}
+	e := newTestEngineWithApps(
+		&fakeSharedAppStore{err: errors.New("connection refused")},
+		commands,
+		&fakeEventListenerStore{},
+		&fakePluginInstanceStore{},
+	)
+
+	e.populate(context.Background())
+
+	if len(commands.calledWith) != 0 {
+		t.Errorf("commands queried %d times, want 0", len(commands.calledWith))
+	}
+	if !e.lastUpdate.IsZero() {
+		t.Errorf("cursor advanced to %v without the shared apps", e.lastUpdate)
 	}
 }
 

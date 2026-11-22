@@ -241,6 +241,7 @@ func newTestScheduler(e *Engine, sessions SessionProvider) *scheduler {
 func newScheduleTestEngine(listeners *fakeScheduleListenerStore, logs *fakeLogStore) *Engine {
 	return NewEngine(Env{
 		Config:              EngineConfig{ClusterCount: 1},
+		AppStore:            &fakeSharedAppStore{},
 		EventListenerStore:  listeners,
 		LogStore:            logs,
 		UsageStore:          &fakeUsageStore{},

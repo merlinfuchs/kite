@@ -105,6 +105,61 @@ func (c *Client) ImportBundleContents(ctx context.Context, contents store.Bundle
 	return tx.Commit(ctx)
 }
 
+func (c *Client) RestoreBundleContents(ctx context.Context, contents store.BundleInstallContents, userID string) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
+		return err
+	}
+
+	q := c.Q.WithTx(tx)
+	change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID}
+	for _, command := range contents.Commands {
+		content, err := json.Marshal(command.FlowSource)
+		if err != nil {
+			return err
+		}
+		target := itemVersionTarget{appID: command.AppID, targetType: model.ItemVersionTargetTypeCommand, id: command.ID}
+		if err := recordItemRestore(ctx, q, target, content, change); err != nil {
+			return err
+		}
+	}
+	for _, listener := range contents.EventListeners {
+		content, err := json.Marshal(listener.FlowSource)
+		if err != nil {
+			return err
+		}
+		target := itemVersionTarget{appID: listener.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: listener.ID}
+		if err := recordItemRestore(ctx, q, target, content, change); err != nil {
+			return err
+		}
+	}
+	for _, msg := range contents.Messages {
+		data, err := json.Marshal(msg.Data)
+		if err != nil {
+			return err
+		}
+		flowSources, err := json.Marshal(msg.FlowSources)
+		if err != nil {
+			return err
+		}
+		content, err := messageVersionContent(pgmodel.Message{Data: data, FlowSources: flowSources})
+		if err != nil {
+			return err
+		}
+		target := itemVersionTarget{appID: msg.AppID, targetType: model.ItemVersionTargetTypeMessage, id: msg.ID}
+		if err := recordItemRestore(ctx, q, target, content, change); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents) (err error) {
 	for i, variable := range contents.Variables {
 		if contents.Variables[i], err = c.createVariableWithTx(ctx, tx, variable); err != nil {

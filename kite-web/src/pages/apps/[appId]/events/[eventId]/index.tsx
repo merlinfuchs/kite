@@ -10,6 +10,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/client";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 import { isNoteNode } from "@/lib/flow/notes";
@@ -82,7 +83,7 @@ export default function AppEventListenerPage() {
         }
         return true;
       } catch (err) {
-        toast.error(`Failed to update ${name.singular}: ${err}`);
+        toast.error(`Failed to update ${name.singular}: ${errorMessage(err)}`);
         return false;
       }
     },

@@ -1,16 +1,28 @@
 {
   "id": "leveling",
-  "version": 1,
+  "version": 2,
+  "shared_bot": true,
+  "shared_bot_about": [
+    "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in. You write that message when you add the template and can change it on its page later.",
+    "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept when the bot restarts."
+  ],
+  "intents": ["guild_messages"],
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The level-up message is a message template now, so you can change its text without opening the flow."
+    }
+  ],
   "name": "Leveling",
   "description": "Members earn XP for chatting and level up, with /rank, /leaderboard, and an optional reward role.",
   "about": [
-    "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in.",
+    "Members earn 15 to 25 XP for a message, at most once a minute, so spamming doesn't help. Each level takes more XP than the one before. Level 1 needs 100 XP, level 2 needs 400, level 5 needs 2,500, and level 10 needs 10,000. When a member reaches a new level, the bot congratulates them in the level-up channel you pick, or in the channel they chatted in. You write that message when you add the template and can change it later.",
     "/rank shows a member's level and how much XP they need for the next one. /leaderboard lists the members with the most XP, 10 per page. You can also pick a reward role that members get at a level you choose. XP is counted per server and kept in a stored variable, so it stays when the bot restarts."
   ],
   "faq": [
     {
       "question": "How many credits does it use?",
-      "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up message uses 1 more, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
+      "answer": "A message that earns XP uses 2 credits, one to add the XP and one to save the time. Messages within a minute of a member's last XP use none. A level-up uses 2 more, one to work out the level and one for the message, and giving the reward role 1 more. /rank uses 1, and /leaderboard uses 2."
     },
     {
       "question": "Does the bot need the Message Content Intent?",
@@ -374,21 +386,29 @@
             }
           },
           {
+            "id": "calc_l3v",
+            "type": "action_expression_evaluate",
+            "position": {
+              "x": 0,
+              "y": 1470
+            },
+            "data": {
+              "custom_label": "Work out the new level",
+              "expression": "int((int(result('variable_n4w')) / 100) ** 0.5)",
+              "temporary_name": "level"
+            }
+          },
+          {
             "id": "message_l8v",
             "type": "action_message_create",
             "position": {
               "x": -250,
-              "y": 1470
+              "y": 1680
             },
             "data": {
               "custom_label": "Level-up message",
               "channel_target": "{{(params.level_up_channel ?? \"\") != \"\" ? params.level_up_channel : event.channel.id}}",
-              "message_data": {
-                "content": "🎉 {{event.user.mention}} reached level **{{int((int(result('variable_n4w')) / 100) ** 0.5)}}**!",
-                "allowed_mentions": {
-                  "parse": ["users"]
-                }
-              }
+              "message_template_id": "level-up"
             }
           },
           {
@@ -396,11 +416,11 @@
             "type": "control_if",
             "position": {
               "x": 250,
-              "y": 1470
+              "y": 1680
             },
             "data": {
               "custom_label": "Reward role due?",
-              "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && int((int(result('variable_n4w')) / 100) ** 0.5) >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
+              "condition_base_value": "{{(params.reward_role ?? \"\") != \"\" && (params.reward_level ?? \"\") != \"\" && var('level') >= int(params.reward_level) && !(params.reward_role in event.member.role_ids)}}"
             }
           },
           {
@@ -408,7 +428,7 @@
             "type": "control_error_handler",
             "position": {
               "x": 250,
-              "y": 1680
+              "y": 1890
             },
             "data": {
               "custom_label": "Skip if the role can't be given"
@@ -419,7 +439,7 @@
             "type": "action_member_role_add",
             "position": {
               "x": 250,
-              "y": 1890
+              "y": 2100
             },
             "data": {
               "custom_label": "Give the reward role",
@@ -463,14 +483,18 @@
           {
             "id": "300047514",
             "source": "if_u5p",
-            "target": "if_r2w",
+            "target": "calc_l3v",
             "sourceHandle": "yes"
           },
           {
             "id": "300055433",
-            "source": "if_u5p",
-            "target": "message_l8v",
-            "sourceHandle": "yes"
+            "source": "calc_l3v",
+            "target": "message_l8v"
+          },
+          {
+            "id": "300079190",
+            "source": "calc_l3v",
+            "target": "if_r2w"
           },
           {
             "id": "300063352",
@@ -498,6 +522,21 @@
       "id": "xp-cooldown",
       "name": "xp_cooldown",
       "scoped": true
+    }
+  ],
+  "messages": [
+    {
+      "id": "level-up",
+      "name": "Level-up",
+      "description": "Posted when a member reaches a new level. {{event.user.mention}} mentions them and {{var('level')}} is their new level.",
+      "data": {
+        "content": "🎉 {{event.user.mention}} reached level **{{var('level')}}**!",
+        "allowed_mentions": {
+          "parse": ["users"]
+        }
+      },
+      "flow_sources": {},
+      "customize": true
     }
   ]
 }

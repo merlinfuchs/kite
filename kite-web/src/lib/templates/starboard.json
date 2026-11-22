@@ -1,6 +1,12 @@
 {
   "id": "starboard",
   "version": 1,
+  "shared_bot": true,
+  "shared_bot_about": [
+    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+    "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
+  ],
+  "intents": ["guild_message_reactions", "message_content"],
   "name": "Starboard",
   "description": "Posts messages that get enough ⭐ reactions to a starboard channel.",
   "about": [

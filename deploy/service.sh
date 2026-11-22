@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds kite-service for the server, applies pending migrations, swaps the
-# binary and restarts all clusters. Pass --rollback to restart with the
-# previous binary instead.
+# binary and restarts all clusters and the Kite bot. Pass --rollback to
+# restart with the previous binary instead.
 source "$(dirname "$0")/common.sh"
 
 # systemctl restart waits for the migrations, so a failed migration shows up
@@ -15,7 +15,7 @@ restart="$REMOTE_SUDO
       exit 1
     fi
   done
-  echo 'All clusters are running'"
+  echo 'All clusters and the Kite bot are running'"
 
 if [ "${1:-}" = "--rollback" ]; then
   ssh -t "$DEPLOY_HOST" "set -e

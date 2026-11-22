@@ -1,6 +1,6 @@
 import { BotIcon, ChevronsUpDown, CogIcon } from "lucide-react";
 
-import LoadingAvatar from "@/components/common/LoadingAvatar";
+import BotAvatar from "@/components/app/BotAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,9 +15,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useAppStateUserQuery } from "@/lib/api/queries";
-import { useApp, useAppPlan, useApps, useResponseData } from "@/lib/hooks/api";
-import { useAppId } from "@/lib/hooks/params";
+import { useApp, useAppPlan, useApps } from "@/lib/hooks/api";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useCallback } from "react";
@@ -26,18 +24,10 @@ export default function AppSidebarAppSwitcher() {
   const { isMobile } = useSidebar();
 
   const router = useRouter();
-  const appId = useAppId();
 
   const apps = useApps();
   const app = useApp();
   const plan = useAppPlan();
-
-  const botUserQuery = useAppStateUserQuery(
-    app?.enabled === false ? "" : app?.id ?? appId ?? ""
-  );
-  const botUser = useResponseData(botUserQuery);
-  const botAvatarLoading =
-    app?.enabled !== false && (!appId || botUserQuery.isPending);
 
   const setApp = useCallback(
     (appId: string) => {
@@ -61,17 +51,17 @@ export default function AppSidebarAppSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <LoadingAvatar
-                src={botUser?.avatar_url || undefined}
-                loading={botAvatarLoading}
-                className="aspect-square size-8"
-                fallbackClassName="bg-sidebar-primary text-sidebar-primary-foreground"
-              >
-                <BotIcon className="size-5" aria-hidden="true" />
-              </LoadingAvatar>
+              <BotAvatar
+                className="size-8 rounded-lg"
+                fallbackClassName="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{app?.name}</span>
-                <span className="truncate text-xs">{plan?.title}</span>
+                <span className="truncate text-xs">
+                  {app?.bot_type === "shared"
+                    ? `Quick setup · ${plan?.title ?? ""}`
+                    : plan?.title}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -85,20 +75,23 @@ export default function AppSidebarAppSwitcher() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Apps
             </DropdownMenuLabel>
-            {apps?.map((item) =>
-              item ? (
-                <DropdownMenuItem
-                  key={item.id}
-                  onClick={() => setApp(item.id)}
-                  className="gap-2 p-2 cursor-pointer"
-                >
-                  <div className="flex size-6 items-center justify-center rounded-sm border">
-                    <BotIcon className="size-4 shrink-0" aria-hidden="true" />
-                  </div>
-                  <span className="truncate">{item.name}</span>
-                </DropdownMenuItem>
-              ) : null
-            )}
+            {apps?.map((app, index) => (
+              <DropdownMenuItem
+                key={app!.id}
+                onClick={() => setApp(app!.id)}
+                className="gap-2 p-2"
+              >
+                <div className="flex size-6 items-center justify-center rounded-sm border">
+                  <BotIcon className="size-4 shrink-0" />
+                </div>
+                <span className="truncate">{app!.name}</span>
+                {app!.bot_type === "shared" && (
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    Quick setup
+                  </span>
+                )}
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2 p-2 cursor-pointer" asChild>
               <Link href="/apps">

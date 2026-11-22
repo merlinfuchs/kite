@@ -2,6 +2,7 @@ import {
   useDocumentStoreApi,
   useNode,
   useNodeActions,
+  useNoInteractive,
 } from "@/lib/message/state";
 import { ButtonNode, NodeId } from "@/lib/message/document";
 import { MessageComponentButtonStyle } from "@/lib/message/schema";
@@ -33,6 +34,7 @@ export default function MessageComponentButton({
 }) {
   const button = useNode<ButtonNode>(buttonId);
   const actions = useNodeActions(buttonId);
+  const noInteractive = useNoInteractive();
   const { index } = actions;
   const { update } = useDocumentStoreApi().getState();
 
@@ -71,10 +73,14 @@ export default function MessageComponentButton({
               label="Style"
               value={style.toString()}
               options={[
-                { label: "Blurple", value: "1" },
-                { label: "Gray", value: "2" },
-                { label: "Green", value: "3" },
-                { label: "Red", value: "4" },
+                ...(noInteractive
+                  ? []
+                  : [
+                      { label: "Blurple", value: "1" },
+                      { label: "Gray", value: "2" },
+                      { label: "Green", value: "3" },
+                      { label: "Red", value: "4" },
+                    ]),
                 { label: "Direct link", value: "5" },
               ]}
               placeholder="Select a button style"

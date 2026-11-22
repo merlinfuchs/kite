@@ -24,6 +24,10 @@ type BundleInstallStore interface {
 	// ImportBundleContents creates the contents of an imported bundle, which
 	// aren't linked to it, or nothing if one of them fails.
 	ImportBundleContents(ctx context.Context, contents BundleInstallContents) error
+	// RestoreBundleContents creates the contents of a bundle that the app it's
+	// made from deleted, with their old IDs. Items that still have a history
+	// get a version, so it doesn't count them as deleted anymore.
+	RestoreBundleContents(ctx context.Context, contents BundleInstallContents, userID string) error
 	// DeleteBundleInstall deletes the install and the commands, event
 	// listeners, messages and variables it created, except the messages and
 	// variables in keepIDs, which stay without the install.

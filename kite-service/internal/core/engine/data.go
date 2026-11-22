@@ -53,6 +53,15 @@ func (d *InteractionData) Event() ws.Event {
 	return nil
 }
 
+// EventGuildID is the server an event happened in, or zero for events outside
+// of one, like DMs. The Kite bot sends each event to the app of its server.
+func EventGuildID(event gateway.Event) discord.GuildID {
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+		return e.GuildID
+	}
+	return (&EventData{event: event}).GuildID()
+}
+
 type EventData struct {
 	event ws.Event
 }

@@ -143,7 +143,7 @@ func TestDeriveEvents(t *testing.T) {
 func TestTrackDerivedEventsKeepsDeletedMessage(t *testing.T) {
 	session := state.New("Bot token")
 	derived := make(chan gateway.Event, 1)
-	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	TrackDerivedEvents(session, func(e gateway.Event) { derived <- e })
 
 	// Events go through the session like they do when Discord sends them, so
 	// the state removes the message from its cache before handlers run.
@@ -194,7 +194,7 @@ func TestTrackDerivedEventsKeepsDeletedMessage(t *testing.T) {
 func TestTrackDerivedEventsBoostRemove(t *testing.T) {
 	session := state.New("Bot token")
 	derived := make(chan gateway.Event, 1)
-	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	TrackDerivedEvents(session, func(e gateway.Event) { derived <- e })
 
 	dispatch := func(e any) { session.Session.Handler.Call(e) }
 
@@ -242,7 +242,7 @@ func TestTrackDerivedEventsBoostRemove(t *testing.T) {
 func TestTrackDerivedEventsOnlyEdits(t *testing.T) {
 	session := state.New("Bot token")
 	derived := make(chan gateway.Event, 3)
-	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	TrackDerivedEvents(session, func(e gateway.Event) { derived <- e })
 	dispatch := func(e any) { session.Session.Handler.Call(e) }
 
 	msg := discord.Message{ID: 1000, ChannelID: 10, GuildID: 20, Author: discord.User{ID: 5}, Content: "hello"}

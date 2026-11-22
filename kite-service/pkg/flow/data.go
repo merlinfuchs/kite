@@ -1100,7 +1100,15 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	if err != nil {
 		return res, err
 	}
-	res.Position = option.NewInt(int(position.Int()))
+	// An empty position keeps the channel where it is, 0 would move it to the
+	// top.
+	if raw := strings.TrimSpace(position.String()); raw != "" {
+		pos, err := strconv.Atoi(raw)
+		if err != nil {
+			return res, fmt.Errorf("position %q is not a whole number", raw)
+		}
+		res.Position = option.NewInt(pos)
+	}
 
 	if channelTypeSupportsRateLimitPerUser(res.Type) {
 		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
