@@ -183,7 +183,8 @@ export default function AppSetupPage() {
 
   // A link that sets up every template it picks, like from Xenon after a
   // server template, needs no steps. The templates are added at once after a
-  // look at their settings, unless the user wants to change them.
+  // look at their settings, unless the user wants to change them. Messages the
+  // server writes itself start as the template's example.
   const [changing, setChanging] = useState(false);
   const linked = String(query.templates ?? "").length > 0;
   const review = useMemo(() => {
@@ -194,18 +195,15 @@ export default function AppSetupPage() {
     const complete = reviewed.every((template) => {
       const selection = installSelection(template, undefined, new Set());
       const values = initialValues(template);
-      return (
-        !selection.customizable.length &&
-        selection.parameters.every((p) => {
-          const value = values[p.key];
-          if (!value) return !p.required;
-          if (p.type === "channel" || p.type === "category") {
-            return channels.some((c) => c?.id === value);
-          }
-          if (p.type === "role") return roles.some((r) => r?.id === value);
-          return true;
-        })
-      );
+      return selection.parameters.every((p) => {
+        const value = values[p.key];
+        if (!value) return !p.required;
+        if (p.type === "channel" || p.type === "category") {
+          return channels.some((c) => c?.id === value);
+        }
+        if (p.type === "role") return roles.some((r) => r?.id === value);
+        return true;
+      });
     });
     return complete ? reviewed : undefined;
     // initialValues only reads the query.
@@ -452,6 +450,17 @@ function SetupReview({
               ? [`${p.label || p.key}: ${shown(p.type, set[p.key]!)}`]
               : []
           );
+          const written = template.messages
+            .filter((m) => m.customize)
+            .map((m) => m.name.toLowerCase());
+          const one = written.length === 1;
+          const writtenNote = written.length
+            ? `The ${written.join(" and ")} ${
+                one ? "message starts" : "messages start"
+              } with an example. You can change ${
+                one ? "it" : "them"
+              } later under Messages.`
+            : null;
           return (
             <Card key={template.id} className="flex items-start gap-4 p-4">
               <TemplateIcon
@@ -463,6 +472,11 @@ function SetupReview({
                 <div className="text-sm text-muted-foreground">
                   {settings.length ? settings.join(", ") : template.description}
                 </div>
+                {writtenNote && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    {writtenNote}
+                  </div>
+                )}
               </div>
             </Card>
           );
