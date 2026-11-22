@@ -144,6 +144,10 @@ func (s *listedBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bun
 	}}, nil
 }
 
+func (s *listedBundleStore) CreatorStats(ctx context.Context, userIDs []string) ([]*model.CreatorStats, error) {
+	return []*model.CreatorStats{{UserID: "owner", InstallerCount: 12, StarCount: 3}}, nil
+}
+
 func list(t *testing.T, h *BundleHandler, userID string) []map[string]any {
 	t.Helper()
 	srv := handler.APIHandler(func(c *handler.Context) error {
@@ -175,6 +179,8 @@ func TestBundleList(t *testing.T) {
 	owner := data[1]["owner"].(map[string]any)
 	assert.Equal(t, "jack", owner["discord_username"])
 	assert.NotContains(t, owner, "email")
+	// How many other users added their templates, which the badges count.
+	assert.EqualValues(t, 12, owner["installer_count"])
 	assert.Equal(t, false, data[1]["yours"])
 
 	// Only what the cards show: the entry of flows and no message content.
