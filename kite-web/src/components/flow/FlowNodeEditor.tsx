@@ -95,6 +95,7 @@ import {
   useEdges,
   useNodes,
   useReactFlow,
+  useStore,
   useStoreApi,
 } from "@xyflow/react";
 import {
@@ -116,6 +117,7 @@ import {
   PlusIcon,
   SmileIcon,
   TrashIcon,
+  TriangleAlertIcon,
   XIcon,
   PlugIcon,
 } from "lucide-react";
@@ -138,6 +140,10 @@ import {
   useFlowVariables,
 } from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
+import {
+  formatMultiRunWarning,
+  getCachedMultiRunCounts,
+} from "@/lib/flow/multiRun";
 import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -450,6 +456,13 @@ export default function FlowNodeEditor({
   );
   const premiumPlan = useFeaturePlan(premiumFeature);
   const missingIntegrations = useMissingIntegrations(node?.type);
+  const multiRunCount = useStore((s) =>
+    readOnly
+      ? 0
+      : getCachedMultiRunCounts(s.nodes as Node<NodeData>[], s.edges).get(
+          nodeId
+        ) ?? 0
+  );
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -563,6 +576,15 @@ export default function FlowNodeEditor({
                   <AppIntegrationEnableButton integration={integration} />
                 </div>
               ))}
+            {!readOnly && multiRunCount > 1 && (
+              <div className="flex items-start gap-2.5 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+                <TriangleAlertIcon
+                  className="h-4 w-4 flex-none mt-0.5"
+                  aria-hidden="true"
+                />
+                <div>{formatMultiRunWarning(multiRunCount)}</div>
+              </div>
+            )}
             {values.dataFields.map((field) => {
               // Fields of a block's definition without an input of their own.
               const name = field.startsWith("field:")

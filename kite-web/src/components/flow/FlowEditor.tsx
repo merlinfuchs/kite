@@ -39,6 +39,7 @@ import {
   createNode,
   getNodeValues,
   getDeletedNodeIds,
+  normalizeHandle,
 } from "@/lib/flow/nodes";
 import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
@@ -356,9 +357,19 @@ export default function FlowEditor({
     (con: Connection | Edge) => {
       if (!con.source || !con.target) return false;
 
-      const source = getNode(con.source)!;
-      const target = getNode(con.target)!;
-      if (!canConnect(source.type!, target.type!)) return false;
+      const source = getNode(con.source);
+      const target = getNode(con.target);
+      if (!source || !target || !canConnect(source.type!, target.type!))
+        return false;
+
+      const handle = normalizeHandle(con.sourceHandle);
+      const duplicate = getEdges().some(
+        (e) =>
+          e.source === con.source &&
+          e.target === con.target &&
+          normalizeHandle(e.sourceHandle) === handle
+      );
+      if (duplicate) return false;
 
       // Prevent cycles
       /*const hasCycle = (node: Node, visited = new Set()) => {
@@ -376,7 +387,7 @@ export default function FlowEditor({
       return !hasCycle(target);*/
       return true;
     },
-    [getNode]
+    [getNode, getEdges]
   );
 
   const getSelectionTarget = useCallback(
