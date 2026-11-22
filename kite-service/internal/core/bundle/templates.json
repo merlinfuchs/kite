@@ -3,7 +3,7 @@
     "id": "moderation",
     "version": 1,
     "name": "Moderation",
-    "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
+    "description": "Ban, unban, kick, and mute commands, limited to members with the matching permission.",
     "icon": "gavel",
     "category": "moderation",
     "about": [
@@ -503,7 +503,7 @@
     "id": "ai-automod",
     "version": 2,
     "name": "AI Automod",
-    "description": "AI deletes spam, scams, ads and insults and logs them for your moderators.",
+    "description": "AI deletes spam, scams, ads, and insults and logs them for your moderators.",
     "icon": "shield-alert",
     "category": "moderation",
     "about": [
@@ -559,7 +559,7 @@
       {
         "key": "rules",
         "label": "Extra rules",
-        "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads and insults are always checked.",
+        "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads, and insults are always checked.",
         "type": "textarea",
         "required": false
       }
@@ -1218,7 +1218,7 @@
     "icon": "languages",
     "category": "ai",
     "about": [
-      "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji and links as they are.",
+      "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji, and links as they are.",
       "Each flag translates a message once, even if people remove it and add it again, and a message that's already in the language gets no reply. Messages over 2,000 characters aren't translated, so the translation fits in the reply. The flags and their languages are in a Lookup Value block, so you can add flags or change their language."
     ],
     "faq": [
@@ -2383,7 +2383,7 @@
     "icon": "star",
     "category": "community",
     "about": [
-      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text, and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
       "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself. The emoji is set in the event filter of the listener, so you can use a different one, including a custom emoji of your server."
     ],
     "faq": [
@@ -2405,7 +2405,7 @@
     ],
     "shared_bot": true,
     "shared_bot_about": [
-      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+      "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text, and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
       "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
     ],
     "intents": [
@@ -7952,7 +7952,7 @@
     "category": "utility",
     "about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-      "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Message templates any time without opening the flow. It shows up after the next message in the channel."
+      "You write the sticky message in the message editor when you add the template, with text, embeds, or images, and can change it under Message templates any time without opening the flow. It shows up after the next message in the channel."
     ],
     "faq": [
       {
@@ -7972,7 +7972,7 @@
     "shared_bot": true,
     "shared_bot_about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-      "You write the sticky message when you set up the template, with text, embeds or images, and can change it on the template's page on the dashboard any time. It shows up after the next message in the channel."
+      "You write the sticky message when you set up the template, with text, embeds, or images, and can change it on the template's page on the dashboard any time. It shows up after the next message in the channel."
     ],
     "intents": [
       "guild_messages"

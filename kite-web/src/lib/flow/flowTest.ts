@@ -359,7 +359,7 @@ const respondTitles: Record<string, string> = {
   update_message: "Would update the message",
   modal: "Would show a modal",
   defer: "Would show that the bot is thinking",
-  defer_update: "Would acknowledge the interaction",
+  defer_update: "Would answer the click without changing the message yet",
 };
 
 export function flowTestEffectTitle(effect: FlowTestEffect) {

@@ -82,12 +82,13 @@ const testStatusMarkers: Record<
   skipped: {
     className: "bg-zinc-500",
     Icon: MinusIcon,
-    title: "Didn't run in the test, it calls a service other than Discord",
+    title:
+      "Didn't run in the test, because it calls a service other than Discord",
   },
   warning: {
     className: "bg-amber-500",
     Icon: AlertTriangleIcon,
-    title: "Ran in the test, Discord would likely reject what it does",
+    title: "Ran in the test, but Discord would likely reject what it does",
   },
   error: { className: "bg-red-500", Icon: XIcon, title: "Failed in the test" },
 };

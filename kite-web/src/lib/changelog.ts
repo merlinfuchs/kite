@@ -24,7 +24,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-22",
-    title: "Templates show their stars from the first one",
+    title: "Templates show their star count from the first star",
     href: "/marketplace",
   },
   {
@@ -35,7 +35,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-11-21",
     title: "Restore deleted items of your template",
     description:
-      "Deleted a command, event listener, or message template from the app you made a template from? The template's page in that app can add it back. It's part of the template again, so the next publish updates it for everyone who added the template.",
+      "If you deleted a command, event listener, or message template from the app you made a template from, the template's page in that app can add it back. It's part of the template again, so the next publish updates it for everyone who added the template.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`,
   },
   {
@@ -144,7 +144,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-11-13",
     title: "Test requests in Send API Request",
     description:
-      "Click Send test request in the block's settings to see what the API answers before you save the flow. Test requests don't cost credits.",
+      "Click Send test request in the block's settings to see what the website answers before you save the flow. Test requests don't cost credits.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_http_request`,
   },
   {
@@ -162,7 +162,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-11-11",
     title: "Name styles for your bot in each server",
     description:
-      "The Edit server profile block and the server profile on the Servers page can give your bot's name a font, an effect, and colors, like Nitro members can. Servers show the font. The bot's profile also shows the effect and colors. Part of Kite Premium and up.",
+      "The Edit server profile block and the server profile on the Servers page can give your bot's name a font, an effect, and colors, like Nitro members can. Servers show the font. The bot's profile also shows the effect and colors. Kite Premium and up.",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_server_profile_edit`,
   },
   {
