@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testContext() Context {
@@ -391,5 +392,36 @@ func TestEvalReadsFieldsOfUnknownValues(t *testing.T) {
 		} else if got != want {
 			t.Errorf("%s: got %q, want %q", template, got, want)
 		}
+	}
+}
+
+// Type checking these takes longer the deeper they nest, a few levels more
+// than these never finish.
+func TestEvalRejectsDeeplyNestedCalls(t *testing.T) {
+	for _, expression := range []string{
+		strings.Repeat("replace(", 42) + `"a"` + strings.Repeat(`, "a", "b")`, 42),
+		strings.Repeat("sort(", 8) + `["a"]` + strings.Repeat(`, "a", "b")`, 8),
+		strings.Repeat("join(", 12) + `["a"]` + strings.Repeat(`, "a", "b")`, 12),
+	} {
+		start := time.Now()
+		_, err := Eval(context.Background(), expression, testContext())
+		if !errors.Is(err, ErrExpressionTooNested) {
+			t.Fatalf("expected ErrExpressionTooNested, got %v", err)
+		}
+		if d := time.Since(start); d > time.Second {
+			t.Fatalf("took %v to reject", d)
+		}
+	}
+}
+
+// The deepest nesting in flows on kite.onl.
+func TestEvalAllowsNestedReplace(t *testing.T) {
+	expression := `replace(replace(replace(replace(replace(replace(replace(trim(lower("A b?")), "%", "%25"), " ", "%20"), "?", "%3F"), "&", "%26"), "#", "%23"), "/", "%2F"), "+", "%2B")`
+	res, err := Eval(context.Background(), expression, testContext())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.String() != "a%20b%3F" {
+		t.Fatalf("got %q", res.String())
 	}
 }

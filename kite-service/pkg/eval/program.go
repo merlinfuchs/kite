@@ -9,6 +9,9 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/expr-lang/expr"
+	"github.com/expr-lang/expr/ast"
+	"github.com/expr-lang/expr/builtin"
+	"github.com/expr-lang/expr/parser"
 	"github.com/expr-lang/expr/vm"
 )
 
@@ -55,6 +58,11 @@ func compile(expression string, c Context) (*vm.Program, error) {
 }
 
 func compileUncached(expression string, c Context) (*vm.Program, error) {
+	// Invalid expressions are left to expr.Compile, which explains the error.
+	if tree, err := parser.Parse(expression); err == nil && checkCost(tree.Node) > maxCheckCost {
+		return nil, ErrExpressionTooNested
+	}
+
 	opts := []expr.Option{
 		expr.Env(c.Env),
 		expr.AllowUndefinedVariables(),
@@ -103,4 +111,80 @@ func writeType(b *strings.Builder, t reflect.Type) {
 	}
 	var buf [16]byte
 	b.Write(strconv.AppendUint(buf[:0], uint64(reflect.ValueOf(t).Pointer()), 16))
+}
+
+// maxCheckCost bounds checkCost, so that type checking an expression takes at
+// most about 50 ms on kite.onl's server. Compiling can't be stopped, not even
+// by the timeout of the flow.
+const maxCheckCost = 50_000
+
+// checkCost estimates the work of expr's type checker for an expression. It
+// tries the overloads of a builtin like replace or sort one after another and
+// checks all arguments for each, so its work multiplies with every level of
+// nested calls. 42 nested replace calls never finished, and a cluster ran out
+// of memory compiling them for every message of a server.
+func checkCost(node ast.Node) int {
+	cost := 1
+	add := func(nodes ...ast.Node) {
+		for _, n := range nodes {
+			if n != nil {
+				cost += checkCost(n)
+			}
+		}
+	}
+
+	switch n := node.(type) {
+	case *ast.UnaryNode:
+		add(n.Node)
+	case *ast.BinaryNode:
+		add(n.Left, n.Right)
+	case *ast.ChainNode:
+		add(n.Node)
+	case *ast.MemberNode:
+		add(n.Node, n.Property)
+	case *ast.SliceNode:
+		add(n.Node, n.From, n.To)
+	case *ast.CallNode:
+		args := 0
+		for _, arg := range n.Arguments {
+			args += checkCost(arg)
+		}
+		name := ""
+		if ident, ok := n.Callee.(*ast.IdentifierNode); ok {
+			name = ident.Value
+		}
+		cost += checkCost(n.Callee) + overloads(name)*args
+	case *ast.BuiltinNode:
+		args := 0
+		for _, arg := range n.Arguments {
+			args += checkCost(arg)
+		}
+		cost += overloads(n.Name) * args
+	case *ast.PredicateNode:
+		add(n.Node)
+	case *ast.VariableDeclaratorNode:
+		add(n.Value, n.Expr)
+	case *ast.SequenceNode:
+		add(n.Nodes...)
+	case *ast.ConditionalNode:
+		add(n.Cond, n.Exp1, n.Exp2)
+	case *ast.ArrayNode:
+		add(n.Nodes...)
+	case *ast.MapNode:
+		add(n.Pairs...)
+	case *ast.PairNode:
+		add(n.Key, n.Value)
+	}
+
+	// Saturated, so a deep expression can't overflow it.
+	return min(cost, maxCheckCost+1)
+}
+
+// overloads is how often expr's type checker may check the arguments of a call
+// to the function: once per overload of a builtin.
+func overloads(name string) int {
+	if i, ok := builtin.Index[name]; ok {
+		return max(len(builtin.Builtins[i].Types), 1)
+	}
+	return 1
 }

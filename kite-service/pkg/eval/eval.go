@@ -62,6 +62,10 @@ func (e *CompileError) Unwrap() error { return e.Err }
 // Flows are user-authored, so this is reachable from user input.
 var ErrExpressionTooLong = errors.New("expression too long")
 
+// ErrExpressionTooNested is returned when an expression nests so many calls
+// that type checking it would take too long, see checkCost.
+var ErrExpressionTooNested = errors.New("too many functions inside each other, split the placeholder into several blocks")
+
 // ErrTemplateTooLong is returned when a template exceeds MaxTemplateLength.
 var ErrTemplateTooLong = errors.New("template too long")
 
