@@ -33,8 +33,9 @@ const (
 	// MaxErrorLength caps the message of an error, which ends up in the
 	// logs of the app.
 	MaxErrorLength = 1000
-	// MaxCalls caps the calls of Options.Host a run can make.
-	MaxCalls = 20
+	// MaxCalls caps the calls of Options.Host a run can make, so a loop of
+	// calls can't start thousands of them. The host has its own limits.
+	MaxCalls = 200
 	// MaxWallTime caps how long a run takes in all, with the time it waits
 	// for calls, which doesn't count against Timeout.
 	MaxWallTime = 10 * time.Second

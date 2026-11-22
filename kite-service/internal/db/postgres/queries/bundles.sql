@@ -99,6 +99,9 @@ INSERT INTO bundle_versions (
 )
 ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content, notes = EXCLUDED.notes;
 
+-- name: GetBundleVersionContent :one
+SELECT content FROM bundle_versions WHERE bundle_id = $1 AND version = $2;
+
 -- name: SetBundleVersionNotes :exec
 UPDATE bundle_versions SET notes = $3 WHERE bundle_id = $1 AND version = $2;
 

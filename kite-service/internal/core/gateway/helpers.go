@@ -45,36 +45,13 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 	// needs nothing beyond IntentGuilds -- which is kept for everyone because
 	// the dashboard's guild and channel pickers read from the state cache it
 	// populates.
-	res := gateway.IntentGuilds
+	res := gateway.IntentGuilds | gateway.Intents(reqs.Intents())
 
-	if reqs.NeedsGuildMessages() {
-		res |= gateway.IntentGuildMessages
-
-		if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
-			res |= gateway.IntentMessageContent
-		}
+	if res.Has(gateway.IntentGuildMessages) && (flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0) {
+		res |= gateway.IntentMessageContent
 	}
-
-	if reqs.NeedsDirectMessages() {
-		res |= gateway.IntentDirectMessages
-	}
-
-	if reqs.NeedsGuildMembers() {
-		if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
-			res |= gateway.IntentGuildMembers
-		}
-	}
-
-	if reqs.NeedsGuildMessageReactions() {
-		res |= gateway.IntentGuildMessageReactions
-	}
-
-	if reqs.NeedsGuildModeration() {
-		res |= gateway.IntentGuildModeration
-	}
-
-	if reqs.NeedsGuildVoiceStates() {
-		res |= gateway.IntentGuildVoiceStates
+	if flags&GATEWAY_GUILD_MEMBERS == 0 && flags&GATEWAY_GUILD_MEMBERS_LIMITED == 0 {
+		res &^= gateway.IntentGuildMembers
 	}
 
 	return res
@@ -94,7 +71,8 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 
 	// TODO: configure state to only cache what we need
 	session := state.NewWithIdentifier(identifier)
-	trackMemberCounts(session)
+	TrackMemberCounts(session)
+	shadowScope(session)
 	return session, nil
 }
 

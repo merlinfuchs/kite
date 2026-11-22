@@ -181,7 +181,7 @@ if (!res.ok) throw new Error(`The API answered ${res.status}`);
 return await res.json();
 ```
 
-`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Other placeholders aren't filled in, pass values in as inputs instead.
+`{{secrets.NAME}}` in the URL, the headers or the body is replaced with the app's [secret](../../secrets.md) when the request is sent, so the code never sees its value. Write each secret out in the code like that. A request can only use the secrets the code names, so a name the code puts together, like `"{{secrets." + name + "}}"`, fails. Other placeholders aren't filled in, pass values in as inputs instead.
 
 The body has to be text, so turn objects into JSON with `JSON.stringify` and set the `Content-Type` header. Without that header, the body is sent as plain text. Like in a browser, a response with an error status like 404 doesn't throw. Check `res.ok` or `res.status` instead. Only a request that gets no response at all throws, like one to a website that doesn't exist. The response can be up to 1 MB, and it's read as text, so images and other files don't come through.
 
@@ -193,10 +193,10 @@ The editor completes the calls, their parameters, the inputs and the stored vari
 
 ## Limits
 
-The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 20 calls per run, like calls of Discord, changes of stored variables and requests with `fetch`, and a run can take 10 seconds in all. Waiting for them doesn't count against the 25 ms.
+The code can be up to 4,000 characters and have up to 20 inputs, which together can be up to 1 MB. It can run for 25 ms and use 8 MB of memory. That's enough to work through a few hundred items, like the messages a `List channel messages` block returns. The value it returns can be up to 16 KB. It can make 50 calls per run that cost credits, like sending a message, changing or listing stored variables, asking AI, reading from ER:LC or a `fetch` request. Free calls, like reads from Discord and getting a stored variable, don't count toward the 50. Every call also counts as one of the 100 steps a flow can take in a run, like a block. A run can take 10 seconds in all, and waiting for calls doesn't count against the 25 ms.
 
 If the code throws an error or goes over a limit, the block fails with the error and the line it happened on. An [Error handler](../controls/control_error_handler.md) block can catch it.
 
-The block costs [10 credits](../../credit-system.md#cost-breakdown) each time it runs.
+The block costs [3 credits](../../credit-system.md#cost-breakdown) each time it runs.
 
 <NodeInfoExplorer type="action_javascript_run" />

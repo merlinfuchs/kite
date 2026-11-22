@@ -324,6 +324,30 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
+  // Whether servers can add the template to an app on the Kite bot, which
+  // runs it in their server without a bot of their own. The service checks
+  // that it only uses what the Kite bot can run.
+  shared_bot: z.boolean().optional(),
+  // The about for apps on the Kite bot, if it has to differ, like when it
+  // mentions the editor or message templates, which they don't have.
+  shared_bot_about: z.array(z.string().min(1)).min(1).optional(),
+  // The gateway intents the template needs, like guild_messages for a
+  // Message Create listener or message_content to read the text of messages.
+  // The service checks that they match the flows. On the Kite bot, templates
+  // that need a privileged intent show up once Discord granted it.
+  intents: z
+    .array(
+      z.enum([
+        "guild_members",
+        "guild_moderation",
+        "guild_voice_states",
+        "guild_messages",
+        "guild_message_reactions",
+        "direct_messages",
+        "message_content",
+      ])
+    )
+    .optional(),
   parameters: z.array(
     templateParameterSchema.refine(
       (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
@@ -420,6 +444,8 @@ export const bundleContentSchema = z.object({
   version: z.number(),
   name: z.string(),
   description: z.string(),
+  shared_bot: z.boolean().optional(),
+  shared_bot_about: z.array(z.string()).optional(),
   parameters: z.array(bundleParameterSchema),
   commands: z.array(
     z.object({ id: z.string(), flow_source: bundleFlowSchema })
@@ -507,6 +533,11 @@ export type Template = {
   staffPick?: boolean;
   // Whether an AI check found a user's template good enough to be featured.
   featurable?: boolean;
+  // Whether apps on the Kite bot can add it, which only official templates
+  // can be.
+  sharedBot: boolean;
+  // What apps on the Kite bot show instead of about, see shared_bot_about.
+  sharedBotAbout?: string[];
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -588,8 +619,10 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
-// Below this, a star count makes a template look unused, so it isn't shown.
-export const minShownStars = 5;
+// Only a count of zero is hidden, since it says nothing. Any higher threshold
+// made a creator's total (all of their stars) disagree with the cards, where
+// only the templates over it showed theirs.
+export const minShownStars = 1;
 
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing,
@@ -665,6 +698,8 @@ export function loadTemplate(
     icon: file.icon,
     category: file.category,
     author,
+    sharedBot: author.kind === "kite" && !!file.shared_bot,
+    sharedBotAbout: file.shared_bot_about,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,
     about: file.about,

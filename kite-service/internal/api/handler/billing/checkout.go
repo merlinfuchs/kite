@@ -38,8 +38,9 @@ func (h *BillingHandler) HandleAppCheckout(c *handler.Context, req wire.BillingC
 				Embed: ptr(true),
 			},
 			CheckoutData: lemonsqueezy.CheckoutCreateData{
-				Name:  user.DisplayName,
-				Email: user.Email,
+				Name:         user.DisplayName,
+				Email:        user.Email,
+				DiscountCode: h.saleDiscountCode(req.LemonSqueezyVariantID),
 				Custom: map[string]any{
 					"user_id": c.Session.UserID,
 					"app_id":  c.App.ID,

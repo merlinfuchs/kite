@@ -37,7 +37,7 @@ JOIN users ON users.id = apps.owner_user_id
 WHERE apps.discord_id = $1
 `
 
-func (q *Queries) GetUserByAppDiscordID(ctx context.Context, discordID string) (User, error) {
+func (q *Queries) GetUserByAppDiscordID(ctx context.Context, discordID pgtype.Text) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByAppDiscordID, discordID)
 	var i User
 	err := row.Scan(

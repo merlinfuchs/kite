@@ -171,6 +171,11 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	return n.ExecuteChildren(ctx)
 }
 
+// javaScriptMaxPaidCalls caps the calls of a Run JavaScript block that cost
+// credits. Free calls, like reads from Discord, only count against the
+// flow's operations, like blocks.
+const javaScriptMaxPaidCalls = 50
+
 // javaScriptHost has the operations the code of a Run JavaScript block can
 // call: those of the integrations the app can use whose policy allows code,
 // and the handler operations of Kite's own features. Each costs the credits
@@ -179,8 +184,12 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 type javaScriptHost struct {
 	ctx *FlowContext
 	mu  sync.Mutex
+	// The calls that cost credits.
+	paidCalls int
 	// The block's stored variables, see operationCall.
 	variables map[string]string
+	// The secrets the code names, see operationCall.
+	secrets []string
 	// Credits held for calls running at the same time that charge more once
 	// they finish, like the answer of ai.ask, so other calls can't use them.
 	reserved int
@@ -204,10 +213,15 @@ func (h *javaScriptHost) charge(op operation) error {
 }
 
 // chargeCredits is charge with credits instead of op's, if credits and
-// reserve fit the limit.
+// reserve fit the limit. A call that costs credits also counts against
+// javaScriptMaxPaidCalls.
 func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	paid := credits+reserve > 0
+	if paid && h.paidCalls >= javaScriptMaxPaidCalls {
+		return fmt.Errorf("the code made more than %d calls that cost credits", javaScriptMaxPaidCalls)
+	}
 	if err := h.ctx.increaseOperations(); err != nil {
 		return err
 	}
@@ -218,6 +232,9 @@ func (h *javaScriptHost) chargeCredits(op operation, credits int, reserve int) e
 		return err
 	}
 	h.reserved += reserve
+	if paid {
+		h.paidCalls++
+	}
 	return nil
 }
 
@@ -260,6 +277,7 @@ func (h *javaScriptHost) lookup(name string) js.HostFunc {
 					return h.chargeMore(reserved, credits)
 				},
 				variables: h.variables,
+				secrets:   h.secrets,
 			})
 			// A reserve the call didn't charge, like after an error.
 			if reserved > 0 {
@@ -336,7 +354,11 @@ func executeActionJavaScriptRun(n *CompiledFlowNode, ctx *FlowContext) error {
 		lines []string
 	}
 	var logs []logEntry
-	host := &javaScriptHost{ctx: ctx, variables: make(map[string]string, len(data.Variables))}
+	host := &javaScriptHost{
+		ctx:       ctx,
+		variables: make(map[string]string, len(data.Variables)),
+		secrets:   secretNames([]string{data.Code}),
+	}
 	for _, v := range data.Variables {
 		host.variables[v.Name] = v.VariableID
 	}

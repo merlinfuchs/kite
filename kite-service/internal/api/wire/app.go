@@ -12,17 +12,26 @@ import (
 )
 
 type App struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Description    null.String       `json:"description"`
-	Enabled        bool              `json:"enabled"`
-	DisabledReason null.String       `json:"disabled_reason"`
-	DiscordID      string            `json:"discord_id"`
-	DiscordStatus  *AppDiscordStatus `json:"discord_status,omitempty"`
-	OwnerUserID    string            `json:"owner_user_id"`
-	CreatorUserID  string            `json:"creator_user_id"`
-	CreatedAt      time.Time         `json:"created_at"`
-	UpdatedAt      time.Time         `json:"updated_at"`
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	Description    null.String `json:"description"`
+	Enabled        bool        `json:"enabled"`
+	DisabledReason null.String `json:"disabled_reason"`
+	// DiscordID is empty for apps on the Kite bot, which have no bot of
+	// their own.
+	DiscordID     string            `json:"discord_id"`
+	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
+	// BotType is "own" for apps with a custom bot and "shared" for apps on
+	// the Kite bot.
+	BotType string `json:"bot_type"`
+	// DiscordGuildID is the server of an app on the Kite bot.
+	DiscordGuildID null.String `json:"discord_guild_id"`
+	// Ref is where the app came from, like "xenon" for links from Xenon.
+	Ref           null.String `json:"ref"`
+	OwnerUserID   string      `json:"owner_user_id"`
+	CreatorUserID string      `json:"creator_user_id"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
@@ -157,6 +166,20 @@ func (req AppTokenUpdateRequest) Validate() error {
 
 type AppTokenUpdateResponse = App
 
+// AppSwitchToCustomRequest moves an app on the Kite bot to the user's own
+// bot, with its token.
+type AppSwitchToCustomRequest struct {
+	DiscordToken string `json:"discord_token"`
+}
+
+func (req AppSwitchToCustomRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordToken, validation.Required),
+	)
+}
+
+type AppSwitchToCustomResponse = App
+
 type AppDeleteResponse = Empty
 
 type AppListResponse = []*App
@@ -188,6 +211,9 @@ func AppToWire(app *model.App) *App {
 		DisabledReason: app.DisabledReason,
 		DiscordID:      app.DiscordID,
 		DiscordStatus:  status,
+		BotType:        string(app.BotType),
+		DiscordGuildID: app.DiscordGuildID,
+		Ref:            app.Ref,
 		OwnerUserID:    app.OwnerUserID,
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,

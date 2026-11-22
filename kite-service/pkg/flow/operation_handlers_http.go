@@ -89,6 +89,11 @@ func httpRequestOperation(call operationCall) (any, error) {
 	if arg.Body != nil {
 		templates = append(templates, *arg.Body)
 	}
+	for _, name := range secretNames(templates) {
+		if !slices.Contains(call.secrets, name) {
+			return nil, fmt.Errorf("the code can only use the secret %s if it's written in the code as {{secrets.%s}}", name, name)
+		}
+	}
 	secrets, err := newFlowSecrets(c, templates...)
 	if err != nil {
 		return nil, err

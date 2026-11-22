@@ -13,6 +13,9 @@ type BundleStore interface {
 	// its listing, if it has one, or the page of a user's bundle, whether it's
 	// in review, and the notes of its versions.
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
+	// BundleVersionContent returns the content of the version of the bundle,
+	// or ErrNotFound.
+	BundleVersionContent(ctx context.Context, id string, version int) ([]byte, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
 	// BundleSummaries returns the bundles with the IDs that exist, without

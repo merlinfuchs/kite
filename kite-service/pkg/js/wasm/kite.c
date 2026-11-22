@@ -124,9 +124,9 @@ static JSValue js_call(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 }
 
 // The resolving functions of the calls Go hasn't answered yet, by ID. Go
-// starts at most MAX_CALLS, from 1. Matches MaxModuleCalls in js.go, the
-// higher of the limits of runs.
-#define MAX_CALLS 50
+// starts at most MAX_CALLS, from 1. Matches MaxCalls in js.go, the highest
+// of the limits of runs.
+#define MAX_CALLS 200
 static JSValue calls[MAX_CALLS + 1][2];
 
 // Starts a call, which Go answers with kite_resolve, and returns its promise.

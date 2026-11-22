@@ -8,6 +8,27 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+type SharedAppCreateOpts struct {
+	ID             string
+	Name           string
+	OwnerUserID    string
+	DiscordGuildID string
+	Ref            null.String
+	CreatedAt      time.Time
+}
+
+// SharedAppSwitchOpts move a shared app to the user's own bot.
+type SharedAppSwitchOpts struct {
+	ID               string
+	OwnerUserID      string
+	Name             string
+	Description      null.String
+	DiscordID        string
+	DiscordToken     string
+	DiscordVerifyKey null.String
+	UpdatedAt        time.Time
+}
+
 type AppUpdateOpts struct {
 	ID             string
 	Name           string
@@ -62,6 +83,24 @@ type AppStore interface {
 	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
 	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
+	// SharedAppIDs are the apps on the Kite bot, which the clusters skip.
+	SharedAppIDs(ctx context.Context) ([]string, error)
+	// EnabledSharedApps are the apps the Kite bot runs.
+	EnabledSharedApps(ctx context.Context) ([]*model.App, error)
+	// SharedAppByGuild is the app on the Kite bot of the server, enabled or
+	// not.
+	SharedAppByGuild(ctx context.Context, guildID string) (*model.App, error)
+	// CreateSharedApp returns ErrAlreadyExists if the server has one.
+	CreateSharedApp(ctx context.Context, opts SharedAppCreateOpts) (*model.App, error)
+	// EnableSharedAppDisabledWithReason reports whether the server's app was
+	// stopped for the reason and is started now.
+	EnableSharedAppDisabledWithReason(ctx context.Context, guildID string, reason string, now time.Time) (bool, error)
+	// SwitchSharedAppToOwn returns ErrAlreadyExists if another app has the
+	// bot, and ErrNotFound if the app isn't a shared one.
+	SwitchSharedAppToOwn(ctx context.Context, opts SharedAppSwitchOpts) (*model.App, error)
+	// RenameSharedApp gives the server's app the server's name, if it has
+	// another one.
+	RenameSharedApp(ctx context.Context, guildID string, name string, now time.Time) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
 	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every

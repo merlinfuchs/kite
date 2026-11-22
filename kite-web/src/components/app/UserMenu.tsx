@@ -1,6 +1,7 @@
 import { UserBadges } from "@/components/badges/Badges";
 import {
   ClipboardCheckIcon,
+  DownloadIcon,
   HomeIcon,
   KeyRoundIcon,
   LogOutIcon,
@@ -8,7 +9,7 @@ import {
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,11 +18,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/lib/hooks/api";
+import { useUser, useUserBundles } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import { installApp, useInstallApp } from "@/lib/hooks/installApp";
 import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
-import userAvatar from "@/tools/common/utils/discordCdn";
 import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
@@ -43,6 +44,7 @@ export default function UserMenu({
 }) {
   const user = useUser();
   const logout = useLogout();
+  const canInstall = useInstallApp() !== null;
   const router = useRouter();
   const [tokensOpen, setTokensOpen] = useState(false);
   const tokensLinked = router.query["api-tokens"] !== undefined;
@@ -56,18 +58,6 @@ export default function UserMenu({
       });
     }
   }
-
-  const accountInfo = (
-    <>
-      <UserAvatar className="h-8 w-8" />
-      <div className="grid flex-1 text-left text-sm leading-tight">
-        <span className="truncate font-semibold">{user?.display_name}</span>
-        <span className="truncate text-xs">
-          {user && `@${user.discord_username}`}
-        </span>
-      </div>
-    </>
-  );
 
   return (
     <>
@@ -84,18 +74,7 @@ export default function UserMenu({
           sideOffset={4}
         >
           <DropdownMenuLabel className="p-0 font-normal">
-            {user ? (
-              <Link
-                href={creatorPath(user.discord_id)}
-                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm"
-              >
-                {accountInfo}
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                {accountInfo}
-              </div>
-            )}
+            <UserMenuLabel />
             <UserBadges
               badges={user?.badges ?? []}
               size="sm"
@@ -119,6 +98,15 @@ export default function UserMenu({
               </Link>
             </DropdownMenuItem>
           )}
+          {canInstall && (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onClick={installApp}
+            >
+              <DownloadIcon className="size-4" />
+              Install Kite
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className="gap-2 cursor-pointer"
             onClick={() => setTokensOpen(true)}
@@ -136,7 +124,39 @@ export default function UserMenu({
   );
 }
 
-// UserAvatar shows the Discord avatar of the logged in user.
+// UserMenuLabel links to the user's creator page while they have one, which
+// is while a template of theirs is in the marketplace.
+function UserMenuLabel() {
+  const user = useUser();
+  const listed = useUserBundles()?.some(
+    (b) => b?.listed_version != null && b.removed_reason === null
+  );
+
+  const className = "flex items-center gap-2 px-1 py-1.5 text-left text-sm";
+  const content = (
+    <>
+      <UserAvatar className="h-8 w-8" />
+      <div className="grid flex-1 text-left text-sm leading-tight">
+        <span className="truncate font-semibold">{user?.display_name}</span>
+        <span className="truncate text-xs">
+          {user && `@${user.discord_username}`}
+        </span>
+      </div>
+    </>
+  );
+
+  if (!user || !listed) return <div className={className}>{content}</div>;
+  return (
+    <Link
+      href={creatorPath(user.discord_id)}
+      className={cn(className, "rounded-md hover:bg-accent")}
+    >
+      {content}
+    </Link>
+  );
+}
+
+// UserAvatar shows the initials of the logged in user.
 export function UserAvatar({ className }: { className?: string }) {
   const user = useUser();
   const initials = (user?.display_name ?? "")
@@ -146,15 +166,6 @@ export function UserAvatar({ className }: { className?: string }) {
 
   return (
     <Avatar className={cn("rounded-lg", className)}>
-      {user && (
-        <AvatarImage
-          src={userAvatar({
-            id: user.discord_id,
-            avatar: user.discord_avatar,
-          })}
-          alt=""
-        />
-      )}
       <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
     </Avatar>
   );

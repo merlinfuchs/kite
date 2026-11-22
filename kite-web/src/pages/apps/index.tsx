@@ -4,8 +4,21 @@ import LegalUpdateDialog from "@/components/common/LegalUpdateDialog";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import AccountPageLayout from "@/components/app/AccountPageLayout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CircleAlertIcon } from "lucide-react";
+import { useRouter } from "next/router";
+
+// Why adding the Kite bot didn't give the server an app, from the service.
+const installErrors: Record<string, string> = {
+  app_limit:
+    "You already have 10 apps, the most an account can have. Delete one, then add the Kite bot again.",
+  banned: "Kite banned your account, so you can't add apps.",
+};
 
 export default function AppListPage() {
+  const router = useRouter();
+  const installError = installErrors[String(router.query.install_error)];
+
   return (
     <BaseLayout title="Apps" noindex>
       <LegalUpdateDialog />
@@ -26,6 +39,12 @@ export default function AppListPage() {
           </p>
         </div>
         <Separator className="my-4" />
+        {installError && (
+          <Alert variant="destructive" className="mb-4">
+            <CircleAlertIcon className="h-4 w-4" />
+            <AlertDescription>{installError}</AlertDescription>
+          </Alert>
+        )}
         <AppList />
       </AccountPageLayout>
     </BaseLayout>

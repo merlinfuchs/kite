@@ -34,6 +34,7 @@ import {
   useAppFeature,
   useFeaturePlan,
   useResponseData,
+  useSharedBot,
 } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
@@ -66,7 +67,11 @@ export default function GuildProfileDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const appId = useAppId();
-  const available = !!useAppFeature((f) => f.server_profiles);
+  const withPlan = !!useAppFeature((f) => f.server_profiles);
+  // Apps on the Kite bot get a look of their own in their server for free,
+  // name styles stay with the plan.
+  const sharedBot = useSharedBot();
+  const available = withPlan || sharedBot;
   const plan = useFeaturePlan("server_profiles");
   const mutation = useAppStateGuildProfileUpdateMutation(appId);
 
@@ -194,11 +199,13 @@ export default function GuildProfileDialog({
                 onChange={onImageChange(setBanner)}
               />
             </div>
-            <NameStyleFields
-              value={nameStyle}
-              current={current?.name_style}
-              onChange={setNameStyle}
-            />
+            {withPlan && (
+              <NameStyleFields
+                value={nameStyle}
+                current={current?.name_style}
+                onChange={setNameStyle}
+              />
+            )}
             <div className="space-y-2">
               <Label htmlFor="profile-bio">About Me</Label>
               <p className="text-sm text-muted-foreground">

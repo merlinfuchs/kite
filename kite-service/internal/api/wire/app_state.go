@@ -44,6 +44,9 @@ type StateGuildProfile struct {
 	AvatarURL string     `json:"avatar_url"`
 	BannerURL string     `json:"banner_url"`
 	NameStyle *NameStyle `json:"name_style"`
+	// RoleIDs are the roles the bot has in the server. It can only give and
+	// take roles below its highest one.
+	RoleIDs []string `json:"role_ids"`
 }
 
 // NameStyle is the font, effect and colors of the bot's name in a server, by

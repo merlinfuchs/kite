@@ -1,12 +1,7 @@
+import { badgeInfo } from "@/components/badges/Badges";
 import { Template } from "@/lib/flow/templates";
-import { BundleOwner, UserBadge } from "@/lib/types/wire.gen";
+import { BundleOwner } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
-import { formatNumber } from "@/lib/utils";
-import {
-  badgeIcons,
-  CreatorTier,
-  StarTier,
-} from "@/components/badges/badgeIcons";
 import {
   fetchAvatar,
   muted,
@@ -19,8 +14,8 @@ import {
 // The pills that fit next to the count, the others are summed up.
 const shownTemplates = 3;
 
-// The link preview of a creator's page, with their avatar and name and the
-// names of their templates.
+// The link preview of a creator's page, with their avatar, name and badges and
+// the names of their templates.
 export async function renderCreatorImage(
   owner: BundleOwner,
   templates: Template[]
@@ -30,20 +25,13 @@ export async function renderCreatorImage(
     256
   );
   const more = templates.length - shownTemplates;
-  const badges = (owner.badges ?? []).flatMap((badge, index) => {
-    const info = creatorBadgeInfo(badge);
+  const badges = (owner.badges ?? []).flatMap((badge, i) => {
+    const info = badgeInfo(badge);
     if (!info) return [];
-    const prefix = `creatorbadge${index}`;
-    return [
-      {
-        ...info,
-        icon: svgDataUrl(
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${info.svg(
-            prefix
-          )}</svg>`
-        ),
-      },
-    ];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">${info.svg(
+      `badge${i}`
+    )}</svg>`;
+    return [{ title: info.title, icon: svgDataUrl(svg) }];
   });
 
   return renderOgImage({
@@ -85,8 +73,10 @@ export async function renderCreatorImage(
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                gap: 8,
-                marginTop: 4,
+                gap: 10,
+                marginTop: 8,
+                // What's left of the width next to the avatar, so they wrap.
+                maxWidth: 840,
               }}
             >
               {badges.map((badge) => (
@@ -96,13 +86,13 @@ export async function renderCreatorImage(
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "4px 12px",
+                    padding: "6px 16px 6px 10px",
                     borderRadius: 999,
                     border: "2px solid #292524",
-                    fontSize: 18,
+                    fontSize: 22,
                   }}
                 >
-                  <img src={badge.icon} width={24} height={24} alt="" />
+                  <img src={badge.icon} width={28} height={28} alt="" />
                   {badge.title}
                 </div>
               ))}
@@ -122,40 +112,4 @@ export async function renderCreatorImage(
       more > 0 && <span key="more">{`+${more} more`}</span>,
     ],
   });
-}
-
-function creatorBadgeInfo(badge: UserBadge) {
-  switch (badge.kind) {
-    case "staff":
-      return { title: "Kite staff", svg: badgeIcons.staff };
-    case "contributor":
-      return { title: "Contributor", svg: badgeIcons.contributor };
-    case "early_supporter":
-      return { title: "Early supporter", svg: badgeIcons.early_supporter };
-    case "subscriber":
-      return {
-        title: badge.plan ? `${badge.plan} subscriber` : "Subscriber",
-        svg: badgeIcons.subscriber,
-      };
-    case "early_creator":
-      return { title: "Early creator", svg: badgeIcons.early_creator };
-    case "creator": {
-      const tier = (badge.milestone ?? 0) as CreatorTier;
-      if (![0, 10, 100, 1000].includes(tier)) return undefined;
-      return {
-        title: tier
-          ? `Template creator · ${formatNumber(tier)}+`
-          : "Template creator",
-        svg: (prefix: string) => badgeIcons.creator(prefix, tier),
-      };
-    }
-    case "star": {
-      const tier = (badge.milestone ?? 0) as StarTier;
-      if (![5, 20, 50].includes(tier)) return undefined;
-      return {
-        title: `Star creator · ${formatNumber(tier)}+`,
-        svg: (prefix: string) => badgeIcons.star(prefix, tier),
-      };
-    }
-  }
 }

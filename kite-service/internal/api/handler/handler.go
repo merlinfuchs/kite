@@ -96,6 +96,9 @@ type HandlerGroup struct {
 	allowAPIToken bool
 	// Whether the routes check the token's scope themselves.
 	apiTokenScopeUnchecked bool
+	// Whether apps on the Kite bot can change things with the group's routes.
+	// Groups inherit it.
+	allowSharedApp bool
 }
 
 func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {
@@ -115,6 +118,9 @@ func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewa
 	}
 	if g.allowAPIToken {
 		f = allowAPIToken(f, g.apiTokenScopeUnchecked)
+	}
+	if g.allowSharedApp {
+		f = allowSharedApp(f)
 	}
 
 	pattern := fmt.Sprintf("%s %s%s", method, g.pathPrefix, path)
@@ -152,6 +158,7 @@ func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) Ha
 		mux:                    g.mux,
 		allowAPIToken:          g.allowAPIToken,
 		apiTokenScopeUnchecked: g.apiTokenScopeUnchecked,
+		allowSharedApp:         g.allowSharedApp,
 		pathPrefix:             g.pathPrefix + pathPrefix,
 		middlewares:            combinedMiddleware,
 	}
@@ -180,6 +187,23 @@ func (g HandlerGroup) AllowAPITokenWithoutScope() HandlerGroup {
 func (g HandlerGroup) DenyAPIToken() HandlerGroup {
 	g.allowAPIToken = false
 	return g
+}
+
+// AllowSharedApp returns the group with apps on the Kite bot allowed to change
+// things with its routes. They only run the official templates they add, so
+// all other routes only let them read, see access.CustomBotOnly. A new route
+// isn't open to them by accident.
+func (g HandlerGroup) AllowSharedApp() HandlerGroup {
+	g.allowSharedApp = true
+	return g
+}
+
+// allowSharedApp runs before all middleware, like allowAPIToken.
+func allowSharedApp(next HandlerFunc) HandlerFunc {
+	return func(c *Context) error {
+		c.sharedAppAllowed = true
+		return next(c)
+	}
 }
 
 // allowAPIToken runs before all middleware, so the session middleware knows

@@ -27,6 +27,10 @@ var serverCMD = cli.Command{
 					Usage: "The index of the cluster to use.",
 					Value: 0,
 				},
+				&cli.BoolFlag{
+					Name:  "shared_bot",
+					Usage: "Run the Kite bot and the apps on it, instead of a cluster.",
+				},
 				&cli.IntFlag{
 					Name:  "port",
 					Usage: "The port to use for the API server.",
@@ -47,6 +51,7 @@ var serverCMD = cli.Command{
 				if ctx.IsSet("cluster_index") {
 					cfg.ClusterIndex = ctx.Int("cluster_index")
 				}
+				cfg.RunSharedBot = ctx.Bool("shared_bot")
 				if ctx.IsSet("port") {
 					cfg.API.Port = ctx.Int("port")
 				}

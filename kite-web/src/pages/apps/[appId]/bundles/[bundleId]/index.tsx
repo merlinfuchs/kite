@@ -6,19 +6,26 @@ import BundleManageCards, {
 } from "@/components/app/BundleManageCards";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
+import { TemplateRestoreCard } from "@/components/app/TemplateRestoreCard";
 import {
   RemoveInstallButton,
   TemplateInstalledCard,
 } from "@/components/app/TemplateInstalledCard";
 import { Card } from "@/components/ui/card";
-import { useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
+import KiteBotTemplate from "@/components/app/KiteBotTemplate";
+import {
+  useBundleInstalls,
+  useSharedBot,
+  useUserBundles,
+} from "@/lib/hooks/api";
 import { useAppId, useBundleId } from "@/lib/hooks/params";
 import { useBundleQuery } from "@/lib/api/queries";
 import { useTemplate } from "@/lib/hooks/templates";
 import { BundleInstall } from "@/lib/types/wire.gen";
 
 // AppBundlePage shows a bundle like a template, so it can be added to the app
-// and updated. The app it's made from has its items already.
+// and updated. The app it's made from has its items already, and can restore
+// the ones it deleted.
 export default function AppBundlePage() {
   const appId = useAppId();
   const bundleId = useBundleId();
@@ -30,6 +37,26 @@ export default function AppBundlePage() {
   // The user's own bundle is managed here too.
   const own = useUserBundles()?.find((b) => b?.id === bundleId);
   const fromHere = own?.source_app_id === appId;
+
+  // Apps on the Kite bot only have official templates, without their blocks.
+  if (useSharedBot()) {
+    return (
+      <AppLayout
+        title={template?.name ?? "Template"}
+        breadcrumbs={[{ label: template?.name ?? "Template" }]}
+      >
+        {template ? (
+          <KiteBotTemplate template={template} />
+        ) : (
+          template === null && (
+            <p className="text-muted-foreground text-sm">
+              This template doesn&apos;t exist anymore.
+            </p>
+          )
+        )}
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout
@@ -56,7 +83,9 @@ export default function AppBundlePage() {
                 ) : (
                   <OtherSourceAppCard bundle={own} />
                 ))}
-              {!fromHere && (
+              {fromHere ? (
+                <TemplateRestoreCard templateId={template.id} />
+              ) : (
                 <>
                   <TemplateInstalledCard template={template} />
                   <TemplateInstallCard template={template} />

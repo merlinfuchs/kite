@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"slices"
 	"time"
 
@@ -196,8 +195,7 @@ func (g *Gateway) rememberNotInGuild(guildID discord.GuildID) {
 // isNotInGuild reports whether Discord rejected a request because the bot isn't
 // in the guild or the guild doesn't exist.
 func isNotInGuild(err error) bool {
-	return util.IsDiscordRestStatusCode(err, http.StatusForbidden) ||
-		util.IsDiscordRestStatusCode(err, http.StatusNotFound)
+	return util.IsDiscordNotInGuild(err)
 }
 
 // AppGuildEmojis returns the custom emojis of a guild the app is in. They come

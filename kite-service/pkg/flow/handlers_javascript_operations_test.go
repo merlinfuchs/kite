@@ -72,7 +72,7 @@ return [channel.name, member.nick, messages.length]`, p, 1000)
 	assert.JSONEq(t, `["general","Kite",2]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.ElementsMatch(t, []string{"GET /channels/5", "GET /guilds/7/members/8", "GET /channels/5/messages?limit=2"}, p.paths)
 	// The block's credits, Discord reads are free.
-	assert.Equal(t, 10, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 }
 
 func TestJavaScriptRunWritesDiscord(t *testing.T) {
@@ -88,7 +88,7 @@ return msg.id`, p, 1000)
 	assert.Equal(t, []string{"POST /channels/5/messages", "DELETE /guilds/7/members/8/roles/6"}, p.paths)
 	assert.Equal(t, []string{"Expired"}, p.reasons)
 	// The block's credits and 1 per write.
-	assert.Equal(t, 12, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+2, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationErrors(t *testing.T) {
@@ -141,7 +141,7 @@ func TestJavaScriptRunOperationCredits(t *testing.T) {
 
 	c, err := runJavaScriptOperations(t, `await discord.getPaidThing(); return 1`, &operationsTestProvider{}, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 
 	// A call over the credit limit fails, like a block, and the code can
 	// catch that like an Error handler block can.
@@ -151,17 +151,17 @@ const errors = []
 for (let i = 0; i < 2; i++) {
   try { await discord.getPaidThing() } catch (e) { errors.push(e.message) }
 }
-return errors`, p, 15)
+return errors`, p, javaScriptCredits+5)
 	require.NoError(t, err)
-	assert.JSONEq(t, `["discord.getPaidThing: credits limit exceeded: 15"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.JSONEq(t, fmt.Sprintf(`["discord.getPaidThing: credits limit exceeded: %d"]`, javaScriptCredits+5), toJSON(t, c.GetNodeResult("js_1").JSONValue()))
 	assert.Len(t, p.paths, 1)
 	// Only the call that was sent is billed.
-	assert.Equal(t, 13, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits+3, c.CreditsUsed())
 
 	// So is a call with an argument it can't send.
 	c, err = runJavaScriptOperations(t, `try { await discord.getPaidThing({foo: 1}) } catch {} return 1`, p, 1000)
 	require.NoError(t, err)
-	assert.Equal(t, 10, c.CreditsUsed())
+	assert.Equal(t, javaScriptCredits, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationsLimit(t *testing.T) {
@@ -173,6 +173,20 @@ await discord.getChannel({channel_id: "5"})
 try { await discord.getChannel({channel_id: "5"}) } catch (e) { return e.message }`}}}
 	require.NoError(t, node.Execute(c))
 	assert.Equal(t, "discord.getChannel: operations limit exceeded: 2", c.GetNodeResult("js_1").String())
+}
+
+func TestJavaScriptRunPaidCallsLimit(t *testing.T) {
+	p := &operationsTestProvider{}
+	c, err := runJavaScriptOperations(t, `
+for (let i = 0; i < 60; i++) await discord.getChannel({channel_id: "5"})
+const results = await Promise.allSettled(Array.from({length: 51}, () => discord.createMessage({channel_id: "5", body: {content: "Hi"}})))
+return results.filter((r) => r.status === "rejected").map((r) => r.reason.message)`, p, 1000)
+	require.NoError(t, err)
+	assert.JSONEq(t, `["discord.createMessage: the code made more than 50 calls that cost credits"]`, toJSON(t, c.GetNodeResult("js_1").JSONValue()))
+	assert.Len(t, p.paths, 110)
+	// The block, the reads and the calls that were sent.
+	assert.Equal(t, 111, c.operations)
+	assert.Equal(t, javaScriptCredits+50, c.CreditsUsed())
 }
 
 func TestJavaScriptRunOperationsInTestRuns(t *testing.T) {

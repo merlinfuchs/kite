@@ -24,24 +24,19 @@ export function templateImageVersion(template: Template) {
 }
 
 // creatorImageVersion is the version of the link preview of a creator's page.
-// It changes when their templates or badges change.
+// It changes when they list or remove a template, one of them changes, or
+// their badges change.
 export function creatorImageVersion(
   templates: Template[],
-  badges: UserBadge[] = []
+  badges: UserBadge[]
 ) {
   return hash(
     [
-      templates
-        .map((t) => `${t.id}:${templateImageVersion(t)}`)
-        .sort()
-        .join(","),
-      badges
-        .map((badge) =>
-          [badge.kind, badge.plan ?? "", badge.milestone ?? ""].join(":")
-        )
-        .sort()
-        .join(","),
-    ].join("|")
+      ...templates.map((t) => `${t.id}:${templateImageVersion(t)}`),
+      ...badges.map((b) => `${b.kind}:${b.plan ?? ""}:${b.milestone ?? ""}`),
+    ]
+      .sort()
+      .join(",")
   );
 }
 

@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/tooltip";
 import { UserBadge } from "@/lib/types/wire.gen";
 import { cn, formatNumber } from "@/lib/utils";
-import { ReactNode, useId, useState } from "react";
+import { ReactNode, useEffect, useId, useRef, useState } from "react";
 import { badgeIcons, CreatorTier, StarTier } from "./badgeIcons";
 
 type BadgeInfo = {
@@ -16,7 +16,7 @@ type BadgeInfo = {
 
 // badgeInfo is how a badge of a user looks and what its tooltip says, or
 // undefined for badges this version of the site doesn't know.
-function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
+export function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
   switch (badge.kind) {
     case "staff":
       return {
@@ -184,11 +184,37 @@ function BadgeTooltip({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const pinnedRef = useRef(false);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!pinned) return;
+
+    function onPointerDown(event: PointerEvent) {
+      if (!triggerRef.current?.contains(event.target as Node)) {
+        pinnedRef.current = false;
+        setPinned(false);
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [pinned]);
 
   return (
-    <Tooltip open={open} onOpenChange={setOpen}>
+    <Tooltip
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!pinnedRef.current || nextOpen) {
+          setOpen(nextOpen);
+        }
+      }}
+    >
       <TooltipTrigger asChild>
         <span
+          ref={triggerRef}
           tabIndex={0}
           aria-label={label}
           className={triggerClassName}
@@ -197,7 +223,10 @@ function BadgeTooltip({
               event.detail > 0 &&
               window.matchMedia("(hover: none)").matches
             ) {
-              setOpen(true);
+              const nextPinned = !pinnedRef.current;
+              pinnedRef.current = nextPinned;
+              setPinned(nextPinned);
+              setOpen(nextPinned);
             }
           }}
         >
