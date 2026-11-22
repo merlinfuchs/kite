@@ -3,14 +3,14 @@
   "version": 1,
   "shared_bot": true,
   "shared_bot_about": [
-    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text, and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
     "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself."
   ],
   "intents": ["guild_message_reactions", "message_content"],
   "name": "Starboard",
   "description": "Posts messages that get enough ⭐ reactions to a starboard channel.",
   "about": [
-    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text, and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
     "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself. The emoji is set in the event filter of the listener, so you can use a different one, including a custom emoji of your server."
   ],
   "faq": [

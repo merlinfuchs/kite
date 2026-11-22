@@ -11,7 +11,7 @@
   "name": "Flag Translator",
   "description": "Translates a message when someone reacts to it with a country flag.",
   "about": [
-    "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji and links as they are.",
+    "When someone reacts to a message with a country flag, like 🇪🇸 or 🇯🇵, the bot replies with the message translated to the language of that flag. It works for 35 languages in every channel the bot can see, and keeps mentions, emoji, and links as they are.",
     "Each flag translates a message once, even if people remove it and add it again, and a message that's already in the language gets no reply. Messages over 2,000 characters aren't translated, so the translation fits in the reply. The flags and their languages are in a Lookup Value block, so you can add flags or change their language."
   ],
   "faq": [

@@ -10,7 +10,7 @@
     }
   ],
   "name": "AI Automod",
-  "description": "AI deletes spam, scams, ads and insults and logs them for your moderators.",
+  "description": "AI deletes spam, scams, ads, and insults and logs them for your moderators.",
   "about": [
     "The bot checks every message with AI, also when it's edited, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where.",
     "The AI only deletes a message when it's at least 90% sure that it breaks the rules. Messages it's less sure about stay up and go to the log channel with a link, so a moderator can decide. You can add rules of your own, like no links to other servers, and they're checked together with the default ones.",
@@ -66,7 +66,7 @@
     {
       "key": "rules",
       "label": "Extra rules",
-      "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads and insults are always checked.",
+      "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads, and insults are always checked.",
       "type": "textarea",
       "required": false
     }

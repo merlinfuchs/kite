@@ -41,7 +41,7 @@ export default function FlowTestArgumentField({
     input = (
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger>
-          <SelectValue placeholder="Pick a choice" />
+          <SelectValue placeholder="Pick one" />
         </SelectTrigger>
         <SelectContent>
           {choices.map((c) => (

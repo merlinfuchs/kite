@@ -3,7 +3,7 @@
   "version": 1,
   "shared_bot": true,
   "name": "Moderation",
-  "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
+  "description": "Ban, unban, kick, and mute commands, limited to members with the matching permission.",
   "about": [
     "The template adds four slash commands: /ban, /unban, /kick and /mute. Each one takes the user and an optional reason, which shows up in your server's audit log. /mute also takes a number of seconds and uses Discord's timeout, so the member can't send messages or join voice channels until it runs out.",
     "Discord only shows each command to members with the matching permission: Ban Members for /ban and /unban, Kick Members for /kick and Timeout Members for /mute. The bot confirms each action in a reply only the moderator sees, and /ban also deletes the user's messages from the last hour."
