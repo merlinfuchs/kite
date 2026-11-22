@@ -61,3 +61,40 @@ describe("discord component embed", () => {
     });
   });
 });
+
+describe("discord component embed headline", () => {
+  const headline = (title: string) =>
+    buildKiteComponentEmbed({
+      title,
+      description: "Templates *by* them",
+      url: "https://kite.onl/marketplace/creators/1",
+      imageUrl: "https://kite.onl/og.png",
+      buttons: [
+        {
+          label: "View templates",
+          url: "https://kite.onl/marketplace/creators/1",
+        },
+      ],
+    }).component.components;
+
+  it("links plain titles to the page", () => {
+    const components = headline("Discord bot templates by Jane");
+    expect(components[1].content).toBe(
+      "## [Discord bot templates by Jane](https://kite.onl/marketplace/creators/1)\nTemplates \\*by\\* them"
+    );
+    expect(components[4].components).toEqual([]);
+  });
+
+  it("doesn't link titles Discord could refuse to link", () => {
+    for (const title of [
+      "Discord bot templates by ﹒ 𑣲 飴(あめ) 𓏼　 🥀  . sgt",
+      "Discord bot templates by example.com",
+      "Discord bot templates by [x](https://evil.example)",
+      "Discord bot templates by ㅤ",
+    ]) {
+      const components = headline(title);
+      expect(components[1].content).not.toContain("](");
+      expect(components[4].components).toHaveLength(1);
+    }
+  });
+});
