@@ -16,7 +16,7 @@ type BadgeInfo = {
 
 // badgeInfo is how a badge of a user looks and what its tooltip says, or
 // undefined for badges this version of the site doesn't know.
-function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
+export function badgeInfo(badge: UserBadge): BadgeInfo | undefined {
   switch (badge.kind) {
     case "staff":
       return {
