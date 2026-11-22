@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Node, ReactFlowState, useStore } from "@xyflow/react";
 import { LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { useFlowTestMutation } from "@/lib/api/mutations";
@@ -18,7 +18,11 @@ import {
 } from "@/lib/flow/flowTest";
 import { useGetFlowData } from "@/lib/flow/parametersStore";
 import { ComponentTypeStringSelect } from "@/lib/types/message.gen";
-import { FlowTestAction, FlowTestRequest } from "@/lib/types/wire.gen";
+import {
+  FlowTestAction,
+  FlowTestMock,
+  FlowTestRequest,
+} from "@/lib/types/wire.gen";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
@@ -28,6 +32,11 @@ import ChannelSelect from "../common/ChannelSelect";
 import FlowTestArgumentField from "./FlowTestArgumentField";
 import { FlowTestCheckboxList, FlowTestField } from "./FlowTestField";
 import FlowTestResult from "./FlowTestResult";
+import FlowTestMockDialog, {
+  FlowTestMockList,
+  MockTarget,
+} from "./FlowTestMockDialog";
+import FlowTestVariables from "./FlowTestVariables";
 
 // The events test runs can't fake yet.
 const unsupportedEvents = ["voice_state_update", "guild_boost_remove"];
@@ -76,6 +85,8 @@ export default function FlowTestPanel({
     [store]
   );
 
+  const [mockTarget, setMockTarget] = useState<MockTarget | null>(null);
+
   const guilds = useAppStateGuilds();
   const guildId = state.guildId ?? guilds?.[0]?.id ?? null;
   const inputs = flowTestInputs(eventType);
@@ -89,10 +100,11 @@ export default function FlowTestPanel({
     [target]
   );
 
-  function run() {
-    let req;
+  // The request of the form and the flow in the editor, or null if the form
+  // has an invalid value.
+  function build(test: FlowTestState) {
     try {
-      req = buildFlowTestRequest(state, {
+      return buildFlowTestRequest(test, {
         target,
         flow: getFlowData(),
         guildId,
@@ -107,11 +119,13 @@ export default function FlowTestPanel({
       });
     } catch (err) {
       set({ error: (err as Error).message });
-      return;
+      return null;
     }
+  }
 
-    req.seed = newFlowTestSeed();
-    send(req, true);
+  function run() {
+    const req = build(state);
+    if (req) send({ ...req, seed: newFlowTestSeed() }, true);
   }
 
   // Sends the test. When a click or submit fails, the result before it stays.
@@ -148,6 +162,25 @@ export default function FlowTestPanel({
     },
     [mutate, target, set]
   );
+
+  // A changed test result runs the test again with it and the flow as it is
+  // now, with the same seed and clicks.
+  function saveMock(nodeId: string, mock: FlowTestMock | undefined) {
+    const mocks = { ...state.mocks };
+    if (mock) {
+      mocks[nodeId] = mock;
+    } else {
+      delete mocks[nodeId];
+    }
+    set({ mocks });
+    setMockTarget(null);
+
+    const last = state.last?.request;
+    const req = last && build({ ...state, mocks });
+    if (last && req) {
+      send({ ...req, seed: last.seed, then: last.then }, false);
+    }
+  }
 
   // Clicks, picks and submits run the last test again with them.
   const act = useCallback(
@@ -294,6 +327,17 @@ export default function FlowTestPanel({
                   </FlowTestField>
                 ))}
 
+              <FlowTestMockList
+                mocks={state.mocks}
+                onEdit={setMockTarget}
+                onRemove={(nodeId) => saveMock(nodeId, undefined)}
+              />
+
+              <FlowTestVariables
+                value={state.variables}
+                onChange={(variables) => set({ variables })}
+              />
+
               <Button onClick={run} disabled={isPending} className="self-start">
                 {isPending ? (
                   <LoaderCircleIcon className="h-4 w-4 mr-2 animate-spin" />
@@ -314,7 +358,9 @@ export default function FlowTestPanel({
               <FlowTestResult
                 result={state.last.result}
                 pending={isPending}
+                mocks={state.mocks}
                 onAction={act}
+                onEditMock={setMockTarget}
                 onShowNode={onShowNode}
               />
               <Button
@@ -329,6 +375,13 @@ export default function FlowTestPanel({
           )}
         </div>
       </ScrollArea>
+
+      <FlowTestMockDialog
+        target={mockTarget}
+        mock={mockTarget ? state.mocks[mockTarget.nodeId] : undefined}
+        onClose={() => setMockTarget(null)}
+        onSave={(mock) => mockTarget && saveMock(mockTarget.nodeId, mock)}
+      />
     </div>
   );
 }

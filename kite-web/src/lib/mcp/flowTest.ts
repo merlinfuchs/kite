@@ -146,7 +146,19 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
           }
         }
       }
-      return json(withoutEmpty(res));
+      // Agents read the text of notes, the codes are for the editor.
+      return json(
+        withoutEmpty({
+          ...res,
+          executions: res.executions.map((execution) => ({
+            ...execution,
+            steps: execution.steps.map((step) => ({
+              ...step,
+              notes: step.notes?.map((note) => note.text),
+            })),
+          })),
+        })
+      );
     }
   );
 }

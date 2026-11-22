@@ -15,6 +15,7 @@ packages:
       Base64: "string"
       flow.FlowData: "FlowData"
       flow.HTTPRequestData: "HTTPRequestData"
+      flow.TestNote: "TestNote"
       message.MessageData: "MessageData"
       plugin.ConfigValues: "PluginConfigValues"
       plugin.Metadata: "PluginMetadata"
@@ -24,7 +25,7 @@ packages:
     exclude_files:
       - "base.go"
     frontmatter: |
-      import { FlowData, HTTPRequestData } from './flow.gen';
+      import { FlowData, HTTPRequestData, TestNote } from './flow.gen';
       import { MessageData } from './message.gen';
       import { ConfigValues as PluginConfigValues, Metadata as PluginMetadata, Config as PluginConfig, Command as PluginCommand, Event as PluginEvent } from './plugin.gen';
       interface Empty {}

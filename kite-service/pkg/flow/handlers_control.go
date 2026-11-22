@@ -412,7 +412,7 @@ func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	if ctx.Test != nil {
-		ctx.Test.AddNote(fmt.Sprintf("Waited %s, which test runs skip", duration))
+		ctx.Test.AddNote(TestNoteWaitSkipped, fmt.Sprintf("Waited %s, which test runs skip", duration))
 		return n.ExecuteChildren(ctx)
 	}
 

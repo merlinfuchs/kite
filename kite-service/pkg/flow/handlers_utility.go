@@ -83,6 +83,10 @@ func (ctx *FlowContext) testRandom() *TestRandom {
 	return ctx.Test.random
 }
 
+// Blocks that pick at random or make the ID of a resume point must use
+// randIntN, randFloat64 and uniqueID instead of math/rand or util.UniqueID.
+// Test runs replay a flow with the same seed for each click, and a click only
+// finds the button it targets if the replay sent it with the same custom ID.
 func (ctx *FlowContext) randIntN(n int) int {
 	if r := ctx.testRandom(); r != nil {
 		return r.IntN(n)

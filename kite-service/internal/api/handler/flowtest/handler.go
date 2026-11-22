@@ -136,16 +136,14 @@ func (h *FlowTestHandler) run(c *handler.Context, req wire.FlowTestRequest, test
 		test.Mocks[id] = flow.TestMock{Result: mock.Result, Error: mock.Error}
 	}
 	for _, v := range req.Variables {
-		var value any
-		if len(v.Value) > 0 {
-			if err := json.Unmarshal(v.Value, &value); err != nil {
-				return nil, handler.ErrBadRequest("invalid_test", fmt.Sprintf("Value of variable %s isn't valid JSON", v.VariableID))
-			}
+		value, err := testVariableValue(v)
+		if err != nil {
+			return nil, handler.ErrBadRequest("invalid_test", fmt.Sprintf("Value of variable %s %s", v.VariableID, err))
 		}
 		test.Variables = append(test.Variables, testrun.Variable{
 			VariableID: v.VariableID,
 			Scope:      null.StringFromPtr(v.Scope),
-			Value:      thing.NewFromJSONValue(value),
+			Value:      value,
 		})
 	}
 	for _, action := range req.Then {
@@ -246,4 +244,24 @@ func thingValue(t thing.Thing) any {
 		}
 	}
 	return t.Value
+}
+
+// testVariableValue reads the value of a variable a test starts with, as
+// JSON, or as text like the page of the variable reads it when it has a type.
+func testVariableValue(v wire.FlowTestVariable) (thing.Thing, error) {
+	if v.Type != "" {
+		var text string
+		if err := json.Unmarshal(v.Value, &text); err != nil {
+			return thing.Null, errors.New("must be text with a type")
+		}
+		return wire.VariableValueSetRequest{Type: v.Type, Value: text}.Thing()
+	}
+
+	var value any
+	if len(v.Value) > 0 {
+		if err := json.Unmarshal(v.Value, &value); err != nil {
+			return thing.Null, errors.New("isn't valid JSON")
+		}
+	}
+	return thing.NewFromJSONValue(value), nil
 }

@@ -681,9 +681,9 @@ func (p testDecisionProvider) Decide(ctx context.Context, opts provider.DecideOp
 	if !ok {
 		switch opts.Type {
 		case provider.DecisionTypeChoice:
-			p.run.AddNote("AI isn't asked in test runs, so no option was picked. Mock the block with the name of the option to pick.")
+			p.run.AddNote(flow.TestNoteAIChoiceNotAsked, "AI isn't asked in test runs, so no option was picked. Mock the block with the name of the option to pick.")
 		case provider.DecisionTypeNoul:
-			p.run.AddNote(`AI isn't asked in test runs, so the answer was no. Mock the block with "yes", "no" or the probability of yes from 0 to 1.`)
+			p.run.AddNote(flow.TestNoteAICheckNotAsked, `AI isn't asked in test runs, so the answer was no. Mock the block with "yes", "no" or the probability of yes from 0 to 1.`)
 		}
 		return provider.Decision{}, nil
 	}

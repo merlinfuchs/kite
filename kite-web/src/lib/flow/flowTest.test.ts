@@ -3,8 +3,11 @@ import {
   buildFlowTestRequest,
   flowTestEffectMessage,
   flowTestEffectTitle,
+  canSetTestResult,
   flowTestNodeStatus,
+  flowTestNoteText,
   initialFlowTestState,
+  mockTestResult,
 } from "./flowTest";
 
 describe("flowTestEffectMessage", () => {
@@ -162,6 +165,11 @@ describe("flowTestNodeStatus", () => {
             },
             { node_id: "b", node_type: "action_message_create", error: "x" },
             { node_id: "b", node_type: "action_message_create" },
+            {
+              node_id: "c",
+              node_type: "action_http_request",
+              notes: [{ code: "not_run", text: "Not run" }],
+            },
           ],
         },
         {
@@ -173,6 +181,54 @@ describe("flowTestNodeStatus", () => {
         },
       ],
     });
-    expect(status).toEqual({ a: "warning", b: "error" });
+    expect(status).toEqual({ a: "warning", b: "error", c: "skipped" });
+  });
+});
+
+describe("flowTestNoteText", () => {
+  it("words the notes of the service for the editor", () => {
+    const note = { code: "not_run", text: "Not run. Mock the block." };
+    expect(flowTestNoteText(note)).toContain("Set a test result");
+    expect(canSetTestResult({ notes: [note] })).toBe(true);
+
+    const wait = { code: "wait_skipped", text: "Waited 5m0s" };
+    expect(canSetTestResult({ notes: [wait] })).toBe(false);
+    const unknown = { code: "toString", text: "New note" };
+    expect(flowTestNoteText(unknown)).toBe("New note");
+    expect(canSetTestResult({ notes: [unknown] })).toBe(false);
+  });
+});
+
+describe("test values", () => {
+  it("sends stored values as text with their type", () => {
+    const req = buildFlowTestRequest(
+      {
+        ...initialFlowTestState,
+        variables: [
+          { variableId: "xp", scope: " 1_2 ", type: "number", value: "007" },
+          { variableId: "afk", scope: "", type: "string", value: " " },
+          { variableId: "", scope: "", type: "string", value: "x" },
+        ],
+      },
+      {
+        target: { type: "command", id: "c1" },
+        flow: { nodes: [], edges: [] },
+        guildId: null,
+        eventType: "",
+        commandType: "chat_input",
+        args: {},
+      }
+    );
+    expect(req.variables).toEqual([
+      { variable_id: "xp", scope: "1_2", type: "number", value: "007" },
+      { variable_id: "afk", scope: undefined, value: null },
+    ]);
+  });
+
+  it("keeps the text of blocks that return text", () => {
+    expect(mockTestResult("action_ai_chat_completion", "42")).toBe("42");
+    expect(mockTestResult("action_roblox_user_get", '{"id": 1}')).toEqual({
+      id: 1,
+    });
   });
 });
