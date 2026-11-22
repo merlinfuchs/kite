@@ -11,7 +11,7 @@ require (
 	github.com/eko/gocache/lib/v4 v4.2.0
 	github.com/eko/gocache/store/ristretto/v4 v4.2.2
 	github.com/endobit/clog v0.4.0
-	github.com/expr-lang/expr v1.17.7
+	github.com/expr-lang/expr v1.18.1
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/gobwas/glob v0.2.3
