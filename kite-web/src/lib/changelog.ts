@@ -16,6 +16,65 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: "2026-11-22",
+    title: "Test your flows in the editor",
+    description:
+      "The Test tab in the flow editor runs a flow as if someone used it, without saving it first. You see every block that ran, and the messages and changes the bot would make, without making them. Click the buttons in the result to test what happens next, and set what AI blocks and requests to other websites return. Tests don't cost credits.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/troubleshooting#test-a-flow`,
+  },
+  {
+    date: "2026-11-22",
+    title: "Templates show their stars from the first one",
+    href: "/marketplace",
+  },
+  {
+    date: "2026-11-22",
+    title: "Your Discord avatar and your bot's avatar in the dashboard",
+  },
+  {
+    date: "2026-11-21",
+    title: "Restore deleted items of your template",
+    description:
+      "Deleted a command, event listener, or message template from the app you made a template from? The template's page in that app can add it back. It's part of the template again, so the next publish updates it for everyone who added the template.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`,
+  },
+  {
+    date: "2026-11-21",
+    title: "Has permission counts Administrator, the owner, and @everyone",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/controls/control_condition_user`,
+  },
+  {
+    date: "2026-11-21",
+    title: "Edit channel keeps the position when Position is empty",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_channel_edit`,
+  },
+  {
+    date: "2026-11-21",
+    title: "Install Kite from the account menu",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#installing-kite`,
+  },
+  {
+    date: "2026-11-20",
+    title: "Run JavaScript costs 3 credits a run",
+    description:
+      "The Run JavaScript block costs 3 credits a run instead of 10, and its calls cost what they did before. Code can make 50 calls that cost credits in one run, up from 20 calls of any kind. Reading from Discord and getting stored variables don't count toward the 50.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_javascript_run`,
+  },
+  {
+    date: "2026-11-20",
+    title: "Write Welcomer's and Leveling's messages yourself",
+    description:
+      "The welcome, goodbye, and level-up messages are message templates now. You write them when you add the template, and change them later under Message templates without opening the flows. Bots that already have Welcomer or Leveling get them with the template's update.",
+    href: "/marketplace/welcomer",
+  },
+  {
+    date: "2026-11-17",
+    title: "Search the Web makes one search a run and costs more",
+    description:
+      "Each run of Search the Web searches once and costs 250 credits on Fast, 300 on Balanced, and 600 on Smartest, instead of 25, 100, and 500. The old prices didn't cover what a search costs us, and one run could search twice.",
+    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_ai_web_search`,
+  },
+  {
     date: "2026-11-16",
     title: "Folders for commands, event listeners, and message templates",
     description:
