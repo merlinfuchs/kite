@@ -40,17 +40,12 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-21",
-    title:
-      "Has permission conditions count Administrator, the server owner, and @everyone",
-    description:
-      "A User Condition with Has permission now passes for members with Administrator, for the server owner, and for permissions everyone in the server has. Before, it only checked the roles a member was given.",
+    title: "Has permission counts Administrator, the owner, and @everyone",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/controls/control_condition_user`,
   },
   {
     date: "2026-11-21",
-    title: "Edit channel no longer moves channels to the top",
-    description:
-      "Leaving Position empty in Edit channel or Create channel leaves the channel's position alone. Before, it moved the channel to the top.",
+    title: "Edit channel keeps the position when Position is empty",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/blocks/actions/action_channel_edit`,
   },
   {
@@ -67,7 +62,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     date: "2026-11-20",
-    title: "Write Welcomer's and Leveling's messages when you add them",
+    title: "Write Welcomer's and Leveling's messages yourself",
     description:
       "The welcome, goodbye, and level-up messages are message templates now. You write them when you add the template, and change them later under Message templates without opening the flows. Bots that already have Welcomer or Leveling get them with the template's update.",
     href: "/marketplace/welcomer",
