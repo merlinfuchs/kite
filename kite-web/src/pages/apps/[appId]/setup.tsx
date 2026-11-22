@@ -7,6 +7,7 @@ import {
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
 import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
+import MessageEditorDialog from "@/components/message/MessageEditorDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,10 +32,16 @@ import {
   useUser,
 } from "@/lib/hooks/api";
 import { Channel, Role } from "@/lib/types/wire.gen";
+import { MessageData } from "@/lib/types/message.gen";
 import { useAppId } from "@/lib/hooks/params";
 import { useFullTemplates, useTemplates } from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
-import { CheckIcon, CircleAlertIcon, CircleCheckIcon } from "lucide-react";
+import {
+  CheckIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  PencilIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -183,8 +190,13 @@ export default function AppSetupPage() {
 
   // A link that sets up every template it picks, like from Xenon after a
   // server template, needs no steps. The templates are added at once after a
-  // look at their settings, unless the user wants to change them.
+  // look at their settings, unless the user wants to change them. Messages the
+  // server writes itself start as the template's example.
   const [changing, setChanging] = useState(false);
+  // The messages written on the review, by template and message key.
+  const [written, setWritten] = useState<
+    Record<string, Record<string, MessageData>>
+  >({});
   const linked = String(query.templates ?? "").length > 0;
   const review = useMemo(() => {
     if (!full || !channels || !roles || !picked?.size || !linked) {
@@ -194,18 +206,15 @@ export default function AppSetupPage() {
     const complete = reviewed.every((template) => {
       const selection = installSelection(template, undefined, new Set());
       const values = initialValues(template);
-      return (
-        !selection.customizable.length &&
-        selection.parameters.every((p) => {
-          const value = values[p.key];
-          if (!value) return !p.required;
-          if (p.type === "channel" || p.type === "category") {
-            return channels.some((c) => c?.id === value);
-          }
-          if (p.type === "role") return roles.some((r) => r?.id === value);
-          return true;
-        })
-      );
+      return selection.parameters.every((p) => {
+        const value = values[p.key];
+        if (!value) return !p.required;
+        if (p.type === "channel" || p.type === "category") {
+          return channels.some((c) => c?.id === value);
+        }
+        if (p.type === "role") return roles.some((r) => r?.id === value);
+        return true;
+      });
     });
     return complete ? reviewed : undefined;
     // initialValues only reads the query.
@@ -225,6 +234,7 @@ export default function AppSetupPage() {
             ...parameterDefaults(template.parameters),
             ...initialValues(template),
           },
+          customMessages: written[template.id],
           guildId,
           first: true,
           from: "setup_link",
@@ -300,6 +310,13 @@ export default function AppSetupPage() {
           guildName={guild?.name}
           channels={channels ?? []}
           roles={roles ?? []}
+          written={written}
+          onWrite={(templateId, key, data) =>
+            setWritten((prev) => ({
+              ...prev,
+              [templateId]: { ...prev[templateId], [key]: data },
+            }))
+          }
           adding={starting}
           onAdd={addAll}
           onChange={() => setChanging(true)}
@@ -407,6 +424,8 @@ function SetupReview({
   guildName,
   channels,
   roles,
+  written,
+  onWrite,
   adding,
   onAdd,
   onChange,
@@ -416,6 +435,8 @@ function SetupReview({
   guildName?: string;
   channels: (Channel | undefined)[];
   roles: (Role | undefined)[];
+  written: Record<string, Record<string, MessageData>>;
+  onWrite: (templateId: string, key: string, data: MessageData) => void;
   adding: boolean;
   onAdd: () => void;
   onChange: () => void;
@@ -452,6 +473,13 @@ function SetupReview({
               ? [`${p.label || p.key}: ${shown(p.type, set[p.key]!)}`]
               : []
           );
+          const customizable = template.messages.filter((m) => m.customize);
+          const names = customizable.map((m) => m.name.toLowerCase());
+          const customNote = customizable.length
+            ? `You can write the ${names.join(" and ")} ${
+                names.length === 1 ? "message" : "messages"
+              } now, or later under Messages.`
+            : null;
           return (
             <Card key={template.id} className="flex items-start gap-4 p-4">
               <TemplateIcon
@@ -463,6 +491,45 @@ function SetupReview({
                 <div className="text-sm text-muted-foreground">
                   {settings.length ? settings.join(", ") : template.description}
                 </div>
+                {customNote && (
+                  <>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {customNote}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2.5">
+                      {customizable.map((message) => {
+                        const data =
+                          written[template.id]?.[message.key] ?? message.data;
+                        return (
+                          <MessageEditorDialog
+                            key={message.key}
+                            message={data}
+                            disableInteractive
+                            onClose={(next, changed) => {
+                              // Unchanged, it stays the template's, which updates replace.
+                              if (changed) {
+                                onWrite(template.id, message.key, next);
+                              }
+                            }}
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5"
+                            >
+                              {written[template.id]?.[message.key] ? (
+                                <CheckIcon className="h-4 w-4" />
+                              ) : (
+                                <PencilIcon className="h-4 w-4" />
+                              )}
+                              {message.name} message
+                            </Button>
+                          </MessageEditorDialog>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
           );
