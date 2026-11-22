@@ -9,9 +9,6 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/expr-lang/expr"
-	"github.com/expr-lang/expr/ast"
-	"github.com/expr-lang/expr/builtin"
-	"github.com/expr-lang/expr/parser"
 	"github.com/expr-lang/expr/vm"
 )
 
@@ -58,11 +55,6 @@ func compile(expression string, c Context) (*vm.Program, error) {
 }
 
 func compileUncached(expression string, c Context) (*vm.Program, error) {
-	// Invalid expressions are left to expr.Compile, which explains the error.
-	if tree, err := parser.Parse(expression); err == nil && checkCost(tree.Node) > maxCheckCost {
-		return nil, ErrExpressionTooNested
-	}
-
 	opts := []expr.Option{
 		expr.Env(c.Env),
 		expr.AllowUndefinedVariables(),
@@ -111,61 +103,4 @@ func writeType(b *strings.Builder, t reflect.Type) {
 	}
 	var buf [16]byte
 	b.Write(strconv.AppendUint(buf[:0], uint64(reflect.ValueOf(t).Pointer()), 16))
-}
-
-// maxCheckCost bounds checkCost, so that compiling an expression takes at most
-// about 60 ms on kite.onl's server. Compiling can't be stopped, not even
-// by the timeout of the flow.
-const maxCheckCost = 20_000
-
-// checkCost estimates the work of expr's type checker for an expression. It
-// tries the overloads of a builtin like replace or sort one after another and
-// checks all arguments again for each, so its work multiplies with every level
-// of nested builtins. Kite's own functions have one type each, so their
-// arguments are checked once. Remove this once expr's checker reuses the types
-// of a builtin's arguments.
-func checkCost(node ast.Node) int {
-	var children []ast.Node
-	factor := 1
-
-	switch n := node.(type) {
-	case *ast.UnaryNode:
-		children = []ast.Node{n.Node}
-	case *ast.BinaryNode:
-		children = []ast.Node{n.Left, n.Right}
-	case *ast.ChainNode:
-		children = []ast.Node{n.Node}
-	case *ast.MemberNode:
-		children = []ast.Node{n.Node, n.Property}
-	case *ast.SliceNode:
-		children = []ast.Node{n.Node, n.From, n.To}
-	case *ast.CallNode:
-		children = append([]ast.Node{n.Callee}, n.Arguments...)
-	case *ast.BuiltinNode:
-		children = n.Arguments
-		if i, ok := builtin.Index[n.Name]; ok {
-			factor = max(len(builtin.Builtins[i].Types), 1)
-		}
-	case *ast.PredicateNode:
-		children = []ast.Node{n.Node}
-	case *ast.VariableDeclaratorNode:
-		children = []ast.Node{n.Value, n.Expr}
-	case *ast.SequenceNode:
-		children = n.Nodes
-	case *ast.ConditionalNode:
-		children = []ast.Node{n.Cond, n.Exp1, n.Exp2}
-	case *ast.ArrayNode:
-		children = n.Nodes
-	case *ast.MapNode:
-		children = n.Pairs
-	case *ast.PairNode:
-		children = []ast.Node{n.Key, n.Value}
-	}
-
-	cost := 1
-	for _, child := range children {
-		cost += factor * checkCost(child)
-	}
-	// Saturated, so a deep expression can't overflow it.
-	return min(cost, maxCheckCost+1)
 }

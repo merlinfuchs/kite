@@ -6,8 +6,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/expr-lang/expr/parser"
 )
 
 func testContext() Context {
@@ -397,45 +395,20 @@ func TestEvalReadsFieldsOfUnknownValues(t *testing.T) {
 	}
 }
 
-// Type checking these takes longer the deeper they nest, a few levels more
-// than these never finish.
-func TestEvalRejectsDeeplyNestedCalls(t *testing.T) {
+// expr before 1.18.1 type checked nested builtins in exponential time, 42
+// nested replace calls in a listener never finished compiling.
+func TestCompileDeeplyNestedCalls(t *testing.T) {
 	for _, expression := range []string{
-		strings.Repeat("replace(", 42) + `"a"` + strings.Repeat(`, "a", "b")`, 42),
-		strings.Repeat("sort(", 8) + `["a"]` + strings.Repeat(`, "a", "b")`, 8),
-		strings.Repeat("join(", 12) + `["a"]` + strings.Repeat(`, "a", "b")`, 12),
+		strings.Repeat("replace(", 300) + `"a"` + strings.Repeat(`, "a", "b")`, 300),
+		strings.Repeat("replace(", 300) + `1` + strings.Repeat(`, "a", "b")`, 300),
+		strings.Repeat("sort(", 300) + `["a"]` + strings.Repeat(`)`, 300),
+		strings.Repeat("split(", 300) + `"a"` + strings.Repeat(`, "a")[0]`, 300),
+		strings.Repeat("trimSuffix(", 300) + `"a"` + strings.Repeat(`)`, 300),
 	} {
-		start := time.Now()
-		_, err := Eval(context.Background(), expression, testContext())
-		if !errors.Is(err, ErrExpressionTooNested) {
-			t.Fatalf("expected ErrExpressionTooNested, got %v", err)
-		}
-		if d := time.Since(start); d > time.Second {
-			t.Fatalf("took %v to reject", d)
-		}
-	}
-}
-
-// The most nested expressions under the limit still compile quickly.
-func TestCompileNestedCallsUnderLimit(t *testing.T) {
-	for _, call := range []string{`split(`, `trimSuffix(`, `sort(`, `join(`} {
-		depth := 1
-		for {
-			tree, err := parser.Parse(strings.Repeat(call, depth+1) + `"a"` + strings.Repeat(`)`, depth+1))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if checkCost(tree.Node) > maxCheckCost {
-				break
-			}
-			depth++
-		}
-
-		expression := strings.Repeat(call, depth) + `"a"` + strings.Repeat(`)`, depth)
 		start := time.Now()
 		_, _ = compileUncached(expression, testContext())
 		if d := time.Since(start); d > time.Second {
-			t.Fatalf("%s nested %d deep took %v to compile", call, depth, d)
+			t.Fatalf("%.20s took %v to compile", expression, d)
 		}
 	}
 }
