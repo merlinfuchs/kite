@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/expr-lang/expr/parser"
 )
 
 func testContext() Context {
@@ -410,6 +412,30 @@ func TestEvalRejectsDeeplyNestedCalls(t *testing.T) {
 		}
 		if d := time.Since(start); d > time.Second {
 			t.Fatalf("took %v to reject", d)
+		}
+	}
+}
+
+// The most nested expressions under the limit still compile quickly.
+func TestCompileNestedCallsUnderLimit(t *testing.T) {
+	for _, call := range []string{`split(`, `trimSuffix(`, `sort(`, `join(`} {
+		depth := 1
+		for {
+			tree, err := parser.Parse(strings.Repeat(call, depth+1) + `"a"` + strings.Repeat(`)`, depth+1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if checkCost(tree.Node) > maxCheckCost {
+				break
+			}
+			depth++
+		}
+
+		expression := strings.Repeat(call, depth) + `"a"` + strings.Repeat(`)`, depth)
+		start := time.Now()
+		_, _ = compileUncached(expression, testContext())
+		if d := time.Since(start); d > time.Second {
+			t.Fatalf("%s nested %d deep took %v to compile", call, depth, d)
 		}
 	}
 }
