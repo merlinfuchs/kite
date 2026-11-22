@@ -9,7 +9,7 @@ import {
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ import { useLogout } from "@/lib/hooks/auth";
 import { installApp, useInstallApp } from "@/lib/hooks/installApp";
 import { creatorPath } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
+import userAvatar from "@/tools/common/utils/discordCdn";
 import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
@@ -156,7 +157,8 @@ function UserMenuLabel() {
   );
 }
 
-// UserAvatar shows the initials of the logged in user.
+// UserAvatar shows the Discord avatar of the logged in user, or their
+// initials until it's loaded.
 export function UserAvatar({ className }: { className?: string }) {
   const user = useUser();
   const initials = (user?.display_name ?? "")
@@ -166,6 +168,12 @@ export function UserAvatar({ className }: { className?: string }) {
 
   return (
     <Avatar className={cn("rounded-lg", className)}>
+      {user && (
+        <AvatarImage
+          src={userAvatar({ id: user.discord_id, avatar: user.discord_avatar })}
+          alt=""
+        />
+      )}
       <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
     </Avatar>
   );

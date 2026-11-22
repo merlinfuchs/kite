@@ -1,5 +1,6 @@
 import { BotIcon, ChevronsUpDown, CogIcon } from "lucide-react";
 
+import BotAvatar from "@/components/app/BotAvatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,9 +51,10 @@ export default function AppSidebarAppSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <BotIcon className="size-5" />
-              </div>
+              <BotAvatar
+                className="size-8 rounded-lg"
+                fallbackClassName="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{app?.name}</span>
                 <span className="truncate text-xs">

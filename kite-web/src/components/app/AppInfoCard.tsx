@@ -19,6 +19,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 import AppInviteButton from "./AppInviteButton";
+import BotAvatar from "./BotAvatar";
 
 export default function AppInfoCard() {
   const app = useApp();
@@ -36,7 +37,8 @@ export default function AppInfoCard() {
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-start bg-muted/50">
         <div className="grid gap-0.5">
-          <CardTitle className="text-lg">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BotAvatar className="size-8" />
             {app?.name || "Unknown app"}
           </CardTitle>
           <CardDescription className="group flex items-center gap-2">
