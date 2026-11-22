@@ -72,7 +72,7 @@ export default function FlowLogList({
 }
 
 // Hidden when the block was deleted since the error.
-function ShowBlockButton({
+export function ShowBlockButton({
   nodeId,
   onShowNode,
 }: {
