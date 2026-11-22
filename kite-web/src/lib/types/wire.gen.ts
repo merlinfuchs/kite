@@ -580,7 +580,7 @@ export interface BundleOwner {
    * templates, which is what the template creator badges count. Only set in
    * the list of all templates, and missing for users without a listed one.
    */
-  installer_count?: number;
+  installer_count?: number /* int */;
 }
 /**
  * BundleListing is how a bundle is shown on its page and in the marketplace.
