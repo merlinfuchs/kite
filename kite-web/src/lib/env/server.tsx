@@ -3,8 +3,7 @@ import clientEnv from "./client";
 
 export const serverEnvSchema = z.object({
   // Where the server reaches the API, like nginx on the same machine, so its
-  // requests don't leave and come back through Cloudflare. Defaults to the
-  // public URL.
+  // requests don't leave the machine. Defaults to the public URL.
   API_INTERNAL_BASE_URL: z.string().optional(),
 });
 

@@ -59,8 +59,3 @@ The server used to run everything from `/root`, with one hand-written unit per c
 3. Renames the api.kite.onl nginx config to `NGINX_CONF_PATH`, stops and disables the old cluster units, then runs `server.sh` to start `kite-service@0` to `kite-service@3` and install the new nginx config.
 
 The bots are down between stopping the old units and starting the new ones, a few seconds. Afterwards, edit `kite.toml` in `SERVICE_DIR`, not in `/root`. The files in `/root` and the old units stay around for going back: disable the `kite-service@` units and `systemctl enable --now kite-service-0 kite-service-1 kite-service-2 kite-service-3`. Delete them once the new setup has run for a while.
-
-## Moving the docs and web app off Vercel
-
-1. Run `./deploy/docs.sh`, add docs.kite.onl as a public hostname on the Cloudflare tunnel pointing at nginx like api.kite.onl, and replace its DNS record (pointing at Vercel).
-2. Once that works, do the same for kite.onl with `./deploy/web.sh`. Add www.kite.onl to the tunnel too, nginx redirects it to kite.onl.
