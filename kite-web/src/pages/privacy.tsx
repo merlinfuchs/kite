@@ -43,12 +43,6 @@ export default function PrivacyPolicyPage() {
           IDs, and are deleted after 30 days.
         </p>
         <p>
-          kite.onl, its API and its docs are delivered through Cloudflare, which
-          protects them against attacks. Every request passes through
-          Cloudflare&apos;s network, including your IP address and what you send
-          to Kite (Art. 6(1)(f) GDPR).
-        </p>
-        <p>
           Avatars and emojis from Discord are loaded directly from
           Discord&apos;s servers, which receive your IP address. Our bot
           building guide has a video from YouTube (youtube-nocookie.com). It
@@ -321,10 +315,6 @@ export default function PrivacyPolicyPage() {
           <li>
             Hosting providers in Germany, currently Hetzner Online GmbH and
             netcup GmbH: servers, database and storage.
-          </li>
-          <li>
-            Cloudflare, Inc., USA: delivers kite.onl, its API and its docs and
-            protects them against attacks.
           </li>
           <li>OpenAI, USA: flow AI, AI blocks and the support bot.</li>
           <li>
