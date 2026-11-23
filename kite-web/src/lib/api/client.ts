@@ -67,10 +67,20 @@ function fetchOrOffline(...args: Parameters<typeof fetch>) {
   });
 }
 
+// requestBaseUrl is where requests go. Pages rendered on the server reach the
+// API on the same machine when there is one, browsers use the public URL. The
+// server env isn't imported, since this file is part of the browser bundle.
+function requestBaseUrl() {
+  if (typeof window === "undefined" && process.env.API_INTERNAL_BASE_URL) {
+    return process.env.API_INTERNAL_BASE_URL;
+  }
+  return getApiUrl();
+}
+
 export function apiRequest<T>(
   path: string,
   options?: RequestInit,
-  baseUrl = getApiUrl()
+  baseUrl = requestBaseUrl()
 ) {
   return fetchOrOffline(baseUrl + path, {
     ...options,

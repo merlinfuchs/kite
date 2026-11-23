@@ -98,6 +98,25 @@ set_real_ip_from 127.0.0.1;
 set_real_ip_from ::1;
 real_ip_header CF-Connecting-IP;
 
+# The web server renders pages with data from the API on this machine. Those
+# requests come from localhost without a client IP. They get a limit of their
+# own, high enough for all pages being rendered at once, instead of the limits
+# of one client. The MCP server passes on the IP of its client, which realip
+# puts in $remote_addr.
+map $remote_addr $kite_client_ip {
+        127.0.0.1 "";
+        ::1       "";
+        default   $binary_remote_addr;
+}
+
+map $remote_addr $kite_internal_key {
+        127.0.0.1 internal;
+        ::1       internal;
+        default   "";
+}
+
+limit_req_zone $kite_internal_key zone=kite_api_internal:1m rate=50r/s;
+
 # Rate limits per API token, or per client IP for requests without one, with
 # a stricter one for writes. Clients like Claude and ChatGPT call for all of
 # their users from a few IPs, each user with their own token. Only headers
@@ -106,7 +125,7 @@ real_ip_header CF-Connecting-IP;
 # write counts twice.
 map $http_authorization $kite_api_key {
         "~^Bearer (?<kite_token>kite_[A-Za-z0-9_-]{43})$" $kite_token;
-        default $binary_remote_addr;
+        default $kite_client_ip;
 }
 
 map $request_method $kite_api_write_key {
@@ -121,15 +140,22 @@ limit_req_zone $kite_api_write_key zone=kite_api_write:64m rate=2r/s;
 
 # nginx can't tell real tokens from made up ones, so every IP has a limit too,
 # high enough for all users of a client like Claude together.
-limit_req_zone $binary_remote_addr zone=kite_api_ip:16m rate=100r/s;
+limit_req_zone $kite_client_ip zone=kite_api_ip:16m rate=100r/s;
 
 # Webhooks get their own looser limit. Senders like GitHub and Stripe deliver
 # for everyone from a few shared IPs, and the service limits each app itself.
+# The billing webhook too, the payment provider sends the events of all
+# customers.
 limit_req_zone $binary_remote_addr zone=kite_webhook:16m rate=20r/s;
 
 # OAuth clients like Claude refresh the tokens of all their users from a few
 # IPs, without a token in the header, often many at once after an outage.
 limit_req_zone $binary_remote_addr zone=kite_oauth_token:16m rate=20r/s;
+
+# Pages are rendered for each visitor, some with a request to the API. Each
+# client IP gets a limit, so one can't use up the web server's limit for the
+# API for everyone.
+limit_req_zone $binary_remote_addr zone=kite_web:16m rate=20r/s;
 
 limit_req_status 429;
 
@@ -193,6 +219,7 @@ server {
                 # First, so floods are rejected before they make keys in the
                 # other zones.
                 limit_req zone=kite_api_ip burst=200 nodelay;
+                limit_req zone=kite_api_internal burst=200 nodelay;
                 limit_req zone=kite_api burst=50 delay=10;
                 limit_req zone=kite_api_write burst=5;
 
@@ -200,6 +227,12 @@ server {
         }
 
         location /v1/webhooks/ {
+                limit_req zone=kite_webhook burst=100 nodelay;
+
+                proxy_pass http://$kite_upstream;
+        }
+
+        location = /v1/billing/webhook {
                 limit_req zone=kite_webhook burst=100 nodelay;
 
                 proxy_pass http://$kite_upstream;
@@ -265,6 +298,8 @@ server {
         }
 
         location @web {
+                limit_req zone=kite_web burst=100 nodelay;
+
                 proxy_pass http://127.0.0.1:@WEB_PORT@;
                 proxy_set_header Host $host;
                 # The MCP server passes the client IP on to the API.
@@ -384,8 +419,8 @@ StartLimitIntervalSec=0
 [Service]
 WorkingDirectory=@WEB_SERVER_DIR@
 Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
-# The API server of nginx is its default server, so the MCP server reaches it
-# without the Cloudflare round trip.
+# The API server of nginx is its default server, so pages rendered on the
+# server and the MCP server reach it without leaving the machine.
 Environment=API_INTERNAL_BASE_URL=http://127.0.0.1
 ExecStart=@NODE_BIN@ server.js
 # Node exits with 128 + SIGTERM when stopped.
