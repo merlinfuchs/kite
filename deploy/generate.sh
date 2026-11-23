@@ -98,6 +98,16 @@ set_real_ip_from 127.0.0.1;
 set_real_ip_from ::1;
 real_ip_header CF-Connecting-IP;
 
+# The web server renders pages with data from the API on this machine. Those
+# requests come from localhost without a client IP and aren't limited, so all
+# pages being rendered at once don't share one limit. The MCP server passes on
+# the IP of its client, which realip puts in $remote_addr.
+map $remote_addr $kite_client_ip {
+        127.0.0.1 "";
+        ::1       "";
+        default   $binary_remote_addr;
+}
+
 # Rate limits per API token, or per client IP for requests without one, with
 # a stricter one for writes. Clients like Claude and ChatGPT call for all of
 # their users from a few IPs, each user with their own token. Only headers
@@ -106,7 +116,7 @@ real_ip_header CF-Connecting-IP;
 # write counts twice.
 map $http_authorization $kite_api_key {
         "~^Bearer (?<kite_token>kite_[A-Za-z0-9_-]{43})$" $kite_token;
-        default $binary_remote_addr;
+        default $kite_client_ip;
 }
 
 map $request_method $kite_api_write_key {
@@ -121,10 +131,12 @@ limit_req_zone $kite_api_write_key zone=kite_api_write:64m rate=2r/s;
 
 # nginx can't tell real tokens from made up ones, so every IP has a limit too,
 # high enough for all users of a client like Claude together.
-limit_req_zone $binary_remote_addr zone=kite_api_ip:16m rate=100r/s;
+limit_req_zone $kite_client_ip zone=kite_api_ip:16m rate=100r/s;
 
 # Webhooks get their own looser limit. Senders like GitHub and Stripe deliver
 # for everyone from a few shared IPs, and the service limits each app itself.
+# The billing webhook too, the payment provider sends the events of all
+# customers.
 limit_req_zone $binary_remote_addr zone=kite_webhook:16m rate=20r/s;
 
 # OAuth clients like Claude refresh the tokens of all their users from a few
@@ -200,6 +212,12 @@ server {
         }
 
         location /v1/webhooks/ {
+                limit_req zone=kite_webhook burst=100 nodelay;
+
+                proxy_pass http://$kite_upstream;
+        }
+
+        location = /v1/billing/webhook {
                 limit_req zone=kite_webhook burst=100 nodelay;
 
                 proxy_pass http://$kite_upstream;
@@ -384,8 +402,8 @@ StartLimitIntervalSec=0
 [Service]
 WorkingDirectory=@WEB_SERVER_DIR@
 Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
-# The API server of nginx is its default server, so the MCP server reaches it
-# without the Cloudflare round trip.
+# The API server of nginx is its default server, so pages rendered on the
+# server and the MCP server reach it without leaving the machine.
 Environment=API_INTERNAL_BASE_URL=http://127.0.0.1
 ExecStart=@NODE_BIN@ server.js
 # Node exits with 128 + SIGTERM when stopped.

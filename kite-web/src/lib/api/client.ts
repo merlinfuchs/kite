@@ -2,6 +2,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { APIResponse } from "./response";
 import env from "@/lib/env/client";
+import serverEnv from "@/lib/env/server";
 import { BundleGetResponse } from "../types/wire.gen";
 
 const queryClient = new QueryClient({
@@ -67,10 +68,19 @@ function fetchOrOffline(...args: Parameters<typeof fetch>) {
   });
 }
 
+// requestBaseUrl is where requests go. Pages rendered on the server reach the
+// API on the same machine when there is one, browsers use the public URL.
+function requestBaseUrl() {
+  if (typeof window === "undefined" && serverEnv.API_INTERNAL_BASE_URL) {
+    return serverEnv.API_INTERNAL_BASE_URL;
+  }
+  return getApiUrl();
+}
+
 export function apiRequest<T>(
   path: string,
   options?: RequestInit,
-  baseUrl = getApiUrl()
+  baseUrl = requestBaseUrl()
 ) {
   return fetchOrOffline(baseUrl + path, {
     ...options,

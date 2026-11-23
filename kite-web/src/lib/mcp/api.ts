@@ -1,7 +1,6 @@
 import { createHash } from "crypto";
 import { apiRequest } from "../api/client";
 import { APIResponse } from "../api/response";
-import env from "../env/server";
 import { APITokenCurrentGetResponse } from "../types/wire.gen";
 
 // KiteAPI calls the Kite API as the owner of an API token. The MCP server has
@@ -16,19 +15,15 @@ export type KiteAPI = <T>(
 // of them in the bucket of this server.
 export function kiteAPI(token: string, clientIp?: string): KiteAPI {
   return async <T>(path: string, init?: RequestInit) => {
-    const res = await apiRequest<T>(
-      path,
-      {
-        ...init,
-        signal: init?.signal ?? AbortSignal.timeout(15_000),
-        headers: {
-          ...init?.headers,
-          Authorization: `Bearer ${token}`,
-          ...(clientIp ? { "CF-Connecting-IP": clientIp } : {}),
-        },
+    const res = await apiRequest<T>(path, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(15_000),
+      headers: {
+        ...init?.headers,
+        Authorization: `Bearer ${token}`,
+        ...(clientIp ? { "CF-Connecting-IP": clientIp } : {}),
       },
-      env.API_INTERNAL_BASE_URL
-    );
+    });
     // The token was deleted or replaced, so the client's next request gets a
     // 401 instead of cached scopes, and connects again.
     if (!res.success && res.error.code === "invalid_api_token") {
