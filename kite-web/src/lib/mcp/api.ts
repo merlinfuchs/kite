@@ -11,8 +11,8 @@ export type KiteAPI = <T>(
 ) => Promise<APIResponse<T>>;
 
 // clientIp is the IP of the MCP client. nginx trusts CF-Connecting-IP from the
-// same machine, so it limits each client by its own IP instead of putting all
-// of them in the bucket of this server.
+// same machine, so it limits each client by its own IP. Without it, the
+// requests count towards the limit of the pages the server renders.
 export function kiteAPI(token: string, clientIp?: string): KiteAPI {
   return async <T>(path: string, init?: RequestInit) => {
     const res = await apiRequest<T>(path, {
