@@ -30,6 +30,16 @@ To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh
 
 After deploying, `web.sh` sends the pages in `sitemap-pages.xml` whose text changed to [IndexNow](https://www.indexnow.org), so Bing and other search engines that use it crawl them again. The key is `INDEXNOW_KEY` in `config.env`, which `web.sh` puts into the build as `<key>.txt`. The marketplace pages are left out, their counts change all the time. Live numbers on other pages, like the homepage stats, need `data-indexnow-ignore` on an element with only the number as its text.
 
+## TLS
+
+nginx serves all domains with one Let's Encrypt certificate from `TLS_DIR`. `server.sh` puts a self-signed one there the first time, so nginx starts before the real one is issued. To issue it, on the server:
+
+1. `apt install certbot`
+2. `certbot certonly --webroot -w /var/www/acme --cert-name kite -d kite.onl -d www.kite.onl -d api.kite.onl -d docs.kite.onl`
+3. `RENEWED_LINEAGE=/etc/letsencrypt/live/kite /etc/letsencrypt/renewal-hooks/deploy/kite-nginx`, which copies it to `TLS_DIR` and reloads nginx.
+
+certbot's timer renews it and runs the same hook, which `server.sh` installs. The hook skips other certificates on the server, it only copies the one named `TLS_CERT_NAME`. Let's Encrypt checks the domains over plain HTTP, so the firewall has to allow port 80 as well as 443.
+
 ## Moving the web app to the Next.js server
 
 kite.onl used to be a static export that nginx served from `WEB_DIR`. To switch:

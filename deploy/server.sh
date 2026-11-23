@@ -13,6 +13,7 @@ scp "$ROOT/deploy/kite-service@.service" "$DEPLOY_HOST:/tmp/kite-service@.servic
 scp "$ROOT/deploy/kite-shared.service" "$DEPLOY_HOST:/tmp/kite-shared.service"
 scp "$ROOT/deploy/kite-web.service" "$DEPLOY_HOST:/tmp/kite-web.service"
 scp "$ROOT/deploy/kite-support.service" "$DEPLOY_HOST:/tmp/kite-support.service"
+scp "$ROOT/deploy/certbot-deploy-hook.sh" "$DEPLOY_HOST:/tmp/kite-certbot-deploy-hook.sh"
 ssh -t "$DEPLOY_HOST" "set -e
   $REMOTE_SUDO
 
@@ -55,6 +56,16 @@ ssh -t "$DEPLOY_HOST" "set -e
   # deploy/service.sh like for the clusters.
   \$S systemctl enable --now kite-shared
 
+  # nginx doesn't start without a certificate. Until certbot has issued one,
+  # see deploy/README.md, a self-signed one stands in.
+  \$S install -d -m 700 '$TLS_DIR'
+  if [ ! -f '$TLS_DIR/fullchain.pem' ]; then
+    \$S openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 30 \\
+      -subj '/CN=$WEB_DOMAIN' -keyout '$TLS_DIR/privkey.pem' -out '$TLS_DIR/fullchain.pem' 2>/dev/null
+  fi
+  \$S install -d -m 755 '$ACME_DIR'
+  \$S install -D -m 755 /tmp/kite-certbot-deploy-hook.sh /etc/letsencrypt/renewal-hooks/deploy/kite-nginx
+
   rm -f /tmp/kite-nginx.conf.prev
   if [ -f '$NGINX_CONF_PATH' ]; then \$S cp '$NGINX_CONF_PATH' /tmp/kite-nginx.conf.prev; fi
   \$S install -m 644 /tmp/kite-nginx.conf '$NGINX_CONF_PATH'
@@ -80,4 +91,4 @@ ssh -t "$DEPLOY_HOST" "set -e
     \$S systemctl restart nginx
   fi
 
-  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service /tmp/kite-shared.service /tmp/kite-web.service /tmp/kite-support.service"
+  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service /tmp/kite-shared.service /tmp/kite-web.service /tmp/kite-support.service /tmp/kite-certbot-deploy-hook.sh"
