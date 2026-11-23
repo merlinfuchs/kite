@@ -14,7 +14,7 @@ describe("kiteAPI", () => {
     expect(url).toMatch(/\/v1\/apps$/);
     expect(init.headers).toMatchObject({
       Authorization: "Bearer kite_x",
-      "CF-Connecting-IP": "203.0.113.7",
+      "X-Real-IP": "203.0.113.7",
     });
   });
 });

@@ -10,8 +10,8 @@ export type KiteAPI = <T>(
   init?: RequestInit
 ) => Promise<APIResponse<T>>;
 
-// clientIp is the IP of the MCP client. nginx trusts CF-Connecting-IP from the
-// same machine, so it limits each client by its own IP. Without it, the
+// clientIp is the IP of the MCP client. nginx trusts X-Real-IP from the same
+// machine, so it limits each client by its own IP. Without it, the
 // requests count towards the limit of the pages the server renders.
 export function kiteAPI(token: string, clientIp?: string): KiteAPI {
   return async <T>(path: string, init?: RequestInit) => {
@@ -21,7 +21,7 @@ export function kiteAPI(token: string, clientIp?: string): KiteAPI {
       headers: {
         ...init?.headers,
         Authorization: `Bearer ${token}`,
-        ...(clientIp ? { "CF-Connecting-IP": clientIp } : {}),
+        ...(clientIp ? { "X-Real-IP": clientIp } : {}),
       },
     });
     // The token was deleted or replaced, so the client's next request gets a
