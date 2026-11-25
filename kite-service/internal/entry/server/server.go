@@ -77,6 +77,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	configureHTTPTransport(cfg)
 	warnUnverifiedBillingWebhook(cfg)
+	warnUnverifiedPaddleWebhook(cfg)
 	// Clusters run on the same host, so each gets its own port, like the API.
 	debugCfg := cfg.Debug
 	debugCfg.Port += cfg.ClusterIndex
@@ -222,6 +223,11 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
 
 	creditNotifier := notify.NewAppOwnerNotifier(pg, tokenCrypt, notifier, cfg.App.PublicBaseURL)
+	paddleClient, err := billing.NewPaddleClient(cfg.Billing.Paddle)
+	if err != nil {
+		return fmt.Errorf("failed to create paddle client: %w", err)
+	}
+
 	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, pg, planManager, creditNotifier)
 
 	if cfg.IsPrimaryCluster() {
@@ -233,11 +239,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			go prescreen.New(&openaiClient, cfg.Prescreen.Model, pg, notifier).Run(ctx)
 		}
 
-		if cfg.Billing.LemonSqueezyAPIKey != "" {
-			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
-				cfg.Billing.LemonSqueezyAPIKey,
-				cfg.Billing.LemonSqueezySigningSecret,
-			)).Run(ctx)
+		lemonSqueezyClient := billing.NewReconcileLemonSqueezyClient(cfg.Billing.LemonSqueezyAPIKey, cfg.Billing.LemonSqueezySigningSecret)
+		if lemonSqueezyClient != nil || paddleClient != nil {
+			billing.NewSubscriptionManager(pg, pg, planManager, lemonSqueezyClient, paddleClient).Run(ctx)
 		}
 	}
 
@@ -262,6 +266,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
 			LemonSqueezyStoreID:       cfg.Billing.LemonSqueezyStoreID,
 			TestMode:                  cfg.Billing.TestMode,
+			Paddle:                    cfg.Billing.Paddle,
+			PaddleClient:              paddleClient,
 			Plans:                     cfg.Billing.Plans,
 			Sale:                      cfg.Billing.Sale,
 		},

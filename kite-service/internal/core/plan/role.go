@@ -66,13 +66,13 @@ const planRoleGrace = 3 * 24 * time.Hour
 // they pay for, and takes away the roles of plans they no longer pay for.
 // Roles of users who never subscribed aren't touched.
 func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time.Time) error {
-	// The role of each plan by its product, and all of them, which are the
-	// roles users can lose.
-	roleByProduct := map[string]discord.RoleID{}
+	// The role of each plan, and all of them, which are the roles users can
+	// lose.
+	roleByPlan := map[string]discord.RoleID{}
 	managed := map[discord.RoleID]bool{}
 	for _, plan := range m.plans {
-		if roleID, ok := planRoleID(&plan); ok && plan.LemonSqueezyProductID != "" {
-			roleByProduct[plan.LemonSqueezyProductID] = roleID
+		if roleID, ok := planRoleID(&plan); ok && (plan.LemonSqueezyProductID != "" || plan.PaddleProductID != "") {
+			roleByPlan[plan.ID] = roleID
 			managed[roleID] = true
 		}
 	}
@@ -90,7 +90,11 @@ func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time
 	// users keep the roles they have.
 	want := map[string]map[discord.RoleID]bool{}
 	for _, sub := range subscriptions {
-		roleID, ok := roleByProduct[sub.LemonsqueezyProductID.String]
+		plan := m.PlanBySubscription(sub)
+		if plan == nil {
+			continue
+		}
+		roleID, ok := roleByPlan[plan.ID]
 		if !ok {
 			continue
 		}

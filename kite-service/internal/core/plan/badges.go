@@ -47,8 +47,8 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 		return nil, fmt.Errorf("failed to get creator stats: %w", err)
 	}
 
-	return userBadges(grants, subs, stats, func(productID string) string {
-		if plan := m.PlanByLemonSqueezyProductID(productID); plan != nil {
+	return userBadges(grants, subs, stats, func(sub *model.Subscription) string {
+		if plan := m.PlanBySubscription(sub); plan != nil {
 			return plan.Title
 		}
 		return ""
@@ -56,13 +56,13 @@ func (m *PlanManager) UserBadges(ctx context.Context, userIDs []string) (map[str
 }
 
 // userBadges works out the badges of users from the badges admins gave them, their subscriptions and their templates in the
-// marketplace. planTitle is the title of the plan of a product, or empty if it
-// isn't one.
+// marketplace. planTitle is the title of the plan of a subscription, or empty
+// if its product isn't one.
 func userBadges(
 	grants []*model.UserBadgeGrant,
 	subs []*model.Subscription,
 	stats []*model.CreatorStats,
-	planTitle func(productID string) string,
+	planTitle func(sub *model.Subscription) string,
 ) map[string][]model.UserBadge {
 	granted := map[string]map[model.UserBadgeKind]bool{}
 	for _, g := range grants {
@@ -77,7 +77,7 @@ func userBadges(
 	// have several, as subs is newest first.
 	plan := map[string]string{}
 	for _, sub := range subs {
-		title := planTitle(sub.LemonsqueezyProductID.String)
+		title := planTitle(sub)
 		if title == "" {
 			continue
 		}

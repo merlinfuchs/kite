@@ -17,6 +17,10 @@ type Plan struct {
 	YearlyPrice                 float32
 	LemonSqueezyYearlyVariantID string
 
+	PaddleProductID     string
+	PaddlePriceID       string
+	PaddleYearlyPriceID string
+
 	DiscordRoleID string
 
 	FeatureMaxCollaborators     int

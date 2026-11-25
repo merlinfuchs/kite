@@ -254,8 +254,21 @@ type BillingConfig struct {
 	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
 	LemonSqueezyStoreID       string              `toml:"lemonsqueezy_store_id"`
 	TestMode                  bool                `toml:"test_mode"`
+	Paddle                    BillingPaddleConfig `toml:"paddle"`
 	Plans                     []BillingPlanConfig `toml:"plans"`
 	Sale                      BillingSaleConfig   `toml:"sale"`
+}
+
+// BillingPaddleConfig connects Paddle, which replaces Lemon Squeezy. Without
+// an API key, Paddle subscriptions aren't synced.
+type BillingPaddleConfig struct {
+	APIKey string `toml:"api_key"`
+	// WebhookSecret is the secret key of the notification destination, which
+	// signs the webhooks Paddle sends.
+	WebhookSecret string `toml:"webhook_secret"`
+	// Sandbox uses the sandbox environment, whose API keys don't work in the
+	// live one.
+	Sandbox bool `toml:"sandbox"`
 }
 
 // BillingSaleConfig is a discount on the first payment of yearly plans, with
@@ -292,6 +305,11 @@ type BillingPlanConfig struct {
 	// offered monthly.
 	YearlyPrice                 float32 `toml:"yearly_price"`
 	LemonSqueezyYearlyVariantID string  `toml:"lemonsqueezy_yearly_variant_id"`
+
+	// The Paddle product of the plan and its monthly and yearly prices.
+	PaddleProductID     string `toml:"paddle_product_id"`
+	PaddlePriceID       string `toml:"paddle_price_id"`
+	PaddleYearlyPriceID string `toml:"paddle_yearly_price_id"`
 
 	DiscordRoleID string `toml:"discord_role_id"`
 

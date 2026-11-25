@@ -75,6 +75,22 @@ func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan 
 	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyYearlyVariantID }, variantID)
 }
 
+func (m *PlanManager) PlanByPaddleProductID(productID string) *model.Plan {
+	return m.planBy(func(p model.Plan) string { return p.PaddleProductID }, productID)
+}
+
+// PlanBySubscription finds the plan of the subscription's product, nil if
+// the product isn't a plan.
+func (m *PlanManager) PlanBySubscription(sub *model.Subscription) *model.Plan {
+	switch sub.Source {
+	case model.SubscriptionSourcePaddle:
+		return m.PlanByPaddleProductID(sub.PaddleProductID.String)
+	case model.SubscriptionSourceLemonSqueezy:
+		return m.PlanByLemonSqueezyProductID(sub.LemonsqueezyProductID.String)
+	}
+	return nil
+}
+
 func (m *PlanManager) planBy(field func(model.Plan) string, value string) *model.Plan {
 	// The free plan and plans without a yearly variant have empty IDs.
 	if value == "" {

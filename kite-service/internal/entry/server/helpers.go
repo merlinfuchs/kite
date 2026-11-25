@@ -109,6 +109,19 @@ func warnUnverifiedBillingWebhook(cfg *config.Config) {
 	)
 }
 
+// warnUnverifiedPaddleWebhook reports that /v1/billing/webhook rejects all
+// events of Paddle because it's configured without a webhook secret.
+func warnUnverifiedPaddleWebhook(cfg *config.Config) {
+	if cfg.Billing.Paddle.APIKey == "" || cfg.Billing.Paddle.WebhookSecret != "" {
+		return
+	}
+
+	slog.Warn(
+		"No billing.paddle.webhook_secret configured: /v1/billing/webhook " +
+			"will reject all events from Paddle.",
+	)
+}
+
 // engineHTTPTimeout bounds an outbound flow request end to end.
 //
 // The request is already tied to the flow context, whose deadline is shorter

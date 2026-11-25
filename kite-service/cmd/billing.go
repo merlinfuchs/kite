@@ -19,7 +19,7 @@ var billingCMD = cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name: "reconcile",
-			Usage: "Bring stored subscriptions back in line with LemonSqueezy. " +
+			Usage: "Bring stored subscriptions back in line with LemonSqueezy and Paddle. " +
 				"LemonSqueezy cannot replay webhooks, so this is how missed changes are recovered.",
 			Action: billingReconcileCMD,
 			Flags: []cli.Flag{
@@ -29,7 +29,7 @@ var billingCMD = cli.Command{
 				},
 				&cli.DurationFlag{
 					Name:  "delay",
-					Usage: "Wait this long between LemonSqueezy API calls to stay inside the rate limit.",
+					Usage: "Wait this long between API calls to stay inside the rate limits.",
 					Value: billing.ReconcileDelay,
 				},
 			},
@@ -52,10 +52,15 @@ func billingReconcileCMD(c *cli.Context) error {
 
 	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{})
 
-	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
+	paddleClient, err := billing.NewPaddleClient(cfg.Billing.Paddle)
+	if err != nil {
+		return fmt.Errorf("failed to create paddle client: %w", err)
+	}
+
+	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewReconcileLemonSqueezyClient(
 		cfg.Billing.LemonSqueezyAPIKey,
 		cfg.Billing.LemonSqueezySigningSecret,
-	))
+	), paddleClient)
 
 	dryRun := c.Bool("dry_run")
 	if dryRun {

@@ -12,7 +12,7 @@ func TestUserBadges(t *testing.T) {
 	before := earlySupporterCutoff.Add(-24 * time.Hour)
 	after := earlyCreatorCutoff.Add(24 * time.Hour)
 	sub := func(userID, product, status string, createdAt time.Time) *model.Subscription {
-		return &model.Subscription{UserID: userID, LemonsqueezyProductID: null.StringFrom(product), Status: status, CreatedAt: createdAt}
+		return &model.Subscription{UserID: userID, Source: model.SubscriptionSourceLemonSqueezy, LemonsqueezyProductID: null.StringFrom(product), Status: status, CreatedAt: createdAt}
 	}
 	titles := map[string]string{"premium": "Premium", "plus": "Plus"}
 
@@ -36,7 +36,7 @@ func TestUserBadges(t *testing.T) {
 			{UserID: "big", FirstListedAt: after, InstallerCount: 1000, StarCount: 5000},
 			{UserID: "liked", FirstListedAt: after, StarCount: 5},
 		},
-		func(productID string) string { return titles[productID] },
+		func(sub *model.Subscription) string { return titles[sub.LemonsqueezyProductID.String] },
 	)
 
 	want := map[string][]model.UserBadge{

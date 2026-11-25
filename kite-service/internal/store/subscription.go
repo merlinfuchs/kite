@@ -20,4 +20,10 @@ type SubscriptionStore interface {
 	// UpsertLemonSqueezySubscription returns ErrOutdated if the stored
 	// subscription was updated after sub.
 	UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error)
+	// SubscriptionByPaddleID returns ErrNotFound if we have never seen the
+	// subscription before.
+	SubscriptionByPaddleID(ctx context.Context, paddleID string) (*model.Subscription, error)
+	// UpsertPaddleSubscription returns ErrOutdated if the stored subscription
+	// was updated after sub.
+	UpsertPaddleSubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error)
 }

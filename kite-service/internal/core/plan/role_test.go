@@ -40,7 +40,7 @@ func (s subscriptionStore) AllSubscriptions(context.Context) ([]*model.Subscript
 var rolePlans = []model.Plan{
 	{ID: "basic"},
 	{ID: "plus", LemonSqueezyProductID: "plus", DiscordRoleID: "8"},
-	{ID: "premium", LemonSqueezyProductID: "premium", DiscordRoleID: "7"},
+	{ID: "premium", LemonSqueezyProductID: "premium", PaddleProductID: "pro_premium", DiscordRoleID: "7"},
 }
 
 func TestHandOutCreatorRoles(t *testing.T) {
@@ -95,6 +95,7 @@ func TestSyncPlanRoles(t *testing.T) {
 	sub := func(userID, productID, status string, renewsIn, endsIn time.Duration) *model.Subscription {
 		s := &model.Subscription{
 			UserID:                userID,
+			Source:                model.SubscriptionSourceLemonSqueezy,
 			Status:                status,
 			LemonsqueezyProductID: null.StringFrom(productID),
 		}
@@ -104,6 +105,13 @@ func TestSyncPlanRoles(t *testing.T) {
 		if endsIn != 0 {
 			s.EndsAt = null.TimeFrom(now.Add(endsIn))
 		}
+		return s
+	}
+	paddleSub := func(userID, productID, status string, renewsIn, endsIn time.Duration) *model.Subscription {
+		s := sub(userID, "", status, renewsIn, endsIn)
+		s.Source = model.SubscriptionSourcePaddle
+		s.LemonsqueezyProductID = null.String{}
+		s.PaddleProductID = null.StringFrom(productID)
 		return s
 	}
 	subs := []*model.Subscription{
@@ -127,6 +135,10 @@ func TestSyncPlanRoles(t *testing.T) {
 		sub("109", "premium", model.SubscriptionStatusPastDue, -5*day, 0),
 		// Subscribed to a product that isn't a plan.
 		sub("110", "legacy", model.SubscriptionStatusActive, 20*day, 0),
+		// Pays for Premium through Paddle.
+		paddleSub("111", "pro_premium", model.SubscriptionStatusActive, 20*day, 0),
+		// Paid for Premium through Paddle until five days ago.
+		paddleSub("112", "pro_premium", model.SubscriptionStatusExpired, 0, -5*day),
 	}
 	// Every member has the Premium role and a role that isn't a plan's.
 	var mu sync.Mutex
@@ -162,6 +174,7 @@ func TestSyncPlanRoles(t *testing.T) {
 		"DELETE /guilds/1/members/104/roles/7",
 		"DELETE /guilds/1/members/105/roles/7",
 		"DELETE /guilds/1/members/108/roles/7",
+		"DELETE /guilds/1/members/112/roles/7",
 		"PUT /guilds/1/members/105/roles/8",
 	}
 	if strings.Join(changed, ",") != strings.Join(want, ",") {

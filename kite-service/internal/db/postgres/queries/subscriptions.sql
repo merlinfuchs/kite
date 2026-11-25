@@ -51,3 +51,40 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
 -- Webhooks can arrive out of order, an older state must not overwrite a newer one
 WHERE subscriptions.updated_at <= EXCLUDED.updated_at
 RETURNING *;
+
+-- name: GetSubscriptionByPaddleID :one
+SELECT * FROM subscriptions WHERE paddle_subscription_id = $1;
+
+-- name: UpsertPaddleSubscription :one
+INSERT INTO subscriptions (
+    id,
+    display_name,
+    source,
+    status,
+    status_formatted,
+    renews_at,
+    trial_ends_at,
+    ends_at,
+    created_at,
+    updated_at,
+    user_id,
+    paddle_subscription_id,
+    paddle_customer_id,
+    paddle_product_id,
+    paddle_price_id
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+ON CONFLICT (paddle_subscription_id) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    status = EXCLUDED.status,
+    status_formatted = EXCLUDED.status_formatted,
+    renews_at = EXCLUDED.renews_at,
+    trial_ends_at = EXCLUDED.trial_ends_at,
+    ends_at = EXCLUDED.ends_at,
+    updated_at = EXCLUDED.updated_at,
+    paddle_customer_id = EXCLUDED.paddle_customer_id,
+    paddle_product_id = EXCLUDED.paddle_product_id,
+    paddle_price_id = EXCLUDED.paddle_price_id
+-- Webhooks can arrive out of order, an older state must not overwrite a newer one
+WHERE subscriptions.updated_at <= EXCLUDED.updated_at
+RETURNING *;

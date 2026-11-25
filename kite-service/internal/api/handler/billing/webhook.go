@@ -25,6 +25,20 @@ var subscriptionEventNames = map[string]bool{
 	lemonsqueezy.WebhookEventSubscriptionUnpaused:  true,
 }
 
+// HandleWebhook takes the webhooks of Lemon Squeezy and Paddle on the same
+// URL, which nginx rate limits like other webhooks.
+func (h *BillingHandler) HandleWebhook(c *handler.Context) (*wire.BillingWebhookResponse, error) {
+	if c.Header("Paddle-Signature") != "" {
+		return h.HandlePaddleWebhook(c)
+	}
+
+	var body json.RawMessage
+	if err := c.ParseBody(&body); err != nil {
+		return nil, err
+	}
+	return h.HandleBillingWebhook(c, body)
+}
+
 func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawMessage) (*wire.BillingWebhookResponse, error) {
 	eventName := c.Header("X-Event-Name")
 	signature := c.Header("X-Signature")

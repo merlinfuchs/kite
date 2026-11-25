@@ -25,9 +25,26 @@ type Subscription struct {
 	LemonsqueezyOrderID        null.String
 	LemonsqueezyProductID      null.String
 	LemonsqueezyVariantID      null.String
+	PaddleSubscriptionID       null.String
+	PaddleCustomerID           null.String
+	PaddleProductID            null.String
+	PaddlePriceID              null.String
 }
 
-// The statuses a LemonSqueezy subscription can have.
+// ProviderID is the ID of the subscription at its provider, empty if it isn't
+// from one.
+func (s *Subscription) ProviderID() string {
+	switch s.Source {
+	case SubscriptionSourceLemonSqueezy:
+		return s.LemonsqueezySubscriptionID.String
+	case SubscriptionSourcePaddle:
+		return s.PaddleSubscriptionID.String
+	}
+	return ""
+}
+
+// The statuses a LemonSqueezy subscription can have. Paddle subscriptions are
+// stored with these too, see billing.SubscriptionFromPaddle.
 const (
 	SubscriptionStatusOnTrial   = "on_trial"
 	SubscriptionStatusActive    = "active"
@@ -70,6 +87,7 @@ type SubscriptionSource string
 
 const (
 	SubscriptionSourceLemonSqueezy SubscriptionSource = "lemonsqueezy"
+	SubscriptionSourcePaddle       SubscriptionSource = "paddle"
 )
 
 func (s SubscriptionSource) String() string {
