@@ -2,22 +2,12 @@ import { BillingPlan, BillingSale } from "./types/wire.gen";
 
 export type BillingInterval = "monthly" | "yearly";
 
-// Yearly is only offered once every paid plan has a yearly variant and price,
-// so the toggle never switches some plans and silently leaves others monthly.
+// Yearly is only offered once every paid plan has a yearly price, so the
+// toggle never switches some plans and silently leaves others monthly. Plans
+// only have one if checkout can sell them yearly.
 export function plansHaveYearly(plans: BillingPlan[]) {
   const paid = plans.filter((plan) => plan.price > 0);
-  return (
-    paid.length > 0 &&
-    paid.every(
-      (plan) => plan.lemonsqueezy_yearly_variant_id && plan.yearly_price > 0
-    )
-  );
-}
-
-export function planVariantId(plan: BillingPlan, interval: BillingInterval) {
-  return interval === "yearly"
-    ? plan.lemonsqueezy_yearly_variant_id
-    : plan.lemonsqueezy_variant_id;
+  return paid.length > 0 && paid.every((plan) => plan.yearly_price > 0);
 }
 
 // The price per month to show big, and for yearly what's actually charged. A

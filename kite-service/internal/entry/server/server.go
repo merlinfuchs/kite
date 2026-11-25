@@ -268,6 +268,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			TestMode:                  cfg.Billing.TestMode,
 			Paddle:                    cfg.Billing.Paddle,
 			PaddleClient:              paddleClient,
+			CheckoutProvider:          cfg.Billing.CheckoutProvider,
 			Plans:                     cfg.Billing.Plans,
 			Sale:                      cfg.Billing.Sale,
 		},

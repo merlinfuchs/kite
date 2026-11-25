@@ -30,7 +30,7 @@ Kite Plus raises the limits and includes the rotating status, the `Set status` b
 
 ## Subscribing
 
-Open the `Plans` page of your app and click `Get started` on a plan. You pay through our payment provider, Lemon Squeezy. The plan applies right away.
+Open the `Plans` page of your app and click `Get started` on a plan. You pay through our payment provider, Paddle. The plan applies right away. Older subscriptions stay with Lemon Squeezy for now.
 
 To change to another plan, click `Switch plan`. You're charged or credited the difference for the rest of the billing period.
 

@@ -65,7 +65,7 @@ func newTestPaddleWebhookServer(t *testing.T, secret string) *testPaddleWebhookS
 
 	s.Handler = newTestWebhookServer(NewBillingHandler(
 		BillingHandlerConfig{Paddle: config.BillingPaddleConfig{WebhookSecret: secret}},
-		nil, s.subStore, planManager, subManager, lsClient,
+		nil, s.subStore, planManager, subManager, lsClient, paddleClient,
 	))
 	return s
 }

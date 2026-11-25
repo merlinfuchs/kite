@@ -27,6 +27,11 @@ import (
 type fakeSubscriptionStore struct {
 	store.SubscriptionStore
 	upserted *model.Subscription
+	byApp    []*model.Subscription
+}
+
+func (s *fakeSubscriptionStore) SubscriptionsByAppID(ctx context.Context, appID string) ([]*model.Subscription, error) {
+	return s.byApp, nil
 }
 
 func (s *fakeSubscriptionStore) UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
@@ -137,7 +142,7 @@ func newTestSubscriptionWebhookServer(t *testing.T, secret string) *testWebhookS
 
 	s.Handler = newTestWebhookServer(NewBillingHandler(
 		BillingHandlerConfig{LemonSqueezySigningSecret: secret},
-		nil, s.subStore, planManager, subManager, lsClient,
+		nil, s.subStore, planManager, subManager, lsClient, nil,
 	))
 	return s
 }

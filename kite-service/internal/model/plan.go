@@ -46,6 +46,31 @@ type Plan struct {
 	FeatureMaxAIPromptsPerMonth int
 }
 
+// PriceID is what the provider sells the plan by, monthly or yearly: a Lemon
+// Squeezy variant or a Paddle price. It's empty if the provider doesn't sell
+// the plan that way.
+func (p Plan) PriceID(source SubscriptionSource, yearly bool) string {
+	switch source {
+	case SubscriptionSourceLemonSqueezy:
+		if yearly {
+			return p.LemonSqueezyYearlyVariantID
+		}
+		return p.LemonSqueezyVariantID
+	case SubscriptionSourcePaddle:
+		if yearly {
+			return p.PaddleYearlyPriceID
+		}
+		return p.PaddlePriceID
+	}
+	return ""
+}
+
+// Yearly is whether the subscription to the plan is paid yearly.
+func (p Plan) Yearly(sub *Subscription) bool {
+	yearly := p.PriceID(sub.Source, true)
+	return yearly != "" && sub.PriceID() == yearly
+}
+
 func (p Plan) Features() Features {
 	return Features{
 		MaxCollaborators:     p.FeatureMaxCollaborators,

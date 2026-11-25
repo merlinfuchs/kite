@@ -10,7 +10,7 @@ import {
   useMessages,
   useVariables,
 } from "@/lib/hooks/api";
-import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
+import { useCheckout } from "@/lib/hooks/billing";
 import { useAppId } from "@/lib/hooks/params";
 import { planHighlights } from "@/lib/planLimits";
 import { EventListenerSource } from "@/lib/flow/eventTypes";
@@ -421,7 +421,7 @@ export function UpgradeButton({
   children?: ReactNode;
 }) {
   const subscriptions = useAppSubscriptions();
-  const checkout = useLemonSqueezyCheckout();
+  const checkout = useCheckout();
 
   const label = children ?? `Upgrade to Kite ${plan.title}`;
 

@@ -63,16 +63,12 @@ func PlansFromConfig(configured []config.BillingPlanConfig) []model.Plan {
 	return plans
 }
 
-func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
-	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
+func (m *PlanManager) PlanByID(id string) *model.Plan {
+	return m.planBy(func(p model.Plan) string { return p.ID }, id)
 }
 
-// PlanByLemonSqueezyVariantID finds the plan by its monthly or yearly variant.
-func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan {
-	if plan := m.planBy(func(p model.Plan) string { return p.LemonSqueezyVariantID }, variantID); plan != nil {
-		return plan
-	}
-	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyYearlyVariantID }, variantID)
+func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
+	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
 }
 
 func (m *PlanManager) PlanByPaddleProductID(productID string) *model.Plan {

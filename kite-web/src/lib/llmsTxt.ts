@@ -98,9 +98,9 @@ export function llmsTxt(data: LlmsTxtData) {
         .filter(([key]) => plan[key] === true)
         .map(([, name]) => name);
       lines.push(
-        `- Kite ${plan.title}: ${price(plan.price)} a month or ${price(
-          plan.yearly_price
-        )} a year. ${capitalize(planLimits(plan))}.${
+        `- Kite ${plan.title}: ${price(plan.price)} a month${
+          plan.yearly_price > 0 ? ` or ${price(plan.yearly_price)} a year` : ""
+        }. ${capitalize(planLimits(plan))}.${
           features.length > 0 ? ` Includes ${list(features)}.` : ""
         }`
       );

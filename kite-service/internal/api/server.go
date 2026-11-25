@@ -55,9 +55,10 @@ type BillingConfig struct {
 	TestMode                  bool
 	Paddle                    config.BillingPaddleConfig
 	// PaddleClient is nil without a Paddle API key.
-	PaddleClient *paddle.SDK
-	Plans        []config.BillingPlanConfig
-	Sale         config.BillingSaleConfig
+	PaddleClient     *paddle.SDK
+	CheckoutProvider string
+	Plans            []config.BillingPlanConfig
+	Sale             config.BillingSaleConfig
 }
 
 type APIServer struct {

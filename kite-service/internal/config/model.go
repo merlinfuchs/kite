@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -40,7 +42,36 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	return validate.Struct(cfg)
+	if err := validate.Struct(cfg); err != nil {
+		return err
+	}
+	return cfg.Billing.validate(time.Now())
+}
+
+// validate checks what tags can't, once checkouts go to Paddle. Paddle needs
+// its keys, and every plan sold through Lemon Squeezy has to be sold through
+// Paddle too, or the plans page would stop offering it. A sale that hasn't
+// ended needs a Paddle discount, or the site would show a discount checkout
+// doesn't give.
+func (c BillingConfig) validate(now time.Time) error {
+	if c.CheckoutProvider != "paddle" {
+		return nil
+	}
+
+	var errs []error
+	if c.Paddle.APIKey == "" || c.Paddle.ClientToken == "" || c.Paddle.WebhookSecret == "" {
+		errs = append(errs, errors.New("billing.paddle needs api_key, client_token and webhook_secret while checkouts go to Paddle"))
+	}
+	for _, plan := range c.Plans {
+		if (plan.LemonSqueezyVariantID != "" && plan.PaddlePriceID == "") ||
+			(plan.LemonSqueezyYearlyVariantID != "" && plan.PaddleYearlyPriceID == "") {
+			errs = append(errs, fmt.Errorf("billing plan %s needs the Paddle prices of its Lemon Squeezy variants while checkouts go to Paddle", plan.ID))
+		}
+	}
+	if c.Sale.Code != "" && now.Before(c.Sale.EndsAt) && c.Sale.PaddleDiscountID == "" {
+		errs = append(errs, errors.New("billing.sale.paddle_discount_id is required while checkouts go to Paddle"))
+	}
+	return errors.Join(errs...)
 }
 
 func (cfg *Config) IsPrimaryCluster() bool {
@@ -257,6 +288,10 @@ type BillingConfig struct {
 	Paddle                    BillingPaddleConfig `toml:"paddle"`
 	Plans                     []BillingPlanConfig `toml:"plans"`
 	Sale                      BillingSaleConfig   `toml:"sale"`
+
+	// CheckoutProvider is where new subscriptions are bought, lemonsqueezy
+	// or paddle. Existing ones stay with theirs.
+	CheckoutProvider string `toml:"checkout_provider" validate:"oneof=lemonsqueezy paddle"`
 }
 
 // BillingPaddleConfig connects Paddle, which replaces Lemon Squeezy. Without
@@ -266,6 +301,8 @@ type BillingPaddleConfig struct {
 	// WebhookSecret is the secret key of the notification destination, which
 	// signs the webhooks Paddle sends.
 	WebhookSecret string `toml:"webhook_secret"`
+	// ClientToken lets Paddle.js open the checkout in the browser.
+	ClientToken string `toml:"client_token"`
 	// Sandbox uses the sandbox environment, whose API keys don't work in the
 	// live one.
 	Sandbox bool `toml:"sandbox"`
@@ -274,7 +311,8 @@ type BillingPaddleConfig struct {
 // BillingSaleConfig is a discount on the first payment of yearly plans, with
 // a discount code that has to exist in Lemon Squeezy. The site and dashboard
 // show it between StartsAt and EndsAt, and checkouts of yearly plans apply the
-// code. Without a code there's no sale.
+// code. Without a code there's no sale. Paddle checkouts apply the discount
+// PaddleDiscountID instead.
 type BillingSaleConfig struct {
 	// Name is what the site calls the sale, like "Black Week".
 	Name     string    `toml:"name" validate:"required_with=Code"`
@@ -282,6 +320,8 @@ type BillingSaleConfig struct {
 	Percent  int       `toml:"percent" validate:"required_with=Code,omitempty,min=1,max=100"`
 	StartsAt time.Time `toml:"starts_at"`
 	EndsAt   time.Time `toml:"ends_at" validate:"required_with=Code"`
+
+	PaddleDiscountID string `toml:"paddle_discount_id"`
 }
 
 // Active is whether the sale runs at now.

@@ -43,6 +43,18 @@ func (s *Subscription) ProviderID() string {
 	return ""
 }
 
+// PriceID is what the subscription pays for at its provider, a Lemon Squeezy
+// variant or a Paddle price.
+func (s *Subscription) PriceID() string {
+	switch s.Source {
+	case SubscriptionSourceLemonSqueezy:
+		return s.LemonsqueezyVariantID.String
+	case SubscriptionSourcePaddle:
+		return s.PaddlePriceID.String
+	}
+	return ""
+}
+
 // The statuses a LemonSqueezy subscription can have. Paddle subscriptions are
 // stored with these too, see billing.SubscriptionFromPaddle.
 const (

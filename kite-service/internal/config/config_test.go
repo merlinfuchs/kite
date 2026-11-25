@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -152,6 +153,50 @@ func TestBillingSaleParse(t *testing.T) {
 				t.Errorf("valid sale fails validation: %v", err)
 			}
 		})
+	}
+}
+
+func TestBillingPaddleCheckoutValidate(t *testing.T) {
+	now := time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC)
+	paddle := BillingPaddleConfig{APIKey: "key", ClientToken: "token", WebhookSecret: "secret"}
+	plans := []BillingPlanConfig{
+		{ID: "basic"},
+		{ID: "plus", LemonSqueezyVariantID: "10", LemonSqueezyYearlyVariantID: "11", PaddlePriceID: "pri_1", PaddleYearlyPriceID: "pri_2"},
+	}
+	sale := BillingSaleConfig{Name: "Black Week", Code: "BW", Percent: 30, EndsAt: now.Add(time.Hour)}
+
+	valid := BillingConfig{CheckoutProvider: "paddle", Paddle: paddle, Plans: plans}
+	for name, tt := range map[string]struct {
+		change func(c *BillingConfig)
+		ok     bool
+	}{
+		"complete": {func(c *BillingConfig) {}, true},
+		"on Lemon Squeezy": {func(c *BillingConfig) {
+			c.CheckoutProvider = "lemonsqueezy"
+			c.Paddle = BillingPaddleConfig{}
+			c.Sale = sale
+		}, true},
+		"without a client token":   {func(c *BillingConfig) { c.Paddle.ClientToken = "" }, false},
+		"without a webhook secret": {func(c *BillingConfig) { c.Paddle.WebhookSecret = "" }, false},
+		"without a yearly price": {func(c *BillingConfig) {
+			c.Plans = []BillingPlanConfig{{ID: "plus", LemonSqueezyVariantID: "10", LemonSqueezyYearlyVariantID: "11", PaddlePriceID: "pri_1"}}
+		}, false},
+		"with a sale without a discount": {func(c *BillingConfig) { c.Sale = sale }, false},
+		"with a sale and a discount": {func(c *BillingConfig) {
+			c.Sale = sale
+			c.Sale.PaddleDiscountID = "dsc_1"
+		}, true},
+		"after the sale": {func(c *BillingConfig) {
+			c.Sale = sale
+			c.Sale.EndsAt = now.Add(-time.Hour)
+		}, true},
+	} {
+		cfg := valid
+		cfg.Plans = slices.Clone(plans)
+		tt.change(&cfg)
+		if err := cfg.validate(now); (err == nil) != tt.ok {
+			t.Errorf("%s: err = %v, want ok %v", name, err, tt.ok)
+		}
 	}
 }
 
