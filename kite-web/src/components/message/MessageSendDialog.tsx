@@ -18,7 +18,7 @@ import {
   useMessageInstances,
 } from "@/lib/hooks/api";
 import GuildSelect from "../common/GuildSelect";
-import ChannelSelect from "../common/ChannelSelect";
+import ChannelSelect, { sendableChannelTypes } from "../common/ChannelSelect";
 import MessageSendInstanceEntry from "./MessageSendInstanceEntry";
 import { useMessageInstanceCreateMutation } from "@/lib/api/mutations";
 import { useAppId, useMessageId } from "@/lib/hooks/params";
@@ -207,7 +207,7 @@ export default function MessageSendDialog({
             guildId={guildId || null}
             value={channelId}
             onChange={selectChannel}
-            types={isForum ? forumChannelTypes : undefined}
+            types={isForum ? forumChannelTypes : sendableChannelTypes}
             placeholder={isForum ? "Select forum..." : undefined}
             emptyText={isForum ? "No forum channel found." : undefined}
           />
