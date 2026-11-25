@@ -412,6 +412,10 @@ type Subscription struct {
 	LemonsqueezyOrderID        pgtype.Text
 	LemonsqueezyProductID      pgtype.Text
 	LemonsqueezyVariantID      pgtype.Text
+	PaddleSubscriptionID       pgtype.Text
+	PaddleCustomerID           pgtype.Text
+	PaddleProductID            pgtype.Text
+	PaddlePriceID              pgtype.Text
 }
 
 type UsageRecord struct {

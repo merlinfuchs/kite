@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
+	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -16,14 +18,16 @@ import (
 )
 
 // SubscriptionManager keeps our record of a subscription in step with
-// LemonSqueezy. It lives outside the API handler because the reconcile command
-// drives the same logic from the CLI.
+// LemonSqueezy or Paddle, which replaces it. It lives outside the API handler
+// because the reconcile command drives the same logic from the CLI.
 type SubscriptionManager struct {
 	subscriptionStore store.SubscriptionStore
 	entitlementStore  store.EntitlementStore
 	planManager       *plan.PlanManager
 
 	client *lemonsqueezy.Client
+	// paddle is nil without a Paddle API key.
+	paddle *paddle.SDK
 }
 
 // NewLemonSqueezyClient builds the client the subscription manager and the API
@@ -40,17 +44,19 @@ func NewSubscriptionManager(
 	entitlementStore store.EntitlementStore,
 	planManager *plan.PlanManager,
 	client *lemonsqueezy.Client,
+	paddle *paddle.SDK,
 ) *SubscriptionManager {
 	return &SubscriptionManager{
 		subscriptionStore: subscriptionStore,
 		entitlementStore:  entitlementStore,
 		planManager:       planManager,
 		client:            client,
+		paddle:            paddle,
 	}
 }
 
 // Sync stores the subscription and brings its entitlements in line with the
-// plan and dates LemonSqueezy reports.
+// plan and dates its provider reports.
 //
 // appID is empty when we cannot tell which app the subscription belongs to,
 // which is the case for webhooks that arrive without our checkout metadata and
@@ -58,7 +64,6 @@ func NewSubscriptionManager(
 // created, because there is no app to attribute a new one to.
 func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, appID string) (*model.Subscription, error) {
 	sub.ID = util.UniqueID()
-	sub.Source = model.SubscriptionSourceLemonSqueezy
 
 	// Checked before storing anything, so incomplete data never replaces a
 	// stored product
@@ -67,10 +72,10 @@ func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, 
 		return nil, err
 	}
 
-	subscription, err := m.subscriptionStore.UpsertLemonSqueezySubscription(ctx, sub)
+	subscription, err := m.upsert(ctx, sub)
 	if errors.Is(err, store.ErrOutdated) {
 		// A newer state was stored first, the entitlements follow that one
-		subscription, err = m.subscriptionStore.SubscriptionByLemonSqueezyID(ctx, sub.LemonsqueezySubscriptionID.String)
+		subscription, err = m.stored(ctx, sub)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get newer subscription: %w", err)
 		}
@@ -107,11 +112,32 @@ func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, 
 	return subscription, nil
 }
 
+func (m *SubscriptionManager) upsert(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	switch sub.Source {
+	case model.SubscriptionSourceLemonSqueezy:
+		return m.subscriptionStore.UpsertLemonSqueezySubscription(ctx, sub)
+	case model.SubscriptionSourcePaddle:
+		return m.subscriptionStore.UpsertPaddleSubscription(ctx, sub)
+	}
+	return nil, fmt.Errorf("unknown subscription source %q", sub.Source)
+}
+
+// stored returns the stored subscription with the provider ID of sub.
+func (m *SubscriptionManager) stored(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	switch sub.Source {
+	case model.SubscriptionSourceLemonSqueezy:
+		return m.subscriptionStore.SubscriptionByLemonSqueezyID(ctx, sub.LemonsqueezySubscriptionID.String)
+	case model.SubscriptionSourcePaddle:
+		return m.subscriptionStore.SubscriptionByPaddleID(ctx, sub.PaddleSubscriptionID.String)
+	}
+	return nil, fmt.Errorf("unknown subscription source %q", sub.Source)
+}
+
 func (m *SubscriptionManager) plan(sub model.Subscription) (*model.Plan, error) {
-	productID := sub.LemonsqueezyProductID.String
-	plan := m.planManager.PlanByLemonSqueezyProductID(productID)
+	plan := m.planManager.PlanBySubscription(&sub)
 	if plan == nil {
-		return nil, fmt.Errorf("failed to find plan for product ID %s", productID)
+		productID := cmp.Or(sub.LemonsqueezyProductID.String, sub.PaddleProductID.String)
+		return nil, fmt.Errorf("failed to find plan for %s product ID %s", sub.Source, productID)
 	}
 	return plan, nil
 }
@@ -156,6 +182,7 @@ func (m *SubscriptionManager) Refresh(ctx context.Context, lemonSqueezyID string
 func SubscriptionFromLemonSqueezy(lemonSqueezyID string, sub lemonsqueezy.Subscription, userID string) model.Subscription {
 	return model.Subscription{
 		UserID:          userID,
+		Source:          model.SubscriptionSourceLemonSqueezy,
 		DisplayName:     sub.ProductName,
 		Status:          sub.Status,
 		StatusFormatted: sub.StatusFormatted,

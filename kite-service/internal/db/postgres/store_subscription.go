@@ -117,6 +117,46 @@ func (c *Client) UpsertLemonSqueezySubscription(ctx context.Context, sub model.S
 	return rowToSubscription(row), nil
 }
 
+func (c *Client) SubscriptionByPaddleID(ctx context.Context, paddleID string) (*model.Subscription, error) {
+	row, err := c.Q.GetSubscriptionByPaddleID(ctx, pgtype.Text{String: paddleID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToSubscription(row), nil
+}
+
+func (c *Client) UpsertPaddleSubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	row, err := c.Q.UpsertPaddleSubscription(ctx, pgmodel.UpsertPaddleSubscriptionParams{
+		ID:                   sub.ID,
+		DisplayName:          sub.DisplayName,
+		Source:               string(sub.Source),
+		Status:               sub.Status,
+		StatusFormatted:      sub.StatusFormatted,
+		RenewsAt:             pgtype.Timestamp{Time: sub.RenewsAt.Time, Valid: sub.RenewsAt.Valid},
+		TrialEndsAt:          pgtype.Timestamp{Time: sub.TrialEndsAt.Time, Valid: sub.TrialEndsAt.Valid},
+		EndsAt:               pgtype.Timestamp{Time: sub.EndsAt.Time, Valid: sub.EndsAt.Valid},
+		CreatedAt:            pgtype.Timestamp{Time: sub.CreatedAt, Valid: true},
+		UpdatedAt:            pgtype.Timestamp{Time: sub.UpdatedAt, Valid: true},
+		UserID:               sub.UserID,
+		PaddleSubscriptionID: pgtype.Text{String: sub.PaddleSubscriptionID.String, Valid: sub.PaddleSubscriptionID.Valid},
+		PaddleCustomerID:     pgtype.Text{String: sub.PaddleCustomerID.String, Valid: sub.PaddleCustomerID.Valid},
+		PaddleProductID:      pgtype.Text{String: sub.PaddleProductID.String, Valid: sub.PaddleProductID.Valid},
+		PaddlePriceID:        pgtype.Text{String: sub.PaddlePriceID.String, Valid: sub.PaddlePriceID.Valid},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrOutdated
+		}
+		return nil, err
+	}
+
+	return rowToSubscription(row), nil
+}
+
 func rowToSubscription(row pgmodel.Subscription) *model.Subscription {
 	if row.ID == "" {
 		return nil
@@ -139,5 +179,9 @@ func rowToSubscription(row pgmodel.Subscription) *model.Subscription {
 		LemonsqueezyOrderID:        null.NewString(row.LemonsqueezyOrderID.String, row.LemonsqueezyOrderID.Valid),
 		LemonsqueezyProductID:      null.NewString(row.LemonsqueezyProductID.String, row.LemonsqueezyProductID.Valid),
 		LemonsqueezyVariantID:      null.NewString(row.LemonsqueezyVariantID.String, row.LemonsqueezyVariantID.Valid),
+		PaddleSubscriptionID:       null.NewString(row.PaddleSubscriptionID.String, row.PaddleSubscriptionID.Valid),
+		PaddleCustomerID:           null.NewString(row.PaddleCustomerID.String, row.PaddleCustomerID.Valid),
+		PaddleProductID:            null.NewString(row.PaddleProductID.String, row.PaddleProductID.Valid),
+		PaddlePriceID:              null.NewString(row.PaddlePriceID.String, row.PaddlePriceID.Valid),
 	}
 }

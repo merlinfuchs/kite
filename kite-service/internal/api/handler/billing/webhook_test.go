@@ -37,6 +37,21 @@ func (s *fakeSubscriptionStore) UpsertLemonSqueezySubscription(ctx context.Conte
 	return &sub, nil
 }
 
+func (s *fakeSubscriptionStore) UpsertPaddleSubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	if s.upserted != nil && s.upserted.UpdatedAt.After(sub.UpdatedAt) {
+		return nil, store.ErrOutdated
+	}
+	s.upserted = &sub
+	return &sub, nil
+}
+
+func (s *fakeSubscriptionStore) SubscriptionByPaddleID(ctx context.Context, paddleID string) (*model.Subscription, error) {
+	if s.upserted != nil && s.upserted.PaddleSubscriptionID.String == paddleID {
+		return s.upserted, nil
+	}
+	return nil, store.ErrNotFound
+}
+
 func (s *fakeSubscriptionStore) SubscriptionByLemonSqueezyID(ctx context.Context, lemonSqueezyID string) (*model.Subscription, error) {
 	if s.upserted != nil && s.upserted.LemonsqueezySubscriptionID.String == lemonSqueezyID {
 		return s.upserted, nil
@@ -47,11 +62,17 @@ func (s *fakeSubscriptionStore) SubscriptionByLemonSqueezyID(ctx context.Context
 type fakeEntitlementStore struct {
 	store.EntitlementStore
 	upserted *model.Entitlement
+	updated  *model.Entitlement
 }
 
 func (s *fakeEntitlementStore) UpsertSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) (*model.Entitlement, error) {
 	s.upserted = &entitlement
 	return &entitlement, nil
+}
+
+func (s *fakeEntitlementStore) UpdateSubscriptionEntitlement(ctx context.Context, entitlement model.Entitlement) error {
+	s.updated = &entitlement
+	return nil
 }
 
 func computeSignature(secret string, payload []byte) string {
@@ -63,7 +84,7 @@ func computeSignature(secret string, payload []byte) string {
 func newTestWebhookServer(h *BillingHandler) http.Handler {
 	mux := http.NewServeMux()
 	group := handler.Group(mux, "/v1")
-	group.Post("/billing/webhook", handler.TypedWithBody(h.HandleBillingWebhook))
+	group.Post("/billing/webhook", handler.Typed(h.HandleWebhook))
 	return mux
 }
 
@@ -107,7 +128,7 @@ func newTestSubscriptionWebhookServer(t *testing.T, secret string) *testWebhookS
 		lemonsqueezy.WithAPIKey("key"),
 		lemonsqueezy.WithSigningSecret(secret),
 	)
-	subManager := corebilling.NewSubscriptionManager(s.subStore, s.entStore, planManager, lsClient)
+	subManager := corebilling.NewSubscriptionManager(s.subStore, s.entStore, planManager, lsClient, nil)
 
 	s.Handler = newTestWebhookServer(NewBillingHandler(
 		BillingHandlerConfig{LemonSqueezySigningSecret: secret},
@@ -205,6 +226,7 @@ func TestBillingWebhookKeepsNewerSubscription(t *testing.T) {
 	server.subStore.upserted = &model.Subscription{
 		ID:                         "sub-1",
 		UserID:                     "user-456",
+		Source:                     model.SubscriptionSourceLemonSqueezy,
 		UpdatedAt:                  newer,
 		RenewsAt:                   null.TimeFrom(renewsAt),
 		LemonsqueezySubscriptionID: null.StringFrom("ls-sub-789"),

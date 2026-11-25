@@ -1,21 +1,23 @@
 package billing
 
 import (
+	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
-// ReconcileDelay is the pause between LemonSqueezy API calls. It keeps
-// reconciliation well inside the rate limit of 300 requests per minute, which
-// webhooks and checkouts share.
+// ReconcileDelay is the pause between API calls. It keeps reconciliation well
+// inside the rate limits of 300 requests per minute of LemonSqueezy and 240 of
+// Paddle, which webhooks and checkouts share.
 const ReconcileDelay = time.Second
 
 // Run reconciles on startup and every few hours after, which recovers
-// webhooks that failed for longer than LemonSqueezy retries them.
+// webhooks that failed for longer than they're retried.
 func (m *SubscriptionManager) Run(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(6 * time.Hour)
@@ -38,11 +40,11 @@ func (m *SubscriptionManager) Run(ctx context.Context) {
 type ReconcileResult struct {
 	// Total is the number of subscriptions considered.
 	Total int
-	// Skipped counts subscriptions we don't look up, because they were never
-	// bought through LemonSqueezy or have expired, which is final.
+	// Skipped counts subscriptions we don't look up, because their provider
+	// isn't configured or they have expired, which is final.
 	Skipped int
-	// Changed counts subscriptions that were updated in LemonSqueezy since we
-	// last stored them.
+	// Changed counts subscriptions that were updated by their provider since
+	// we last stored them.
 	Changed int
 	// Unchanged counts subscriptions that were already up to date.
 	Unchanged int
@@ -50,12 +52,13 @@ type ReconcileResult struct {
 	Failed int
 }
 
-// Reconcile re-syncs every live subscription from LemonSqueezy. Unchanged
+// Reconcile re-syncs every live subscription from its provider. Unchanged
 // ones are synced too, which repairs entitlements a failed sync left behind.
 //
 // It exists because LemonSqueezy has no bulk webhook replay: events missed
 // while the webhook was rejecting them are gone, so the only way to recover is
-// to ask for the current state of each subscription.
+// to ask for the current state of each subscription. Paddle can replay them,
+// but checking costs little.
 //
 // Entitlements are updated through the no-app-ID path of Sync, which updates
 // every entitlement a subscription already holds. That deliberately does not
@@ -83,57 +86,48 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 	result.Total = len(subscriptions)
 
 	for _, subscription := range subscriptions {
-		if !subscription.LemonsqueezySubscriptionID.Valid || subscription.Status == model.SubscriptionStatusExpired {
+		if !m.canReconcile(subscription) || subscription.Status == model.SubscriptionStatusExpired {
 			result.Skipped++
 			continue
 		}
 
-		// LemonSqueezy rate limits the API, so pace the requests
+		// The providers rate limit their APIs, so pace the requests
 		select {
 		case <-ctx.Done():
 			return result, ctx.Err()
 		case <-time.After(delay):
 		}
 
-		lsID := subscription.LemonsqueezySubscriptionID.String
+		providerID := cmp.Or(subscription.LemonsqueezySubscriptionID.String, subscription.PaddleSubscriptionID.String)
+		log := slog.With(
+			slog.String("subscription_id", subscription.ID),
+			slog.String("source", subscription.Source.String()),
+			slog.String("provider_subscription_id", providerID),
+		)
 
-		res, _, err := m.client.Subscriptions.Get(ctx, lsID)
+		updated, err := m.fetch(ctx, subscription)
 		if err != nil {
-			slog.Error(
-				"Failed to get subscription from LemonSqueezy",
-				slog.String("subscription_id", subscription.ID),
-				slog.String("ls_subscription_id", lsID),
-				slog.String("error", err.Error()),
-			)
+			log.Error("Failed to get subscription from its provider", slog.String("error", err.Error()))
 			result.Failed++
 			continue
 		}
 
-		changed := !res.Data.Attributes.UpdatedAt.Equal(subscription.UpdatedAt)
+		changed := !updated.UpdatedAt.Equal(subscription.UpdatedAt)
 
 		// LemonSqueezy also bumps updated_at without a change worth logging,
 		// around payments for example
-		if res.Data.Attributes.Status != subscription.Status {
-			slog.Info(
+		if updated.Status != subscription.Status {
+			log.Info(
 				"Subscription status is out of date",
-				slog.String("subscription_id", subscription.ID),
-				slog.String("ls_subscription_id", lsID),
 				slog.String("stored_status", subscription.Status),
-				slog.String("lemonsqueezy_status", res.Data.Attributes.Status),
+				slog.String("provider_status", updated.Status),
 			)
 		}
 
 		if !dryRun {
-			updated := SubscriptionFromLemonSqueezy(res.Data.ID, res.Data.Attributes, subscription.UserID)
-
 			// The app ID is left empty on purpose, see the doc comment.
 			if _, err := m.Sync(ctx, updated, ""); err != nil {
-				slog.Error(
-					"Failed to reconcile subscription",
-					slog.String("subscription_id", subscription.ID),
-					slog.String("ls_subscription_id", lsID),
-					slog.String("error", err.Error()),
-				)
+				log.Error("Failed to reconcile subscription", slog.String("error", err.Error()))
 				result.Failed++
 				continue
 			}
@@ -147,4 +141,33 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 	}
 
 	return result, nil
+}
+
+func (m *SubscriptionManager) canReconcile(sub *model.Subscription) bool {
+	switch sub.Source {
+	case model.SubscriptionSourceLemonSqueezy:
+		return sub.LemonsqueezySubscriptionID.Valid
+	case model.SubscriptionSourcePaddle:
+		return sub.PaddleSubscriptionID.Valid && m.paddle != nil
+	}
+	return false
+}
+
+// fetch gets the subscription as its provider reports it now.
+func (m *SubscriptionManager) fetch(ctx context.Context, sub *model.Subscription) (model.Subscription, error) {
+	switch sub.Source {
+	case model.SubscriptionSourceLemonSqueezy:
+		res, _, err := m.client.Subscriptions.Get(ctx, sub.LemonsqueezySubscriptionID.String)
+		if err != nil {
+			return model.Subscription{}, err
+		}
+		return SubscriptionFromLemonSqueezy(res.Data.ID, res.Data.Attributes, sub.UserID), nil
+	case model.SubscriptionSourcePaddle:
+		res, err := m.getPaddleSubscription(ctx, sub.PaddleSubscriptionID.String)
+		if err != nil {
+			return model.Subscription{}, err
+		}
+		return SubscriptionFromPaddle(res, sub.UserID)
+	}
+	return model.Subscription{}, fmt.Errorf("unknown subscription source %q", sub.Source)
 }

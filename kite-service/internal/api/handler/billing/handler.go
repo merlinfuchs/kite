@@ -13,6 +13,7 @@ import (
 type BillingHandlerConfig struct {
 	LemonSqueezyStoreID       string
 	LemonSqueezySigningSecret string
+	PaddleWebhookSecret       string
 	TestMode                  bool
 	AppPublicBaseURL          string
 	Sale                      config.BillingSaleConfig

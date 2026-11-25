@@ -12,7 +12,7 @@ import (
 )
 
 const getAllSubscriptions = `-- name: GetAllSubscriptions :many
-SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions ORDER BY created_at DESC
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAllSubscriptions(ctx context.Context) ([]Subscription, error) {
@@ -41,6 +41,10 @@ func (q *Queries) GetAllSubscriptions(ctx context.Context) ([]Subscription, erro
 			&i.LemonsqueezyOrderID,
 			&i.LemonsqueezyProductID,
 			&i.LemonsqueezyVariantID,
+			&i.PaddleSubscriptionID,
+			&i.PaddleCustomerID,
+			&i.PaddleProductID,
+			&i.PaddlePriceID,
 		); err != nil {
 			return nil, err
 		}
@@ -53,7 +57,7 @@ func (q *Queries) GetAllSubscriptions(ctx context.Context) ([]Subscription, erro
 }
 
 const getSubscription = `-- name: GetSubscription :one
-SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE id = $1
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions WHERE id = $1
 `
 
 func (q *Queries) GetSubscription(ctx context.Context, id string) (Subscription, error) {
@@ -76,12 +80,16 @@ func (q *Queries) GetSubscription(ctx context.Context, id string) (Subscription,
 		&i.LemonsqueezyOrderID,
 		&i.LemonsqueezyProductID,
 		&i.LemonsqueezyVariantID,
+		&i.PaddleSubscriptionID,
+		&i.PaddleCustomerID,
+		&i.PaddleProductID,
+		&i.PaddlePriceID,
 	)
 	return i, err
 }
 
 const getSubscriptionByLemonSqueezyID = `-- name: GetSubscriptionByLemonSqueezyID :one
-SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE lemonsqueezy_subscription_id = $1
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions WHERE lemonsqueezy_subscription_id = $1
 `
 
 func (q *Queries) GetSubscriptionByLemonSqueezyID(ctx context.Context, lemonsqueezySubscriptionID pgtype.Text) (Subscription, error) {
@@ -104,12 +112,48 @@ func (q *Queries) GetSubscriptionByLemonSqueezyID(ctx context.Context, lemonsque
 		&i.LemonsqueezyOrderID,
 		&i.LemonsqueezyProductID,
 		&i.LemonsqueezyVariantID,
+		&i.PaddleSubscriptionID,
+		&i.PaddleCustomerID,
+		&i.PaddleProductID,
+		&i.PaddlePriceID,
+	)
+	return i, err
+}
+
+const getSubscriptionByPaddleID = `-- name: GetSubscriptionByPaddleID :one
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions WHERE paddle_subscription_id = $1
+`
+
+func (q *Queries) GetSubscriptionByPaddleID(ctx context.Context, paddleSubscriptionID pgtype.Text) (Subscription, error) {
+	row := q.db.QueryRow(ctx, getSubscriptionByPaddleID, paddleSubscriptionID)
+	var i Subscription
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Source,
+		&i.Status,
+		&i.StatusFormatted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RenewsAt,
+		&i.TrialEndsAt,
+		&i.EndsAt,
+		&i.UserID,
+		&i.LemonsqueezySubscriptionID,
+		&i.LemonsqueezyCustomerID,
+		&i.LemonsqueezyOrderID,
+		&i.LemonsqueezyProductID,
+		&i.LemonsqueezyVariantID,
+		&i.PaddleSubscriptionID,
+		&i.PaddleCustomerID,
+		&i.PaddleProductID,
+		&i.PaddlePriceID,
 	)
 	return i, err
 }
 
 const getSubscriptions = `-- name: GetSubscriptions :many
-SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetSubscriptions(ctx context.Context, userID string) ([]Subscription, error) {
@@ -138,6 +182,10 @@ func (q *Queries) GetSubscriptions(ctx context.Context, userID string) ([]Subscr
 			&i.LemonsqueezyOrderID,
 			&i.LemonsqueezyProductID,
 			&i.LemonsqueezyVariantID,
+			&i.PaddleSubscriptionID,
+			&i.PaddleCustomerID,
+			&i.PaddleProductID,
+			&i.PaddlePriceID,
 		); err != nil {
 			return nil, err
 		}
@@ -150,7 +198,7 @@ func (q *Queries) GetSubscriptions(ctx context.Context, userID string) ([]Subscr
 }
 
 const getSubscriptionsByAppID = `-- name: GetSubscriptionsByAppID :many
-SELECT subscriptions.id, subscriptions.display_name, subscriptions.source, subscriptions.status, subscriptions.status_formatted, subscriptions.created_at, subscriptions.updated_at, subscriptions.renews_at, subscriptions.trial_ends_at, subscriptions.ends_at, subscriptions.user_id, subscriptions.lemonsqueezy_subscription_id, subscriptions.lemonsqueezy_customer_id, subscriptions.lemonsqueezy_order_id, subscriptions.lemonsqueezy_product_id, subscriptions.lemonsqueezy_variant_id FROM subscriptions LEFT JOIN entitlements ON subscriptions.id = entitlements.subscription_id WHERE entitlements.app_id = $1 ORDER BY subscriptions.created_at DESC
+SELECT subscriptions.id, subscriptions.display_name, subscriptions.source, subscriptions.status, subscriptions.status_formatted, subscriptions.created_at, subscriptions.updated_at, subscriptions.renews_at, subscriptions.trial_ends_at, subscriptions.ends_at, subscriptions.user_id, subscriptions.lemonsqueezy_subscription_id, subscriptions.lemonsqueezy_customer_id, subscriptions.lemonsqueezy_order_id, subscriptions.lemonsqueezy_product_id, subscriptions.lemonsqueezy_variant_id, subscriptions.paddle_subscription_id, subscriptions.paddle_customer_id, subscriptions.paddle_product_id, subscriptions.paddle_price_id FROM subscriptions LEFT JOIN entitlements ON subscriptions.id = entitlements.subscription_id WHERE entitlements.app_id = $1 ORDER BY subscriptions.created_at DESC
 `
 
 func (q *Queries) GetSubscriptionsByAppID(ctx context.Context, appID string) ([]Subscription, error) {
@@ -179,6 +227,10 @@ func (q *Queries) GetSubscriptionsByAppID(ctx context.Context, appID string) ([]
 			&i.LemonsqueezyOrderID,
 			&i.LemonsqueezyProductID,
 			&i.LemonsqueezyVariantID,
+			&i.PaddleSubscriptionID,
+			&i.PaddleCustomerID,
+			&i.PaddleProductID,
+			&i.PaddlePriceID,
 		); err != nil {
 			return nil, err
 		}
@@ -191,7 +243,7 @@ func (q *Queries) GetSubscriptionsByAppID(ctx context.Context, appID string) ([]
 }
 
 const getSubscriptionsByUserIDs = `-- name: GetSubscriptionsByUserIDs :many
-SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id FROM subscriptions WHERE user_id = ANY($1::text[]) ORDER BY created_at DESC
+SELECT id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id FROM subscriptions WHERE user_id = ANY($1::text[]) ORDER BY created_at DESC
 `
 
 func (q *Queries) GetSubscriptionsByUserIDs(ctx context.Context, userIds []string) ([]Subscription, error) {
@@ -220,6 +272,10 @@ func (q *Queries) GetSubscriptionsByUserIDs(ctx context.Context, userIds []strin
 			&i.LemonsqueezyOrderID,
 			&i.LemonsqueezyProductID,
 			&i.LemonsqueezyVariantID,
+			&i.PaddleSubscriptionID,
+			&i.PaddleCustomerID,
+			&i.PaddleProductID,
+			&i.PaddlePriceID,
 		); err != nil {
 			return nil, err
 		}
@@ -264,7 +320,7 @@ ON CONFLICT (lemonsqueezy_subscription_id) DO UPDATE SET
     lemonsqueezy_product_id = EXCLUDED.lemonsqueezy_product_id,
     lemonsqueezy_variant_id = EXCLUDED.lemonsqueezy_variant_id
 WHERE subscriptions.updated_at <= EXCLUDED.updated_at
-RETURNING id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id
+RETURNING id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id
 `
 
 type UpsertLemonSqueezySubscriptionParams struct {
@@ -324,6 +380,107 @@ func (q *Queries) UpsertLemonSqueezySubscription(ctx context.Context, arg Upsert
 		&i.LemonsqueezyOrderID,
 		&i.LemonsqueezyProductID,
 		&i.LemonsqueezyVariantID,
+		&i.PaddleSubscriptionID,
+		&i.PaddleCustomerID,
+		&i.PaddleProductID,
+		&i.PaddlePriceID,
+	)
+	return i, err
+}
+
+const upsertPaddleSubscription = `-- name: UpsertPaddleSubscription :one
+INSERT INTO subscriptions (
+    id,
+    display_name,
+    source,
+    status,
+    status_formatted,
+    renews_at,
+    trial_ends_at,
+    ends_at,
+    created_at,
+    updated_at,
+    user_id,
+    paddle_subscription_id,
+    paddle_customer_id,
+    paddle_product_id,
+    paddle_price_id
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+ON CONFLICT (paddle_subscription_id) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    status = EXCLUDED.status,
+    status_formatted = EXCLUDED.status_formatted,
+    renews_at = EXCLUDED.renews_at,
+    trial_ends_at = EXCLUDED.trial_ends_at,
+    ends_at = EXCLUDED.ends_at,
+    updated_at = EXCLUDED.updated_at,
+    paddle_customer_id = EXCLUDED.paddle_customer_id,
+    paddle_product_id = EXCLUDED.paddle_product_id,
+    paddle_price_id = EXCLUDED.paddle_price_id
+WHERE subscriptions.updated_at <= EXCLUDED.updated_at
+RETURNING id, display_name, source, status, status_formatted, created_at, updated_at, renews_at, trial_ends_at, ends_at, user_id, lemonsqueezy_subscription_id, lemonsqueezy_customer_id, lemonsqueezy_order_id, lemonsqueezy_product_id, lemonsqueezy_variant_id, paddle_subscription_id, paddle_customer_id, paddle_product_id, paddle_price_id
+`
+
+type UpsertPaddleSubscriptionParams struct {
+	ID                   string
+	DisplayName          string
+	Source               string
+	Status               string
+	StatusFormatted      string
+	RenewsAt             pgtype.Timestamp
+	TrialEndsAt          pgtype.Timestamp
+	EndsAt               pgtype.Timestamp
+	CreatedAt            pgtype.Timestamp
+	UpdatedAt            pgtype.Timestamp
+	UserID               string
+	PaddleSubscriptionID pgtype.Text
+	PaddleCustomerID     pgtype.Text
+	PaddleProductID      pgtype.Text
+	PaddlePriceID        pgtype.Text
+}
+
+// Webhooks can arrive out of order, an older state must not overwrite a newer one
+func (q *Queries) UpsertPaddleSubscription(ctx context.Context, arg UpsertPaddleSubscriptionParams) (Subscription, error) {
+	row := q.db.QueryRow(ctx, upsertPaddleSubscription,
+		arg.ID,
+		arg.DisplayName,
+		arg.Source,
+		arg.Status,
+		arg.StatusFormatted,
+		arg.RenewsAt,
+		arg.TrialEndsAt,
+		arg.EndsAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.UserID,
+		arg.PaddleSubscriptionID,
+		arg.PaddleCustomerID,
+		arg.PaddleProductID,
+		arg.PaddlePriceID,
+	)
+	var i Subscription
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Source,
+		&i.Status,
+		&i.StatusFormatted,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RenewsAt,
+		&i.TrialEndsAt,
+		&i.EndsAt,
+		&i.UserID,
+		&i.LemonsqueezySubscriptionID,
+		&i.LemonsqueezyCustomerID,
+		&i.LemonsqueezyOrderID,
+		&i.LemonsqueezyProductID,
+		&i.LemonsqueezyVariantID,
+		&i.PaddleSubscriptionID,
+		&i.PaddleCustomerID,
+		&i.PaddleProductID,
+		&i.PaddlePriceID,
 	)
 	return i, err
 }

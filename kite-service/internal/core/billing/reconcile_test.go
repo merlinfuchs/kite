@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
+	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -30,6 +31,11 @@ func (s *fakeSubscriptionStore) AllSubscriptions(ctx context.Context) ([]*model.
 
 func (s *fakeSubscriptionStore) UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
 	s.upserted = append(s.upserted, sub.LemonsqueezySubscriptionID.String)
+	return &sub, nil
+}
+
+func (s *fakeSubscriptionStore) UpsertPaddleSubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	s.upserted = append(s.upserted, sub.PaddleSubscriptionID.String)
 	return &sub, nil
 }
 
@@ -60,9 +66,20 @@ func TestReconcile(t *testing.T) {
 	}))
 	defer api.Close()
 
+	paddleAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := strings.TrimPrefix(r.URL.Path, "/subscriptions/")
+		mu.Lock()
+		requested = append(requested, id)
+		mu.Unlock()
+
+		_, _ = w.Write([]byte(`{"data":` + paddleSubscriptionJSON(id, "canceled", stored.Add(time.Minute), "") + `}`))
+	}))
+	defer paddleAPI.Close()
+
 	subscription := func(id string, status string) *model.Subscription {
 		return &model.Subscription{
 			ID:                         id,
+			Source:                     model.SubscriptionSourceLemonSqueezy,
 			Status:                     status,
 			UpdatedAt:                  stored,
 			LemonsqueezySubscriptionID: null.StringFrom(id),
@@ -73,21 +90,40 @@ func TestReconcile(t *testing.T) {
 		subscription("unchanged", "active"),
 		subscription("expired", "expired"),
 		{ID: "manual", Status: "active"},
+		{
+			ID:                   "paddle",
+			Source:               model.SubscriptionSourcePaddle,
+			Status:               "active",
+			UpdatedAt:            stored,
+			PaddleSubscriptionID: null.StringFrom("sub_1"),
+		},
 	}}
 	entStore := &fakeEntitlementStore{}
 
-	plans := []model.Plan{{ID: "pro", LemonSqueezyProductID: "1"}}
+	plans := []model.Plan{{ID: "pro", LemonSqueezyProductID: "1", PaddleProductID: "pro_1"}}
 	planManager := plan.NewPlanManager(entStore, subStore, nil, nil, plans, plan.PlanManagerConfig{})
 	client := lemonsqueezy.New(lemonsqueezy.WithBaseURL(api.URL), lemonsqueezy.WithAPIKey("key"))
-	m := NewSubscriptionManager(subStore, entStore, planManager, client)
+	paddleClient, err := paddle.New("key", paddle.WithBaseURL(paddleAPI.URL))
+	require.NoError(t, err)
+	m := NewSubscriptionManager(subStore, entStore, planManager, client, paddleClient)
 
 	res, err := m.Reconcile(context.Background(), false, 0)
 	require.NoError(t, err)
 
-	assert.Equal(t, ReconcileResult{Total: 4, Skipped: 2, Changed: 1, Unchanged: 1}, res)
+	assert.Equal(t, ReconcileResult{Total: 5, Skipped: 2, Changed: 2, Unchanged: 1}, res)
 	mu.Lock()
-	assert.Equal(t, []string{"changed", "unchanged"}, requested)
+	assert.Equal(t, []string{"changed", "unchanged", "sub_1"}, requested)
 	mu.Unlock()
 	// Unchanged ones are synced too, to repair their entitlements
-	assert.Equal(t, []string{"changed", "unchanged"}, subStore.upserted)
+	assert.Equal(t, []string{"changed", "unchanged", "sub_1"}, subStore.upserted)
+
+	t.Run("Paddle subscriptions are skipped without Paddle", func(t *testing.T) {
+		subStore.upserted = nil
+		m := NewSubscriptionManager(subStore, entStore, planManager, client, nil)
+
+		res, err := m.Reconcile(context.Background(), false, 0)
+		require.NoError(t, err)
+		assert.Equal(t, 3, res.Skipped)
+		assert.Equal(t, []string{"changed", "unchanged"}, subStore.upserted)
+	})
 }

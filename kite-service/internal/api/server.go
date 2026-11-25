@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
@@ -52,8 +53,11 @@ type BillingConfig struct {
 	LemonSqueezySigningSecret string
 	LemonSqueezyStoreID       string
 	TestMode                  bool
-	Plans                     []config.BillingPlanConfig
-	Sale                      config.BillingSaleConfig
+	// Paddle is nil without a Paddle API key.
+	Paddle              *paddle.SDK
+	PaddleWebhookSecret string
+	Plans               []config.BillingPlanConfig
+	Sale                config.BillingSaleConfig
 }
 
 type APIServer struct {
