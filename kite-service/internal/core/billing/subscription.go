@@ -25,6 +25,7 @@ type SubscriptionManager struct {
 	entitlementStore  store.EntitlementStore
 	planManager       *plan.PlanManager
 
+	// client is nil for reconciling without a Lemon Squeezy API key.
 	client *lemonsqueezy.Client
 	// paddle is nil without a Paddle API key.
 	paddle *paddle.SDK
@@ -37,6 +38,16 @@ func NewLemonSqueezyClient(apiKey string, signingSecret string) *lemonsqueezy.Cl
 		lemonsqueezy.WithAPIKey(apiKey),
 		lemonsqueezy.WithSigningSecret(signingSecret),
 	)
+}
+
+// NewReconcileLemonSqueezyClient is NewLemonSqueezyClient for reconciling, nil
+// without an API key, so Lemon Squeezy subscriptions are skipped instead of
+// failing once its key is gone.
+func NewReconcileLemonSqueezyClient(apiKey string, signingSecret string) *lemonsqueezy.Client {
+	if apiKey == "" {
+		return nil
+	}
+	return NewLemonSqueezyClient(apiKey, signingSecret)
 }
 
 func NewSubscriptionManager(
@@ -133,11 +144,14 @@ func (m *SubscriptionManager) stored(ctx context.Context, sub model.Subscription
 	return nil, fmt.Errorf("unknown subscription source %q", sub.Source)
 }
 
+// ErrUnknownPlan is returned for subscriptions to a product that isn't a plan.
+var ErrUnknownPlan = errors.New("product is not a plan")
+
 func (m *SubscriptionManager) plan(sub model.Subscription) (*model.Plan, error) {
 	plan := m.planManager.PlanBySubscription(&sub)
 	if plan == nil {
 		productID := cmp.Or(sub.LemonsqueezyProductID.String, sub.PaddleProductID.String)
-		return nil, fmt.Errorf("failed to find plan for %s product ID %s", sub.Source, productID)
+		return nil, fmt.Errorf("%w: %s product ID %s", ErrUnknownPlan, sub.Source, productID)
 	}
 	return plan, nil
 }

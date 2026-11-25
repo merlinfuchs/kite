@@ -161,12 +161,13 @@ func TestPaddleWebhookWithoutCustomData(t *testing.T) {
 		require.NotNil(t, server.entStore.updated)
 	})
 
-	t.Run("fails for an unknown subscription", func(t *testing.T) {
+	t.Run("acknowledges an unknown subscription", func(t *testing.T) {
 		server := newTestPaddleWebhookServer(t, testSecret)
 		server.customData = `null`
 
+		// A retry can't find its owner either, so Paddle mustn't retry it.
 		rec := postPaddleWebhook(server, paddleSignature(testSecret, time.Now(), paddleSubscriptionEvent), paddleSubscriptionEvent)
-		assert.Equal(t, http.StatusInternalServerError, rec.Code, rec.Body.String())
+		assert.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 		assert.Nil(t, server.subStore.upserted)
 	})
 }

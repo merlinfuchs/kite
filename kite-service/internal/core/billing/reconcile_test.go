@@ -117,6 +117,16 @@ func TestReconcile(t *testing.T) {
 	// Unchanged ones are synced too, to repair their entitlements
 	assert.Equal(t, []string{"changed", "unchanged", "sub_1"}, subStore.upserted)
 
+	t.Run("Lemon Squeezy subscriptions are skipped without its key", func(t *testing.T) {
+		subStore.upserted = nil
+		m := NewSubscriptionManager(subStore, entStore, planManager, nil, paddleClient)
+
+		res, err := m.Reconcile(context.Background(), false, 0)
+		require.NoError(t, err)
+		assert.Equal(t, 4, res.Skipped)
+		assert.Equal(t, []string{"sub_1"}, subStore.upserted)
+	})
+
 	t.Run("Paddle subscriptions are skipped without Paddle", func(t *testing.T) {
 		subStore.upserted = nil
 		m := NewSubscriptionManager(subStore, entStore, planManager, client, nil)

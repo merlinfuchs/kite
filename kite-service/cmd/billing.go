@@ -57,7 +57,7 @@ func billingReconcileCMD(c *cli.Context) error {
 		return fmt.Errorf("failed to create paddle client: %w", err)
 	}
 
-	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
+	subscriptionManager := billing.NewSubscriptionManager(pg, pg, planManager, billing.NewReconcileLemonSqueezyClient(
 		cfg.Billing.LemonSqueezyAPIKey,
 		cfg.Billing.LemonSqueezySigningSecret,
 	), paddleClient)

@@ -9,10 +9,16 @@ import (
 	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
 )
 
 var ErrPaddleNotConfigured = errors.New("paddle is not configured")
+
+// ErrUnknownOwner is returned for Paddle subscriptions without a user in
+// their custom data that we haven't stored before, like ones made in Paddle's
+// dashboard.
+var ErrUnknownOwner = errors.New("subscription has no user_id in its custom data and isn't stored")
 
 // NewPaddleClient builds the client the subscription manager and the API
 // handler share, nil without an API key.
@@ -42,6 +48,9 @@ func (m *SubscriptionManager) RefreshPaddle(ctx context.Context, paddleID string
 		// imported from Lemon Squeezy, have no custom data. Once we have
 		// stored one, we know its owner.
 		existing, err := m.subscriptionStore.SubscriptionByPaddleID(ctx, paddleID)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, ErrUnknownOwner
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subscription without user_id in its custom data: %w", err)
 		}

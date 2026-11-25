@@ -142,7 +142,13 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 }
 
 func (m *SubscriptionManager) canReconcile(sub *model.Subscription) bool {
-	return sub.ProviderID() != "" && (sub.Source != model.SubscriptionSourcePaddle || m.paddle != nil)
+	if sub.ProviderID() == "" {
+		return false
+	}
+	if sub.Source == model.SubscriptionSourcePaddle {
+		return m.paddle != nil
+	}
+	return m.client != nil
 }
 
 // fetch gets the subscription as its provider reports it now.
