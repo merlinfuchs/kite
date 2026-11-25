@@ -279,7 +279,8 @@ func (n *CompiledFlowNode) callsExternalService() bool {
 		FlowNodeTypeActionRobloxUserGet,
 		FlowNodeTypeActionAIChatCompletion,
 		FlowNodeTypeActionAISearchWeb,
-		FlowNodeTypeActionAIScore:
+		FlowNodeTypeActionAIScore,
+		FlowNodeTypeActionTTSSpeak:
 		return true
 	}
 

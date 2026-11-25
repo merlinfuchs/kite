@@ -4706,6 +4706,93 @@
       },
       "result_schema": null
     },
+    "action_tts_speak": {
+      "title": "Speak Text",
+      "description": "Bot speaks text in a voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the voice channel to speak in. The bot joins it, or moves there from another channel of the server."
+          },
+          "tts_data": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1000,
+                "description": "What to say, like {{message.content}}. Up to 1,000 characters with placeholders filled in.",
+                "x-templated": true
+              },
+              "voice": {
+                "description": "The voice that speaks. Defaults to alloy.",
+                "type": "string",
+                "enum": [
+                  "alloy",
+                  "ash",
+                  "coral",
+                  "echo",
+                  "fable",
+                  "nova",
+                  "onyx",
+                  "sage",
+                  "shimmer"
+                ]
+              },
+              "speed": {
+                "description": "How fast the text is spoken, from 0.25 to 4. Defaults to normal speed, 1.",
+                "type": "number",
+                "minimum": 0.25,
+                "maximum": 4
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "description": "The text to speak and how it sounds.",
+            "additionalProperties": false
+          },
+          "audio_leave_after": {
+            "description": "Whether the bot leaves the voice channel once it has spoken. Otherwise it stays until it's told to leave.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel_target",
+          "tts_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_voice_audio_stop": {
       "title": "Stop audio",
       "description": "Bot stops playing audio in a server and stays in the channel",

@@ -43,6 +43,13 @@ import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import {
+  ttsDefaultVoice,
+  ttsLimits,
+  ttsNormalSpeed,
+  ttsSpeeds,
+  ttsVoices,
+} from "@/lib/blocks/ttsSpeak";
+import {
   colorsForEffect,
   defaultNameStyleColors,
   nameStyleEffects,
@@ -73,7 +80,11 @@ import {
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
+import {
+  EventTypeScheduleCron,
+  EventTypeWebhook,
+  TTSData,
+} from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import { useAssetQuery } from "@/lib/api/queries";
 import { useAssetCreateMutation } from "@/lib/api/mutations";
@@ -303,6 +314,7 @@ export const settingInputs: Record<string, any> = {
   ai_check_data: AiCheckDataInput,
   ai_score_data: AiScoreDataInput,
   ai_translate_data: AiTranslateDataInput,
+  tts_data: TtsDataInput,
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
@@ -2572,6 +2584,58 @@ function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
           placeholders
         />
       )}
+    </>
+  );
+}
+
+function TtsDataInput({ data, updateData, errors }: InputProps) {
+  function update(changes: Partial<TTSData>) {
+    updateData({ tts_data: { ...data.tts_data, ...changes } });
+  }
+
+  const speed = data.tts_data?.speed ? String(data.tts_data.speed) : "";
+  const speedValue = speed || ttsNormalSpeed;
+  // A speed in range that isn't one of the presets, like one the flow AI set.
+  const speedOptions = ttsSpeeds.some((s) => s.value === speedValue)
+    ? ttsSpeeds
+    : [...ttsSpeeds, { value: speedValue, label: `${speedValue}x` }];
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="tts_data.text"
+        title="Text"
+        description={`What to say, like {{message.content}}. ${ttsLimits}`}
+        value={data.tts_data?.text || ""}
+        updateValue={(v) => update({ text: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="select"
+        field="tts_data.voice"
+        title="Voice"
+        description="The voice that speaks the text."
+        options={[...ttsVoices]}
+        value={data.tts_data?.voice || ttsDefaultVoice}
+        updateValue={(v) =>
+          update({ voice: v === ttsDefaultVoice ? undefined : v })
+        }
+        errors={errors}
+      />
+      <BaseInput
+        type="select"
+        field="tts_data.speed"
+        title="Speed"
+        description="How fast the text is spoken."
+        options={speedOptions}
+        value={speedValue}
+        updateValue={(v) =>
+          update({ speed: v === ttsNormalSpeed ? undefined : parseFloat(v) })
+        }
+        errors={errors}
+      />
     </>
   );
 }

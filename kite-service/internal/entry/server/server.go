@@ -165,6 +165,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			HttpClient:           httpClient,
 			OpenaiClient:         &openaiClient,
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
+			OpenAIAPIKey:         cfg.OpenAI.APIKey,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
 			Voice:                engine.NewVoiceManager(assetStore),

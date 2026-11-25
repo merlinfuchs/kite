@@ -98,6 +98,7 @@ export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
+export const FlowNodeTypeActionTTSSpeak: FlowNodeType = "action_tts_speak";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionJavaScriptRun: FlowNodeType = "action_javascript_run";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
@@ -342,6 +343,10 @@ export interface FlowNodeData {
    * AI Translate
    */
   ai_translate_data?: AITranslateData;
+  /**
+   * Speak Text
+   */
+  tts_data?: TTSData;
   /**
    * Random Generate
    */
@@ -752,6 +757,20 @@ export interface JavaScriptInput {
   name: string;
   value?: string;
 }
+export interface TTSData {
+  /**
+   * What to say, with placeholders.
+   */
+  text?: string;
+  /**
+   * A key of ttsVoices, alloy if empty.
+   */
+  voice?: string;
+  /**
+   * How fast the text is spoken, normal speed if 0.
+   */
+  speed?: number /* float64 */;
+}
 export interface AITranslateData {
   text?: string;
   /**
@@ -774,6 +793,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: handlers_tts.go
+
 
 //////////
 // source: hash.go

@@ -88,6 +88,7 @@ export const capabilityGroups = [
       "action_ai_score",
       "action_ai_translate",
       "action_ai_web_search",
+      "action_tts_speak",
       "control_ai_check",
       "control_condition_ai_choice",
     ],
