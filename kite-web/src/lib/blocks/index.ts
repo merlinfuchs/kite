@@ -57,6 +57,7 @@ import { discordEntryEvent } from "./discordEntryEvent";
 import { discordForumPostCreate } from "./discordForumPostCreate";
 import { discordGuildGet } from "./discordGuildGet";
 import { discordInviteCreate } from "./discordInviteCreate";
+import { discordWebhookCreate } from "./discordWebhookCreate";
 import { discordMemberBan } from "./discordMemberBan";
 import { discordMemberEdit } from "./discordMemberEdit";
 import { discordMemberGet } from "./discordMemberGet";
@@ -69,6 +70,7 @@ import { discordMemberVoiceEdit } from "./discordMemberVoiceEdit";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
+import { discordWebhookMessageCreate } from "./discordWebhookMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageForward } from "./discordMessageForward";
@@ -147,6 +149,7 @@ export const blockDefinitions: BlockDefinition[] = [
   webhookResponseCreate,
   discordMessageCreate,
   discordPersonaMessageCreate,
+  discordWebhookMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
@@ -184,6 +187,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
+  discordWebhookCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordMemberVoiceEdit,

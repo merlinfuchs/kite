@@ -154,5 +154,11 @@
   "action_typing_trigger": {
     "method": "POST",
     "url": "/channels/11/typing"
+  },
+  "action_webhook_create": {
+    "method": "POST",
+    "url": "/channels/11/webhooks",
+    "body": "{\"name\":\"text\"}",
+    "reason": "reason"
   }
 }

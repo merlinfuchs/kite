@@ -1317,6 +1317,128 @@
         "$ref": "#/types/message"
       }
     },
+    "action_webhook_message_create": {
+      "title": "Send webhook message",
+      "description": "Sends a message through a webhook",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "webhook_url": {
+            "type": "string",
+            "minLength": 1,
+            "description": "URL of the webhook, like https://discord.com/api/webhooks/ID/TOKEN. It can be built from the result of a Create webhook block, or be a secret like {{secrets.WEBHOOK_URL}}.",
+            "x-templated": true
+          },
+          "webhook_thread_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of a thread of the webhook's channel to send the message to. Leave unset to send it to the channel."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "description": "Kinds of mentions that ping.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    }
+                  },
+                  "replied_user": {
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "additionalProperties": {},
+            "description": "The message to send."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "webhook_url"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "$ref": "#/types/message"
+      }
+    },
     "action_message_edit": {
       "title": "Edit channel message",
       "description": "Bot edits an existing message in a channel",
@@ -4474,6 +4596,86 @@
         "additionalProperties": false
       }
     },
+    "action_webhook_create": {
+      "title": "Create webhook",
+      "description": "Create a webhook in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel to create the webhook in. Leave empty to use the channel the flow runs in. Threads and forums can't have webhooks of their own.",
+            "x-templated": true
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the webhook, 1 to 80 characters. It can't contain 'discord' or 'clyde'.",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the webhook"
+          },
+          "token": {
+            "type": "string",
+            "description": "The secret token of the webhook. Anyone who has it can send messages through the webhook, so don't post it in a channel."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the webhook"
+          },
+          "channel_id": {
+            "type": "string",
+            "description": "The ID of the channel the webhook was created in"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "name",
+          "channel_id"
+        ],
+        "description": "The created webhook",
+        "additionalProperties": false
+      }
+    },
     "action_voice_channel_join": {
       "title": "Join voice channel",
       "description": "Bot joins a voice channel",
@@ -5766,7 +5968,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create, send_soundboard_sound: action_soundboard_sound_play."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create, create_webhook: action_webhook_create, send_soundboard_sound: action_soundboard_sound_play."
               },
               "path_params": {
                 "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object.",
