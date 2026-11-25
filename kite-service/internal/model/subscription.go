@@ -31,6 +31,18 @@ type Subscription struct {
 	PaddlePriceID              null.String
 }
 
+// ProviderID is the ID of the subscription at its provider, empty if it isn't
+// from one.
+func (s *Subscription) ProviderID() string {
+	switch s.Source {
+	case SubscriptionSourceLemonSqueezy:
+		return s.LemonsqueezySubscriptionID.String
+	case SubscriptionSourcePaddle:
+		return s.PaddleSubscriptionID.String
+	}
+	return ""
+}
+
 // The statuses a LemonSqueezy subscription can have. Paddle subscriptions are
 // stored with these too, see billing.SubscriptionFromPaddle.
 const (

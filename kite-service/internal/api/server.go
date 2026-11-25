@@ -53,11 +53,11 @@ type BillingConfig struct {
 	LemonSqueezySigningSecret string
 	LemonSqueezyStoreID       string
 	TestMode                  bool
-	// Paddle is nil without a Paddle API key.
-	Paddle              *paddle.SDK
-	PaddleWebhookSecret string
-	Plans               []config.BillingPlanConfig
-	Sale                config.BillingSaleConfig
+	Paddle                    config.BillingPaddleConfig
+	// PaddleClient is nil without a Paddle API key.
+	PaddleClient *paddle.SDK
+	Plans        []config.BillingPlanConfig
+	Sale         config.BillingSaleConfig
 }
 
 type APIServer struct {

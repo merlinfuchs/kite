@@ -1,7 +1,6 @@
 package billing
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -13,7 +12,7 @@ import (
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/PaddleHQ/paddle-go-sdk/v6"
-	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/config"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -64,13 +63,10 @@ func newTestPaddleWebhookServer(t *testing.T, secret string) *testPaddleWebhookS
 	lsClient := lemonsqueezy.New(lemonsqueezy.WithAPIKey("key"))
 	subManager := corebilling.NewSubscriptionManager(s.subStore, s.entStore, planManager, lsClient, paddleClient)
 
-	h := NewBillingHandler(
-		BillingHandlerConfig{PaddleWebhookSecret: secret},
+	s.Handler = newTestWebhookServer(NewBillingHandler(
+		BillingHandlerConfig{Paddle: config.BillingPaddleConfig{WebhookSecret: secret}},
 		nil, s.subStore, planManager, subManager, lsClient,
-	)
-	mux := http.NewServeMux()
-	handler.Group(mux, "/v1").Post("/billing/webhook", handler.Typed(h.HandleWebhook))
-	s.Handler = mux
+	))
 	return s
 }
 
@@ -83,14 +79,7 @@ func paddleSignature(secret string, ts time.Time, payload []byte) string {
 }
 
 func postPaddleWebhook(server http.Handler, signature string, payload []byte) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/v1/billing/webhook", bytes.NewReader(payload))
-	req.Header.Set("Content-Type", "application/json")
-	if signature != "" {
-		req.Header.Set("Paddle-Signature", signature)
-	}
-	rec := httptest.NewRecorder()
-	server.ServeHTTP(rec, req)
-	return rec
+	return postWebhook(server, map[string]string{"Paddle-Signature": signature}, payload)
 }
 
 // A trailing newline is part of what Paddle signs, so the body must be

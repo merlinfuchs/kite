@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
+	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
@@ -13,10 +14,10 @@ import (
 type BillingHandlerConfig struct {
 	LemonSqueezyStoreID       string
 	LemonSqueezySigningSecret string
-	PaddleWebhookSecret       string
 	TestMode                  bool
 	AppPublicBaseURL          string
 	Sale                      config.BillingSaleConfig
+	Paddle                    config.BillingPaddleConfig
 }
 
 type BillingHandler struct {
@@ -27,7 +28,9 @@ type BillingHandler struct {
 	subscriptionManager *billing.SubscriptionManager
 
 	client *lemonsqueezy.Client
-	now    func() time.Time
+	// paddleVerifier is nil without a Paddle webhook secret.
+	paddleVerifier *paddle.WebhookVerifier
+	now            func() time.Time
 }
 
 func NewBillingHandler(
@@ -38,6 +41,14 @@ func NewBillingHandler(
 	subscriptionManager *billing.SubscriptionManager,
 	client *lemonsqueezy.Client,
 ) *BillingHandler {
+	var paddleVerifier *paddle.WebhookVerifier
+	if config.Paddle.WebhookSecret != "" {
+		paddleVerifier = paddle.NewWebhookVerifier(
+			config.Paddle.WebhookSecret,
+			paddle.VerifierWithTimestampTolerance(paddleWebhookTolerance),
+		)
+	}
+
 	return &BillingHandler{
 		config:              config,
 		userStore:           userStore,
@@ -45,7 +56,8 @@ func NewBillingHandler(
 		planManager:         planManager,
 		subscriptionManager: subscriptionManager,
 
-		client: client,
-		now:    time.Now,
+		client:         client,
+		paddleVerifier: paddleVerifier,
+		now:            time.Now,
 	}
 }

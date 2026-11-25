@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PaddleHQ/paddle-go-sdk/v6"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 )
@@ -24,7 +23,7 @@ const paddleWebhookMaxBodySize = 2 << 20
 const paddleWebhookTolerance = 5 * time.Minute
 
 func (h *BillingHandler) HandlePaddleWebhook(c *handler.Context) (*wire.BillingWebhookResponse, error) {
-	if h.config.PaddleWebhookSecret == "" {
+	if h.paddleVerifier == nil {
 		return nil, handler.ErrUnauthorized("invalid_signature", "failed to verify webhook signature")
 	}
 
@@ -35,11 +34,7 @@ func (h *BillingHandler) HandlePaddleWebhook(c *handler.Context) (*wire.BillingW
 		return nil, err
 	}
 
-	verifier := paddle.NewWebhookVerifier(
-		h.config.PaddleWebhookSecret,
-		paddle.VerifierWithTimestampTolerance(paddleWebhookTolerance),
-	)
-	ok, err := verifier.Verify(&http.Request{
+	ok, err := h.paddleVerifier.Verify(&http.Request{
 		Header: c.Headers(),
 		Body:   io.NopCloser(bytes.NewReader(body)),
 	})

@@ -295,16 +295,16 @@ func (s *APIServer) RegisterRoutes(
 		s.config.Billing.LemonSqueezySigningSecret,
 	)
 	subscriptionManager := corebilling.NewSubscriptionManager(
-		subscriptionStore, entitlementStore, planManager, lemonSqueezyClient, s.config.Billing.Paddle,
+		subscriptionStore, entitlementStore, planManager, lemonSqueezyClient, s.config.Billing.PaddleClient,
 	)
 
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
 		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
 		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
-		PaddleWebhookSecret:       s.config.Billing.PaddleWebhookSecret,
 		TestMode:                  s.config.Billing.TestMode,
 		AppPublicBaseURL:          s.config.AppPublicBaseURL,
 		Sale:                      s.config.Billing.Sale,
+		Paddle:                    s.config.Billing.Paddle,
 	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
 
 	v1Group.Post("/billing/webhook", handler.Typed(billingHandler.HandleWebhook))
