@@ -63,6 +63,10 @@ func PlansFromConfig(configured []config.BillingPlanConfig) []model.Plan {
 	return plans
 }
 
+func (m *PlanManager) PlanByID(id string) *model.Plan {
+	return m.planBy(func(p model.Plan) string { return p.ID }, id)
+}
+
 func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan {
 	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
 }

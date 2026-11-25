@@ -9,9 +9,9 @@ import {
   CardTitle,
 } from "../ui/card";
 import {
-  useLemonSqueezyCustomerPortal,
-  useLemonSqueezyUpdatePaymentMethod,
-} from "@/lib/hooks/lemonsqueezy";
+  useSubscriptionCustomerPortal,
+  useSubscriptionUpdatePaymentMethod,
+} from "@/lib/hooks/billing";
 import { formatDate } from "@/lib/utils";
 
 export default function AppSubscriptionListEntry({
@@ -19,10 +19,8 @@ export default function AppSubscriptionListEntry({
 }: {
   subscription: Subscription;
 }) {
-  const updatePaymentMethod = useLemonSqueezyUpdatePaymentMethod(
-    subscription.id
-  );
-  const openCustomerPortal = useLemonSqueezyCustomerPortal(subscription.id);
+  const updatePaymentMethod = useSubscriptionUpdatePaymentMethod(subscription);
+  const openCustomerPortal = useSubscriptionCustomerPortal(subscription);
 
   return (
     <Card>

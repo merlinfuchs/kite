@@ -1,6 +1,5 @@
 import PlanCards from "../common/PlanCards";
 import Link from "next/link";
-import { HeartIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import {
@@ -11,20 +10,10 @@ import {
 } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
-import {
-  useDonationCheckout,
-  useLemonSqueezyCheckout,
-  useSubscriptionPlanSwitch,
-} from "@/lib/hooks/lemonsqueezy";
-import env from "@/lib/env/client";
+import { useCheckout, useSubscriptionPlanSwitch } from "@/lib/hooks/billing";
 import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
-import {
-  BillingInterval,
-  plansHaveYearly,
-  planVariantId,
-  saleLastDay,
-} from "@/lib/billing";
+import { BillingInterval, plansHaveYearly, saleLastDay } from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -49,11 +38,8 @@ export default function AppPricingList() {
   // Monthly by default, unless the app already pays yearly, so its current
   // plan shows as such, or a sale runs, which is only on yearly plans.
   const [chosenInterval, setChosenInterval] = useState<BillingInterval>();
-  const paysYearly = activeSubscriptions?.some((subscription) =>
-    visiblePlans.some(
-      (plan) =>
-        planVariantId(plan, "yearly") === subscription!.lemonsqueezy_variant_id
-    )
+  const paysYearly = activeSubscriptions?.some(
+    (subscription) => subscription!.interval === "yearly"
   );
   const interval: BillingInterval = !yearlyAvailable
     ? "monthly"
@@ -67,13 +53,9 @@ export default function AppPricingList() {
           ? activeSubscriptions?.length === 0
           : activeSubscriptions?.some(
               (subscription) =>
-                subscription!.lemonsqueezy_product_id ===
-                  plan.lemonsqueezy_product_id &&
-                // Monthly and yearly are variants of the same product, so
-                // switching between them is a plan switch too.
-                (!yearlyAvailable ||
-                  subscription!.lemonsqueezy_variant_id ===
-                    planVariantId(plan, interval))
+                subscription!.plan_id === plan.id &&
+                // Switching between monthly and yearly is a plan switch too.
+                (!yearlyAvailable || subscription!.interval === interval)
             ),
       };
     });
@@ -87,8 +69,7 @@ export default function AppPricingList() {
   const blockedByOtherOwner =
     !switchableSubscription && !!activeSubscriptions?.length;
 
-  const checkout = useLemonSqueezyCheckout();
-  const donate = useDonationCheckout();
+  const checkout = useCheckout();
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
@@ -154,21 +135,6 @@ export default function AppPricingList() {
           >
             Compare all limits
           </Link>
-        </div>
-      )}
-      {env.NEXT_PUBLIC_DONATION_VARIANT_ID && (
-        <div className="mt-10 rounded-xl border bg-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <div className="font-medium">Want to support Kite?</div>
-            <div className="text-sm text-muted-foreground">
-              Don&apos;t need a bigger plan? You can still support Kite with a
-              one-time donation of any amount.
-            </div>
-          </div>
-          <Button variant="outline" onClick={donate}>
-            <HeartIcon className="mr-2 h-4 w-4 text-primary" />
-            Donate
-          </Button>
         </div>
       )}
     </div>

@@ -400,14 +400,38 @@ export type AuthLogoutResponse = Empty;
 
 export interface BillingWebhookResponse {
 }
+/**
+ * BillingInterval is how often a plan is paid, "monthly" or "yearly".
+ */
+export type BillingInterval = string;
+export const BillingIntervalMonthly: BillingInterval = "monthly";
+export const BillingIntervalYearly: BillingInterval = "yearly";
 export interface BillingCheckoutRequest {
-  lemonsqueezy_variant_id: string;
+  plan_id: string;
+  interval: BillingInterval;
 }
+/**
+ * BillingCheckoutResponse opens the checkout of the provider: the URL of a
+ * Lemon Squeezy checkout, or the transaction Paddle.js opens.
+ */
 export interface BillingCheckoutResponse {
-  url: string;
+  provider: string;
+  url?: string;
+  paddle_transaction_id?: string;
+  paddle_client_token?: string;
+  paddle_sandbox?: boolean;
+  /**
+   * CustomerEmail fills in the email in the Paddle checkout.
+   */
+  customer_email?: string;
+  /**
+   * SuccessURL is where the Paddle checkout goes once paid.
+   */
+  success_url?: string;
 }
 export interface SubscriptionPlanUpdateRequest {
-  lemonsqueezy_variant_id: string;
+  plan_id: string;
+  interval: BillingInterval;
 }
 export type SubscriptionPlanUpdateResponse = Subscription;
 export interface SubscriptionManageResponse {
@@ -431,6 +455,12 @@ export interface Subscription {
   lemonsqueezy_order_id: null | string;
   lemonsqueezy_product_id: null | string;
   lemonsqueezy_variant_id: null | string;
+  /**
+   * PlanID is the plan the subscription pays for, empty if its product isn't
+   * one, and Interval how often.
+   */
+  plan_id: string;
+  interval: BillingInterval;
   /**
    * Active mirrors model.Subscription.IsActive so the client does not have to
    * keep its own copy of the LemonSqueezy status vocabulary.

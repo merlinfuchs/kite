@@ -66,7 +66,7 @@ func newTestPaddleWebhookServer(t *testing.T, secret string) *testPaddleWebhookS
 
 	h := NewBillingHandler(
 		BillingHandlerConfig{PaddleWebhookSecret: secret},
-		nil, s.subStore, planManager, subManager, lsClient,
+		nil, s.subStore, planManager, subManager, lsClient, paddleClient,
 	)
 	mux := http.NewServeMux()
 	handler.Group(mux, "/v1").Post("/billing/webhook", handler.Typed(h.HandleWebhook))

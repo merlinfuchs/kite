@@ -56,6 +56,9 @@ type BillingConfig struct {
 	// Paddle is nil without a Paddle API key.
 	Paddle              *paddle.SDK
 	PaddleWebhookSecret string
+	PaddleClientToken   string
+	PaddleSandbox       bool
+	CheckoutProvider    string
 	Plans               []config.BillingPlanConfig
 	Sale                config.BillingSaleConfig
 }

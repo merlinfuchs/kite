@@ -465,12 +465,12 @@ export function useAppPlan() {
   const plans = useBillingPlans();
   if (!subscriptions || !plans) return undefined;
 
-  const activeProductIds = subscriptions
+  const activePlanIds = subscriptions
     .filter((s) => s!.active)
-    .map((s) => s!.lemonsqueezy_product_id);
+    .map((s) => s!.plan_id);
 
   return (
-    plans.find((p) => activeProductIds.includes(p!.lemonsqueezy_product_id)) ??
+    plans.find((p) => activePlanIds.includes(p!.id)) ??
     plans.find((p) => p!.default)
   );
 }

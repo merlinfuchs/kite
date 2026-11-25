@@ -257,6 +257,10 @@ type BillingConfig struct {
 	Paddle                    BillingPaddleConfig `toml:"paddle"`
 	Plans                     []BillingPlanConfig `toml:"plans"`
 	Sale                      BillingSaleConfig   `toml:"sale"`
+
+	// CheckoutProvider is where new subscriptions are bought, lemonsqueezy
+	// or paddle. Existing ones stay with theirs.
+	CheckoutProvider string `toml:"checkout_provider" validate:"omitempty,oneof=lemonsqueezy paddle"`
 }
 
 // BillingPaddleConfig connects Paddle, which replaces Lemon Squeezy. Without
@@ -266,6 +270,8 @@ type BillingPaddleConfig struct {
 	// WebhookSecret is the secret key of the notification destination, which
 	// signs the webhooks Paddle sends.
 	WebhookSecret string `toml:"webhook_secret"`
+	// ClientToken lets Paddle.js open the checkout in the browser.
+	ClientToken string `toml:"client_token"`
 	// Sandbox uses the sandbox environment, whose API keys don't work in the
 	// live one.
 	Sandbox bool `toml:"sandbox"`
@@ -274,7 +280,9 @@ type BillingPaddleConfig struct {
 // BillingSaleConfig is a discount on the first payment of yearly plans, with
 // a discount code that has to exist in Lemon Squeezy. The site and dashboard
 // show it between StartsAt and EndsAt, and checkouts of yearly plans apply the
-// code. Without a code there's no sale.
+// code. Without a code there's no sale. Paddle checkouts apply the discount
+// PaddleDiscountID instead, and without it the sale isn't shown while
+// checkouts go to Paddle.
 type BillingSaleConfig struct {
 	// Name is what the site calls the sale, like "Black Week".
 	Name     string    `toml:"name" validate:"required_with=Code"`
@@ -282,6 +290,8 @@ type BillingSaleConfig struct {
 	Percent  int       `toml:"percent" validate:"required_with=Code,omitempty,min=1,max=100"`
 	StartsAt time.Time `toml:"starts_at"`
 	EndsAt   time.Time `toml:"ends_at" validate:"required_with=Code"`
+
+	PaddleDiscountID string `toml:"paddle_discount_id"`
 }
 
 // Active is whether the sale runs at now.

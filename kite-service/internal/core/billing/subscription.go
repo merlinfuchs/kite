@@ -142,15 +142,35 @@ func (m *SubscriptionManager) plan(sub model.Subscription) (*model.Plan, error) 
 	return plan, nil
 }
 
-// ChangePlan moves the subscription onto another variant, prorated and invoiced
-// right away so the new plan's features apply from this moment rather than from
-// the next renewal.
+// ChangePlan moves the subscription onto another Lemon Squeezy variant or
+// Paddle price, prorated and invoiced right away so the new plan's features
+// apply from this moment rather than from the next renewal.
 func (m *SubscriptionManager) ChangePlan(
 	ctx context.Context,
 	subscription *model.Subscription,
-	variantID int,
+	priceID string,
 	appID string,
 ) (*model.Subscription, error) {
+	switch subscription.Source {
+	case model.SubscriptionSourceLemonSqueezy:
+		return m.changeLemonSqueezyPlan(ctx, subscription, priceID, appID)
+	case model.SubscriptionSourcePaddle:
+		return m.changePaddlePlan(ctx, subscription, priceID, appID)
+	}
+	return nil, fmt.Errorf("unknown subscription source %q", subscription.Source)
+}
+
+func (m *SubscriptionManager) changeLemonSqueezyPlan(
+	ctx context.Context,
+	subscription *model.Subscription,
+	priceID string,
+	appID string,
+) (*model.Subscription, error) {
+	variantID, err := strconv.Atoi(priceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert variant ID to int: %w", err)
+	}
+
 	res, _, err := m.client.Subscriptions.Update(ctx, &lemonsqueezy.SubscriptionUpdateParams{
 		ID: subscription.LemonsqueezySubscriptionID.String,
 		Attributes: lemonsqueezy.SubscriptionUpdateParamsAttributes{

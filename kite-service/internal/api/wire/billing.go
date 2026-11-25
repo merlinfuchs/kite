@@ -3,22 +3,62 @@ package wire
 import (
 	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
 )
 
 type BillingWebhookResponse struct{}
 
+// BillingInterval is how often a plan is paid, "monthly" or "yearly".
+type BillingInterval string
+
+const (
+	BillingIntervalMonthly BillingInterval = "monthly"
+	BillingIntervalYearly  BillingInterval = "yearly"
+)
+
 type BillingCheckoutRequest struct {
-	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
+	PlanID   string          `json:"plan_id"`
+	Interval BillingInterval `json:"interval"`
 }
 
+func (req BillingCheckoutRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.PlanID, validation.Required),
+		validation.Field(&req.Interval, intervalRules()...),
+	)
+}
+
+// BillingCheckoutResponse opens the checkout of the provider: the URL of a
+// Lemon Squeezy checkout, or the transaction Paddle.js opens.
 type BillingCheckoutResponse struct {
-	URL string `json:"url"`
+	Provider string `json:"provider"`
+	URL      string `json:"url,omitempty"`
+
+	PaddleTransactionID string `json:"paddle_transaction_id,omitempty"`
+	PaddleClientToken   string `json:"paddle_client_token,omitempty"`
+	PaddleSandbox       bool   `json:"paddle_sandbox,omitempty"`
+	// CustomerEmail fills in the email in the Paddle checkout.
+	CustomerEmail string `json:"customer_email,omitempty"`
+	// SuccessURL is where the Paddle checkout goes once paid.
+	SuccessURL string `json:"success_url,omitempty"`
 }
 
 type SubscriptionPlanUpdateRequest struct {
-	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
+	PlanID   string          `json:"plan_id"`
+	Interval BillingInterval `json:"interval"`
+}
+
+func (req SubscriptionPlanUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.PlanID, validation.Required),
+		validation.Field(&req.Interval, intervalRules()...),
+	)
+}
+
+func intervalRules() []validation.Rule {
+	return []validation.Rule{validation.Required, validation.In(BillingIntervalMonthly, BillingIntervalYearly)}
 }
 
 type SubscriptionPlanUpdateResponse = Subscription
@@ -45,6 +85,10 @@ type Subscription struct {
 	LemonsqueezyOrderID        null.String `json:"lemonsqueezy_order_id"`
 	LemonsqueezyProductID      null.String `json:"lemonsqueezy_product_id"`
 	LemonsqueezyVariantID      null.String `json:"lemonsqueezy_variant_id"`
+	// PlanID is the plan the subscription pays for, empty if its product isn't
+	// one, and Interval how often.
+	PlanID   string          `json:"plan_id"`
+	Interval BillingInterval `json:"interval"`
 	// Active mirrors model.Subscription.IsActive so the client does not have to
 	// keep its own copy of the LemonSqueezy status vocabulary.
 	Active     bool `json:"active"`
@@ -53,9 +97,20 @@ type Subscription struct {
 
 type SubscriptionListResponse = []*Subscription
 
-func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscription {
+// SubscriptionToWire converts the subscription to plan, which is nil if its
+// product isn't one.
+func SubscriptionToWire(subscription *model.Subscription, userID string, plan *model.Plan) *Subscription {
 	if subscription == nil {
 		return nil
+	}
+
+	var planID string
+	interval := BillingIntervalMonthly
+	if plan != nil {
+		planID = plan.ID
+		if plan.Yearly(subscription) {
+			interval = BillingIntervalYearly
+		}
 	}
 
 	return &Subscription{
@@ -75,8 +130,10 @@ func SubscriptionToWire(subscription *model.Subscription, userID string) *Subscr
 		LemonsqueezyOrderID:        subscription.LemonsqueezyOrderID,
 		LemonsqueezyProductID:      subscription.LemonsqueezyProductID,
 		LemonsqueezyVariantID:      subscription.LemonsqueezyVariantID,
+		PlanID:                     planID,
+		Interval:                   interval,
 		Active:                     subscription.IsActive(),
-		Manageable:                 subscription.UserID == userID && subscription.LemonsqueezySubscriptionID.Valid,
+		Manageable:                 subscription.UserID == userID && subscription.ProviderID() != "",
 	}
 }
 

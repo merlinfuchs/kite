@@ -44,6 +44,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/sharedbot"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
@@ -302,10 +303,13 @@ func (s *APIServer) RegisterRoutes(
 		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
 		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
 		PaddleWebhookSecret:       s.config.Billing.PaddleWebhookSecret,
+		PaddleClientToken:         s.config.Billing.PaddleClientToken,
+		PaddleSandbox:             s.config.Billing.PaddleSandbox,
 		TestMode:                  s.config.Billing.TestMode,
 		AppPublicBaseURL:          s.config.AppPublicBaseURL,
 		Sale:                      s.config.Billing.Sale,
-	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
+		CheckoutProvider:          model.SubscriptionSource(s.config.Billing.CheckoutProvider),
+	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient, s.config.Billing.Paddle)
 
 	v1Group.Post("/billing/webhook", handler.Typed(billingHandler.HandleWebhook))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))

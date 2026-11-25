@@ -55,6 +55,37 @@ func (m *SubscriptionManager) RefreshPaddle(ctx context.Context, paddleID string
 	return m.Sync(ctx, sub, appID)
 }
 
+func (m *SubscriptionManager) changePaddlePlan(
+	ctx context.Context,
+	subscription *model.Subscription,
+	priceID string,
+	appID string,
+) (*model.Subscription, error) {
+	if m.paddle == nil {
+		return nil, ErrPaddleNotConfigured
+	}
+
+	// Replacing the items swaps the plan, also between monthly and yearly.
+	res, err := m.paddle.UpdateSubscription(ctx, &paddle.UpdateSubscriptionRequest{
+		SubscriptionID: subscription.PaddleSubscriptionID.String,
+		Items: paddle.NewPatchField([]paddle.UpdateSubscriptionItems{{
+			SubscriptionUpdateItemFromCatalog: &paddle.SubscriptionUpdateItemFromCatalog{PriceID: priceID, Quantity: 1},
+		}}),
+		ProrationBillingMode: paddle.NewPatchField(paddle.ProrationBillingModeProratedImmediately),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update subscription in Paddle: %w", err)
+	}
+
+	// Paddle also sends a subscription.updated webhook, but we cannot rely on
+	// it having arrived by the time the client refetches.
+	sub, err := SubscriptionFromPaddle(res, subscription.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return m.Sync(ctx, sub, appID)
+}
+
 func (m *SubscriptionManager) getPaddleSubscription(ctx context.Context, paddleID string) (*paddle.Subscription, error) {
 	if m.paddle == nil {
 		return nil, ErrPaddleNotConfigured

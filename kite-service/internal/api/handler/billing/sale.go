@@ -3,14 +3,15 @@ package billing
 import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
 func (h *BillingHandler) HandleBillingSaleGet(c *handler.Context) (*wire.BillingSaleGetResponse, error) {
-	sale := h.config.Sale
-	if !sale.Active(h.now()) {
+	if !h.saleActive() {
 		return &wire.BillingSaleGetResponse{}, nil
 	}
 
+	sale := h.config.Sale
 	return &wire.BillingSaleGetResponse{
 		Sale: &wire.BillingSale{
 			Name:    sale.Name,
@@ -21,15 +22,11 @@ func (h *BillingHandler) HandleBillingSaleGet(c *handler.Context) (*wire.Billing
 	}, nil
 }
 
-// saleDiscountCode is the code a checkout of the variant applies, empty when
-// no sale runs or the variant isn't yearly.
-func (h *BillingHandler) saleDiscountCode(variantID string) string {
+// saleActive is whether a sale runs now that checkouts of yearly plans can
+// apply. Paddle checkouts need the sale's Paddle discount.
+func (h *BillingHandler) saleActive() bool {
 	if !h.config.Sale.Active(h.now()) {
-		return ""
+		return false
 	}
-	plan := h.planManager.PlanByLemonSqueezyVariantID(variantID)
-	if plan == nil || plan.LemonSqueezyYearlyVariantID != variantID {
-		return ""
-	}
-	return h.config.Sale.Code
+	return h.checkoutProvider() != model.SubscriptionSourcePaddle || h.config.Sale.PaddleDiscountID != ""
 }
