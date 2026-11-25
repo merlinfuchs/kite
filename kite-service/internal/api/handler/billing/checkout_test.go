@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,10 +71,12 @@ func newTestBillingServer(t *testing.T, cfg BillingHandlerConfig) *testBillingSe
 	planManager := plan.NewPlanManager(entStore, s.subStore, nil, nil, paddlePlans, plan.PlanManagerConfig{})
 	paddleClient, err := paddle.New("key", paddle.WithBaseURL(api.URL))
 	require.NoError(t, err)
-	lsClient := lemonsqueezy.New(lemonsqueezy.WithAPIKey("key"))
+	// Both providers' APIs are stubbed by the same server.
+	lsClient := lemonsqueezy.New(lemonsqueezy.WithBaseURL(api.URL), lemonsqueezy.WithAPIKey("key"))
 	subManager := corebilling.NewSubscriptionManager(s.subStore, entStore, planManager, lsClient, paddleClient)
 
 	cfg.AppPublicBaseURL = "https://kite.onl"
+	cfg.LemonSqueezyStoreID = "1"
 	h := NewBillingHandler(cfg, fakeUserStore{}, s.subStore, planManager, subManager, lsClient, paddleClient)
 
 	// Stands in for the session and app middleware.
@@ -160,6 +163,34 @@ func TestPaddleCheckout(t *testing.T) {
 		}
 		assert.Empty(t, server.requests)
 	})
+}
+
+func TestLemonSqueezyCheckoutSale(t *testing.T) {
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+	for name, tt := range map[string]struct {
+		interval string
+		start    time.Time
+		discount bool
+	}{
+		"yearly during the sale":  {"yearly", start, true},
+		"monthly during the sale": {"monthly", start, false},
+		"yearly before the sale":  {"yearly", end, false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			server := newTestBillingServer(t, BillingHandlerConfig{
+				CheckoutProvider: model.SubscriptionSourceLemonSqueezy,
+				Sale:             config.BillingSaleConfig{Name: "Black Week", Code: "BW", Percent: 30, StartsAt: tt.start, EndsAt: end},
+			})
+			server.response = `{"id": "1", "attributes": {"url": "https://kite.lemonsqueezy.com/checkout/1"}}`
+
+			code, resp := request[wire.BillingCheckoutResponse](t, server, http.MethodPost, "/v1/checkout", `{"plan_id": "plus", "interval": "`+tt.interval+`"}`)
+			require.Equal(t, http.StatusOK, code, resp.Error)
+			assert.Equal(t, "https://kite.lemonsqueezy.com/checkout/1", resp.Data.URL)
+			require.Len(t, server.requests, 1)
+			assert.Equal(t, tt.discount, strings.Contains(server.requests[0], `"discount_code":"BW"`), server.requests[0])
+		})
+	}
 }
 
 func TestBillingPlanListYearlyPrice(t *testing.T) {

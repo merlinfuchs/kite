@@ -150,9 +150,13 @@ func (h *BillingHandler) paddleSubscriptionManage(c *handler.Context, subscripti
 		return nil, handler.ErrInternal("Failed to reach our payment provider, please try again")
 	}
 
-	res := &wire.SubscriptionManageResponse{CustomerPortalURL: session.URLs.General.Overview}
+	// The overview has the payment method too, if Paddle has no deep link.
+	res := &wire.SubscriptionManageResponse{
+		CustomerPortalURL:      session.URLs.General.Overview,
+		UpdatePaymentMethodURL: session.URLs.General.Overview,
+	}
 	for _, urls := range session.URLs.Subscriptions {
-		if urls.ID == subscription.PaddleSubscriptionID.String {
+		if urls.ID == subscription.PaddleSubscriptionID.String && urls.UpdateSubscriptionPaymentMethod != "" {
 			res.UpdatePaymentMethodURL = urls.UpdateSubscriptionPaymentMethod
 		}
 	}

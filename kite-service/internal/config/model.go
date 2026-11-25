@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -47,14 +48,30 @@ func (cfg *Config) Validate() error {
 	return cfg.Billing.validate(time.Now())
 }
 
-// validate checks what tags can't: a sale that hasn't ended needs a Paddle
-// discount once checkouts go to Paddle, or the site would show a discount
-// checkout doesn't give.
+// validate checks what tags can't, once checkouts go to Paddle. Paddle needs
+// its keys, and every plan sold through Lemon Squeezy has to be sold through
+// Paddle too, or the plans page would stop offering it. A sale that hasn't
+// ended needs a Paddle discount, or the site would show a discount checkout
+// doesn't give.
 func (c BillingConfig) validate(now time.Time) error {
-	if c.CheckoutProvider == "paddle" && c.Sale.Code != "" && now.Before(c.Sale.EndsAt) && c.Sale.PaddleDiscountID == "" {
-		return errors.New("billing.sale.paddle_discount_id is required while checkouts go to Paddle")
+	if c.CheckoutProvider != "paddle" {
+		return nil
 	}
-	return nil
+
+	var errs []error
+	if c.Paddle.APIKey == "" || c.Paddle.ClientToken == "" || c.Paddle.WebhookSecret == "" {
+		errs = append(errs, errors.New("billing.paddle needs api_key, client_token and webhook_secret while checkouts go to Paddle"))
+	}
+	for _, plan := range c.Plans {
+		if (plan.LemonSqueezyVariantID != "" && plan.PaddlePriceID == "") ||
+			(plan.LemonSqueezyYearlyVariantID != "" && plan.PaddleYearlyPriceID == "") {
+			errs = append(errs, fmt.Errorf("billing plan %s needs the Paddle prices of its Lemon Squeezy variants while checkouts go to Paddle", plan.ID))
+		}
+	}
+	if c.Sale.Code != "" && now.Before(c.Sale.EndsAt) && c.Sale.PaddleDiscountID == "" {
+		errs = append(errs, errors.New("billing.sale.paddle_discount_id is required while checkouts go to Paddle"))
+	}
+	return errors.Join(errs...)
 }
 
 func (cfg *Config) IsPrimaryCluster() bool {
