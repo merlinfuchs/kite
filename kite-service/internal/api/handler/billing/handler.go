@@ -15,15 +15,12 @@ import (
 type BillingHandlerConfig struct {
 	LemonSqueezyStoreID       string
 	LemonSqueezySigningSecret string
-	PaddleWebhookSecret       string
-	PaddleClientToken         string
-	PaddleSandbox             bool
 	TestMode                  bool
 	AppPublicBaseURL          string
 	Sale                      config.BillingSaleConfig
+	Paddle                    config.BillingPaddleConfig
 
-	// CheckoutProvider is where new subscriptions are bought, Lemon Squeezy
-	// if it's empty.
+	// CheckoutProvider is where new subscriptions are bought.
 	CheckoutProvider model.SubscriptionSource
 }
 
@@ -37,7 +34,9 @@ type BillingHandler struct {
 	client *lemonsqueezy.Client
 	// paddle is nil without a Paddle API key.
 	paddle *paddle.SDK
-	now    func() time.Time
+	// paddleVerifier is nil without a Paddle webhook secret.
+	paddleVerifier *paddle.WebhookVerifier
+	now            func() time.Time
 }
 
 func NewBillingHandler(
@@ -47,8 +46,16 @@ func NewBillingHandler(
 	planManager *plan.PlanManager,
 	subscriptionManager *billing.SubscriptionManager,
 	client *lemonsqueezy.Client,
-	paddle *paddle.SDK,
+	paddleClient *paddle.SDK,
 ) *BillingHandler {
+	var paddleVerifier *paddle.WebhookVerifier
+	if config.Paddle.WebhookSecret != "" {
+		paddleVerifier = paddle.NewWebhookVerifier(
+			config.Paddle.WebhookSecret,
+			paddle.VerifierWithTimestampTolerance(paddleWebhookTolerance),
+		)
+	}
+
 	return &BillingHandler{
 		config:              config,
 		userStore:           userStore,
@@ -56,15 +63,9 @@ func NewBillingHandler(
 		planManager:         planManager,
 		subscriptionManager: subscriptionManager,
 
-		client: client,
-		paddle: paddle,
-		now:    time.Now,
+		client:         client,
+		paddle:         paddleClient,
+		paddleVerifier: paddleVerifier,
+		now:            time.Now,
 	}
-}
-
-func (h *BillingHandler) checkoutProvider() model.SubscriptionSource {
-	if h.config.CheckoutProvider == "" {
-		return model.SubscriptionSourceLemonSqueezy
-	}
-	return h.config.CheckoutProvider
 }

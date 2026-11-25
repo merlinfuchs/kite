@@ -94,13 +94,18 @@ func newTestWebhookServer(h *BillingHandler) http.Handler {
 }
 
 func postWebhookRequest(server http.Handler, eventName string, signature string, payload []byte) *httptest.ResponseRecorder {
+	return postWebhook(server, map[string]string{"X-Event-Name": eventName, "X-Signature": signature}, payload)
+}
+
+// postWebhook posts the payload to the billing webhook with the headers that
+// aren't empty.
+func postWebhook(server http.Handler, headers map[string]string, payload []byte) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/v1/billing/webhook", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
-	if eventName != "" {
-		req.Header.Set("X-Event-Name", eventName)
-	}
-	if signature != "" {
-		req.Header.Set("X-Signature", signature)
+	for name, value := range headers {
+		if value != "" {
+			req.Header.Set(name, value)
+		}
 	}
 	rec := httptest.NewRecorder()
 	server.ServeHTTP(rec, req)

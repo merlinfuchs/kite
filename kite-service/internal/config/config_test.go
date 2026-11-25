@@ -155,6 +155,30 @@ func TestBillingSaleParse(t *testing.T) {
 	}
 }
 
+func TestBillingSaleNeedsPaddleDiscount(t *testing.T) {
+	now := time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC)
+	sale := BillingSaleConfig{Name: "Black Week", Code: "BW", Percent: 30, EndsAt: now.Add(time.Hour)}
+	withDiscount := sale
+	withDiscount.PaddleDiscountID = "dsc_1"
+	ended := sale
+	ended.EndsAt = now.Add(-time.Hour)
+
+	for name, tt := range map[string]struct {
+		cfg BillingConfig
+		ok  bool
+	}{
+		"on Lemon Squeezy":             {BillingConfig{CheckoutProvider: "lemonsqueezy", Sale: sale}, true},
+		"on Paddle without a discount": {BillingConfig{CheckoutProvider: "paddle", Sale: sale}, false},
+		"on Paddle with a discount":    {BillingConfig{CheckoutProvider: "paddle", Sale: withDiscount}, true},
+		"on Paddle after the sale":     {BillingConfig{CheckoutProvider: "paddle", Sale: ended}, true},
+		"on Paddle without a sale":     {BillingConfig{CheckoutProvider: "paddle"}, true},
+	} {
+		if err := tt.cfg.validate(now); (err == nil) != tt.ok {
+			t.Errorf("%s: err = %v, want ok %v", name, err, tt.ok)
+		}
+	}
+}
+
 func TestBillingSaleWithoutCode(t *testing.T) {
 	cfg := unmarshalDefaults(t)
 	if cfg.Billing.Sale.Active(time.Now()) {

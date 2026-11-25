@@ -106,9 +106,8 @@ func request[T any](t *testing.T, server http.Handler, method string, path strin
 
 func TestPaddleCheckout(t *testing.T) {
 	cfg := BillingHandlerConfig{
-		CheckoutProvider:  model.SubscriptionSourcePaddle,
-		PaddleClientToken: "test_token",
-		PaddleSandbox:     true,
+		CheckoutProvider: model.SubscriptionSourcePaddle,
+		Paddle:           config.BillingPaddleConfig{ClientToken: "test_token", Sandbox: true},
 	}
 
 	t.Run("creates a transaction with the user and app", func(t *testing.T) {

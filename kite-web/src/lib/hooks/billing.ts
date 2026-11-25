@@ -158,8 +158,8 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
   );
 }
 
-export function useSubscriptionCustomerPortal(subscription: Subscription) {
-  const manageMutation = useAppSubscriptionManageMutation(subscription.id);
+export function useSubscriptionCustomerPortal(subscriptionId: string) {
+  const manageMutation = useAppSubscriptionManageMutation(subscriptionId);
 
   return useCallback(() => {
     manageMutation.mutate(undefined, {

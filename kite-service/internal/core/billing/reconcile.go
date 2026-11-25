@@ -1,7 +1,6 @@
 package billing
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -98,11 +97,10 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 		case <-time.After(delay):
 		}
 
-		providerID := cmp.Or(subscription.LemonsqueezySubscriptionID.String, subscription.PaddleSubscriptionID.String)
 		log := slog.With(
 			slog.String("subscription_id", subscription.ID),
 			slog.String("source", subscription.Source.String()),
-			slog.String("provider_subscription_id", providerID),
+			slog.String("provider_subscription_id", subscription.ProviderID()),
 		)
 
 		updated, err := m.fetch(ctx, subscription)
@@ -144,13 +142,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 }
 
 func (m *SubscriptionManager) canReconcile(sub *model.Subscription) bool {
-	switch sub.Source {
-	case model.SubscriptionSourceLemonSqueezy:
-		return sub.LemonsqueezySubscriptionID.Valid
-	case model.SubscriptionSourcePaddle:
-		return sub.PaddleSubscriptionID.Valid && m.paddle != nil
-	}
-	return false
+	return sub.ProviderID() != "" && (sub.Source != model.SubscriptionSourcePaddle || m.paddle != nil)
 }
 
 // fetch gets the subscription as its provider reports it now.

@@ -20,7 +20,7 @@ export default function AppSubscriptionListEntry({
   subscription: Subscription;
 }) {
   const updatePaymentMethod = useSubscriptionUpdatePaymentMethod(subscription);
-  const openCustomerPortal = useSubscriptionCustomerPortal(subscription);
+  const openCustomerPortal = useSubscriptionCustomerPortal(subscription.id);
 
   return (
     <Card>

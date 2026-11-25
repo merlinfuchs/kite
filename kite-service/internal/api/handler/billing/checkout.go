@@ -14,7 +14,7 @@ import (
 )
 
 func (h *BillingHandler) HandleAppCheckout(c *handler.Context, req wire.BillingCheckoutRequest) (*wire.BillingCheckoutResponse, error) {
-	provider := h.checkoutProvider()
+	provider := h.config.CheckoutProvider
 	yearly := req.Interval == wire.BillingIntervalYearly
 
 	plan := h.planManager.PlanByID(req.PlanID)
@@ -48,7 +48,7 @@ func (h *BillingHandler) HandleAppCheckout(c *handler.Context, req wire.BillingC
 	}
 
 	var discountCode string
-	if yearly && h.saleActive() {
+	if yearly && h.config.Sale.Active(h.now()) {
 		discountCode = h.config.Sale.Code
 	}
 
@@ -112,7 +112,7 @@ func (h *BillingHandler) paddleCheckout(
 			"app_id":  c.App.ID,
 		},
 	}
-	if yearly && h.saleActive() {
+	if yearly && h.config.Sale.Active(h.now()) {
 		req.DiscountID = ptr(h.config.Sale.PaddleDiscountID)
 	}
 
@@ -129,8 +129,8 @@ func (h *BillingHandler) paddleCheckout(
 	return &wire.BillingCheckoutResponse{
 		Provider:            string(model.SubscriptionSourcePaddle),
 		PaddleTransactionID: txn.ID,
-		PaddleClientToken:   h.config.PaddleClientToken,
-		PaddleSandbox:       h.config.PaddleSandbox,
+		PaddleClientToken:   h.config.Paddle.ClientToken,
+		PaddleSandbox:       h.config.Paddle.Sandbox,
 		CustomerEmail:       user.Email,
 		SuccessURL:          successURL,
 	}, nil

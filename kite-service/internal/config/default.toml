@@ -66,8 +66,13 @@ endpoint = "localhost:9000"
 access_key_id = "kite"
 secret_access_key = "1234567890"
 
+[billing]
+# Where new subscriptions are bought, lemonsqueezy or paddle.
+checkout_provider = "lemonsqueezy"
+
 # A sale takes a percent off the first year of yearly plans. The code has to
-# exist in Lemon Squeezy, checkouts of yearly plans apply it.
+# exist in Lemon Squeezy, checkouts of yearly plans apply it. Paddle checkouts
+# apply the discount paddle_discount_id instead.
 # [billing.sale]
 # name = "Black Week"
 # code = "BLACKWEEK2026"

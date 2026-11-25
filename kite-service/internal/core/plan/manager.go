@@ -71,14 +71,6 @@ func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan 
 	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
 }
 
-// PlanByLemonSqueezyVariantID finds the plan by its monthly or yearly variant.
-func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan {
-	if plan := m.planBy(func(p model.Plan) string { return p.LemonSqueezyVariantID }, variantID); plan != nil {
-		return plan
-	}
-	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyYearlyVariantID }, variantID)
-}
-
 func (m *PlanManager) PlanByPaddleProductID(productID string) *model.Plan {
 	return m.planBy(func(p model.Plan) string { return p.PaddleProductID }, productID)
 }

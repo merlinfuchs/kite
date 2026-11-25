@@ -108,7 +108,7 @@ func (h *BillingHandler) HandleSubscriptionManage(c *handler.Context) (*wire.Sub
 		return h.paddleSubscriptionManage(c, subscription)
 	}
 
-	if !subscription.LemonsqueezySubscriptionID.Valid {
+	if subscription.ProviderID() == "" {
 		return nil, handler.ErrNotFound("unmanageable_subscription", "Subscription can not be managed")
 	}
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -40,7 +41,20 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	return validate.Struct(cfg)
+	if err := validate.Struct(cfg); err != nil {
+		return err
+	}
+	return cfg.Billing.validate(time.Now())
+}
+
+// validate checks what tags can't: a sale that hasn't ended needs a Paddle
+// discount once checkouts go to Paddle, or the site would show a discount
+// checkout doesn't give.
+func (c BillingConfig) validate(now time.Time) error {
+	if c.CheckoutProvider == "paddle" && c.Sale.Code != "" && now.Before(c.Sale.EndsAt) && c.Sale.PaddleDiscountID == "" {
+		return errors.New("billing.sale.paddle_discount_id is required while checkouts go to Paddle")
+	}
+	return nil
 }
 
 func (cfg *Config) IsPrimaryCluster() bool {
@@ -260,7 +274,7 @@ type BillingConfig struct {
 
 	// CheckoutProvider is where new subscriptions are bought, lemonsqueezy
 	// or paddle. Existing ones stay with theirs.
-	CheckoutProvider string `toml:"checkout_provider" validate:"omitempty,oneof=lemonsqueezy paddle"`
+	CheckoutProvider string `toml:"checkout_provider" validate:"oneof=lemonsqueezy paddle"`
 }
 
 // BillingPaddleConfig connects Paddle, which replaces Lemon Squeezy. Without
@@ -281,8 +295,7 @@ type BillingPaddleConfig struct {
 // a discount code that has to exist in Lemon Squeezy. The site and dashboard
 // show it between StartsAt and EndsAt, and checkouts of yearly plans apply the
 // code. Without a code there's no sale. Paddle checkouts apply the discount
-// PaddleDiscountID instead, and without it the sale isn't shown while
-// checkouts go to Paddle.
+// PaddleDiscountID instead.
 type BillingSaleConfig struct {
 	// Name is what the site calls the sale, like "Black Week".
 	Name     string    `toml:"name" validate:"required_with=Code"`

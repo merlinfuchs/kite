@@ -358,7 +358,8 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
             title: plan.title,
             description: plan.description,
             price_per_month: plan.price,
-            price_per_year: plan.yearly_price,
+            // Plans that can't be bought yearly have no yearly price.
+            price_per_year: plan.yearly_price || undefined,
             credits_per_month: plan.feature_usage_credits_per_month,
             max_servers: plan.feature_max_guilds,
             max_commands: plan.feature_max_commands,
