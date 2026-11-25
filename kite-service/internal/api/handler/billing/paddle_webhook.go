@@ -3,6 +3,7 @@ package billing
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 )
 
 // paddleWebhookMaxBodySize is what the Paddle SDK reads of a webhook.
@@ -68,6 +70,11 @@ func (h *BillingHandler) HandlePaddleWebhook(c *handler.Context) (*wire.BillingW
 			slog.String("paddle_subscription_id", event.Data.ID),
 			slog.String("error", err.Error()),
 		)
+		// Retrying these can't succeed, and Paddle turns off a destination
+		// that keeps failing.
+		if errors.Is(err, corebilling.ErrUnknownOwner) || errors.Is(err, corebilling.ErrUnknownPlan) {
+			return &wire.BillingWebhookResponse{}, nil
+		}
 		return nil, err
 	}
 

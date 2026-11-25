@@ -239,11 +239,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			go prescreen.New(&openaiClient, cfg.Prescreen.Model, pg, notifier).Run(ctx)
 		}
 
-		if cfg.Billing.LemonSqueezyAPIKey != "" || paddleClient != nil {
-			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
-				cfg.Billing.LemonSqueezyAPIKey,
-				cfg.Billing.LemonSqueezySigningSecret,
-			), paddleClient).Run(ctx)
+		lemonSqueezyClient := billing.NewReconcileLemonSqueezyClient(cfg.Billing.LemonSqueezyAPIKey, cfg.Billing.LemonSqueezySigningSecret)
+		if lemonSqueezyClient != nil || paddleClient != nil {
+			billing.NewSubscriptionManager(pg, pg, planManager, lemonSqueezyClient, paddleClient).Run(ctx)
 		}
 	}
 
