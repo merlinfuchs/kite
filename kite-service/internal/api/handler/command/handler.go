@@ -262,7 +262,7 @@ func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.Command
 }
 
 // compileCommand compiles a command that is being saved, and also rejects
-// arguments Discord would reject.
+// arguments Discord would reject and blocks commands can't use.
 func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 	cmdFlow, err := flow.CompileCommand(source)
 	if err != nil {
@@ -270,6 +270,9 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 	}
 	if err := cmdFlow.CheckCommandArguments(); err != nil {
 		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+	}
+	if err := flow.CheckBlocks(source, cmdFlow); err != nil {
+		return nil, handler.ErrBadRequest("invalid_flow", err.Error())
 	}
 	return cmdFlow, nil
 }

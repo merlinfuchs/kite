@@ -38,6 +38,10 @@ export function buildFlowCatalog() {
             contexts: flowContextTypes.filter((c) =>
               isNodeTypeAvailable(type, c)
             ),
+            // Event listeners can only use these after a button or select
+            // menu is used. The service checks both on save, see blockRules
+            // in kite-service/pkg/flow/contexts.go.
+            ...(values.needsInteraction ? { needs_interaction: true } : {}),
             outputs: getNodeOutputs({ type, data: {} }),
             // Blocks like conditions and loops are created together with the
             // blocks they own and are connected to them with fixed edges.
