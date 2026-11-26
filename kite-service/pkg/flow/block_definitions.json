@@ -675,6 +675,50 @@
       }
     },
     {
+      "type": "action_poll_end",
+      "title": "End poll",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "poll_expire"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        },
+        {
+          "name": "message_target",
+          "in": "path",
+          "target": "message_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": {
+        "thing": "discord_message",
+        "list": false
+      }
+    },
+    {
       "type": "action_message_list",
       "title": "List channel messages",
       "credits": 0,
