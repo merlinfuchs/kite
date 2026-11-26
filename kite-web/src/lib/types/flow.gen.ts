@@ -3,6 +3,21 @@ import { MessageData } from './message.gen';
 type StringIndexable = Record<string, unknown>;
 
 //////////
+// source: contexts.go
+
+/**
+ * FlowContextType is the kind of flow a block is in. They're the same as
+ * flowContextTypes in kite-web/src/lib/flow/context.tsx.
+ */
+export type FlowContextType = string;
+export const FlowContextCommand: FlowContextType = "command";
+export const FlowContextComponentButton: FlowContextType = "component_button";
+export const FlowContextComponentSelectMenu: FlowContextType = "component_select_menu";
+export const FlowContextEventDiscord: FlowContextType = "event_discord";
+export const FlowContextEventSchedule: FlowContextType = "event_schedule";
+export const FlowContextEventWebhook: FlowContextType = "event_webhook";
+
+//////////
 // source: data.go
 
 export interface FlowData {
