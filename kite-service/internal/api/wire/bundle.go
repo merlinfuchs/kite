@@ -64,6 +64,10 @@ type BundleOwner struct {
 	// Badges are the badges of the user, only set in the list of all
 	// templates.
 	Badges []UserBadge `json:"badges,omitempty"`
+	// InstallerCount is how many other users added any of their listed
+	// templates, which is what the template creator badges count. Only set in
+	// the list of all templates, and missing for users without a listed one.
+	InstallerCount int `json:"installer_count,omitempty"`
 }
 
 func BundleOwnerToWire(user *model.User) *BundleOwner {

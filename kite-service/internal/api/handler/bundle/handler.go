@@ -56,6 +56,14 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 	if err != nil {
 		return nil, fmt.Errorf("failed to get badges: %w", err)
 	}
+	stats, err := h.bundleStore.CreatorStats(c.Context(), ownerIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get creator stats: %w", err)
+	}
+	installerCounts := make(map[string]int, len(stats))
+	for _, s := range stats {
+		installerCounts[s.UserID] = s.InstallerCount
+	}
 
 	res := make([]*wire.Bundle, len(list))
 	for i, b := range list {
@@ -63,6 +71,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		if b.Owner != nil {
 			res[i].Owner = wire.BundleOwnerToWire(b.Owner)
 			res[i].Owner.Badges = wire.UserBadgesToWire(badges[b.Owner.ID])
+			res[i].Owner.InstallerCount = installerCounts[b.Owner.ID]
 			res[i].Yours = b.OwnedBy(userID)
 		}
 	}
