@@ -2,6 +2,7 @@ package flow
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -166,14 +167,19 @@ func TestFlowCompileSchedule(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, got.IsScheduleEntry())
 	assert.Equal(t, "*/5 * * * *", got.EventScheduleCron())
+	assert.Equal(t, FlowContextEventSchedule, got.FlowContext())
 
 	for _, action := range []FlowNodeType{
 		FlowNodeTypeActionResponseCreate,
 		FlowNodeTypeActionResponseDefer,
 		FlowNodeTypeSuspendResponseModal,
+		FlowNodeTypeActionServerLeave,
 	} {
-		_, err := CompileEventListener(scheduleFlow(action))
-		assert.Error(t, err, "%s should be rejected in scheduled flows", action)
+		data := scheduleFlow(action)
+		// Listeners saved before the check still compile and run.
+		entry, err := CompileEventListener(data)
+		require.NoError(t, err)
+		assert.ErrorContains(t, CheckBlocks(data, entry), string(action), "%s should be rejected in scheduled flows", action)
 	}
 }
 
@@ -193,8 +199,9 @@ func TestFlowCompileScheduleAllowsResponsesInButtonBranches(t *testing.T) {
 	data.Nodes = append(data.Nodes, FlowNode{ID: "2", Type: FlowNodeTypeActionResponseCreate})
 	data.Edges = append(data.Edges, FlowEdge{Source: "1", Target: "2", SourceHandle: null.StringFrom("component_1")})
 
-	_, err := CompileEventListener(data)
-	assert.NoError(t, err, "a clicked button has an interaction to respond to")
+	entry, err := CompileEventListener(data)
+	require.NoError(t, err)
+	assert.NoError(t, CheckBlocks(data, entry), "a clicked button has an interaction to respond to")
 }
 
 func commandArgumentsFlow(order []string) FlowData {
@@ -300,14 +307,18 @@ func TestFlowCompileWebhook(t *testing.T) {
 	assert.True(t, got.IsWebhookEntry())
 	assert.False(t, got.IsScheduleEntry())
 	assert.Equal(t, EventTypeWebhook, got.EventListenerType())
+	assert.Equal(t, FlowContextEventWebhook, got.FlowContext())
+	assert.NoError(t, CheckBlocks(webhookFlow(FlowNodeTypeActionWebhookResponseCreate), got))
 
 	for _, action := range []FlowNodeType{
 		FlowNodeTypeActionResponseCreate,
 		FlowNodeTypeActionResponseDefer,
 		FlowNodeTypeSuspendResponseModal,
 	} {
-		_, err := CompileEventListener(webhookFlow(action))
-		assert.Error(t, err, "%s should be rejected in webhook flows", action)
+		data := webhookFlow(action)
+		entry, err := CompileEventListener(data)
+		require.NoError(t, err)
+		assert.ErrorContains(t, CheckBlocks(data, entry), string(action), "%s should be rejected in webhook flows", action)
 	}
 }
 
@@ -316,11 +327,12 @@ func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
 	data.Nodes = append(data.Nodes, FlowNode{ID: "2", Type: FlowNodeTypeActionResponseCreate})
 	data.Edges = append(data.Edges, FlowEdge{Source: "1", Target: "2", SourceHandle: null.StringFrom("component_1")})
 
-	_, err := CompileEventListener(data)
-	assert.NoError(t, err, "a clicked button has an interaction to respond to")
+	entry, err := CompileEventListener(data)
+	require.NoError(t, err)
+	assert.NoError(t, CheckBlocks(data, entry), "a clicked button has an interaction to respond to")
 }
 
-func TestCheckInteractionBlocksInDiscordEventListeners(t *testing.T) {
+func TestCheckBlocksInteractionsInDiscordEventListeners(t *testing.T) {
 	data := FlowData{
 		Nodes: []FlowNode{
 			{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: "message_create", Description: "On message"}},
@@ -335,13 +347,54 @@ func TestCheckInteractionBlocksInDiscordEventListeners(t *testing.T) {
 
 	entry, err := CompileEventListener(data)
 	require.NoError(t, err)
-	assert.NoError(t, entry.CheckInteractionBlocks(), "a clicked button has an interaction to respond to")
+	assert.NoError(t, CheckBlocks(data, entry), "a clicked button has an interaction to respond to")
 
 	// Listeners saved before the check still compile and run.
 	data.Edges[1].SourceHandle = null.String{}
 	entry, err = CompileEventListener(data)
 	require.NoError(t, err)
-	assert.ErrorContains(t, entry.CheckInteractionBlocks(), "action_response_create")
+	assert.ErrorContains(t, CheckBlocks(data, entry), "action_response_create")
+}
+
+func TestCheckBlocksRejectsBlocksOfOtherFlows(t *testing.T) {
+	filter := FlowNode{ID: "filter", Type: FlowNodeTypeOptionEventFilter}
+	filterEdge := FlowEdge{Source: "filter", Target: "0"}
+
+	// Commands can respond, but have no event to filter.
+	data := flowCommandInput
+	data.Nodes = append(slices.Clone(data.Nodes), filter)
+	data.Edges = append(slices.Clone(data.Edges), filterEdge)
+	entry, err := CompileCommand(flowCommandInput)
+	require.NoError(t, err)
+	assert.NoError(t, CheckBlocks(flowCommandInput, entry))
+	entry, err = CompileCommand(data)
+	require.NoError(t, err, "commands saved before the check still compile")
+	assert.EqualError(t, CheckBlocks(data, entry), "block option_event_filter can't be used in commands")
+
+	// Scheduled runs have no event either.
+	data = scheduleFlow(FlowNodeTypeActionMessageCreate)
+	data.Nodes = append(data.Nodes, filter)
+	data.Edges = append(data.Edges, filterEdge)
+	entry, err = CompileEventListener(data)
+	require.NoError(t, err)
+	assert.EqualError(t, CheckBlocks(data, entry), "block option_event_filter can't be used in scheduled event listeners")
+
+	// Only webhook runs have a request to answer.
+	data = FlowData{
+		Nodes: []FlowNode{
+			{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: "message_create", Description: "On message"}},
+			{ID: "1", Type: FlowNodeTypeActionWebhookResponseCreate},
+		},
+		Edges: []FlowEdge{{Source: "0", Target: "1"}},
+	}
+	entry, err = CompileEventListener(data)
+	require.NoError(t, err)
+	assert.Equal(t, FlowContextEventDiscord, entry.FlowContext())
+	assert.EqualError(t, CheckBlocks(data, entry), "block action_webhook_response_create can't be used in Discord event listeners")
+
+	// Blocks that aren't connected are checked too.
+	data.Edges = nil
+	assert.Error(t, CheckBlocks(data, entry))
 }
 
 func TestCommandValidationMatchesDiscordLimits(t *testing.T) {

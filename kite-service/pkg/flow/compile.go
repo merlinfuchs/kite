@@ -51,38 +51,7 @@ func CompileComponentButton(data FlowData) (*CompiledFlowNode, error) {
 }
 
 func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
-	entry, err := compile(data, FlowNodeTypeEntryEvent)
-	if err != nil {
-		return nil, err
-	}
-
-	if entry.IsScheduleEntry() {
-		// Scheduled runs have no interaction to respond to, until a button
-		// sent by the flow is clicked.
-		if node := firstWithoutInteraction(entry, isInteractionOnly); node != nil {
-			return nil, fmt.Errorf("block %s can't be used in scheduled event listeners outside of button branches", node.Type)
-		}
-	}
-
-	if entry.IsWebhookEntry() {
-		// Like scheduled runs, webhook runs have no interaction to respond to.
-		if node := firstWithoutInteraction(entry, isInteractionOnly); node != nil {
-			return nil, fmt.Errorf("block %s can't be used in webhook event listeners outside of button branches", node.Type)
-		}
-	}
-
-	return entry, nil
-}
-
-// CheckInteractionBlocks reports blocks that respond to an interaction before
-// a button sent by the flow is used, which event listeners have none of.
-// Saving checks it, not compiling, so Discord event listeners saved before
-// keep running.
-func (n *CompiledFlowNode) CheckInteractionBlocks() error {
-	if node := firstWithoutInteraction(n, isInteractionOnly); node != nil {
-		return fmt.Errorf("block %s can't be used in event listeners outside of button branches", node.Type)
-	}
-	return nil
+	return compile(data, FlowNodeTypeEntryEvent)
 }
 
 // firstWithoutInteraction returns the first node matching match that runs
@@ -134,18 +103,6 @@ func (n *CompiledFlowNode) sameExecutionChildren() []*CompiledFlowNode {
 // branch of a block inside it.
 func (n *CompiledFlowNode) runsUnder(children []*CompiledFlowNode) bool {
 	return firstInExecution(children, func(c *CompiledFlowNode) bool { return c == n }) != nil
-}
-
-func isInteractionOnly(t FlowNodeType) bool {
-	switch t {
-	case FlowNodeTypeActionResponseCreate,
-		FlowNodeTypeActionResponseEdit,
-		FlowNodeTypeActionResponseDelete,
-		FlowNodeTypeActionResponseDefer,
-		FlowNodeTypeSuspendResponseModal:
-		return true
-	}
-	return false
 }
 
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {

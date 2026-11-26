@@ -294,6 +294,7 @@
         "event_schedule",
         "event_webhook"
       ],
+      "needs_interaction": true,
       "outputs": [
         "default"
       ],
@@ -398,6 +399,7 @@
         "event_schedule",
         "event_webhook"
       ],
+      "needs_interaction": true,
       "outputs": [
         "default"
       ],
@@ -522,6 +524,7 @@
         "event_schedule",
         "event_webhook"
       ],
+      "needs_interaction": true,
       "outputs": [
         "default"
       ],
@@ -574,6 +577,7 @@
         "event_schedule",
         "event_webhook"
       ],
+      "needs_interaction": true,
       "outputs": [
         "default"
       ],
@@ -606,6 +610,7 @@
         "event_schedule",
         "event_webhook"
       ],
+      "needs_interaction": true,
       "outputs": [
         "default"
       ],
