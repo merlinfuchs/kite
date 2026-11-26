@@ -24,6 +24,12 @@ Every embed can show a timestamp in its footer. Discord shows it in the local ti
 
 In the `Timestamp` input you can either pick a fixed date and time, or turn on `Time of sending` to always use the time the message is sent, for example when the message is a response to a command.
 
+## Attachments
+
+Under `Attachments` you can add up to 10 files to a message, like images or PDFs of up to 8 MB each. They're sent along with the message. Uploaded files, including images for embeds and sounds for [Play audio](./blocks/actions/action_voice_audio_play.md), count toward your app's file storage of 500 MB.
+
+Kite deletes uploaded files that no message template or block uses anymore after 7 days, like attachments you removed or images you uploaded but never saved. Removing a file and adding it back within those 7 days keeps it, and files used by a saved version stay as long as you can restore that version. Images of messages that were already sent may stop showing once their file is deleted.
+
 ## Interactive components
 
 You can add interactive components like buttons and select menus to your message which your users can interact with.

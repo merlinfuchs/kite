@@ -11,7 +11,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 The `Play audio` block makes your app join a voice channel and play a sound in it. If the app is already in a voice channel in that server, it moves to the new one. If it already plays something in the server, that stops and the new sound plays instead. This block needs Kite Plus or a higher plan.
 
-Upload the **Sound** in the block's settings, like an MP3, M4A, WAV or OGG file of up to 2 minutes and 8 MB. Kite converts it once when you upload it and evens out its volume, so all sounds play about equally loud. Uploaded sounds count toward your app's file storage.
+Upload the **Sound** in the block's settings, like an MP3, M4A, WAV or OGG file of up to 2 minutes and 8 MB. Kite converts it once when you upload it and evens out its volume, so all sounds play about equally loud. Uploaded sounds count toward your app's file storage, and a sound no block uses anymore is deleted after 7 days, see [Attachments](../../message.md#attachments).
 
 The block finishes as soon as the sound starts playing, so the blocks after it run while it plays. With **Leave When Done**, the app leaves the voice channel once the sound ended, otherwise it stays until a [Leave voice channel](./action_voice_channel_leave.md) block runs. Use [Stop audio](./action_voice_audio_stop.md) to stop the sound early.
 
