@@ -379,6 +379,12 @@ describe("getAvailablePlaceholders", () => {
       ).map((g) => g.label);
 
     expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("thread_create")).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "App",
+    ]);
     expect(labels("guild_create")).toEqual(["Server", "App"]);
     expect(labels("direct_message_create")).toEqual([
       "User",
