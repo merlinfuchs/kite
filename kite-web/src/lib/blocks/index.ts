@@ -57,6 +57,7 @@ import { discordEntryEvent } from "./discordEntryEvent";
 import { discordForumPostCreate } from "./discordForumPostCreate";
 import { discordGuildGet } from "./discordGuildGet";
 import { discordInviteCreate } from "./discordInviteCreate";
+import { discordInviteDelete } from "./discordInviteDelete";
 import { discordMemberBan } from "./discordMemberBan";
 import { discordMemberEdit } from "./discordMemberEdit";
 import { discordMemberGet } from "./discordMemberGet";
@@ -184,6 +185,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
+  discordInviteDelete,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordMemberVoiceEdit,

@@ -432,6 +432,23 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 
 func TestOperationPolicies(t *testing.T) {
 	assert.True(t, operations["discord"]["ban_user_from_guild"].Policy.Destructive)
+	assert.True(t, operations["discord"]["invite_revoke"].Policy.Destructive)
 	assert.Equal(t, "channel", operations["discord"]["create_message"].Policy.Target)
 	assert.Zero(t, operations["discord"]["get_channel"].Credits)
+}
+
+func TestBlockDefinitionInviteDelete(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_invite_delete", `{
+		"invite_code": "kite123",
+		"audit_log_reason": "cleanup"
+	}`)
+	require.NoError(t, err)
+	assert.Equal(t, "DELETE", p.req.Method)
+	assert.Equal(t, "/invites/kite123", p.req.Path)
+	assert.Equal(t, api.AuditLogReason("cleanup"), p.req.Reason)
+	assert.Nil(t, p.req.Body)
+
+	_, err = executeBlock(t, &blockTestProvider{}, "action_invite_delete", `{"invite_code": "../other"}`)
+	assert.ErrorContains(t, err, "invalid value for path parameter code")
 }

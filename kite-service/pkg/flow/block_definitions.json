@@ -1674,6 +1674,35 @@
       }
     },
     {
+      "type": "action_invite_delete",
+      "title": "Delete invite",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "invite_revoke"
+      },
+      "fields": [
+        {
+          "name": "invite_code",
+          "in": "path",
+          "target": "code",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null,
+          "options": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_voice_channel_join",
       "title": "Join voice channel",
       "credits": 1,
