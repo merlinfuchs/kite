@@ -29,6 +29,10 @@ const (
 	// Files are uploaded before their asset is created, so a newer file
 	// without an asset may belong to an upload that is still in progress.
 	UnusedAssetObjectMinAge = time.Hour
+	// Uploaded files no message template or flow uses are deleted after this,
+	// so an upload that isn't saved yet or an attachment that's removed and
+	// added back isn't lost.
+	UnusedAssetExpiry = 7 * 24 * time.Hour
 	// Kept after they expire, so a code used again soon after its first use
 	// is still found and revokes its token.
 	UsedOAuthCodeExpiry = time.Hour
@@ -38,6 +42,8 @@ const (
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
 	// rest is picked up by the next tick.
 	cleanupMaxBatches = 100
+	// The rest of the unused assets are deleted by the next tick.
+	unusedAssetMaxDeletes = 1000
 	// Shorter than the cleanup interval, so asset cleanups never overlap.
 	assetCleanupTimeout = 30 * time.Minute
 )
@@ -475,6 +481,10 @@ func (m *UsageManager) cleanupNotifications(ctx context.Context) error {
 func (m *UsageManager) cleanupAssets(ctx context.Context) error {
 	if err := m.assetStore.DeleteExpiredAssets(ctx, time.Now().UTC()); err != nil {
 		return fmt.Errorf("failed to delete expired assets: %w", err)
+	}
+
+	if err := m.assetStore.DeleteUnusedAssets(ctx, UnusedAssetExpiry, unusedAssetMaxDeletes); err != nil {
+		return fmt.Errorf("failed to delete unused assets: %w", err)
 	}
 
 	if err := m.assetStore.DeleteUnusedObjects(ctx, UnusedAssetObjectMinAge); err != nil {

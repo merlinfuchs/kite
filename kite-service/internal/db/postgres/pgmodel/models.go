@@ -82,6 +82,7 @@ type Asset struct {
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
 	ExpiresAt       pgtype.Timestamp
+	UnusedSince     pgtype.Timestamp
 }
 
 type AssistantPrompt struct {

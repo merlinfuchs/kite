@@ -37,7 +37,7 @@ INSERT INTO assets (
     expires_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at
+) RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at, unused_since
 `
 
 type CreateAssetParams struct {
@@ -81,12 +81,13 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ExpiresAt,
+		&i.UnusedSince,
 	)
 	return i, err
 }
 
 const deleteAsset = `-- name: DeleteAsset :one
-DELETE FROM assets WHERE id = $1 RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at
+DELETE FROM assets WHERE id = $1 RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at, unused_since
 `
 
 func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
@@ -104,12 +105,13 @@ func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ExpiresAt,
+		&i.UnusedSince,
 	)
 	return i, err
 }
 
 const getAsset = `-- name: GetAsset :one
-SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE id = $1
+SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at, unused_since FROM assets WHERE id = $1
 `
 
 func (q *Queries) GetAsset(ctx context.Context, id string) (Asset, error) {
@@ -127,6 +129,7 @@ func (q *Queries) GetAsset(ctx context.Context, id string) (Asset, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ExpiresAt,
+		&i.UnusedSince,
 	)
 	return i, err
 }
@@ -170,8 +173,53 @@ func (q *Queries) GetAssetStorageByApp(ctx context.Context, appID string) (int64
 	return column_1, err
 }
 
+const getAssetsUnusedBefore = `-- name: GetAssetsUnusedBefore :many
+SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at, unused_since FROM assets
+WHERE unused_since < $1
+ORDER BY unused_since
+LIMIT $2
+`
+
+type GetAssetsUnusedBeforeParams struct {
+	UnusedBefore pgtype.Timestamp
+	MaxCount     int32
+}
+
+func (q *Queries) GetAssetsUnusedBefore(ctx context.Context, arg GetAssetsUnusedBeforeParams) ([]Asset, error) {
+	rows, err := q.db.Query(ctx, getAssetsUnusedBefore, arg.UnusedBefore, arg.MaxCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Asset
+	for rows.Next() {
+		var i Asset
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ContentHash,
+			&i.ContentType,
+			&i.ContentSize,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.UnusedSince,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getExpiredAssets = `-- name: GetExpiredAssets :many
-SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE expires_at < $1
+SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at, unused_since FROM assets WHERE expires_at < $1
 `
 
 func (q *Queries) GetExpiredAssets(ctx context.Context, expiresAt pgtype.Timestamp) ([]Asset, error) {
@@ -195,6 +243,7 @@ func (q *Queries) GetExpiredAssets(ctx context.Context, expiresAt pgtype.Timesta
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ExpiresAt,
+			&i.UnusedSince,
 		); err != nil {
 			return nil, err
 		}
@@ -204,4 +253,119 @@ func (q *Queries) GetExpiredAssets(ctx context.Context, expiresAt pgtype.Timesta
 		return nil, err
 	}
 	return items, nil
+}
+
+const getUsedAssetIDs = `-- name: GetUsedAssetIDs :many
+WITH asset_apps AS (
+    SELECT DISTINCT app_id FROM assets
+), contents AS (
+    SELECT flow_source::TEXT AS content FROM commands
+    WHERE app_id IN (SELECT app_id FROM asset_apps)
+    UNION ALL
+    SELECT flow_source::TEXT FROM event_listeners
+    WHERE app_id IN (SELECT app_id FROM asset_apps)
+    UNION ALL
+    SELECT data::TEXT || flow_sources::TEXT FROM messages
+    WHERE app_id IN (SELECT app_id FROM asset_apps)
+    UNION ALL
+    -- Buttons of messages sent before an edit still run their old flows.
+    SELECT message_instances.flow_sources::TEXT FROM message_instances
+    JOIN messages ON messages.id = message_instances.message_id
+    WHERE messages.app_id IN (SELECT app_id FROM asset_apps)
+    UNION ALL
+    -- Saved versions can be restored, including of deleted items.
+    SELECT content::TEXT FROM item_versions
+    WHERE app_id IN (SELECT app_id FROM asset_apps)
+    UNION ALL
+    SELECT data::TEXT FROM share_codes
+    UNION ALL
+    SELECT content::TEXT FROM bundle_versions
+)
+SELECT DISTINCT (regexp_matches(
+    content,
+    '(?:asset_id": ?"|/v1/assets/)([0-9a-z]+)',
+    'g'
+))[1]::TEXT AS asset_id FROM contents
+`
+
+// The IDs of assets that message templates, flows and their saved versions use,
+// by asset_id like attachments and Play audio blocks, or by their URL like
+// images in embeds. Only apps with assets can use them by ID, but their URLs
+// also reach other apps through share codes and templates, which are read in
+// full.
+func (q *Queries) GetUsedAssetIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getUsedAssetIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var asset_id string
+		if err := rows.Scan(&asset_id); err != nil {
+			return nil, err
+		}
+		items = append(items, asset_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const isAssetUsedByApp = `-- name: IsAssetUsedByApp :one
+SELECT (
+    EXISTS (
+        SELECT 1 FROM commands
+        WHERE commands.app_id = $1 AND strpos(flow_source::TEXT, $2::TEXT) > 0
+    ) OR EXISTS (
+        SELECT 1 FROM event_listeners
+        WHERE event_listeners.app_id = $1 AND strpos(flow_source::TEXT, $2::TEXT) > 0
+    ) OR EXISTS (
+        SELECT 1 FROM messages
+        WHERE messages.app_id = $1 AND strpos(data::TEXT || flow_sources::TEXT, $2::TEXT) > 0
+    ) OR EXISTS (
+        SELECT 1 FROM item_versions
+        WHERE item_versions.app_id = $1 AND strpos(content::TEXT, $2::TEXT) > 0
+    )
+)::BOOLEAN
+`
+
+type IsAssetUsedByAppParams struct {
+	AppID   string
+	AssetID string
+}
+
+// Checks the rows of the asset's own app again right before it's deleted, in
+// case it was added back since GetUsedAssetIDs read them.
+func (q *Queries) IsAssetUsedByApp(ctx context.Context, arg IsAssetUsedByAppParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isAssetUsedByApp, arg.AppID, arg.AssetID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const markAssetsUnused = `-- name: MarkAssetsUnused :exec
+UPDATE assets SET unused_since = $1
+WHERE unused_since IS NULL AND NOT (id = ANY($2::TEXT[]))
+`
+
+type MarkAssetsUnusedParams struct {
+	UnusedSince pgtype.Timestamp
+	UsedIds     []string
+}
+
+func (q *Queries) MarkAssetsUnused(ctx context.Context, arg MarkAssetsUnusedParams) error {
+	_, err := q.db.Exec(ctx, markAssetsUnused, arg.UnusedSince, arg.UsedIds)
+	return err
+}
+
+const markAssetsUsed = `-- name: MarkAssetsUsed :exec
+UPDATE assets SET unused_since = NULL
+WHERE unused_since IS NOT NULL AND id = ANY($1::TEXT[])
+`
+
+func (q *Queries) MarkAssetsUsed(ctx context.Context, usedIds []string) error {
+	_, err := q.db.Exec(ctx, markAssetsUsed, usedIds)
+	return err
 }

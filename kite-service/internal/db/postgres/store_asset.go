@@ -162,6 +162,72 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 	return nil
 }
 
+// Each run marks the assets nothing uses with the time it first found them
+// unused, and clears it on the ones used again, so an attachment that's removed
+// and added back in the meantime isn't lost.
+func (s *AssetStore) DeleteUnusedAssets(ctx context.Context, unusedFor time.Duration, maxCount int) error {
+	usedIDs, err := s.pg.Q.GetUsedAssetIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get used asset IDs: %w", err)
+	}
+	if usedIDs == nil {
+		usedIDs = []string{}
+	}
+
+	if err := s.pg.Q.MarkAssetsUsed(ctx, usedIDs); err != nil {
+		return fmt.Errorf("failed to mark used assets: %w", err)
+	}
+
+	now := time.Now().UTC()
+	err = s.pg.Q.MarkAssetsUnused(ctx, pgmodel.MarkAssetsUnusedParams{
+		UnusedSince: pgtype.Timestamp{Time: now, Valid: true},
+		UsedIds:     usedIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to mark unused assets: %w", err)
+	}
+
+	assets, err := s.pg.Q.GetAssetsUnusedBefore(ctx, pgmodel.GetAssetsUnusedBeforeParams{
+		UnusedBefore: pgtype.Timestamp{Time: now.Add(-unusedFor), Valid: true},
+		MaxCount:     int32(maxCount),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get unused assets: %w", err)
+	}
+
+	failed, failedInARow := 0, 0
+	for _, asset := range assets {
+		used, err := s.pg.Q.IsAssetUsedByApp(ctx, pgmodel.IsAssetUsedByAppParams{
+			AppID:   asset.AppID,
+			AssetID: asset.ID,
+		})
+		if err == nil {
+			if used {
+				// Otherwise it stays first in line and holds up the others.
+				err = s.pg.Q.MarkAssetsUsed(ctx, []string{asset.ID})
+			} else {
+				err = s.DeleteAsset(ctx, asset.ID)
+			}
+		}
+		if err == nil {
+			failedInARow = 0
+			continue
+		}
+
+		slog.Error("Failed to delete unused asset", slog.String("asset_id", asset.ID), slog.String("error", err.Error()))
+		failed++
+		failedInARow++
+		if failedInARow >= maxUnusedObjectDeleteFailuresInARow {
+			return fmt.Errorf("stopped after failing to delete %d unused assets in a row: %w", failedInARow, err)
+		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("failed to delete %d unused assets", failed)
+	}
+
+	return nil
+}
+
 const maxUnusedObjectDeleteFailuresInARow = 5
 
 // Objects are uploaded before their asset is inserted, so minAge keeps the

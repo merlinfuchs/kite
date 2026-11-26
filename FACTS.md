@@ -30,6 +30,7 @@ Features (feature | what it means for the user | free or paid):
 - Scheduled tasks | run a flow on a schedule | free, every 5 minutes at most, every minute on Kite Premium
 - Webhooks | start a flow from another website or service | free
 - Message templates | design embeds, buttons, and select menus and see them as Discord shows them | free
+- Uploaded files | attachments, images for embeds, and sounds for Play audio, up to 8 MB each. Files no message template or block uses anymore are deleted after 7 days | free, 500 MB per app
 - Stored variables | keep points, counts, and settings per member or server, up to 64 KB per value | free
 - Marketplace templates | add a ready-made bot, like moderation or giveaways, then change it | free
 - Share and list your own templates | anyone with the link can add it, and listed ones show in the Marketplace | free
