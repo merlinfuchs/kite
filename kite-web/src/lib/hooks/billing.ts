@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   CheckoutEventNames,
   initializePaddle,
@@ -6,12 +6,13 @@ import {
 } from "@paddle/paddle-js";
 import {
   useAppSubscriptionManageMutation,
+  useAppSubscriptionMoveMutation,
   useAppSubscriptionPlanUpdateMutation,
   useCheckoutCreateMutation,
 } from "../api/mutations";
 import { useAppId } from "./params";
 import { toast } from "sonner";
-import { track } from "../analytics";
+import { AnalyticsEvent, track } from "../analytics";
 import {
   BillingCheckoutResponse,
   BillingPlan,
@@ -75,6 +76,7 @@ let paddle: Promise<Paddle | undefined> | undefined;
 // The properties of the open checkout, for the events of Paddle.js, which
 // are set up once for all checkouts.
 let paddleCheckoutProperties: Record<string, string> | undefined;
+let paddleCompletedEvent: AnalyticsEvent = "checkout_completed";
 
 // loadPaddle loads Paddle.js the first time a checkout opens, so pages without
 // one don't load it.
@@ -87,7 +89,7 @@ function loadPaddle(token: string, sandbox: boolean) {
         event.name === CheckoutEventNames.CHECKOUT_COMPLETED &&
         paddleCheckoutProperties
       ) {
-        track("checkout_completed", paddleCheckoutProperties);
+        track(paddleCompletedEvent, paddleCheckoutProperties);
       }
     },
   }).catch((err) => {
@@ -100,7 +102,8 @@ function loadPaddle(token: string, sandbox: boolean) {
 
 async function openPaddleCheckout(
   checkout: BillingCheckoutResponse,
-  properties: Record<string, string>
+  properties: Record<string, string>,
+  completedEvent: AnalyticsEvent = "checkout_completed"
 ) {
   try {
     const instance = await loadPaddle(
@@ -110,6 +113,7 @@ async function openPaddleCheckout(
     if (!instance) throw new Error("Paddle.js isn't available");
 
     paddleCheckoutProperties = properties;
+    paddleCompletedEvent = completedEvent;
     instance.Checkout.open({
       transactionId: checkout.paddle_transaction_id!,
       customer: checkout.customer_email
@@ -122,6 +126,34 @@ async function openPaddleCheckout(
       "The checkout couldn't open. Check that nothing blocks paddle.com and try again."
     );
   }
+}
+
+// useSubscriptionMove opens the checkout that moves a Lemon Squeezy
+// subscription to Paddle. It costs nothing, and the service keeps the plan and
+// the date of the next payment once it's done.
+export function useSubscriptionMove(subscription: Subscription) {
+  const appId = useAppId();
+  const moveMutation = useAppSubscriptionMoveMutation(appId, subscription.id);
+  const properties = useMemo(
+    () => ({ plan: subscription.plan_id, interval: subscription.interval }),
+    [subscription.plan_id, subscription.interval]
+  );
+
+  return useCallback(() => {
+    moveMutation.mutate(undefined, {
+      onSuccess(res) {
+        if (!res.success) {
+          toast.error(
+            `Failed to move subscription: ${res.error.message} ${res.error.code}`
+          );
+          return;
+        }
+
+        track("subscription_move_started", properties);
+        openPaddleCheckout(res.data, properties, "subscription_moved");
+      },
+    });
+  }, [moveMutation, properties]);
 }
 
 // useSubscriptionPlanSwitch moves an existing subscription onto another plan.

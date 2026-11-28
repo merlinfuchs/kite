@@ -320,6 +320,7 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
 	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
+	appBillingGroup.Post("/subscriptions/{subscriptionID}/move", handler.Typed(billingHandler.HandleSubscriptionMove))
 	// MCP clients read the plan's limits, like its monthly credits.
 	appBillingGroup.AllowAPIToken().Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 

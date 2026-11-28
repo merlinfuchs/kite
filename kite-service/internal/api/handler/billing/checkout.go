@@ -96,10 +96,6 @@ func (h *BillingHandler) paddleCheckout(
 	yearly bool,
 	successURL string,
 ) (*wire.BillingCheckoutResponse, error) {
-	if h.paddle == nil {
-		return nil, fmt.Errorf("checkout goes to Paddle, but Paddle is not configured")
-	}
-
 	req := &paddle.CreateTransactionRequest{
 		Items: []paddle.CreateTransactionItems{
 			*paddle.NewCreateTransactionItemsTransactionItemFromCatalog(&paddle.TransactionItemFromCatalog{
@@ -116,11 +112,26 @@ func (h *BillingHandler) paddleCheckout(
 		req.DiscountID = ptr(h.config.Sale.PaddleDiscountID)
 	}
 
+	return h.openPaddleTransaction(c, user, req, successURL)
+}
+
+// openPaddleTransaction creates the transaction of req for Paddle.js to open
+// the checkout of.
+func (h *BillingHandler) openPaddleTransaction(
+	c *handler.Context,
+	user *model.User,
+	req *paddle.CreateTransactionRequest,
+	successURL string,
+) (*wire.BillingCheckoutResponse, error) {
+	if h.paddle == nil {
+		return nil, fmt.Errorf("checkout goes to Paddle, but Paddle is not configured")
+	}
+
 	txn, err := h.paddle.CreateTransaction(c.Context(), req)
 	if err != nil {
 		slog.Error(
 			"Failed to create Paddle transaction",
-			slog.String("price_id", priceID),
+			slog.Any("custom_data", req.CustomData),
 			slog.String("error", err.Error()),
 		)
 		return nil, handler.ErrInternal("Failed to reach our payment provider, please try again")

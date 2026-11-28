@@ -467,7 +467,13 @@ export interface Subscription {
    */
   active: boolean;
   manageable: boolean;
+  /**
+   * Movable is whether the subscription can move from Lemon Squeezy to
+   * Paddle now, keeping its plan and billing date.
+   */
+  movable: boolean;
 }
+export type SubscriptionMoveResponse = BillingCheckoutResponse;
 export type SubscriptionListResponse = (Subscription | undefined)[];
 export interface BillingPlan {
   id: string;

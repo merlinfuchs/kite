@@ -57,6 +57,12 @@ func (m *SubscriptionManager) RefreshPaddle(ctx context.Context, paddleID string
 		userID = existing.UserID
 	}
 
+	if movePending(res) {
+		if res, err = m.completeMove(ctx, res, userID, appID); err != nil {
+			return nil, err
+		}
+	}
+
 	sub, err := SubscriptionFromPaddle(res, userID)
 	if err != nil {
 		return nil, err

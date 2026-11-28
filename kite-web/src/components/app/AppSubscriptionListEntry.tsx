@@ -3,6 +3,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -10,6 +11,7 @@ import {
 } from "../ui/card";
 import {
   useSubscriptionCustomerPortal,
+  useSubscriptionMove,
   useSubscriptionUpdatePaymentMethod,
 } from "@/lib/hooks/billing";
 import { formatDate } from "@/lib/utils";
@@ -21,6 +23,7 @@ export default function AppSubscriptionListEntry({
 }) {
   const updatePaymentMethod = useSubscriptionUpdatePaymentMethod(subscription);
   const openCustomerPortal = useSubscriptionCustomerPortal(subscription.id);
+  const move = useSubscriptionMove(subscription);
 
   return (
     <Card>
@@ -46,8 +49,20 @@ export default function AppSubscriptionListEntry({
           </div>
         </div>
       </CardHeader>
+      {subscription.movable && subscription.renews_at && (
+        <CardContent className="text-sm text-muted-foreground">
+          Lemon Squeezy, which bills this subscription, shuts down on March 31,
+          2027. Move it to Paddle to keep your plan after that. You pay nothing
+          today, and your next payment stays on{" "}
+          {formatDate(new Date(subscription.renews_at))}. We cancel the Lemon
+          Squeezy subscription for you.
+        </CardContent>
+      )}
       {subscription.manageable && (
-        <CardFooter className="gap-3">
+        <CardFooter className="gap-3 flex-wrap">
+          {subscription.movable && (
+            <Button onClick={() => move()}>Move to Paddle</Button>
+          )}
           <Button variant="outline" onClick={() => updatePaymentMethod()}>
             Update billing
           </Button>

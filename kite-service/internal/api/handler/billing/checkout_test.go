@@ -92,6 +92,8 @@ func newTestBillingServer(t *testing.T, cfg BillingHandlerConfig) *testBillingSe
 	group.Get("/billing/plans", handler.Typed(h.HandleBillingPlanList))
 	group.Post("/checkout", withApp(handler.TypedWithBody(h.HandleAppCheckout)))
 	group.Put("/subscriptions/{subscriptionID}/plan", withApp(handler.TypedWithBody(h.HandleSubscriptionPlanUpdate)))
+	group.Post("/subscriptions/{subscriptionID}/move", withApp(handler.Typed(h.HandleSubscriptionMove)))
+	group.Get("/subscriptions", withApp(handler.Typed(h.HandleAppSubscriptionList)))
 	s.Handler = mux
 	return s
 }
@@ -251,4 +253,102 @@ func TestPaddlePlanSwitch(t *testing.T) {
 		assert.Equal(t, "plan_unchanged", resp.Error.Code)
 		assert.Empty(t, server.requests)
 	})
+}
+
+func TestSubscriptionMove(t *testing.T) {
+	cfg := BillingHandlerConfig{
+		CheckoutProvider: model.SubscriptionSourcePaddle,
+		Paddle:           config.BillingPaddleConfig{ClientToken: "test_token"},
+	}
+	renewsAt := time.Now().UTC().Add(48 * time.Hour).Truncate(time.Second)
+	lemonSqueezySub := func() *model.Subscription {
+		return &model.Subscription{
+			ID:                         "sub-1",
+			UserID:                     "user-1",
+			Source:                     model.SubscriptionSourceLemonSqueezy,
+			Status:                     model.SubscriptionStatusActive,
+			RenewsAt:                   null.TimeFrom(renewsAt),
+			LemonsqueezySubscriptionID: null.StringFrom("ls_1"),
+			LemonsqueezyProductID:      null.StringFrom("1"),
+			LemonsqueezyVariantID:      null.StringFrom("11"),
+		}
+	}
+
+	t.Run("opens a $0 checkout of the plan's price", func(t *testing.T) {
+		server := newTestBillingServer(t, cfg)
+		server.subStore.byApp = []*model.Subscription{lemonSqueezySub()}
+		server.response = `{"id": "txn_1"}`
+
+		_, list := request[wire.SubscriptionListResponse](t, server, http.MethodGet, "/v1/subscriptions", "")
+		require.Len(t, list.Data, 1)
+		assert.True(t, list.Data[0].Movable)
+
+		code, resp := request[wire.SubscriptionMoveResponse](t, server, http.MethodPost, "/v1/subscriptions/sub-1/move", "")
+		require.Equal(t, http.StatusOK, code, resp.Error)
+		assert.Equal(t, "txn_1", resp.Data.PaddleTransactionID)
+
+		require.Len(t, server.requests, 1)
+		var txn struct {
+			Items []struct {
+				Price struct {
+					Name         string         `json:"name"`
+					ProductID    string         `json:"product_id"`
+					BillingCycle map[string]any `json:"billing_cycle"`
+					UnitPrice    map[string]any `json:"unit_price"`
+				} `json:"price"`
+			} `json:"items"`
+			CustomData map[string]any `json:"custom_data"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(strings.TrimPrefix(server.requests[0], "POST /transactions ")), &txn))
+		price := txn.Items[0].Price
+		assert.Equal(t, "pro_plus", price.ProductID)
+		assert.Equal(t, map[string]any{"interval": "year", "frequency": float64(1)}, price.BillingCycle)
+		assert.Equal(t, map[string]any{"amount": "0", "currency_code": "USD"}, price.UnitPrice)
+		assert.Contains(t, price.Name, renewsAt.Format("January 2, 2006"))
+		assert.Equal(t, map[string]any{
+			"user_id":                    "user-1",
+			"app_id":                     "app-1",
+			"moved_from_lemonsqueezy_id": "ls_1",
+			"move_price_id":              "pri_plus_yearly",
+		}, txn.CustomData)
+	})
+
+	for name, tt := range map[string]struct {
+		cfg    BillingHandlerConfig
+		change func(s *model.Subscription)
+	}{
+		"while checkout is on Lemon Squeezy": {BillingHandlerConfig{}, func(s *model.Subscription) {}},
+		"of another user":                    {cfg, func(s *model.Subscription) { s.UserID = "user-2" }},
+		"that's cancelled": {cfg, func(s *model.Subscription) {
+			s.Status = model.SubscriptionStatusCancelled
+			s.EndsAt = s.RenewsAt
+		}},
+		"that renews within the hour": {cfg, func(s *model.Subscription) {
+			s.RenewsAt = null.TimeFrom(time.Now().Add(30 * time.Minute))
+		}},
+		"of a variant the plan no longer has": {cfg, func(s *model.Subscription) {
+			s.LemonsqueezyVariantID = null.StringFrom("9")
+		}},
+		"on Paddle": {cfg, func(s *model.Subscription) {
+			s.Source = model.SubscriptionSourcePaddle
+			s.PaddleProductID = null.StringFrom("pro_plus")
+			s.PaddlePriceID = null.StringFrom("pri_plus")
+		}},
+	} {
+		t.Run("rejects a subscription "+name, func(t *testing.T) {
+			server := newTestBillingServer(t, tt.cfg)
+			sub := lemonSqueezySub()
+			tt.change(sub)
+			server.subStore.byApp = []*model.Subscription{sub}
+
+			_, list := request[wire.SubscriptionListResponse](t, server, http.MethodGet, "/v1/subscriptions", "")
+			require.Len(t, list.Data, 1)
+			assert.False(t, list.Data[0].Movable)
+
+			code, resp := request[wire.SubscriptionMoveResponse](t, server, http.MethodPost, "/v1/subscriptions/sub-1/move", "")
+			assert.Equal(t, http.StatusBadRequest, code)
+			assert.Equal(t, "unmovable_subscription", resp.Error.Code)
+			assert.Empty(t, server.requests)
+		})
+	}
 }

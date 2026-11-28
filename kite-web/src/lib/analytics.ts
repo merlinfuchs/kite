@@ -61,7 +61,10 @@ export type AnalyticsEvent =
   | "upsell_clicked"
   | "checkout_started"
   | "checkout_completed"
-  | "plan_switched";
+  | "plan_switched"
+  // Moving a Lemon Squeezy subscription to Paddle.
+  | "subscription_move_started"
+  | "subscription_moved";
 
 type Properties = Record<string, string | number | boolean>;
 

@@ -93,7 +93,12 @@ type Subscription struct {
 	// keep its own copy of the LemonSqueezy status vocabulary.
 	Active     bool `json:"active"`
 	Manageable bool `json:"manageable"`
+	// Movable is whether the subscription can move from Lemon Squeezy to
+	// Paddle now, keeping its plan and billing date.
+	Movable bool `json:"movable"`
 }
+
+type SubscriptionMoveResponse = BillingCheckoutResponse
 
 type SubscriptionListResponse = []*Subscription
 
