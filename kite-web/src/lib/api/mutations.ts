@@ -80,6 +80,7 @@ import {
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
+  SubscriptionMoveResponse,
   AppIntegrationConnectRequest,
   AppIntegrationConnectResponse,
   AppIntegrationRemoveResponse,
@@ -1813,6 +1814,21 @@ export function useAppSubscriptionPlanUpdateMutation(
         queryKey: ["apps", appId, "billing", "features"],
       });
     },
+  });
+}
+
+export function useAppSubscriptionMoveMutation(
+  appId: string,
+  subscriptionId: string
+) {
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<SubscriptionMoveResponse>(
+        `/v1/apps/${appId}/billing/subscriptions/${subscriptionId}/move`,
+        {
+          method: "POST",
+        }
+      ),
   });
 }
 

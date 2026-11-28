@@ -72,7 +72,8 @@ func (h *BillingHandler) HandlePaddleWebhook(c *handler.Context) (*wire.BillingW
 		)
 		// Retrying these can't succeed, and Paddle turns off a destination
 		// that keeps failing.
-		if errors.Is(err, corebilling.ErrUnknownOwner) || errors.Is(err, corebilling.ErrUnknownPlan) {
+		if errors.Is(err, corebilling.ErrUnknownOwner) || errors.Is(err, corebilling.ErrUnknownPlan) ||
+			errors.Is(err, corebilling.ErrInvalidMove) {
 			return &wire.BillingWebhookResponse{}, nil
 		}
 		return nil, err

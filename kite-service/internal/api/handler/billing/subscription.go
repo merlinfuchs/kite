@@ -18,30 +18,40 @@ func (h *BillingHandler) HandleAppSubscriptionList(c *handler.Context) (*wire.Su
 
 	res := make(wire.SubscriptionListResponse, len(subscriptions))
 	for i, subscription := range subscriptions {
-		res[i] = wire.SubscriptionToWire(subscription, c.Session.UserID, h.planManager.PlanBySubscription(subscription))
+		res[i] = h.subscriptionToWire(subscription, c.Session.UserID)
 	}
 
 	return &res, nil
 }
 
-func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wire.SubscriptionPlanUpdateRequest) (*wire.SubscriptionPlanUpdateResponse, error) {
-	// Scoped to the app so that a subscription entitling some other app cannot
-	// be made to grant an entitlement here as well.
+func (h *BillingHandler) subscriptionToWire(subscription *model.Subscription, userID string) *wire.Subscription {
+	res := wire.SubscriptionToWire(subscription, userID, h.planManager.PlanBySubscription(subscription))
+	res.Movable = h.moveTarget(subscription, userID) != nil
+	return res
+}
+
+// appSubscription is the subscription of the subscriptionID param, scoped to
+// the app so that a subscription entitling some other app cannot be made to
+// grant an entitlement here as well.
+func (h *BillingHandler) appSubscription(c *handler.Context) (*model.Subscription, error) {
 	subscriptions, err := h.subscriptionStore.SubscriptionsByAppID(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subscriptions: %w", err)
 	}
 
 	subscriptionID := c.Param("subscriptionID")
-	var subscription *model.Subscription
 	for _, s := range subscriptions {
 		if s.ID == subscriptionID {
-			subscription = s
-			break
+			return s, nil
 		}
 	}
-	if subscription == nil {
-		return nil, handler.ErrNotFound("unknown_subscription", "The app has no such subscription")
+	return nil, handler.ErrNotFound("unknown_subscription", "The app has no such subscription")
+}
+
+func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wire.SubscriptionPlanUpdateRequest) (*wire.SubscriptionPlanUpdateResponse, error) {
+	subscription, err := h.appSubscription(c)
+	if err != nil {
+		return nil, err
 	}
 
 	if subscription.UserID != c.Session.UserID {
@@ -90,7 +100,7 @@ func (h *BillingHandler) HandleSubscriptionPlanUpdate(c *handler.Context, req wi
 		return nil, handler.ErrInternal("Failed to switch plan with our payment provider, please try again")
 	}
 
-	return wire.SubscriptionToWire(updated, c.Session.UserID, h.planManager.PlanBySubscription(updated)), nil
+	return h.subscriptionToWire(updated, c.Session.UserID), nil
 }
 
 func (h *BillingHandler) HandleSubscriptionManage(c *handler.Context) (*wire.SubscriptionManageResponse, error) {

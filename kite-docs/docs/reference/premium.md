@@ -30,7 +30,9 @@ Kite Plus raises the limits and includes the rotating status, the `Set status` b
 
 ## Subscribing
 
-Open the `Plans` page of your app and click `Get started` on a plan. You pay through our payment provider, Paddle. The plan applies right away. Older subscriptions stay with Lemon Squeezy for now.
+Open the `Plans` page of your app and click `Get started` on a plan. You pay through our payment provider, Paddle. The plan applies right away.
+
+Older subscriptions are billed by Lemon Squeezy, which shuts down on March 31, 2027. To keep yours, click `Move to Paddle` under `Subscription history` before then. You pay nothing when you move. Your plan and the date of your next payment stay the same, and we cancel the Lemon Squeezy subscription for you.
 
 To change to another plan, click `Switch plan`. You're charged or credited the difference for the rest of the billing period.
 

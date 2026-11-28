@@ -66,7 +66,7 @@ Paid plans (monthly, yearly), read from https://api.kite.onl/v1/billing/plans on
 - Ultimate: $14.99, $149.99. 100 commands, 50 event listeners, 200 variables, 200 message templates. 1,000,000 credits. 2,500 servers. 25 collaborators. 100 Flow AI prompts. 15 scheduled tasks and 15 webhooks.
 - Yearly costs 10 times the monthly price, so 2 months are free.
 - A plan belongs to one app, and prices are per app and month. Your other apps stay on the free plan.
-- Prices are in USD and include tax. New subscriptions are paid through Paddle as merchant of record. Older ones stay with Lemon Squeezy until they're moved to Paddle. Lemon Squeezy shuts down on March 31, 2027.
+- Prices are in USD and include tax. New subscriptions are paid through Paddle as merchant of record. Older ones stay with Lemon Squeezy until their owner clicks `Move to Paddle` on the Plans page, which keeps the plan and the date of the next payment and costs nothing. Lemon Squeezy shuts down on March 31, 2027.
 - A sale takes a percent off the first year of yearly plans, with a code that checkout applies itself. While it runs, the site has a strip above the navbar, and the pricing and Plans pages show the sale price. Monthly subscribers who switch to yearly get the percent refunded by email, as a switch can't take a code. It's set in `[billing.sale]` of kite.toml. Black Week 2026 is 30% off with BLACKWEEK2026 until November 30.
 Trial, refunds, cancellation:
 - No trial. The free plan has no time limit.
